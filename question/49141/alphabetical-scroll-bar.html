@@ -1,0 +1,718 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alphabetical scroll bar » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alphabetical scroll bar</h1>
+		</header>
+		<section>
+			<p>Does anyone know how to create an alphabetical scroll bar on the right side of a TableView on the iphone (and possibly android) like what is on the iphone&#39;s contacts screen?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 3rd 2010, 3:47:00 am">August 3rd 2010</span>
+				by <span class='authorname'>Joseph Yancey</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>scroll</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>4</span> Votes</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-101061">
+				
+						<section>
+							<p>Hi Joseph</p>
+<p>Apologies, I have had to edit this post because I had missed a couple of important lines….</p>
+<p>to configure what you want, you need to insert an &quot;index&quot; object in your tableview row for the start of each alphabetical section. </p>
+<p>I&#39;m going to show a couple of more advanced techniques here and like any such solution, its full of different ways in which you could do things. This is just my way.</p>
+<p>So if I have a database that contains the list I want displayed, then I would do as follows.</p>
+<p>First write the database function to retrieve the list. I separate the database functions from the rest. To do this I would put this in a file dbfunctions.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> db = (<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">var</span> api     = {};
+  <span class="hljs-keyword">var</span> conn     = Titanium.Database.open(<span class="hljs-string">'mydb'</span>);
+
+  api.all_item_names = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">if</span> (debug){  Titanium.API.info(<span class="hljs-string">'api.all_item_names'</span>); }
+    <span class="hljs-keyword">var</span> results = [];
+    <span class="hljs-keyword">var</span> resultSet = conn.execute(<span class="hljs-string">'select * from items'</span> );
+    <span class="hljs-keyword">while</span> ( resultSet.isValidRow()) {
+      results.push({
+        item_name:  resultSet.fieldByName(<span class="hljs-string">'item_name'</span>)
+      });
+      resultSet.next();
+    }
+    resultSet.close();
+    <span class="hljs-keyword">return</span> results;
+  };
+<span class="hljs-keyword">return</span> api;
+}());
+</code></pre><p>Next the code to display the list in the tableview. First we include the database function, then we set a few variables that we are going to use to store the data and then we retrieve the list using our database function above. I would put the rest of the code in a new file e.g. listitems.js</p>
+<pre><code class="hljs">Titanium.<span class="hljs-keyword">include</span>(<span class="hljs-string">'dbfunctions.js'</span>);
+
+<span class="hljs-keyword">var</span> tvrow;
+<span class="hljs-keyword">var</span> curheader    = <span class="hljs-string">'A'</span>; <span class="hljs-comment">//the first letter of the list.</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">list</span>    = [];
+<span class="hljs-keyword">var</span> index    = [];
+<span class="hljs-keyword">var</span> isAndroid   = (Titanium.Platform.name == <span class="hljs-string">'android'</span>);
+
+<span class="hljs-keyword">list</span> = ( db.all_item_names() );
+</code></pre><p>We then need to cycle through the retrieved list from start to finish.</p>
+<p>Our little bit of &#39;magic&#39; to add the list on the right hand side is create an index based upon the curheader variable. If the curheader value is not the same as the first character of the list item, then we<br>1) set the curheader variable to the new value;<br>2) add it to our createTableViewRow for this item in the list with &quot;header: curheader&quot;; and<br>3) we push the new curheader onto our index array. The index array simply contains that curheader value and the position in our list where that value occurs.</p>
+<p>Otherwise we just create a new TableViewRow without the header and do not change the index array.</p>
+<pre><code class="hljs"><span class="hljs-keyword">for</span> ( var ipos=<span class="hljs-number">0</span>; ipos&lt;ilist.length;ipos++){
+  <span class="hljs-keyword">if</span>( <span class="hljs-built_in">list</span>[ipos].item_name[<span class="hljs-number">0</span>] != curheader){
+    curheader = <span class="hljs-built_in">list</span>[ipos].item_name[<span class="hljs-number">0</span>];
+    tvrow = Titanium.UI.createTableViewRow({
+      height:    <span class="hljs-number">20</span>, 
+      header:    curheader });
+    index.push({
+      title:     curheader,
+      index:     ipos });
+  } <span class="hljs-keyword">else</span> {
+    tvrow = Titanium.UI.createTableViewRow({height:<span class="hljs-number">20</span> });
+  }
+</code></pre><p>Next we add the list item to the new TableViewRow</p>
+<pre><code class="hljs">  var title= Titanium.UI.createLabel({ 
+    left:    <span class="hljs-number">5</span>, 
+    top:     <span class="hljs-number">2</span>, 
+    <span class="hljs-variable">height</span>:  <span class="hljs-string">'15'</span>, 
+    <span class="hljs-built_in">color</span>:   <span class="hljs-string">'#000'</span>, 
+    font: {
+      fontSize:    <span class="hljs-number">11</span>, 
+      fontWeight:  <span class="hljs-string">'normal'</span>,    
+      fontFamily:  (isAndroid?<span class="hljs-string">'sans-serif'</span>:<span class="hljs-string">'Helvetica Neue'</span>)
+    }, 
+    <span class="hljs-built_in">text</span>:    list[ipos].item_name });
+    tvrow.<span class="hljs-built_in">add</span>(title);
+    data.push(tvrow);
+  }
+</code></pre><p>Then we populate the Tableview with the data array we have created and add to it the index which we created.</p>
+<pre><code class="hljs">var tableView = Titanium.UI.createTableView({
+  <span class="hljs-type">data</span>:            <span class="hljs-type">data</span>,
+  <span class="hljs-built_in">index</span>:           <span class="hljs-built_in">index</span>
+  separatorStyle:  Titanium.UI.iPhone.TableViewStyle.GROUPED,
+  top:             <span class="hljs-number">1</span>,
+  width:           <span class="hljs-number">300</span>
+});
+
+win.add(tableView);
+</code></pre><p>You will see that I did not set the first index to &quot;A&quot;. The reason for this is that if the first character is a number, it will come up at the top of the list.</p>
+<p>Thats it, corrections included. Hope this helps you.<br>Greg</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 14th 2010, 7:21:33 am">August 14th 2010</span>
+								by <span class='authorname'>Gregor Munro</span><br>
+								<a class="icon-bg icon-link" href="question/49141/alphabetical-scroll-bar#answer-101061" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks!  This example has really helped me understand tableViews and the use of &quot;index&quot;.  There are a couple of typo&#39;s in the example.  In the &quot;for loop&quot; it should be &quot;var ipos=0; ipos&lt;list.length;ipos++&quot; – i.e. var should be &quot;list&quot; not &quot;ilist&quot;.  The variable &quot;data&quot; is used before it is defined and this causes a Javascript execution error.  This var could be defined in the section that &quot;list&quot; and &quot;index&quot; are defined – i.e. &quot;var data = [];&quot;</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 14th 2011, 3:37:07 pm">February 14th 2011</span>
+											by <span class='authorname'>Andy Felong</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>8</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-228026">
+				
+						<section>
+							<p>If anyone is interested, I came up with a nice custom Alphabetical scrollbar that allows you to style your Table however you want and not be stuck using Table Groups. </p>
+<p>It works very similar to the iPhone Contacts listing, where it updates the table position on touchMove.</p>
+<p>This has been tested on Titanium 1.7.5 and iPhone 5.0.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> model = [  {  Title:<span class="hljs-string">'Alphabits'</span> }, {  Title:<span class="hljs-string">'Biscuits'</span> }, {  Title:<span class="hljs-string">'Cake'</span> }, {  Title:<span class="hljs-string">'Candy'</span> }, {  Title:<span class="hljs-string">'Green Beans'</span> }, {  Title:<span class="hljs-string">'Oranges'</span> },   {  Title:<span class="hljs-string">'Pasta'</span> },  {  Title:<span class="hljs-string">'Tangerines'</span> },   {  Title:<span class="hljs-string">'Trix'</span> },     {  Title:<span class="hljs-string">'Zucchini Bread'</span> }  ];
+
+<span class="hljs-keyword">var</span> table = Ti.UI.createTableView({
+  backgroundColor: <span class="hljs-string">'#fff'</span>,
+  width:<span class="hljs-number">320</span>,
+  rowHeight:<span class="hljs-number">100</span>
+});
+win.add(table);
+
+<span class="hljs-keyword">var</span> alphaTable = Ti.UI.createTableView({
+  separatorStyle:Ti.UI.iPhone.TableViewSeparatorStyle.NONE,
+  opacity:<span class="hljs-number">0.65</span>,
+  scrollable:<span class="hljs-literal">false</span>,
+  right:<span class="hljs-number">5</span>,
+  top:<span class="hljs-number">5</span>,
+  width:<span class="hljs-number">28</span>,
+  height:<span class="hljs-number">355</span>,
+  borderRadius:<span class="hljs-number">13</span>,
+  backgroundColor:<span class="hljs-string">"#000"</span>
+});
+<span class="hljs-comment">// alpha table must be on top of other table</span>
+win.add(alphaTable);
+
+
+
+
+<span class="hljs-keyword">var</span> curheader = <span class="hljs-string">'0'</span>;
+<span class="hljs-keyword">var</span> index = [];
+<span class="hljs-keyword">var</span> rows = [];   
+<span class="hljs-keyword">var</span> alphaRowCount = <span class="hljs-number">0</span>;
+
+<span class="hljs-comment">// loop through model to add rows to table</span>
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = model.length; i &lt; l; i++) 
+{
+
+  <span class="hljs-comment">// first determine how many rows there will be</span>
+  <span class="hljs-comment">// use substring to get only first letter</span>
+  <span class="hljs-keyword">if</span>( model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>) != curheader)
+  {
+    curheader = model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>);
+    alphaRowCount++;
+  }
+
+   <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({ title:model[i].Title });
+   rows.push( row );
+}
+
+<span class="hljs-comment">// reset curheader var</span>
+curheader = <span class="hljs-string">'0'</span>; 
+
+<span class="hljs-comment">// determine Row height by dividing by Alpha Table height</span>
+<span class="hljs-keyword">var</span> rowHeight = <span class="hljs-number">355</span>/alphaRowCount;
+
+<span class="hljs-comment">// now loop through model again to actually add the alpha rows</span>
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = model.length; i &lt; l; i++) 
+{  
+
+  <span class="hljs-keyword">if</span>( model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>) != curheader)
+  {
+    curheader = model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>);
+    <span class="hljs-keyword">var</span> alphaRow = Ti.UI.createTableViewRow({
+        color:<span class="hljs-string">'#fff'</span>,
+        width:<span class="hljs-number">28</span>,
+        backgroundColor:<span class="hljs-string">"transparent"</span>,
+        backgroundSelectedColor:<span class="hljs-string">"transparent"</span>,
+        selectedBackgroundColor: <span class="hljs-string">"transparent"</span>
+    });
+
+    alphaRow.height = rowHeight;
+
+    <span class="hljs-comment">// define IndexRow for main Table</span>
+    alphaRow.indexRow = i;
+
+    <span class="hljs-keyword">var</span> alphaLabel = Ti.UI.createLabel({
+          top:<span class="hljs-number">0</span>, 
+          width:<span class="hljs-number">28</span>,
+          left: <span class="hljs-number">0</span>,
+          font: {  fontSize: <span class="hljs-number">10</span>, fontFamily: <span class="hljs-string">'Helvetica Neue'</span> },
+          color: <span class="hljs-string">'#fff'</span>,
+          textAlign: <span class="hljs-string">'center'</span>
+    });
+    alphaLabel.text = curheader;
+    alphaLabel.height = rowHeight;
+    alphaRow.add( alphaLabel );
+
+    index.push( alphaRow );
+  }
+}
+
+table.setData(  rows );
+alphaTable.setData( index );
+
+
+<span class="hljs-keyword">var</span> previousIndex = <span class="hljs-number">0</span>;
+
+alphaTable.addEventListener(<span class="hljs-string">'touchmove'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+</span>{
+    <span class="hljs-comment">// subtract from global point to find position</span>
+    <span class="hljs-keyword">var</span> newPointY = e.globalPoint.y - <span class="hljs-number">70</span>;
+
+    <span class="hljs-comment">// determine the index</span>
+    <span class="hljs-keyword">var</span> newIndex = <span class="hljs-built_in">Math</span>.ceil( newPointY/rowHeight) - <span class="hljs-number">1</span>;
+
+  <span class="hljs-comment">// scroll to index on main Table, and make sure its on the TOP position</span>
+  <span class="hljs-comment">// to make sure it doesnt jiggle, check to make sure newIndex is not the same as previousIndex</span>
+  <span class="hljs-keyword">if</span>( newIndex != previousIndex )
+  {
+    table.scrollToIndex(newIndex,{animated:<span class="hljs-literal">true</span>,position:Ti.UI.iPhone.TableViewScrollPosition.TOP});
+    previousIndex = newIndex;
+  }
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 19th 2012, 5:35:51 pm">January 19th 2012</span>
+								by <span class='authorname'>Mark Goldsmith</span><br>
+								<a class="icon-bg icon-link" href="question/49141/alphabetical-scroll-bar#answer-228026" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>hi Mark </p>
+<p>Thanks i have just tried it, just need to add first line </p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> = Ti.UI.createWindow();
+</code></pre><p>and at the bottom</p>
+<pre><code class="hljs">win.<span class="hljs-keyword">open</span><span class="hljs-literal">()</span>;
+</code></pre><p>and then works perfectly by just copy pasting in app.js</p>
+<p>Nice example very helpful.. i will try in android too wish it work in that too.</p>
+<p>Regards</p>
+<p>Nikunj</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 19th 2012, 5:47:52 pm">January 19th 2012</span>
+											by <span class='authorname'>Nikunj Sakhrelia</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I realized I had to make a slight modification. I also added the app.js code to demonstrate how it works in there.</p>
+<p>I cant seem to delete my other post so here it is:</p>
+<pre><code class="hljs"><span class="hljs-comment">// this sets the background color of the master UIView (when there are no windows/tab groups on it)</span>
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+
+<span class="hljs-comment">// create tab group</span>
+<span class="hljs-keyword">var</span> tabGroup = Titanium.UI.createTabGroup();
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// create base UI tab and root window</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Tab 1'</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>
+});
+<span class="hljs-keyword">var</span> tab1 = Titanium.UI.createTab({  
+    icon:<span class="hljs-string">'KS_nav_views.png'</span>,
+    title:<span class="hljs-string">'Tab 1'</span>,
+    <span class="hljs-built_in">window</span>:win
+});
+
+
+
+
+
+
+
+<span class="hljs-keyword">var</span> model = [  {  Title:<span class="hljs-string">'Alphabits'</span> }, {  Title:<span class="hljs-string">'Biscuits'</span> }, {  Title:<span class="hljs-string">'Cake'</span> }, {  Title:<span class="hljs-string">'Candy'</span> }, {  Title:<span class="hljs-string">'Green Beans'</span> }, {  Title:<span class="hljs-string">'Oranges'</span> },   {  Title:<span class="hljs-string">'Pasta'</span> },  {  Title:<span class="hljs-string">'Tangerines'</span> },   {  Title:<span class="hljs-string">'Trix'</span> },     {  Title:<span class="hljs-string">'Zucchini Bread'</span> }  ];
+
+<span class="hljs-keyword">var</span> table = Ti.UI.createTableView({
+  backgroundColor: <span class="hljs-string">'#fff'</span>,
+  width:<span class="hljs-number">320</span>,
+  rowHeight:<span class="hljs-number">100</span>
+});
+win.add(table);
+
+<span class="hljs-keyword">var</span> alphaTable = Ti.UI.createTableView({
+  separatorStyle:Ti.UI.iPhone.TableViewSeparatorStyle.NONE,
+  opacity:<span class="hljs-number">0.65</span>,
+  scrollable:<span class="hljs-literal">false</span>,
+  right:<span class="hljs-number">5</span>,
+  top:<span class="hljs-number">5</span>,
+  width:<span class="hljs-number">28</span>,
+  height:<span class="hljs-number">355</span>,
+  borderRadius:<span class="hljs-number">13</span>,
+  backgroundColor:<span class="hljs-string">"#000"</span>
+});
+<span class="hljs-comment">// alpha table must be on top of other table</span>
+win.add(alphaTable);
+
+
+
+
+<span class="hljs-keyword">var</span> curheader = <span class="hljs-string">'0'</span>;
+<span class="hljs-keyword">var</span> index = [];
+<span class="hljs-keyword">var</span> rows = [];   
+<span class="hljs-keyword">var</span> alphaRowCount = <span class="hljs-number">0</span>;
+
+<span class="hljs-comment">// loop through model to add rows to table</span>
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = model.length; i &lt; l; i++) 
+{
+
+  <span class="hljs-comment">// first determine how many rows there will be</span>
+  <span class="hljs-comment">// use substring to get only first letter</span>
+  <span class="hljs-keyword">if</span>( model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>) != curheader)
+  {
+    curheader = model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>);
+    alphaRowCount++;
+  }
+
+   <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({ title:model[i].Title });
+   rows.push( row );
+}
+
+<span class="hljs-comment">// reset curheader var</span>
+curheader = <span class="hljs-string">'0'</span>; 
+
+<span class="hljs-comment">// determine Row height by dividing by Alpha Table height</span>
+<span class="hljs-keyword">var</span> rowHeight = <span class="hljs-number">355</span>/alphaRowCount;
+
+<span class="hljs-keyword">var</span> rowIndexID = [];
+
+<span class="hljs-comment">// now loop through model again to actually add the alpha rows</span>
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = model.length; i &lt; l; i++) 
+{  
+
+  <span class="hljs-keyword">if</span>( model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>) != curheader)
+  {
+    curheader = model[i].Title.substring(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>);
+    <span class="hljs-keyword">var</span> alphaRow = Ti.UI.createTableViewRow({
+        color:<span class="hljs-string">'#fff'</span>,
+        width:<span class="hljs-number">28</span>,
+        backgroundColor:<span class="hljs-string">"transparent"</span>,
+        backgroundSelectedColor:<span class="hljs-string">"transparent"</span>,
+        selectedBackgroundColor: <span class="hljs-string">"transparent"</span>
+    });
+
+    alphaRow.height = rowHeight;
+
+    <span class="hljs-comment">// define IndexRow for main Table</span>
+    rowIndexID.push( { id: i });
+
+    <span class="hljs-keyword">var</span> alphaLabel = Ti.UI.createLabel({
+          top:<span class="hljs-number">0</span>, 
+          width:<span class="hljs-number">28</span>,
+          left: <span class="hljs-number">0</span>,
+          font: {  fontSize: <span class="hljs-number">10</span>, fontFamily: <span class="hljs-string">'Helvetica Neue'</span> },
+          color: <span class="hljs-string">'#fff'</span>,
+          textAlign: <span class="hljs-string">'center'</span>
+    });
+    alphaLabel.text = curheader;
+    alphaLabel.height = rowHeight;
+    alphaRow.add( alphaLabel );
+
+    index.push( alphaRow );
+  }
+}
+
+table.setData(  rows );
+alphaTable.setData( index );
+
+
+<span class="hljs-keyword">var</span> previousIndex = <span class="hljs-number">0</span>;
+
+alphaTable.addEventListener(<span class="hljs-string">'touchmove'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+</span>{
+    <span class="hljs-comment">// subtract from global point to find position</span>
+    <span class="hljs-keyword">var</span> newPointY = e.globalPoint.y - <span class="hljs-number">70</span>;
+
+    <span class="hljs-comment">// determine the index</span>
+    <span class="hljs-keyword">var</span> newIndex = <span class="hljs-built_in">Math</span>.ceil( newPointY/rowHeight) - <span class="hljs-number">1</span>;
+
+    <span class="hljs-keyword">var</span> rowIndex = rowIndexID[ newIndex ].id;
+
+  <span class="hljs-comment">// scroll to index on main Table, and make sure its on the TOP position</span>
+  <span class="hljs-comment">// to make sure it doesnt jiggle, check to make sure newIndex is not the same as previousIndex</span>
+  <span class="hljs-keyword">if</span>( rowIndex != previousIndex )
+  {
+    table.scrollToIndex(newIndex,{animated:<span class="hljs-literal">false</span>,position:Ti.UI.iPhone.TableViewScrollPosition.TOP});
+    previousIndex = newIndex;
+  }
+});
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// create controls tab and root window</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-keyword">var</span> win2 = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Tab 2'</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>
+});
+<span class="hljs-keyword">var</span> tab2 = Titanium.UI.createTab({  
+    icon:<span class="hljs-string">'KS_nav_ui.png'</span>,
+    title:<span class="hljs-string">'Tab 2'</span>,
+    <span class="hljs-built_in">window</span>:win2
+});
+
+<span class="hljs-keyword">var</span> label2 = Titanium.UI.createLabel({
+    color:<span class="hljs-string">'#999'</span>,
+    text:<span class="hljs-string">'I am Window 2'</span>,
+    font:{fontSize:<span class="hljs-number">20</span>,fontFamily:<span class="hljs-string">'Helvetica Neue'</span>},
+    textAlign:<span class="hljs-string">'center'</span>,
+    width:<span class="hljs-string">'auto'</span>
+});
+
+win2.add(label2);
+
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//  add tabs</span>
+<span class="hljs-comment">//</span>
+tabGroup.addTab(tab1);  
+tabGroup.addTab(tab2);  
+
+
+<span class="hljs-comment">// open tab group</span>
+tabGroup.open();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="January 19th 2012, 5:52:10 pm">January 19th 2012</span>
+											by <span class='authorname'>Mark Goldsmith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>And.. made another small mistake. </p>
+<pre><code class="hljs">  <span class="hljs-keyword">if</span>( rowIndex != previousIndex )
+  {
+    table.scrollToIndex(rowIndex,{<span class="hljs-string">animated:</span><span class="hljs-literal">false</span>,<span class="hljs-string">position:</span>Ti.UI.iPhone.TableViewScrollPosition.TOP});
+    previousIndex = newIndex;
+  }
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="January 19th 2012, 5:56:18 pm">January 19th 2012</span>
+											by <span class='authorname'>Mark Goldsmith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I just realized after testing on an actual iPhone device that the alpha table is too narrow to register touch move events it seems. So I just made the alpha table and rows wider, like 50 pixels instead of 28.</p>
+<p>Another option is to listen for click events</p>
+<pre><code class="hljs">  alphaTable.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+        </span>{
+            <span class="hljs-comment">// event data</span>
+            <span class="hljs-keyword">var</span> index = rowIndexID[ e.row ].id;
+          table.scrollToIndex(index,{animated:<span class="hljs-literal">false</span>,position:Ti.UI.iPhone.TableViewScrollPosition.TOP});
+
+        });
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="January 19th 2012, 6:08:24 pm">January 19th 2012</span>
+											by <span class='authorname'>Mark Goldsmith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Also removing the borderRadius on the table seems to help the touch events respond. Very odd.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 19th 2012, 6:40:28 pm">January 19th 2012</span>
+											by <span class='authorname'>Mark Goldsmith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Mark</p>
+<p>Yes on device I am not able to get the touch event. But let me try with the last code in the comment.</p>
+<p>Regard</p>
+<p>Nikunj</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 20th 2012, 12:59:36 am">January 20th 2012</span>
+											by <span class='authorname'>Nikunj Sakhrelia</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yeah using the click event always seems to work, but the touchmove event only seems to work with either no borderRadius or a borderRadius of 3 or smaller. I&#39;ve also tried background images which dont seem to work either. Its very strange.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 20th 2012, 12:15:58 pm">January 20th 2012</span>
+											by <span class='authorname'>Mark Goldsmith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi i&#39;m converting alphabetical scroll view to android devices.I getting problem in <del>~e.globalPoint.y</del>~  inside touchmove listener.I couldn&#39;t recognize what is globalPoint and its Y axis..Could you please explain.Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 19th 2014, 5:36:08 am">February 19th 2014</span>
+											by <span class='authorname'>GaneshKumar Balasubramanian</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-100511">
+				
+						<section>
+							<p>I&#39;ve searched in Kitchen Sink but didn&#39;t find an alphabetical scroll bar.<br>I&#39;m using KS 1.4 built with Titanium SDK 1.3 (won&#39;t work with SDK.14).<br>Where could I find this?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 13th 2010, 8:08:24 am">August 13th 2010</span>
+								by <span class='authorname'>P. C.</span><br>
+								<a class="icon-bg icon-link" href="question/49141/alphabetical-scroll-bar#answer-100511" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-100961">
+				
+						<section>
+							<p>I&#39;m interested in this too. As far as i know there is nothing in KS for this.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 13th 2010, 10:08:58 pm">August 13th 2010</span>
+								by <span class='authorname'>Dave Devitt</span><br>
+								<a class="icon-bg icon-link" href="question/49141/alphabetical-scroll-bar#answer-100961" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-228664">
+				
+						<section>
+							<p>Alright, I got a custom alphabetical listing working using Titanium SDK 1.8.0.1 R3.</p>
+<p>The major difference with this code and the one I posted earlier is that I&#39;m using convertPointToView instead of globalPoint which was depreciated.</p>
+<p>The only bummer about this custom alphabetical listing is that nots nearly as fast as the default one. If you slide your finger up and down on the device, its a bit sluggish (aalthough its lightning fast on the simulator).</p>
+<p>Heres the code:</p>
+<p><a href="http:&#x2F;&#x2F;snipt.org&#x2F;xlOh8">http:&#x2F;&#x2F;snipt.org&#x2F;xlOh8</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 26th 2012, 6:42:59 pm">January 26th 2012</span>
+								by <span class='authorname'>Mark Goldsmith</span><br>
+								<a class="icon-bg icon-link" href="question/49141/alphabetical-scroll-bar#answer-228664" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-95491">
+				
+						<section>
+							<p>Check out the KitchenSink, there should be an example in there… </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 3rd 2010, 4:04:55 am">August 3rd 2010</span>
+								by <span class='authorname'>John Welch</span><br>
+								<a class="icon-bg icon-link" href="question/49141/alphabetical-scroll-bar#answer-95491" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

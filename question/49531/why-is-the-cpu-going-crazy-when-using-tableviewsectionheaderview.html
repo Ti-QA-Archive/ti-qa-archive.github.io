@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>why is the cpu going crazy when using tableViewSection.headerView? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>why is the cpu going crazy when using tableViewSection.headerView?</h1>
+		</header>
+		<section>
+			<p>hi, I&#39;ve met this very strange issue which bothers me because it hinders my development. After a long time debugging my project I found a combination of circumstances which causes the following problem:</p>
+<p>When I want a tableView with my own custom styled section headers, using the tableViewSection.headerView property with a custom view opened in a new window, the app causes the cpu usage of my (new) macbook pro to increase to 100% indicating some sort of infinite loop or whatever when trying to render. The weird thing is that exactly the same code which causes this issue doesn&#39;t cause any problems when I don&#39;t use it in a separate .js file which is opened in a new window. </p>
+<p>I&#39;ve stripped down the code which causes the problem to a bare minimum during the debugging and came up with the following:</p>
+<p>bug.js:</p>
+<pre><code class="hljs">var win = Ti.UI.currentWindow;
+var tableView = Ti.UI.createTableView({
+    data:[]
+});
+win.<span class="hljs-built_in">add</span>(tableView);
+var newData = [];
+var row = Titanium.UI.createTableViewRow({});        
+var lbl = Titanium.UI.createLabel({
+    <span class="hljs-built_in">text</span>: <span class="hljs-string">'this is a test'</span>, <span class="hljs-variable">height</span>:<span class="hljs-string">'auto'</span>, top:<span class="hljs-number">10</span>, left:<span class="hljs-number">10</span>, right:<span class="hljs-number">10</span>, <span class="hljs-built_in">color</span>:<span class="hljs-string">'#000'</span>
+});
+row.<span class="hljs-built_in">add</span>(lbl);
+row.className = <span class="hljs-string">'test'</span>;        
+var section = Titanium.UI.createTableViewSection({});
+var headerViewRows = Titanium.UI.createView({
+    <span class="hljs-variable">height</span>:<span class="hljs-number">30</span>, <span class="hljs-variable">width</span>:<span class="hljs-string">'auto'</span>
+});
+var headerLabel = Titanium.UI.createLabel({
+    <span class="hljs-built_in">text</span>: <span class="hljs-string">'this is a test header text'</span>, <span class="hljs-variable">height</span>:<span class="hljs-string">'auto'</span>, top:<span class="hljs-number">10</span>, left:<span class="hljs-number">10</span>, right:<span class="hljs-number">10</span>, <span class="hljs-built_in">color</span>:<span class="hljs-string">'#000'</span>
+});
+headerViewRows.<span class="hljs-built_in">add</span>(headerLabel);
+section.headerView = headerViewRows;  <span class="hljs-comment">// uncommenting this line will cause the cpu to go wayyy up, not using custom headerview will work as expected</span>
+section.<span class="hljs-built_in">add</span>(row);        
+section.headerTitle = <span class="hljs-string">'test header title'</span>;  
+newData.push(section);
+tableView.data = newData;  <span class="hljs-comment">// no difference between using data = ... or using setData(...</span>
+</code></pre><p>I also tried every variant of properties I could come up with for the headerLabel, and the headerViewRows, all did not change anything. The view can be created without any explicitly set properties and even without the label added, and no properties for the section change anything either.</p>
+<p>Now for the issue:<br>If you create a new project and just use the code above in the &#39;win1&#39;, adding the tableView to the win1 object, everything works correctly.<br>But if you would use this as a separate file (bug.js), using the &#39;url&#39; property of a new window opened from the win1 (by adding a click event listener to the label) like this:</p>
+<p>app.js (of a newly created default project):</p>
+<pre><code class="hljs">label1.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">var</span> newWin = Ti.UI.createWindow({
+        url:<span class="hljs-string">'bug.js'</span>
+    });
+    newWin.open({fullscreen:<span class="hljs-literal">false</span>});
+});
+</code></pre><p>… causes the cpu to run to its max and sort of freezes the app. (simulator)</p>
+<p>Now for some extra weirdness:<br>commenting the line which sets the headerView property of the section object will not cause this cpu-overload. </p>
+<p>I would really like to know why this happens, what I am doing wrong or how to fix this behaviour. </p>
+<p>some extra info for the appcelerator developers:<br>I also noticed the following: When I add a &#39;touchend&#39; eventListener to the tableView and log some line in the event, it will output this line infinitely whenever the window is opened, like it is continuously being called. </p>
+<p>btw. this is all on the latest 1.4.0 mobilesdk, titanium developer 1.2.1, iphone sdk 4.0 (latest 4.0.1 xcode)</p>
+<p>I hope someone can offer some insight into this behaviour, thanks a lot</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 3rd 2010, 9:35:52 pm">August 3rd 2010</span>
+				by <span class='authorname'>Victor van Rijn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>headerview</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>tableviewsection</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

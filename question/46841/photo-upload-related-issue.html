@@ -1,0 +1,219 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Photo upload related issue » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Photo upload related issue</h1>
+		</header>
+		<section>
+			<p>I am developing a photo upload form for Android platform. In this form I can attach an existing of take new photo and attach it. In this two scenarios, following happens:</p>
+<ol>
+<li>When a take picture and click &quot;Add&quot; and send the form, following pictures are created:</li>
+</ol>
+<ul>
+<li>picture in &quot;Images&quot; folder with the original size (2010-07-27 22.15.25.jpg).</li>
+<li>picture in &quot;DCIM&#x2F;Camera&quot; folder with small size (tia49516.jpg).</li>
+<li>picture on the root of the card with small size (tixhr49517jpeg).</li>
+</ul>
+<ol>
+<li>When I attach an existing photo and send the form, following pictures are created:</li>
+</ol>
+<ul>
+<li>picture in &quot;Images&quot; folder with the original size (2010-07-27 22.23.40.jpg).</li>
+<li>picture on the root of the card with small size (tixhr49519jpeg).</li>
+</ul>
+<p>Questions:</p>
+<p>How do I have more control on the saved pictures?</p>
+<p>How do I disable or delete the pictures saved on the card that are sent (tixhr)?</p>
+<p>How do I disable saving pictures to photo gallery (saveToPhotoGallery: false does not work)?</p>
+<p>p.s. My Titanium version built is about 10 days old.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 27th 2010, 6:56:38 pm">July 27th 2010</span>
+				by <span class='authorname'>Dalibor Nasevic</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>photo</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-213346">
+				
+						<section>
+							<p>I found a solution by Chris King at http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;114181&#x2F;unable-to-delete-temporary-files</p>
+<p>Here is my modified version of his code.</p>
+<p>I added a part to also clean out the tia images that are left laying around in the sdcard&#x2F;dcim&#x2F;Camera&#x2F;Your Apps Folder&#x2F; after your app takes pictures with the camera.</p>
+<p>Im guessing since I&#39;m a newbie, my code could have been somehow better, but hey, it works! :)</p>
+<p>I have the function running when the app closes, which it does when the main and final window is closed with the Android back button.</p>
+<pre><code class="hljs">function cleanupTitaniumMesses() {
+    <span class="hljs-keyword">if</span> (Ti.Filesystem.isExternalStoragePresent) {
+        try {
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">n</span> = Ti.UI.createNotification({message:'Your <span class="hljs-keyword">App</span> Name is cleaning up tixhr files...'});
+            <span class="hljs-keyword">n</span>.duration = Ti.UI.NOTIFICATION_DURATION_SHORT;
+            <span class="hljs-keyword">n</span>.show();
+
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">dir</span> = Titanium.Filesystem.getFile(Titanium.Filesystem.externalStorageDirectory); 
+            <span class="hljs-keyword">var</span> fileList = <span class="hljs-keyword">dir</span>.getParent().getDirectoryListing();
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">l</span> = fileList.length;
+
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=0; i&lt;<span class="hljs-keyword">l</span>; i++) {
+
+                <span class="hljs-keyword">var</span> file2 = fileList[i];
+                <span class="hljs-keyword">var</span> fileName = file2.<span class="hljs-keyword">toString</span>();
+                fileName2 = fileName.<span class="hljs-literal">substr</span>(fileName.lastIndexOf(<span class="hljs-string">"/"</span>) + 1);
+
+                <span class="hljs-keyword">if</span> (fileName2.<span class="hljs-literal">substr</span>(0,5) === 'tixhr') {
+                    <span class="hljs-keyword">var</span> path = <span class="hljs-keyword">dir</span>.getParent().nativePath;
+                    <span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span> = Titanium.Filesystem.getFile(path+'/'+file2);
+                    <span class="hljs-keyword">file</span>.deleteFile();
+                }
+            }
+
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">n</span> = Ti.UI.createNotification({message:'Your <span class="hljs-keyword">App</span> Name is cleaning up tia image files...'});
+            <span class="hljs-keyword">n</span>.duration = Ti.UI.NOTIFICATION_DURATION_SHORT;
+            <span class="hljs-keyword">n</span>.show();
+
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">dir</span> = Titanium.Filesystem.getFile(Titanium.Filesystem.externalStorageDirectory); 
+            <span class="hljs-keyword">var</span> dir2 = <span class="hljs-keyword">dir</span>.getParent().nativePath.<span class="hljs-keyword">toString</span>() + '/dcim/Camera/Your Apps Folder/';
+            <span class="hljs-keyword">var</span> dir3 = Titanium.Filesystem.getFile(dir2); 
+            <span class="hljs-keyword">var</span> fileList = dir3.getDirectoryListing();
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">l</span> = fileList.length;
+
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=0; i&lt;<span class="hljs-keyword">l</span>; i++) {
+                <span class="hljs-keyword">var</span> file2 = fileList[i];
+                <span class="hljs-keyword">var</span> fileName = file2.<span class="hljs-keyword">toString</span>();
+                fileName2 = fileName.<span class="hljs-literal">substr</span>(fileName.lastIndexOf(<span class="hljs-string">"/"</span>) + 1);
+                <span class="hljs-keyword">if</span> (fileName2.<span class="hljs-literal">substr</span>(0,3) === 'tia') {
+                    <span class="hljs-keyword">var</span> path = dir3.nativePath;
+                    <span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span> = Titanium.Filesystem.getFile(path+'/'+file2);
+                    <span class="hljs-keyword">file</span>.deleteFile();
+                }
+            }
+
+            dir3.deleteDirectory();
+        }
+
+        catch(<span class="hljs-keyword">e</span>) {
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">n</span> = Ti.UI.createNotification({message:'Non-critical <span class="hljs-keyword">error</span> purging stray tixhr files from SD Card root. You will want to periodically delete all files that start with the name tixhr from the root of your SD Card.\<span class="hljs-keyword">n</span>\<span class="hljs-keyword">n</span>' + <span class="hljs-keyword">e</span>.message});
+            <span class="hljs-keyword">n</span>.duration = Ti.UI.NOTIFICATION_DURATION_LONG;
+            <span class="hljs-keyword">n</span>.show();
+        }
+
+    } 
+}
+
+winMain.addEventListener('android:back', function(<span class="hljs-keyword">e</span>) {
+    cleanupTitaniumMesses();
+    winMain.<span class="hljs-keyword">close</span>();            
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 16th 2011, 5:26:05 pm">July 16th 2011</span>
+								by <span class='authorname'>Ken Rucker</span><br>
+								<a class="icon-bg icon-link" href="question/46841/photo-upload-related-issue#answer-213346" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-241879">
+				
+						<section>
+							<p>Will dig into it <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-9797">here</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 25th 2012, 8:25:01 pm">June 25th 2012</span>
+								by <span class='authorname'>Eduardo Gomez</span><br>
+								<a class="icon-bg icon-link" href="question/46841/photo-upload-related-issue#answer-241879" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
