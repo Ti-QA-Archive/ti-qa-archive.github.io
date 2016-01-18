@@ -1,0 +1,241 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Can&#39;t catch DB exception » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Can&#39;t catch DB exception</h1>
+		</header>
+		<section>
+			<p>Hey, why I can&#39;t catch a DB exception? here&#39;s my code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Barrel = {} || Barrel;
+
+Barrel.DB = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.db = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.dbname = <span class="hljs-literal">null</span>;
+};
+
+Barrel.DB.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">if</span> ( <span class="hljs-literal">null</span> === <span class="hljs-keyword">this</span>.dbname ) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-string">"dbname can not be empty"</span>;
+    }
+
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">if</span> ( <span class="hljs-literal">null</span> === <span class="hljs-keyword">this</span>.db ) {
+            <span class="hljs-keyword">this</span>.db = Titanium.Database.open( <span class="hljs-keyword">this</span>.dbname );
+        }
+    } <span class="hljs-keyword">catch</span> ( e ) {
+        <span class="hljs-keyword">throw</span> e;
+    }
+}
+
+Barrel.DB.prototype.insert = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">( table, data )</span> </span>{
+    <span class="hljs-comment">// some code ...</span>
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">this</span>.open();
+        <span class="hljs-keyword">this</span>.db.execute( query, values );
+
+        <span class="hljs-keyword">var</span> id = <span class="hljs-keyword">this</span>.db.lastInsertRowId;
+        Ti.API.debug( <span class="hljs-string">"id: "</span> + id );
+    } <span class="hljs-keyword">catch</span> ( e ) {
+        Ti.API.debug( e ); <span class="hljs-comment">// never printed</span>
+        Ti.API.debug( <span class="hljs-string">"n: "</span> + e.name ); <span class="hljs-comment">// never printed</span>
+        Ti.API.debug( <span class="hljs-string">"m: "</span> + e.message ); <span class="hljs-comment">// never printed</span>
+        <span class="hljs-keyword">throw</span> e; <span class="hljs-comment">// never fired</span>
+    }
+
+    <span class="hljs-keyword">return</span> id;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Product</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.dbname = <span class="hljs-string">"barrel.db"</span>;
+}
+
+Product.prototype = <span class="hljs-keyword">new</span> Barrel.DB();
+Product.prototype.constructor = Product;
+
+<span class="hljs-keyword">var</span> product = <span class="hljs-keyword">new</span> Product();
+product.insert( <span class="hljs-string">"notices"</span>, { col1: <span class="hljs-string">"woot"</span>, col2: <span class="hljs-string">"woot2"</span>, col3: <span class="hljs-literal">null</span>, col4: <span class="hljs-string">"null"</span> } );
+</code></pre><p>The exception on the TRACE log is something like this:</p>
+<pre><code class="hljs">[TRACE] I/Database( 413): sqlite returned: error code = 1, msg = table notification has no column named productId
+[TRACE] E/TiDB ( 413): (kroll$2) [28,312889] Error executing sql: table notification has no column named productId: , while compiling: <span class="hljs-operator"><span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> notification (productId, <span class="hljs-keyword">name</span>, price, image, <span class="hljs-keyword">users</span>, <span class="hljs-keyword">url</span>) <span class="hljs-keyword">VALUES</span> (?, ?, ?, ?, ?, ?)
+[<span class="hljs-keyword">TRACE</span>] <span class="hljs-keyword">E</span>/TiDB ( <span class="hljs-number">413</span>): android.<span class="hljs-keyword">database</span>.sqlite.SQLiteException: <span class="hljs-keyword">table</span> notification has <span class="hljs-keyword">no</span> <span class="hljs-keyword">column</span> named productId: , <span class="hljs-keyword">while</span> compiling: <span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> notification (productId, <span class="hljs-keyword">name</span>, price, image, <span class="hljs-keyword">users</span>, <span class="hljs-keyword">url</span>) <span class="hljs-keyword">VALUES</span> (?, ?, ?, ?, ?, ?)</span>
+</code></pre><p>So, why I can&#39;t catch the exception? the exception is thrown, isn&#39;t just catch it?</p>
+<p>Thanks.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 3rd 2010, 8:53:19 pm">October 3rd 2010</span>
+				by <span class='authorname'>Juan Felipe Alvarez Saldarriaga</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>exception</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I too can&#39;t catch this (1.4.1.1 &amp; 1.4.2 OSX)</p>
+<p>[ERROR] Error occurred calling next on a PLSqliteResultSet. SQLite error: &#39;constraint failed&#39; for &#39;INSERT …..<br>[ERROR] The application has crashed with an unhandled exception. Stack trace:</p>
+<p>The table has a unique key and that&#39;s why it&#39;s failing to inset. But shouldn&#39;t this be handled?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 14th 2010, 1:31:05 pm">October 14th 2010</span>
+								by <span class='authorname'>Swaroop Hegde</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-122751">
+				
+						<section>
+							<p>Have you tried a newer Continuous Integration Build? we made a bug fix to correctly throw more exceptions back to the JavaScript context.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 4th 2010, 12:56:34 am">October 4th 2010</span>
+								by <span class='authorname'>Don Thorp</span><br>
+								<a class="icon-bg icon-link" href="question/67041/cant-catch-db-exception#answer-122751" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I&#39;m using 1.4.2 from Continuous Integration Build for windows :|.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 4th 2010, 2:51:55 am">October 4th 2010</span>
+											by <span class='authorname'>Juan Felipe Alvarez Saldarriaga</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m using 1.7.2 from Continuous Integration Build and it also does not catch any SQLite errors.  Easy to replace, simply wrap an invalid execute statement in a try {} catch {} and on iOS the app just exists immediately.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 20th 2011, 1:05:30 pm">July 20th 2011</span>
+											by <span class='authorname'>Matthew ORiordan</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>BTW. It seems there is a bug in JIRA for this at <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-1857?page=com.atlassian.jira.plugin.system.issuetabpanels%3Achangehistory-tabpanel">http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-1857?page=com.atlassian.jira.plugin.system.issuetabpanels%3Achangehistory-tabpanel</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 20th 2011, 1:11:23 pm">July 20th 2011</span>
+											by <span class='authorname'>Matthew ORiordan</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-214019">
+				
+						<section>
+							<p>I am also looking to catch DB exceptions, but it doesn&#39;t work with SDK 1.7.1, too…..now 1.7.2 is out, but I cannot upgrade my app yet…</p>
+<p>To confirm by others, and especially Don or Paul, I&#39;ve read in some posts that the Database exceptions cannot be caught in the Simulator, but that they are &quot;working&quot; and can be caught when installed in devices…</p>
+<p>Can this be confirmed ??</p>
+<p>Thank you in advance !</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 22nd 2011, 6:10:06 am">July 22nd 2011</span>
+								by <span class='authorname'>abbdoul ab</span><br>
+								<a class="icon-bg icon-link" href="question/67041/cant-catch-db-exception#answer-214019" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

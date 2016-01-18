@@ -1,0 +1,260 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Best way to combine persistent and dynamic data in a sports app » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Best way to combine persistent and dynamic data in a sports app</h1>
+		</header>
+		<section>
+			<p>Hi all,</p>
+<p>I&#39;m building an iPhone app for a sports team. One of the features is the schedule for the upcoming season.</p>
+<p>What would be the best way to implement the games schedule so that past game scores would remain on the phone and that only new data would be downloaded?</p>
+<p>The list of games would also have to be dynamic so that play-off games could be added on the fly.</p>
+<p>Thank you for your tips in advance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 11th 2010, 7:52:01 pm">September 11th 2010</span>
+				by <span class='authorname'>Antti K.</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>data</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>local</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-112601">
+				
+						<section>
+							<p>I do something similar for the app I have shipping now.  It contains a local database, and once every few hours it checks a server to see if it should download new ones to add to the database.</p>
+<p>The server returns an XML file that has elements full of data to be stored or updated locally (if any exist).  It also gives the client a hint as to when the data will be updated again (nextupdate timestamp).</p>
+<p>Integer properties are used to store the last time the db was checked for update.  I&#39;ve trimmed the code to make it readable, hope it helps.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> currentTS = <span class="hljs-built_in">parseInt</span>(((<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime()) / <span class="hljs-number">1000</span>),<span class="hljs-number">10</span>);
+<span class="hljs-keyword">var</span> xhrURL = <span class="hljs-string">'http://example.com/feed.php'</span>;
+
+<span class="hljs-comment">// User to determine if cache is out of date</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkNeedsUpdating</span>(<span class="hljs-params">nowTS</span>) </span>{
+    <span class="hljs-keyword">var</span> retval = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">var</span> lastUpdatedTS = Titanium.App.Properties.getInt(<span class="hljs-string">'lastUpdatedTS'</span>);
+    <span class="hljs-keyword">var</span> nextCheckTS = Titanium.App.Properties.getInt(<span class="hljs-string">'nextCheckTS'</span>);
+    <span class="hljs-keyword">var</span> timeDiff = nowTS - lastUpdatedTS;
+    <span class="hljs-keyword">if</span> (timeDiff &gt; <span class="hljs-number">86400</span> || timeDiff &lt; <span class="hljs-number">0</span> || (nowTS &gt; nextCheckTS)) {
+        retval = <span class="hljs-literal">true</span>;
+    } 
+    <span class="hljs-keyword">return</span> retval;
+};
+
+<span class="hljs-comment">// load the cache contents from remote and store locally</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">updateCache</span>(<span class="hljs-params">remoteURL,nowTS</span>) </span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">var</span> doc = Ti.XML.parseString(<span class="hljs-keyword">this</span>.responseData.text);
+            <span class="hljs-comment">// note status is an actual XML element returned, it is not part of the protocol itself</span>
+            <span class="hljs-keyword">if</span> (doc.getElementsByTagName(<span class="hljs-string">"status"</span>).item(<span class="hljs-number">0</span>).text==<span class="hljs-string">'OK'</span>) {
+                <span class="hljs-keyword">var</span> nextCheckTS=doc.getElementsByTagName(<span class="hljs-string">"nextupdate"</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> items = doc.getElementsByTagName(<span class="hljs-string">"item"</span>);
+                <span class="hljs-keyword">var</span> db = Titanium.Database.open(<span class="hljs-string">'localDB'</span>);
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=<span class="hljs-number">0</span>;c&lt;items.length;c++)
+                {
+                    <span class="hljs-keyword">var</span> item = items.item(c);
+                    <span class="hljs-keyword">var</span> id = item.getElementsByTagName(<span class="hljs-string">"id"</span>).item(<span class="hljs-number">0</span>).text;
+                    <span class="hljs-keyword">var</span> title = item.getElementsByTagName(<span class="hljs-string">"title"</span>).item(<span class="hljs-number">0</span>).text;
+                    db.execute(<span class="hljs-string">'REPLACE INTO table (id, title) VALUES (?,?)'</span>, id, title);
+                }
+                db.close();
+                <span class="hljs-keyword">if</span> (items.length &gt; <span class="hljs-number">0</span>) {
+                    Titanium.App.Properties.setInt(<span class="hljs-string">'lastUpdatedTS'</span>,nowTS);
+                }
+                Titanium.App.Properties.setInt(<span class="hljs-string">'nextCheckTS'</span>,nextCheckTS);
+            }
+        }
+        <span class="hljs-keyword">catch</span>(e) {
+        }
+    };
+
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    };
+
+    <span class="hljs-comment">// open the client and get the data</span>
+    <span class="hljs-keyword">var</span> lastUpdatedTS = Titanium.App.Properties.getInt(<span class="hljs-string">'lastUpdatedTS'</span>);
+    remoteURL += <span class="hljs-string">"?since="</span> + lastUpdatedTS;
+    xhr.setTimeout(<span class="hljs-number">15000</span>);
+    xhr.open(<span class="hljs-string">'GET'</span>,remoteURL);
+    xhr.setRequestHeader(<span class="hljs-string">'User-Agent'</span>,<span class="hljs-string">'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ (KHTML, like Gecko) Version/3.0 Mobile/1A537a Safari/419.3'</span>);
+    xhr.send(); 
+};
+
+<span class="hljs-comment">// see if database should be refreshed</span>
+<span class="hljs-keyword">if</span> (checkNeedsUpdating(currentTS) &amp;&amp; (Titanium.Network.networkType != Titanium.Network.NETWORK_NONE)) {
+    updateCache(xhrURL,currentTS);
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 12th 2010, 4:19:50 am">September 12th 2010</span>
+								by <span class='authorname'>Todd Trann</span><br>
+								<a class="icon-bg icon-link" href="question/60371/best-way-to-combine-persistent-and-dynamic-data-in-a-sports-app#answer-112601" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey Todd, looks cool! Maybe you can give us a small sample of your feed.php ? Thx :-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 13th 2010, 12:50:32 pm">October 13th 2010</span>
+											by <span class='authorname'>Seb S.</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-112541">
+				
+						<section>
+							<p>A few questions, are the scores being<br>1) entered and saved locally on the phone or<br>2) coming from a server?</p>
+<p>If 1, then simplest might be a local SQLite database<br>if 2, then either create a rss feed of your results and have the phone download that file each time the window opens and pass the info int a tableview.</p>
+<p>Hope it gives you some ideas.</p>
+<p>Wayne</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 11th 2010, 9:45:46 pm">September 11th 2010</span>
+								by <span class='authorname'>Wayne Buchner</span><br>
+								<a class="icon-bg icon-link" href="question/60371/best-way-to-combine-persistent-and-dynamic-data-in-a-sports-app#answer-112541" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>@Wayne</p>
+<p>The results would be coming from a server. Because the results of the past games don&#39;t change, I&#39;d like to figure out a way to save them on the device, because even if it&#39;s not a lot of data, I wouldn&#39;t like to be downloading the file over and over again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 12th 2010, 10:13:41 pm">September 12th 2010</span>
+											by <span class='authorname'>Antti K.</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-112561">
+				
+						<section>
+							<p>A few questions, are the scores being<br>1) entered and saved locally on the phone or<br>2) coming from a server?</p>
+<p>If 1, then simplest might be a local SQLite database<br>if 2, then either create a rss feed of your results and have the phone download that file each time the window opens and pass the info int a tableview.</p>
+<p>Hope it gives you some ideas.</p>
+<p>Wayne</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 11th 2010, 10:28:56 pm">September 11th 2010</span>
+								by <span class='authorname'>Wayne Buchner</span><br>
+								<a class="icon-bg icon-link" href="question/60371/best-way-to-combine-persistent-and-dynamic-data-in-a-sports-app#answer-112561" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
