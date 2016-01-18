@@ -1,0 +1,338 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Best way to get current location., » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Best way to get current location.,</h1>
+		</header>
+		<section>
+			<p>Hi!</p>
+<p>On android:<br>I&#39;m making an app in which I need to get nearby places.<br>I don&#39;t need the exact location, but I need something a bit accurate.</p>
+<p>I&#39;m currently having a problem on which, even when using Preferred PROVIDER_GPS, i&#39;m getting an old location.</p>
+<p>I&#39;m not using Ti.Geolocation.getCurrentPosition. I&#39;m usiong the location event and that returns old location.<br>I also noticed that apps that use GPS, when the GPS is accessed, display an icon indicating tht GPS is in use. This is not my case, the icon never turns on.</p>
+<p>Any help regardig this?</p>
+<p>Platform: Android<br>Titanium SDK: 3.4.0</p>
+<p>Here is the code I use which is a library I created:</p>
+<p><strong>geolocation.js</strong></p>
+<pre><code class="hljs"><span class="hljs-comment">// Private Variables</span>
+<span class="hljs-comment">// Fired when the location retrieval returns an error.</span>
+<span class="hljs-keyword">var</span> _fnOnError = <span class="hljs-literal">null</span>;
+<span class="hljs-comment">// Fired when the location retrieval is successful.</span>
+<span class="hljs-keyword">var</span> _fnOnSuccess = <span class="hljs-literal">null</span>;
+<span class="hljs-comment">// Number of retries on retrieval error</span>
+<span class="hljs-keyword">var</span> _retries = <span class="hljs-number">5</span>;
+
+<span class="hljs-keyword">var</span> _curRetry = <span class="hljs-number">0</span>;
+
+<span class="hljs-comment">// INITIAL SETTINGS</span>
+
+<span class="hljs-comment">// Preferred provider: NETWORK. (FOR BEST ACCURACY).</span>
+Ti.Geolocation.preferredProvider = Titanium.Geolocation.PROVIDER_GPS;
+
+<span class="hljs-comment">// Set location callback.</span>
+Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>, onGetCurrentLocation);
+
+<span class="hljs-comment">// Set accuracy: BEST.</span>
+<span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>) 
+{
+    Ti.Geolocation.Android.accuracy = Titanium.Geolocation.ACCURACY_BEST;
+}
+
+Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_BEST;
+
+<span class="hljs-comment">// Set distance filter: 10 meters</span>
+Titanium.Geolocation.distanceFilter = <span class="hljs-number">1</span>;
+
+Ti.Geolocation.purpose = <span class="hljs-string">"Get Neraby POS"</span>;
+
+<span class="hljs-comment">// Check if location services is enabled.</span>
+<span class="hljs-keyword">if</span> (Titanium.Geolocation.locationServicesEnabled === <span class="hljs-literal">false</span>)
+    Ti.API.error(<span class="hljs-string">'Device has GEO turned off. (Location Services)'</span>);
+
+<span class="hljs-comment">/***
+ * Translates the error code into readable information. 
+ * @param {Object} code
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">translateErrorCode</span>(<span class="hljs-params">code</span>) </span>{
+    <span class="hljs-keyword">if</span> (code == <span class="hljs-literal">null</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+    }
+
+    <span class="hljs-keyword">switch</span> (code) 
+    {
+        <span class="hljs-keyword">case</span> Ti.Geolocation.ERROR_LOCATION_UNKNOWN:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">"Location unknown"</span>;
+        <span class="hljs-keyword">case</span> Ti.Geolocation.ERROR_DENIED:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">"Access denied"</span>;
+        <span class="hljs-keyword">case</span> Ti.Geolocation.ERROR_NETWORK:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">"Network error"</span>;
+        <span class="hljs-keyword">case</span> Ti.Geolocation.ERROR_HEADING_FAILURE:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">"Failure to detect heading"</span>;
+        <span class="hljs-keyword">case</span> Ti.Geolocation.ERROR_REGION_MONITORING_DENIED:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">"Region monitoring access denied"</span>;
+        <span class="hljs-keyword">case</span> Ti.Geolocation.ERROR_REGION_MONITORING_FAILURE:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">"Region monitoring access failure"</span>;
+        <span class="hljs-keyword">case</span> Ti.Geolocation.ERROR_REGION_MONITORING_DELAYED:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">"Region monitoring setup delayed"</span>;
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-string">"UNKNOWN CODE: "</span> + code;
+}
+<span class="hljs-comment">/***
+ * Retrieves the current location of the device. 
+ * @param {Object} opts
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getCurrentLocation</span>(<span class="hljs-params">opts</span>)
+</span>{
+
+    <span class="hljs-keyword">if</span> (_curRetry == <span class="hljs-number">0</span>)
+    {
+        <span class="hljs-comment">// Set callback functions.</span>
+        _fnOnError = opts.error || <span class="hljs-literal">null</span>;
+        _fnOnSuccess = opts.success || <span class="hljs-literal">null</span>;
+    }
+
+    <span class="hljs-comment">// First get last known location</span>
+    <span class="hljs-comment">//Titanium.Geolocation.getCurrentPosition(onGetCurrentLocation);</span>
+}
+
+<span class="hljs-comment">/***
+ * Raised when a location event is fired. 
+ * @param {Object} e
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onGetCurrentLocation</span>(<span class="hljs-params">e</span>)
+</span>{
+    <span class="hljs-keyword">if</span> (!e.success || e.error)
+    {
+        Ti.API.error(<span class="hljs-string">"[geolocation.js] - Error retrieving location: "</span> + <span class="hljs-built_in">JSON</span>.stringify(e.error));
+        Ti.API.error(<span class="hljs-string">"[geolocation.js] - Code translation: "</span> + translateErrorCode(e.code));
+
+        <span class="hljs-comment">// Check if current attempt is equal to the number of retries.</span>
+        <span class="hljs-keyword">if</span> (_curRetry == _retries)
+        {
+            Titanium.Geolocation.removeEventListener(<span class="hljs-string">'location'</span>, onGetCurrentLocation);
+            Ti.API.error(<span class="hljs-string">"Couldn't get location. All retries have been executed."</span>);
+            <span class="hljs-keyword">if</span> (_fnOnError !== <span class="hljs-literal">null</span>) _fnOnError(e);
+            _curRetry = <span class="hljs-number">0</span>;
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            <span class="hljs-comment">// If not all attempts have been made, retry to get location using location listener.</span>
+            Ti.API.warn(<span class="hljs-string">"Error getting current location. Retrying. Attempt "</span> + _curRetry);
+            _curRetry++;
+            <span class="hljs-comment">// Call method again.</span>
+            <span class="hljs-comment">//getCurrentLocation();</span>
+        }        
+
+        <span class="hljs-comment">// End method execution.</span>
+        <span class="hljs-keyword">return</span>;
+    }
+
+
+    Ti.API.info(<span class="hljs-string">"[geolocation.js] - Location retrieved successfully: "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+
+    <span class="hljs-keyword">var</span> retVal = {
+        latitude: e.coords.latitude,
+        longitude: e.coords.longitude,
+        altitude: e.coords.altitude,
+        heading: e.coords.heading,
+        accuracy: e.coords.accuracy,
+        speed: e.coords.speed,
+        timestamp: e.coords.timestamp,
+        altitudeAccuracy: e.coords.altitudeAccuracy
+    };
+
+    _curRetry = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">if</span> (_fnOnSuccess !== <span class="hljs-literal">null</span>) _fnOnSuccess(retVal);
+
+    Titanium.Geolocation.removeEventListener(<span class="hljs-string">'location'</span>, onGetCurrentLocation);
+}    
+
+exports.getCurrentLocation = getCurrentLocation;
+
+<span class="hljs-comment">// Get Set Retries Property.</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getRetries</span>(<span class="hljs-params"></span>) </span>{ <span class="hljs-keyword">return</span> _retries; };
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setRetries</span>(<span class="hljs-params">val</span>) </span>{ _retries = val; };
+exports.getRetries = getRetries; 
+exports.setRetries = setRetries;
+
+<span class="hljs-built_in">Object</span>.defineProperty(exports, <span class="hljs-string">"retries"</span>, {
+    get: getRetries,
+    set: setRetries
+});
+</code></pre><p><strong> Usage </strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> geoloc = require('/geolocation');
+// <span class="hljs-type">Call</span> <span class="hljs-keyword">method</span> to start getting current location.
+geoloc.getCurrentLocation({error: onGetCurrentLocationError, success: onGetCurrentLocationSuccess});
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 24th 2014, 11:44:18 am">October 24th 2014</span>
+				by <span class='authorname'>Juan Manuel Haedo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-283382">
+				
+						<section>
+							<p>This is a location function I use for both Android and iOS.</p>
+<pre><code class="hljs">exports.getDeviceLngLat = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(callback)</span></span>{
+    Ti.Geolocation.headingFilter = <span class="hljs-number">1</span>;
+    Ti.Geolocation.showCalibration = <span class="hljs-literal">false</span>;
+
+    <span class="hljs-keyword">if</span>(Ti.Platform.osname  ==  <span class="hljs-string">'android'</span>) {
+         Ti.Geolocation.Android.accuracy = Ti.Geolocation.ACCURACY_HIGH;
+         Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_HIGH;
+    }
+    <span class="hljs-keyword">else</span> {
+         Ti.Geolocation.distanceFilter = <span class="hljs-number">10</span>;
+        Ti.Geolocation.preferredProvider = <span class="hljs-string">'gps'</span>;
+        Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_NEAREST_TEN_METERS;
+        Ti.Geolocation.purpose = Ti.Locale.getString(<span class="hljs-string">'To find nearby restaurants'</span>);
+    }
+
+    Ti.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+      <span class="hljs-keyword">if</span>(!e.success  ||  e.error) {
+          <span class="hljs-keyword">callback</span>(e.error);
+      }
+      <span class="hljs-keyword">if</span>(e.success) {
+            <span class="hljs-keyword">callback</span>(<span class="hljs-literal">null</span>, { lng: e.coords.longitude, lat: e.coords.latitude });
+      }
+    });
+};
+</code></pre><p>To call it you would do something like this. I have a commonjs module in &#x2F;lib called helper…</p>
+<pre><code class="hljs">helper.getDeviceLngLat(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">err, response</span>)</span>{
+        <span class="hljs-keyword">if</span> (err) {
+            <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Something went wrong.'</span>);
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-built_in">console</span>.log(response.lat + <span class="hljs-string">', '</span> + response.lng);
+        }
+    });
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 25th 2014, 6:11:22 pm">October 25th 2014</span>
+								by <span class='authorname'>Harry Baldwin</span><br>
+								<a class="icon-bg icon-link" href="question/178666/best-way-to-get-current-location#answer-283382" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-283345">
+				
+						<section>
+							<p>Hi guys,</p>
+<p>This <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Tracking_Position_and_Heading">Geolocation Guide</a> will better help for you.</p>
+<p>Thanks.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 24th 2014, 1:03:07 pm">October 24th 2014</span>
+								by <span class='authorname'>Motiur Rahman</span><br>
+								<a class="icon-bg icon-link" href="question/178666/best-way-to-get-current-location#answer-283345" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Actually it doesn´t.<br>This guide is what I used to create the LIB.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 24th 2014, 1:44:29 pm">October 24th 2014</span>
+											by <span class='authorname'>Juan Manuel Haedo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

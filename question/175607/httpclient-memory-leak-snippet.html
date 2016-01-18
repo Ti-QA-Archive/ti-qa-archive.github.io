@@ -1,0 +1,312 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTPClient memory leak snippet » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTPClient memory leak snippet</h1>
+		</header>
+		<section>
+			<p>Here&#39;s the snippet:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> cycles = <span class="hljs-number">0</span>, threads = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> interval = setInterval(testHTTPClient, <span class="hljs-number">500</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">testHTTPClient</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> (<span class="hljs-number">5</span> &lt;= threads) <span class="hljs-keyword">return</span>;    <span class="hljs-comment">// not too many threads at once</span>
+    threads++;
+    cycles++;
+
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+        onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            threads--;
+        },
+        onerror: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            Ti.API.info(<span class="hljs-string">'Onerror'</span>);
+            threads--;
+        },
+        timeout: <span class="hljs-number">5000</span>
+    });
+
+    xhr.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://homepages.cae.wisc.edu/~ece533/images/frymire.png?'</span> + <span class="hljs-built_in">Math</span>.random());    <span class="hljs-comment">// get different URIs</span>
+    xhr.send();
+
+    Ti.API.info(<span class="hljs-string">'cycles = '</span> + cycles + <span class="hljs-string">', threads = '</span> + threads);
+}
+</code></pre><p>This leaks memory and eventually crashes after 300 - 2000 cycles depending on an Android device. Console output fragment:</p>
+<pre><code class="hljs">[INFO] :   cycles = <span class="hljs-number">390</span>, threads = <span class="hljs-number">5</span>
+[INFO] :   I/dalvikvm-heap: Clamp target GC heap from <span class="hljs-number">32.150</span>MB to <span class="hljs-number">32.000</span>MB
+[INFO] :   I/dalvikvm-heap: Clamp target GC heap from <span class="hljs-number">32.388</span>MB to <span class="hljs-number">32.000</span>MB
+[INFO] :   I/dalvikvm-heap: Forcing collection of SoftReferences <span class="hljs-keyword">for</span> <span class="hljs-number">252140</span>-byte allocation
+[INFO] :   I/dalvikvm-heap: Clamp target GC heap from <span class="hljs-number">32.387</span>MB to <span class="hljs-number">32.000</span>MB
+[INFO] :   dalvikvm: <span class="hljs-string">"TiHttpClient-387"</span> prio=<span class="hljs-number">1</span> tid=<span class="hljs-number">14</span> RUNNABLE
+[ERROR] :  E/dalvikvm-heap: Out of memory on a <span class="hljs-number">252140</span>-byte allocation.
+</code></pre><p>I need to use similar code for preloading remote images for displaying in an ImageView on Android devices. Does anyone know how to fix this, or is there a workaround?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 29th 2014, 2:56:44 pm">June 29th 2014</span>
+				by <span class='authorname'>Sergey Nikitin</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>memory leak</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Is this the actual code that fails - you appear to be missing chunks.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 29th 2014, 3:46:06 pm">June 29th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Yes! This is the entire code. You can add it to app.js and try running it to get the same output.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 29th 2014, 4:30:02 pm">June 29th 2014</span>
+								by <span class='authorname'>Sergey Nikitin</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-280221">
+				
+						<section>
+							<p>Hi</p>
+<p>I am always astounded when I see this sort of code which attempts to fix a &#39;problem&#39; at the expense of all logic.</p>
+<p>You are calling 300-2000 cycles at least of remote files all at the same time (I see you are trying to keep things at 5 or less) and wondering why things are going wrong?  What about the user are they part of the conscious effort to improve the user experience?</p>
+<p>If you choose to explain the real purpose for this - not some attempt at explaining your solution I may be able to suggest some improvements.  So in short what are you trying to achieve for your app?  &quot;…preloading remote images for displaying in an ImageView…&quot; is not a clear or detailed enough description.</p>
+<p>BTW - not a leak, not a thing that needs fixing - it is your code implementation based on as yet unknown logic.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 29th 2014, 3:50:59 pm">June 29th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/175607/httpclient-memory-leak-snippet#answer-280221" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Malcolm, thank you for answering! Here is the logic behind it. I need to display remote images on Android - it is a dating type of application. I can just specify the remote URL as the &#39;image&#39; parameter. In this case, sometimes the images are displayed, sometimes, they are coming out blank (iOS doesn&#39;t have this problem). So, I&#39;m trying to preload them before displaying. This in turn causes memory leaks, and the app crashes after about 200 - 300 image views. But, rather than posting my entire app code, I boiled the problem down to the bare minimum crashing snippet. Also, one can argue that HTTPClient should not crash, regardless of what it is used for. So, I think this problem might be interesting to other people by itself, regardless of my particular application.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 29th 2014, 4:39:50 pm">June 29th 2014</span>
+											by <span class='authorname'>Sergey Nikitin</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><pre><code class="hljs"> Also, one can argue <span class="hljs-keyword">that</span> HTTPClient should <span class="hljs-keyword">not</span> crash, regardless <span class="hljs-keyword">of</span> what <span class="hljs-keyword">it</span> <span class="hljs-keyword">is</span> used <span class="hljs-keyword">for</span>.
+</code></pre><p>really ?</p>
+<p>i can perform a memory alloc() that will crash a device… Is that the fault of alloc() ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 29th 2014, 6:01:50 pm">June 29th 2014</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I still have very little information to work with and the code above is insufficient so I cannot tell;</p>
+<ul>
+<li>how you are attempting to display the images</li>
+<li>what size they are</li>
+<li>what dimensions they have</li>
+<li>when they are being used and how</li>
+<li>if you need all images at once</li>
+<li>if you need to actually cache them beyond display</li>
+</ul>
+<p>You code keeps firing out interval calls to the function - this is partly where the problem is, you have no means to cancel the usage of the interval and no fall back to determine if any of the images actually loaded.  You assume that you should fire the interval every few seconds and you assume there is a good internet connection for the user.  Add to this you assume the user is happy to wait to download way more images than they are likely to actually see straight away.</p>
+<p>So I cannot tell if;</p>
+<ul>
+<li>You are adding the images to a;<ul>
+<li>ListView</li>
+<li>TableView</li>
+<li>ScrollView</li>
+<li>View</li>
+<li>Window</li>
+</ul>
+</li>
+<li>I cannot tell if the images are being stored in the which folder</li>
+<li>I cannot tell if the images dimensions being displayed match the region used to display each image</li>
+<li>If you are using a TableView - then are you using a className</li>
+<li>If you actually need every single one of these images before anything else can be done in the app</li>
+<li>If the average user will ever want to see so many images at anyone time</li>
+</ul>
+<p>You code is not releasing itself as you just keep calling it repeatedly no matter if that is a good idea or not, or if it arrived or not.</p>
+<p>You need to plan your app correctly.  This is not planned correctly or even thought out in how the user will interact with the app to trigger images being downloaded and shown.</p>
+<p>The biggest problem you have is that iOS is very forgiving and very memory efficient, this lets people get away with actually designing in a memory considered app .  With Android you have a lot less of these forgivenesses - so you hit the problem must sooner.  This is actually a blessing as it forces you to actually think through the app.</p>
+<p>So the original question; &quot;Does anyone know how to fix this, or is there a workaround?&quot; is redundant as you are causing the problem - it is failing because you are trying to get it to do something that is plainly stupid.</p>
+<p>If you must go down this path then consider at the very least smarter plans;</p>
+<ul>
+<li>ZIP the files on the server and download less files but in bigger chunks.  Use an unzip module to open them when downloaded</li>
+<li>ONLY download those that require downloading when they are required or just before.  Do not download everything in one go - you are asking for (and getting) trouble.</li>
+</ul>
+<p>If you want to do this more intelligently;</p>
+<ul>
+<li>Plan how you app should work before you start it - build in memory saving, pre-emption, utilise ALL built in memory management available from ImageViews</li>
+<li>Work out HOW you are displaying the images and how the user will want to see the images - will they want to see 300+ all at once <strong>NO</strong> never, so if you must pre-load, pre-load the next few - not the whole lot</li>
+<li>Work out if your code above actually returned 200 success group of status codes or not, part of this problem could be with the server not just your attempts to fix a problem that almost certainly does not exist</li>
+<li>If you really want to create and true file download queue - you have to manage the fiel list and determine status per entry.  Each file should be given a suitable priority and failures (not just onerror - only one type of error) are actually handled. Get rid of the interval and use time-out, only start the next ones when the previous have completed - do this outside the download process.  Test the connection and work out if you should throttle back</li>
+</ul>
+<p>Sit down with a pen and paper and re-think the whole presentation part and then if you get it right, you will not need any pre-load code badly written or otherwise.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 29th 2014, 6:03:07 pm">June 29th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK. I think we are not seeing the forest from the trees here… In my opinion HTTPClient should not crash, regardless of what it is used for. I do want to discuss how I am using ImageViews - there might be a problem there too, who knows, but this is not the issue here. It would probably be more appropriate to start a different discussion thread for that.</p>
+<p>As far as the code doing several, 300+ iterations, causing the HTTPClient to crash, or the code not having a stop function, or any utility to the user… I agree, but nowhere in the documentation, it says &quot;do not call HTTPClient 300 times in a row, or it will crash.&quot; </p>
+<p>And, 300 cycles is really not that many. As you can see, the snippet never loads more than 5 images at once. In my actual app, each user may have up to 10 photos uploaded. So, when someone is looking through the photos of other users sequentially, 10 at a time, they can only see about 30 users before it crashes - not great.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 30th 2014, 5:15:33 am">June 30th 2014</span>
+											by <span class='authorname'>Sergey Nikitin</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><pre><code class="hljs">In <span class="hljs-keyword">my</span> opinion HTTPClient should <span class="hljs-keyword">not</span> crash,
+</code></pre><p>Agreed and on an S4 running 4.4.3:</p>
+<pre><code class="hljs"><span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">03</span>:<span class="hljs-number">46.227</span>: I/TiAPI(<span class="hljs-number">14648</span>):  cycles = <span class="hljs-number">365</span>, threads = <span class="hljs-number">3</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">03</span>:<span class="hljs-number">46.708</span>: I/TiAPI(<span class="hljs-number">14648</span>):  cycles = <span class="hljs-number">366</span>, threads = <span class="hljs-number">1</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">03</span>:<span class="hljs-number">47.218</span>: I/TiAPI(<span class="hljs-number">14648</span>):  cycles = <span class="hljs-number">367</span>, threads = <span class="hljs-number">1</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">03</span>:<span class="hljs-number">47.719</span>: I/TiAPI(<span class="hljs-number">14648</span>):  cycles = <span class="hljs-number">368</span>, threads = <span class="hljs-number">2</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">03</span>:<span class="hljs-number">48.219</span>: I/TiAPI(<span class="hljs-number">14648</span>):  cycles = <span class="hljs-number">369</span>, threads = <span class="hljs-number">2</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">03</span>:<span class="hljs-number">48.720</span>: I/TiAPI(<span class="hljs-number">14648</span>):  cycles = <span class="hljs-number">370</span>, threads = <span class="hljs-number">2</span>
+</code></pre><p>it doesn&#39;t.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 30th 2014, 10:08:45 am">June 30th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nor on an S3 running 4.2.x:</p>
+<pre><code class="hljs"><span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">23</span>:<span class="hljs-number">52.835</span>: I/TiAPI(<span class="hljs-number">22242</span>):  cycles = <span class="hljs-number">500</span>, threads = <span class="hljs-number">5</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">23</span>:<span class="hljs-number">56.328</span>: I/TiAPI(<span class="hljs-number">22242</span>):  cycles = <span class="hljs-number">501</span>, threads = <span class="hljs-number">4</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">23</span>:<span class="hljs-number">56.829</span>: I/TiAPI(<span class="hljs-number">22242</span>):  cycles = <span class="hljs-number">502</span>, threads = <span class="hljs-number">2</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">23</span>:<span class="hljs-number">57.329</span>: I/TiAPI(<span class="hljs-number">22242</span>):  cycles = <span class="hljs-number">503</span>, threads = <span class="hljs-number">1</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">23</span>:<span class="hljs-number">57.830</span>: I/TiAPI(<span class="hljs-number">22242</span>):  cycles = <span class="hljs-number">504</span>, threads = <span class="hljs-number">2</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="June 30th 2014, 10:26:13 am">June 30th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nor on a Kyocera C5170 running 4.0.4, arguably the weakest 4.x phone in existence.</p>
+<pre><code class="hljs"><span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">31</span>:<span class="hljs-number">18.470</span>: I/TiAPI(<span class="hljs-number">2479</span>):  cycles = <span class="hljs-number">354</span>, threads = <span class="hljs-number">5</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">31</span>:<span class="hljs-number">19.461</span>: I/TiAPI(<span class="hljs-number">2479</span>):  cycles = <span class="hljs-number">355</span>, threads = <span class="hljs-number">5</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">31</span>:<span class="hljs-number">19.961</span>: I/TiAPI(<span class="hljs-number">2479</span>):  cycles = <span class="hljs-number">356</span>, threads = <span class="hljs-number">4</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">31</span>:<span class="hljs-number">20.462</span>: I/TiAPI(<span class="hljs-number">2479</span>):  cycles = <span class="hljs-number">357</span>, threads = <span class="hljs-number">4</span>
+<span class="hljs-number">06</span>-<span class="hljs-number">30</span> <span class="hljs-number">08</span>:<span class="hljs-number">31</span>:<span class="hljs-number">20.962</span>: I/TiAPI(<span class="hljs-number">2479</span>):  cycles = <span class="hljs-number">358</span>, threads = <span class="hljs-number">5</span>
+</code></pre><p>Previous testing done against Ti 3.2.3.GA</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 30th 2014, 10:33:31 am">June 30th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Stephen. Could you give it 2000 cycles? I tested on two devices, on HTC Incredible, Android version 2.3.3, an older phone, and on Samsung Galaxy, Android version 4.2.2 against Ti 3.2.3.GA. The first device crashed after about 300 cycles, the second after about 2000. If it doesn&#39;t crash on yours, then it must be something else I&#39;m doing wrong.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 30th 2014, 5:43:06 pm">June 30th 2014</span>
+											by <span class='authorname'>Sergey Nikitin</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

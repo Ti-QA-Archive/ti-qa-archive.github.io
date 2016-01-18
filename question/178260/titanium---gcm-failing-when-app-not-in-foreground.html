@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium - GCM failing when app not in foreground » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium - GCM failing when app not in foreground</h1>
+		</header>
+		<section>
+			<p>Hi all</p>
+<p>Titanium SDK version 3.4.0.GA Targeting Android SDK: 20</p>
+<p>Debugging on device running Android 4.4.4</p>
+<p>Am able to retrieve deviceToken and can receive push notifications.</p>
+<p>But the push notifications show up as an alert only when the application has focus</p>
+<p>When the application does not have focus, I get an error that says the application has stopped working.</p>
+<p>Sometimes, bringing the application back into focus shows the notifications sent when the application was not in focus.</p>
+<p>How do start to debug this, please?</p>
+<p>A little fogged - any pointers would be a great help</p>
+<p>Many thanks</p>
+<p>Iyer</p>
+<pre><code class="hljs"><span class="hljs-comment">// this sets the background color of the master UIView (when there are no windows/tab groups on it)</span>
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+<span class="hljs-keyword">var</span> df = <span class="hljs-built_in">require</span>(<span class="hljs-string">"./dreamfactory"</span>);
+<span class="hljs-keyword">var</span> promise = <span class="hljs-built_in">require</span>(<span class="hljs-string">"./Promise"</span>);
+
+<span class="hljs-keyword">var</span> winMain = Ti.UI.createWindow({
+        backgroundColor:<span class="hljs-string">"#000"</span>,
+        layout: <span class="hljs-string">"vertical"</span>
+});
+
+<span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloudpush'</span>);
+<span class="hljs-keyword">var</span> deviceTokenLabel = Ti.UI.createLabel({
+    top: <span class="hljs-string">'10dp'</span>, width: <span class="hljs-string">'320dp'</span>, height: (CloudPush.pushType==<span class="hljs-string">'gcm'</span>?<span class="hljs-string">'150dp'</span>:<span class="hljs-string">'40dp'</span>),
+    font: { fontSize:<span class="hljs-number">14</span>}, color: <span class="hljs-string">'white'</span>,
+    text: <span class="hljs-string">'Device Token'</span>
+});
+winMain.add(deviceTokenLabel);
+
+<span class="hljs-keyword">var</span> deviceToken = Ti.App.Properties.getString(<span class="hljs-string">"deviceToken"</span>, <span class="hljs-string">""</span>);
+<span class="hljs-keyword">if</span> (deviceToken == <span class="hljs-string">""</span>) {
+    CloudPush.retrieveDeviceToken({
+        success: deviceTokenSuccess,
+        error: deviceTokenError
+    });    
+} <span class="hljs-keyword">else</span> {
+        deviceTokenLabel.text = <span class="hljs-string">'Already Had Device Token:'</span> + deviceToken;
+        registerWithDSP();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'Device Token: '</span> + e.deviceToken);
+    deviceTokenLabel.text = <span class="hljs-string">'Device Token:'</span> + e.deviceToken;
+    Ti.App.Properties.setString(<span class="hljs-string">'deviceToken'</span>, e.deviceToken);
+    registerWithDSP();    
+    <span class="hljs-comment">//enablePush.enabled = true;</span>
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerWithDSP</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> body = {email:<span class="hljs-string">"iyer@ndtv.com"</span> , password : <span class="hljs-string">"yeggikallie"</span>};
+    body = <span class="hljs-built_in">JSON</span>.stringify(body);
+    Ti.API.info(body);    
+    df.makeRequest(<span class="hljs-string">"post"</span>,<span class="hljs-string">"/user/session"</span>, body).then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">response</span>) </span>{
+        SESSION_ID = response.session_id;
+        Ti.API.info(<span class="hljs-string">"session id "</span> + SESSION_ID);
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">error</span>)</span>{
+          Ti.API.info(<span class="hljs-string">"Could not connect "</span> + error);
+    });
+
+} 
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span>(<span class="hljs-params">e</span>) </span>{
+    alert(<span class="hljs-string">'Failed to register for push! '</span> + e.error);
+    deviceTokenLabel.text = <span class="hljs-string">'Failed to get device token.'</span>;
+}
+
+CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+    alert(evt.payload);
+});
+
+CloudPush.addEventListener(<span class="hljs-string">'trayClickLaunchedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'Tray Click Launched App (app was not running)'</span>);
+});
+
+CloudPush.addEventListener(<span class="hljs-string">'trayClickFocusedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'Tray Click Focused App (app was already running)'</span>);
+});
+
+winMain.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 8th 2014, 8:13:44 am">October 8th 2014</span>
+				by <span class='authorname'>K Y Iyer</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>gcm</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

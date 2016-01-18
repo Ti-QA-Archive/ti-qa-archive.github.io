@@ -1,0 +1,593 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Adding models to collections causes memory spikes in Model-View binding » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Adding models to collections causes memory spikes in Model-View binding</h1>
+		</header>
+		<section>
+			<ul>
+<li>Application type: mobile</li>
+<li>Titanium SDK: 3.3.0.RC</li>
+<li>Platform &amp; version: iOS 7.1</li>
+<li>Device: iOS simulator, iPhone 5S</li>
+<li>Host Operating System: OSX 10.9.3</li>
+</ul>
+<p>I&#39;m using Alloy model-view binding to keep data in a table updated. The app is lazy-loading additional rows and adding it to the collection, triggering Alloy to add new rows to the table. I&#39;ve created a sample app below to demonstrate the behavior, which allows adding 100 rows to a table view, in chunks of 10. In the sample app, click &quot;Add More Books&quot; to add 10 new books.</p>
+<p>I&#39;m experiencing two unexpected behaviors, which are most likely related.</p>
+<p><strong>1: Memory Spikes</strong><br>In order to add 100 rows to the table (in chunks of 10), the app created 5400 temporary Titanium objects. They get removed from memory, but cause a memory and processing spike during creation. See <a href="http:&#x2F;&#x2F;cl.ly&#x2F;image&#x2F;1y1S2q351b2e">Screenshot</a>. Note that the example app only has 1 label per row. My actual app has several views per row, including image views.</p>
+<p><strong>2: Data in row controller gets processed for every collection &quot;add&quot; event</strong><br>When adding models to a collection, each &quot;add&quot; event (when a model is added to a collection) executes the controller code for all existing rows again. For example: I have 90 models in a collection and add 10 models. The 10 models will execute the controller code for all 100 rows 10 times. See the debug code in the example app.<br>This prevents me from putting any processor-intensive code into the row controller, such as caching an image. </p>
+<p>I&#39;d strongly appreciate if anyone could let me know what I&#39;m doing wrong here, as I&#39;d like to use Alloy&#39;s model-view controller binding.</p>
+<p>Here&#39;s the test app: http:&#x2F;&#x2F;cl.ly&#x2F;3e142V3B0w0L, or see relevant files below.</p>
+<p>views&#x2F;index.xml:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">Collection</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"books"</span> /&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">TabGroup</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"tabgroup"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Tab</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Books"</span> <span class="hljs-attribute">icon</span>=<span class="hljs-value">"KS_nav_views.png"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Books"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">RightNavButton</span> <span class="hljs-attribute">platform</span>=<span class="hljs-value">"ios"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Button</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Add More Books"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"addMore"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"addMoreBooks"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">RightNavButton</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"tableView"</span> <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"books"</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">Require</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"view"</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"row"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">Tab</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">TabGroup</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>views&#x2F;row.xml:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span> <span class="hljs-attribute">height</span>=<span class="hljs-value">"40"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">View</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"outerView"</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">color</span>=<span class="hljs-value">"black"</span> <span class="hljs-attribute">text</span>=<span class="hljs-value">"{title}"</span> /&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">View</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">TableViewRow</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>models&#x2F;books.js</p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+        columns: {
+            <span class="hljs-string">"id"</span>: <span class="hljs-string">"INTEGER PRIMARY KEY"</span>,
+            <span class="hljs-string">"title"</span>: <span class="hljs-string">"TEXT"</span>
+        },
+        adapter: {
+            <span class="hljs-built_in">type</span>: <span class="hljs-string">"sql"</span>,
+            collection_name: <span class="hljs-string">"books"</span>,
+      idAttribute: <span class="hljs-string">'id'</span>
+        }
+    },
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span></span> {
+        _.extend(Model.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+        });
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span></span> {
+        _.extend(Collection.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+        });
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre><p>controller&#x2F;index.js:</p>
+<pre><code class="hljs"><span class="hljs-comment">// Generate 100 models once.</span>
+<span class="hljs-keyword">var</span> populated = Ti.App.Properties.getBool(<span class="hljs-string">'populated'</span>, <span class="hljs-literal">false</span>);
+<span class="hljs-keyword">if</span> (populated === <span class="hljs-literal">false</span>) {
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt;= <span class="hljs-number">100</span>; i++) {
+    Ti.API.error(<span class="hljs-string">'Generate Book '</span> + i);
+    <span class="hljs-keyword">var</span> model = Alloy.createModel(<span class="hljs-string">'books'</span>, {
+      id: i,
+      title: <span class="hljs-built_in">String</span>(<span class="hljs-string">'Book '</span> + i)
+    });
+    model.save();
+  }
+  Ti.App.Properties.setBool(<span class="hljs-string">'populated'</span>, <span class="hljs-literal">true</span>);
+}
+
+<span class="hljs-keyword">var</span> chunkSize = <span class="hljs-number">10</span>;
+<span class="hljs-keyword">var</span> collection = Alloy.Collections.books;
+collection.comparator = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">model</span>) </span>{
+  <span class="hljs-keyword">return</span> model.get(<span class="hljs-string">'id'</span>);
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addMoreBooks</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">var</span> lengthBefore = collection.models.length || <span class="hljs-number">0</span>;
+  collection.fetch({
+    add: <span class="hljs-literal">true</span>,
+    query: {
+      statement: <span class="hljs-string">'SELECT * from books ORDER BY id ASC LIMIT ? OFFSET ?'</span>,
+      params: [chunkSize, lengthBefore]
+    },
+    success: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">collection</span>) </span>{
+      $.tableView.scrollToIndex(collection.models.length - <span class="hljs-number">1</span>);
+      Ti.API.error(<span class="hljs-string">'Number of books in view: '</span> + collection.models.length);
+    }
+  });
+}
+
+$.tabgroup.open();
+</code></pre><p>controllers&#x2F;row.js</p>
+<pre><code class="hljs">var args = arguments[<span class="hljs-number">0</span>] || {};
+Ti.API.error(<span class="hljs-string">'Processing row for : '</span> + <span class="hljs-variable">$model</span>.get(<span class="hljs-string">'title'</span>));
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 26th 2014, 7:36:48 pm">June 26th 2014</span>
+				by <span class='authorname'>Daniel Hanold</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>binding</span></li>
+					
+						<li><span class='tagname'>collection</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-280536">
+				
+						<section>
+							<p>Try adding in silent mode, and update with dataFunction on Table view like that:</p>
+<pre><code class="hljs">&lt;TableView <span class="hljs-property">id</span>=<span class="hljs-string">"tableView"</span> dataCollection=<span class="hljs-string">"books"</span> dataFunction=<span class="hljs-string">"updateUI"</span>&gt;
+</code></pre><p>Now you can refresh view using <code>updateUI()</code> in controller. Now just add silent parameter to fetching function like this:</p>
+<pre><code class="hljs">collection.fetch({
+    add: <span class="hljs-constant">true</span>,
+    query: {
+      statement: 'SELECT * <span class="hljs-keyword">from</span> books ORDER BY <span class="hljs-property">id</span> ASC LIMIT ? OFFSET ?',
+      params: [chunkSize, lengthBefore]
+    },
+    success: function(collection) {
+      $.tableView.scrollToIndex(collection.models.<span class="hljs-property">length</span> - <span class="hljs-number">1</span>);
+      Ti.API.<span class="hljs-keyword">error</span>('Number <span class="hljs-keyword">of</span> books <span class="hljs-keyword">in</span> view: ' + collection.models.<span class="hljs-property">length</span>);
+    },
+    silent: <span class="hljs-constant">true</span>
+  });
+</code></pre><p>After the fetch, or in success calback call data function, to refresh with new models added at once. This should work much faster than before. Tell me if this worked for you, cheers.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 9th 2014, 12:38:29 pm">July 9th 2014</span>
+								by <span class='authorname'>Tomasz Krzywda</span><br>
+								<a class="icon-bg icon-link" href="question/175556/adding-models-to-collections-causes-memory-spikes-in-model-view-binding#answer-280536" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-280542">
+				
+						<section>
+							<p>Hi Thomas. Thanks answering the post, really appreciate it. I read the documentation again (http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;Alloy_Data_Binding), especially the part about the dataFunction, but to be honest, I&#39;m not quite sure how to use it and the example on the Alloy documentation page doesn&#39;t specify what the updateUI() function really does.</p>
+<p>I followed your recommendation, but was only able to implement it by removing the Alloy Model-View binding completely and take over updating the table myself. Here&#39;s how I changed it:</p>
+<p>views&#x2F;index.xml:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">Collection</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"books"</span> /&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">TabGroup</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"tabgroup"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Tab</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Books"</span> <span class="hljs-attribute">icon</span>=<span class="hljs-value">"KS_nav_views.png"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Books"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">RightNavButton</span> <span class="hljs-attribute">platform</span>=<span class="hljs-value">"ios"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Button</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Add More Books"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"addMore"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"addMoreBooks"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">RightNavButton</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"tableView"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">Tab</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">TabGroup</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>controller&#x2F;index.js:</p>
+<pre><code class="hljs"><span class="hljs-comment">// Generate 100 models once.</span>
+<span class="hljs-keyword">var</span> populated = Ti.App.Properties.getBool(<span class="hljs-string">'populated'</span>, <span class="hljs-literal">false</span>);
+<span class="hljs-keyword">if</span> (populated === <span class="hljs-literal">false</span>) {
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt;= <span class="hljs-number">100</span>; i++) {
+    Ti.API.error(<span class="hljs-string">'Generate Book '</span> + i);
+    <span class="hljs-keyword">var</span> model = Alloy.createModel(<span class="hljs-string">'books'</span>, {
+      id: i,
+      title: <span class="hljs-built_in">String</span>(<span class="hljs-string">'Book '</span> + i)
+    });
+    model.save();
+  }
+  Ti.App.Properties.setBool(<span class="hljs-string">'populated'</span>, <span class="hljs-literal">true</span>);
+}
+
+<span class="hljs-keyword">var</span> chunkSize = <span class="hljs-number">10</span>;
+<span class="hljs-keyword">var</span> collection = Alloy.Collections.books;
+collection.comparator = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">model</span>) </span>{
+  <span class="hljs-keyword">return</span> model.get(<span class="hljs-string">'id'</span>);
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addMoreBooks</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">var</span> lengthBefore = collection.models.length || <span class="hljs-number">0</span>;
+  collection.fetch({
+    add: <span class="hljs-literal">true</span>,
+    silent: <span class="hljs-literal">true</span>,
+    query: {
+      statement: <span class="hljs-string">'SELECT * from books ORDER BY id ASC LIMIT ? OFFSET ?'</span>,
+      params: [chunkSize, lengthBefore]
+    },
+    success: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">collection</span>) </span>{
+      <span class="hljs-keyword">var</span> lengthAfter = collection.models.length;
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = lengthBefore; i &lt; lengthAfter; i++) {
+        <span class="hljs-keyword">var</span> tableViewRow = Alloy.createController(<span class="hljs-string">'row'</span>, {
+          model: collection.at(i)
+        }).getView();
+        $.tableView.appendRow(tableViewRow);
+      }
+      $.tableView.scrollToIndex(collection.models.length - <span class="hljs-number">1</span>);
+      Ti.API.error(<span class="hljs-string">'Number of books in view: '</span> + collection.models.length);
+    },
+  });
+}
+
+$.tabgroup.open();
+</code></pre><p>In terms of memory usage, this works the way I expected it to work, see here: <a href="http:&#x2F;&#x2F;cl.ly&#x2F;image&#x2F;082L3h3v3M2G">Memory Usage</a>. That&#39;s great, but it defeats the purpose of using model-view binding.</p>
+<p>Do you have any tips on how to use the dataFunction on a table view?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 9th 2014, 1:45:35 pm">July 9th 2014</span>
+								by <span class='authorname'>Daniel Hanold</span><br>
+								<a class="icon-bg icon-link" href="question/175556/adding-models-to-collections-causes-memory-spikes-in-model-view-binding#answer-280542" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>As far as I know the dataFunction is only for purpose of refreshing the binded view. I am using it like that:</p>
+<p>index.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Collection</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"books"</span> /&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"books"</span> <span class="hljs-attribute">dataFunction</span>=<span class="hljs-value">"updateUI"</span> &gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">text</span>=<span class="hljs-value">"{title}"</span> /&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">TableViewRow</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>index.js</p>
+<pre><code class="hljs"><span class="hljs-label">var</span> <span class="hljs-keyword">books </span>= Alloy.Collections.<span class="hljs-keyword">books;
+</span><span class="hljs-keyword">books.fetch({silent: </span>true})<span class="hljs-comment">;</span>
+// Since silent causes collection to <span class="hljs-preprocessor">get</span> <span class="hljs-preprocessor">data</span> from <span class="hljs-preprocessor">data</span> storage, <span class="hljs-keyword">but </span>not synchronizes with view, we need to manually refresh <span class="hljs-keyword">it </span>with dataFunction like that:
+<span class="hljs-label">updateUI</span>()<span class="hljs-comment">;</span>
+<span class="hljs-label">$.index.open</span>()<span class="hljs-comment">;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2014, 6:15:25 am">July 10th 2014</span>
+											by <span class='authorname'>Tomasz Krzywda</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-280549">
+				
+						<section>
+							<p>change the last line of you <code>index.js</code> to this</p>
+<pre><code class="hljs">$.tabgroup.<span class="hljs-keyword">open</span><span class="hljs-literal">()</span>;
+addMoreBooks<span class="hljs-literal">()</span>;
+</code></pre><p>as for loading the array of object, try this</p>
+<pre><code class="hljs">    <span class="hljs-tag">model</span><span class="hljs-class">.save</span>(<span class="hljs-tag">null</span>,<span class="hljs-rules">{<span class="hljs-rule"><span class="hljs-attribute">silent</span>:<span class="hljs-value">true</span></span></span>});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 9th 2014, 11:42:06 pm">July 9th 2014</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/175556/adding-models-to-collections-causes-memory-spikes-in-model-view-binding#answer-280549" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey Aaron: In my example code, I&#39;m simulating lazy-loading additional data from the server with the addMoreBooks() functions. I believe if I added the addMoreBooks functions at the end of this index.js as you suggested, I would simply load the first batch of 10 photos. It wouldn&#39;t change anything about the next 9 executions of addMoreBooks().</p>
+<p>Regarding saving the models, it&#39;s just populating some random data and doesn&#39;t actually trigger anything. </p>
+<p>I&#39;m not sure this changes anything about the memory issue.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 9th 2014, 11:53:10 pm">July 9th 2014</span>
+											by <span class='authorname'>Daniel Hanold</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>then i guess i did not clearly understand what the questions&#x2F;problem here is…</p>
+<p>but just taking a quick look, what is the use case where you would really load 100 books at once when starting an app? Even if the memory spikes, it will go down and all should be fine..</p>
+<p>Also I would not executed a save or create all of the models like that or the separate controllers for the rows if you are worried about the memory.</p>
+<p>i guess what I am saying is that this example is not a well architected use case… what are you really trying to accomplish here.</p>
+<p>finally you should be using list views and not tables :-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 9th 2014, 11:58:06 pm">July 9th 2014</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>another note, I would try your test without the sql adapter to narrow down where the memory problem is coming from</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2014, 12:01:29 am">July 10th 2014</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It&#39;s probably easiest if you download the whole sample app from the initial post and run it: http:&#x2F;&#x2F;cl.ly&#x2F;3e142V3B0w0L. What I&#39;m trying to accomplish is a situation where I store (in this case) books in the local database and load them in increments of 10.</p>
+<p>This first section of the index file is simply simulating the creation of some sample data, i.e. saving 100 models locally so that I can load something from a collection. This only happens once and doesn&#39;t add any objects to the table.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> populated = Ti.App.Properties.getBool(<span class="hljs-string">'populated'</span>, <span class="hljs-keyword">false</span>);
+<span class="hljs-keyword">if</span> (populated === <span class="hljs-keyword">false</span>) {
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt;= <span class="hljs-number">100</span>; i++) {
+    Ti.API.error(<span class="hljs-string">'Generate Book '</span> + i);
+    <span class="hljs-keyword">var</span> model = Alloy.createModel(<span class="hljs-string">'books'</span>, {
+      id: i,
+      title: <span class="hljs-built_in">String</span>(<span class="hljs-string">'Book '</span> + i)
+    });
+    model.save();
+  }
+  Ti.App.Properties.setBool(<span class="hljs-string">'populated'</span>, <span class="hljs-keyword">true</span>);
+}
+</code></pre><p>If you run the example, you&#39;ll see an &quot;add more books&quot; button in the title bar. That button fetches 10 new books from the (prepopulated) collection and triggers the addition of new rows. What I would expect is an additional 10 table view row proxies; however it&#39;s creating many more. </p>
+<p>It&#39;s definitely possible that the memory issue is related to the sql adapter, however I&#39;m not able to simplify the example much more, which really only says: &quot;Bind a collection to a table. Load 10 more rows every time a user clicks a button&quot;.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2014, 12:14:50 am">July 10th 2014</span>
+											by <span class='authorname'>Daniel Hanold</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>i am running the code from the link you provided… I am not seeing the controller code run multiple times like you mentioned.</p>
+<p>i might suggest you go back to an official release and not run the RC release… I am running 3.2.3 GA, I was about to run instruments to see if I am seeing the same memory problem as you, BUT I am definitely not seeing the controller code for the rows run multiple times</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2014, 12:18:03 am">July 10th 2014</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Just ran it with 3.2.3.GA and seeing the same behavior. I&#39;m adding 10 rows, here&#39;s the log I would expect:</p>
+<pre><code class="hljs">[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 1
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 2
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 3
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 4
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 5
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 6
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 7
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 8
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 9
+[<span class="hljs-keyword">ERROR</span>] Processing row <span class="hljs-keyword">for</span> : Book 10
+[<span class="hljs-keyword">ERROR</span>] Number of books <span class="hljs-keyword">in</span> <span class="hljs-keyword">view</span>: 10
+</code></pre><p>However, here&#39;s what I&#39;m getting. Essentially, 10 times the processing.</p>
+<pre><code class="hljs">[DEBUG] Application booted in <span class="hljs-number">714.073002</span> ms
+[DEBUG] Loading: /Users/danny/Library/Application Support/iPhone Simulator/<span class="hljs-number">7.1</span>/Applications/F9580198-F712-<span class="hljs-number">4389</span>-ACF7-<span class="hljs-number">923</span>DEF229BE8/alloyfavebooks.app/alloy/controllers/row.js, Resource: alloy/controllers/row_js
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">1</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">2</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">3</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">4</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">5</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">6</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">7</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">8</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">9</span>
+[ERROR] Processing row <span class="hljs-keyword">for</span> : Book <span class="hljs-number">10</span>
+[ERROR] Number of books in view: <span class="hljs-number">10</span>
+</code></pre><p>Are you getting different log messages when running this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2014, 12:24:22 am">July 10th 2014</span>
+											by <span class='authorname'>Daniel Hanold</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yes I am … <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;aaronksaunders&#x2F;692d9add416ab6946e23">https:&#x2F;&#x2F;gist.github.com&#x2F;aaronksaunders&#x2F;692d9add416ab6946e23</a></p>
+<p>you did not change the model save to silent… See my first response</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2014, 12:31:18 am">July 10th 2014</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry; my bad. I just copied the index.js from your gist and re-ran the code. I added my log to your Gist. Just curious: How come the debug messages from the row controller aren&#39;t in your log?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2014, 12:42:51 am">July 10th 2014</span>
+											by <span class='authorname'>Daniel Hanold</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

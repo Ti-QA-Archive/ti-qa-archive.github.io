@@ -1,0 +1,318 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Audio Recording Error » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Audio Recording Error</h1>
+		</header>
+		<section>
+			<p>Hi All,</p>
+<p>I constantly get a error with audio recordings i have spent so much time on this tried so many different solution but i just constantly get errors its a nightmare.</p>
+<p>Here is my code.</p>
+<pre><code class="hljs">
+<span class="hljs-comment">/*
+ * setup recording
+ */</span>
+
+<span class="hljs-keyword">var</span> self = Ti.UI.currentWindow;
+
+<span class="hljs-comment">// SETUP AUDIO STUFF</span>
+<span class="hljs-keyword">var</span> currentSessionMode = Titanium.Media.audioSessionMode;
+Titanium.Media.audioSessionMode = Ti.Media.AUDIO_SESSION_MODE_PLAY_AND_RECORD;
+<span class="hljs-keyword">var</span> recording = Ti.Media.createAudioRecorder();
+recording.format = Ti.Media.AUDIO_FILEFORMAT_MP4;
+recording.compression = Ti.Media.AUDIO_FORMAT_AAC;
+
+Ti.Media.addEventListener(<span class="hljs-string">'recordinginput'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (!e.available &amp;&amp; recording.recording) {
+        recBtn.fireEvent(<span class="hljs-string">'click'</span>, {});
+    }
+});
+
+<span class="hljs-keyword">var</span> recBtn = Ti.UI.createImageView({
+    width : <span class="hljs-number">201</span>,
+    height : <span class="hljs-number">201</span>,
+    backgroundColor : <span class="hljs-string">'transparent'</span>,
+    backgroundImage : <span class="hljs-string">'/images/download_button.png'</span>,
+    zIndex : <span class="hljs-number">2</span>
+});
+
+recBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+
+    <span class="hljs-keyword">if</span> (recording.recording) {
+        stopTimer();
+        file = recording.stop();
+        Ti.Media.stopMicrophoneMonitor();
+
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span> (!Ti.Media.canRecord) {
+            Ti.UI.createAlertDialog({
+                title : <span class="hljs-string">'Error!'</span>,
+                message : L(<span class="hljs-string">'noAudio'</span>)
+            }).show();
+            <span class="hljs-keyword">return</span>;
+        } <span class="hljs-keyword">else</span> {
+            Ti.Media.requestAuthorization(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    recording.start();
+                    Ti.Media.startMicrophoneMonitor();
+                    startTimer();
+                } <span class="hljs-keyword">else</span> {
+                    alert(<span class="hljs-string">'Access to Recorder is not allowed'</span>);
+                }
+            });
+        }
+    }
+});
+
+self.add(recBtn);
+
+<span class="hljs-keyword">var</span> stopClock = Titanium.UI.createLabel({
+    backgroundColor : <span class="hljs-string">'transparent'</span>,
+    text : <span class="hljs-string">'00:00:00:000'</span>,
+    textAlign : Ti.UI.TEXT_ALIGNMENT_CENTER,
+    bottom : <span class="hljs-number">20</span>,
+    font : {
+        fontSize : <span class="hljs-number">42</span>,
+        fontFamily : <span class="hljs-string">'HelveticaNeue-UltraLight'</span>
+    },
+    color : <span class="hljs-string">'#000000'</span>,
+    width : Ti.Platform.displayCaps.platformWidth,
+    height : Ti.UI.SIZE
+});
+
+self.add(stopClock);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pad</span>(<span class="hljs-params">num, size</span>) </span>{
+    <span class="hljs-keyword">var</span> s = <span class="hljs-string">"0000"</span> + num;
+    <span class="hljs-keyword">return</span> s.substr(s.length - size);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">formatTime</span>(<span class="hljs-params">time</span>) </span>{
+    <span class="hljs-keyword">var</span> h = m = s = ms = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">var</span> newTime = <span class="hljs-string">''</span>;
+
+    h = <span class="hljs-built_in">Math</span>.floor(time / (<span class="hljs-number">60</span> * <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>));
+    time = time % (<span class="hljs-number">60</span> * <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>);
+    m = <span class="hljs-built_in">Math</span>.floor(time / (<span class="hljs-number">60</span> * <span class="hljs-number">1000</span>));
+    time = time % (<span class="hljs-number">60</span> * <span class="hljs-number">1000</span>);
+    s = <span class="hljs-built_in">Math</span>.floor(time / <span class="hljs-number">1000</span>);
+    ms = time % <span class="hljs-number">1000</span>;
+
+    newTime = pad(h, <span class="hljs-number">2</span>) + <span class="hljs-string">':'</span> + pad(m, <span class="hljs-number">2</span>) + <span class="hljs-string">':'</span> + pad(s, <span class="hljs-number">2</span>) + <span class="hljs-string">':'</span> + pad(ms, <span class="hljs-number">3</span>);
+    <span class="hljs-keyword">return</span> newTime;
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">startTimer</span>(<span class="hljs-params"></span>) </span>{
+    clocktimer = setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        stopClock.text = formatTime(x.time());
+        Ti.API.info(recording.recording);
+    }, <span class="hljs-number">100</span>);
+    x.start();
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">stopTimer</span>(<span class="hljs-params"></span>) </span>{
+    x.stop();
+    clearInterval(clocktimer);
+    strun = <span class="hljs-literal">false</span>;
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">resetTimer</span>(<span class="hljs-params"></span>) </span>{
+    stopTimer();
+    x.reset();
+    stopClock.text = formatTime(x.time());
+    clearInterval(meter);
+};
+
+<span class="hljs-keyword">var</span> clsStopwatch = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">// Private vars</span>
+    <span class="hljs-keyword">var</span> startAt = <span class="hljs-number">0</span>;
+    <span class="hljs-comment">// Time of last start / resume. (0 if not running)</span>
+    <span class="hljs-keyword">var</span> lapTime = <span class="hljs-number">0</span>;
+    <span class="hljs-comment">// Time on the clock when last stopped in milliseconds</span>
+
+    <span class="hljs-keyword">var</span> now = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">return</span> (<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>()).getTime();
+    };
+
+    <span class="hljs-comment">// Public methods</span>
+    <span class="hljs-comment">// Start or resume</span>
+    <span class="hljs-keyword">this</span>.start = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        startAt = startAt ? startAt : now();
+    };
+
+    <span class="hljs-comment">// Stop or pause</span>
+    <span class="hljs-keyword">this</span>.stop = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-comment">// If running, update elapsed time otherwise keep it</span>
+        lapTime = startAt ? lapTime + now() - startAt : lapTime;
+        startAt = <span class="hljs-number">0</span>;
+        <span class="hljs-comment">// Paused</span>
+    };
+
+    <span class="hljs-comment">// Reset</span>
+    <span class="hljs-keyword">this</span>.reset = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        lapTime = startAt = <span class="hljs-number">0</span>;
+    };
+
+    <span class="hljs-comment">// Duration</span>
+    <span class="hljs-keyword">this</span>.time = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">return</span> lapTime + ( startAt ? now() - startAt : <span class="hljs-number">0</span>);
+    };
+};
+<span class="hljs-keyword">var</span> x = <span class="hljs-keyword">new</span> clsStopwatch();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">lineTypeToStr</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> type = Ti.Media.audioLineType;
+    <span class="hljs-keyword">switch</span>(type) {
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_HEADSET_INOUT:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'headset'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_RECEIVER_AND_MIC:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'receiverMic'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_HEADPHONES_AND_MIC:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'headphonesMic'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_HEADPHONES:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'headphones'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_LINEOUT:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'lineout'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_SPEAKER:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'speaker'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_MICROPHONE:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'microphone'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_MUTED:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'silence'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_UNAVAILABLE:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'unavailable'</span>);
+    <span class="hljs-keyword">case</span> Ti.Media.AUDIO_UNKNOWN:
+        <span class="hljs-keyword">return</span> L(<span class="hljs-string">'unknown'</span>);
+    }
+};
+
+self.open();
+</code></pre><p>I just get a red bar drop down at the top and the recording fails if i run in xcode the error is.</p>
+<pre><code class="hljs"><span class="hljs-string">Error:</span> AudioQueueStart failed (<span class="hljs-string">'hwiu'</span>)
+[DEBUG] <span class="hljs-string">operation:</span> <span class="hljs-number">5</span>, <span class="hljs-string">args:</span> (
+    <span class="hljs-number">20</span>
+), <span class="hljs-string">size:</span> <span class="hljs-number">320.000000</span>x320<span class="hljs-number">.000000</span>
+[DEBUG] <span class="hljs-string">operation:</span> <span class="hljs-number">4</span>, <span class="hljs-string">args:</span> (
+    fb5557
+), <span class="hljs-string">size:</span> <span class="hljs-number">320.000000</span>x320<span class="hljs-number">.000000</span>
+[DEBUG] <span class="hljs-string">operation:</span> <span class="hljs-number">16</span>, <span class="hljs-string">args:</span> (
+    <span class="hljs-number">160</span>,
+    <span class="hljs-number">160</span>,
+    <span class="hljs-number">100</span>,
+    <span class="hljs-number">0</span>,
+    <span class="hljs-string">"0.1832924824612257"</span>,
+    <span class="hljs-number">0</span>
+), <span class="hljs-string">size:</span> <span class="hljs-number">320.000000</span>x320<span class="hljs-number">.000000</span>
+</code></pre><p>Please help with a solution for this i am using 3.4.0 latest xcode but i have had issues with this from the start.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 2nd 2014, 4:55:16 pm">October 2nd 2014</span>
+				by <span class='authorname'>Samuel East</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>audioqueuestart</span></li>
+					
+						<li><span class='tagname'>audiosessionmode</span></li>
+					
+						<li><span class='tagname'>createaudiorecorder</span></li>
+					
+						<li><span class='tagname'>hwiu</span></li>
+					
+						<li><span class='tagname'>recording</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Thought i would add some more information to this mystery.</p>
+<ol>
+<li><p>The error becomes constant and will not allow me to record with a (&#39;hwiu&#39;) error every time.</p>
+</li>
+<li><p>If i reboot my phone turn off and back on again then it will start working again making me start to think its something to do with the phone hardware&#x2F;software.</p>
+</li>
+<li><p>If it was the phone hardware&#x2F;software then the default apple recording app would have the same recording issue as stated but it doesn&#39;t the default apple recording app works seamlessly all the time.</p>
+</li>
+<li><p>The bug will start to reappear again after a period of time tried to narrow down when it happens but cant find it, but i can run.</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> (recording.recording === <span class="hljs-number">1</span>) {
+ infoLabel.text = <span class="hljs-string">'Recording...'</span>;
+} <span class="hljs-keyword">else</span> {
+ alert(<span class="hljs-string">'Error starting recording please restart...'</span>);
+}
+</code></pre></li>
+<li><p>I am running a iPhone 4 latest software update.</p>
+</li>
+<li><p>I have no idea how to bug test for something like this and only have this phone to test.</p>
+</li>
+</ol>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 3rd 2014, 5:29:24 am">October 3rd 2014</span>
+								by <span class='authorname'>Samuel East</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

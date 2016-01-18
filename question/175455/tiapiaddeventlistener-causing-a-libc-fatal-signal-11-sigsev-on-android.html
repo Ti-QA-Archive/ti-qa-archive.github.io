@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ti.API.addEventListener causing a libc: Fatal signal 11 (SIGSEV) on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ti.API.addEventListener causing a libc: Fatal signal 11 (SIGSEV) on Android</h1>
+		</header>
+		<section>
+			<p>Hi - I&#39;ve now tried this on 2 different workstations and even rebuilt my Titanium on one and tried it again. </p>
+<p>I created a new project using the Classic template &quot;Single Window Application&quot;.  Verified the app runs against my genymotion vm.  All looks good.</p>
+<p>Titanium Studio, build: 3.2.3.201404181442<br>Titanium Command-Line Interface, CLI version 3.2.3, Titanium SDK version 3.2.3.GA</p>
+<p>Now, I want to use some global event handlers (mostly for navigation events).  All works just fine is iOS.  Every time I run the app with the following app.js:</p>
+<pre><code class="hljs"><span class="hljs-comment">/*
+ * Single Window Application Template:
+ * A basic starting point for your application.  Mostly a blank canvas.
+ *
+ * In app.js, we generally take care of a few things:
+ * - Bootstrap the application with any data we need
+ * - Check for dependencies like device type, platform version or network connection
+ * - Require and open our top-level UI component
+ *
+ */</span>
+
+<span class="hljs-comment">//bootstrap and check dependencies</span>
+<span class="hljs-keyword">if</span> (Ti.version &lt; <span class="hljs-number">1.8</span>) {
+  alert(<span class="hljs-string">'Sorry - this application template requires Titanium Mobile SDK 1.8 or later'</span>);
+}
+
+Ti.API.info(<span class="hljs-string">"starting the app"</span>);
+
+<span class="hljs-comment">// This is a single context application with multiple windows in a stack</span>
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-comment">//render appropriate components based on the platform and form factor</span>
+  <span class="hljs-keyword">var</span> osname = Ti.Platform.osname,
+    version = Ti.Platform.version,
+    height = Ti.Platform.displayCaps.platformHeight,
+    width = Ti.Platform.displayCaps.platformWidth;
+
+  <span class="hljs-comment">//considering tablets to have width over 720px and height over 600px - you can define your own</span>
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkTablet</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> platform = Ti.Platform.osname;
+
+    <span class="hljs-keyword">switch</span> (platform) {
+      <span class="hljs-keyword">case</span> <span class="hljs-string">'ipad'</span>:
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+      <span class="hljs-keyword">case</span> <span class="hljs-string">'android'</span>:
+        <span class="hljs-keyword">var</span> psc = Ti.Platform.Android.physicalSizeCategory;
+        <span class="hljs-keyword">var</span> tiAndroid = Ti.Platform.Android;
+        <span class="hljs-keyword">return</span> psc === tiAndroid.PHYSICAL_SIZE_CATEGORY_LARGE || psc === tiAndroid.PHYSICAL_SIZE_CATEGORY_XLARGE;
+      <span class="hljs-keyword">default</span>:
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">Math</span>.min(
+          Ti.Platform.displayCaps.platformHeight,
+          Ti.Platform.displayCaps.platformWidth
+        ) &gt;= <span class="hljs-number">400</span>;
+    }
+  }
+
+  <span class="hljs-keyword">var</span> isTablet = checkTablet();
+  <span class="hljs-built_in">console</span>.log(isTablet);
+
+  <span class="hljs-keyword">var</span> Window;
+  <span class="hljs-keyword">if</span> (isTablet) {
+    Window = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/tablet/ApplicationWindow'</span>);
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-comment">// Android uses platform-specific properties to create windows.</span>
+    <span class="hljs-comment">// All other platforms follow a similar UI pattern.</span>
+    <span class="hljs-keyword">if</span> (osname === <span class="hljs-string">'android'</span>) {
+      Window = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/handheld/android/ApplicationWindow'</span>);
+    } <span class="hljs-keyword">else</span> {
+      Window = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/handheld/ApplicationWindow'</span>);
+    }
+  }
+
+  <span class="hljs-comment">// *** changes from the default template below</span>
+  Ti.API.info(<span class="hljs-string">"global event listener"</span>);
+  Ti.API.addEventListener(<span class="hljs-string">"wth"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      Ti.API.debug(<span class="hljs-string">"event fired - wth"</span>);
+      alert(<span class="hljs-string">"wth"</span>);
+  });
+
+  Ti.API.info(<span class="hljs-string">"and open the window"</span>);
+  <span class="hljs-keyword">var</span> win = <span class="hljs-keyword">new</span> Window();
+  win.addEventListener(<span class="hljs-string">"open"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      alert(<span class="hljs-string">"window open"</span>);
+      Ti.API.info(<span class="hljs-string">"fire event wth"</span>);
+      Ti.API.fireEvent(<span class="hljs-string">"wth"</span>);
+  });
+  win.open();
+  <span class="hljs-comment">// ***  changes from the default template above</span>
+})();
+</code></pre><p>The app crashes HARD, and I get the following in the log:</p>
+<pre><code class="hljs">-- <span class="hljs-name">Start</span> <span class="hljs-atom">application</span> <span class="hljs-atom">log</span> -----------------------------------------------------
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">TiApplication</span>: (<span class="hljs-atom">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">0</span>] <span class="hljs-atom">checkpoint</span>, <span class="hljs-atom">app</span> <span class="hljs-atom">created</span>.
+[<span class="hljs-name">ERROR</span>] :  <span class="hljs-name">Trace</span>: <span class="hljs-atom">error</span> <span class="hljs-atom">opening</span> <span class="hljs-atom">trace</span> <span class="hljs-atom">file</span>: <span class="hljs-name">No</span> <span class="hljs-atom">such</span> <span class="hljs-atom">file</span> <span class="hljs-atom">or</span> <span class="hljs-atom">directory</span> (<span class="hljs-number">2</span>)
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">TiApplication</span>: (<span class="hljs-atom">main</span>) [<span class="hljs-number">9</span>,<span class="hljs-number">9</span>] <span class="hljs-name">Titanium</span> <span class="hljs-number">3.2</span><span class="hljs-number">.3</span> (<span class="hljs-number">2014</span>/<span class="hljs-number">04</span>/<span class="hljs-number">22</span> <span class="hljs-number">10</span>:<span class="hljs-number">17</span> <span class="hljs-atom">b958a70</span>)
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">TiApplication</span>: (<span class="hljs-atom">main</span>) [<span class="hljs-number">30</span>,<span class="hljs-number">39</span>] <span class="hljs-name">Titanium</span> <span class="hljs-name">Javascript</span> <span class="hljs-atom">runtime</span>: <span class="hljs-atom">v8</span>
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">TiRootActivity</span>: (<span class="hljs-atom">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">0</span>] <span class="hljs-atom">checkpoint</span>, <span class="hljs-atom">on</span> <span class="hljs-atom">root</span> <span class="hljs-atom">activity</span> <span class="hljs-atom">create</span>, <span class="hljs-atom">savedInstanceState</span>: <span class="hljs-atom">null</span>
+[<span class="hljs-name">WARN</span>] :   <span class="hljs-name">V8Object</span>: <span class="hljs-name">Runtime</span> <span class="hljs-atom">disposed</span>, <span class="hljs-atom">cannot</span> <span class="hljs-atom">set</span> <span class="hljs-atom">property</span> <span class="hljs-string">'userAgent'</span>
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-atom">starting</span> <span class="hljs-atom">the</span> <span class="hljs-atom">app</span>
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-atom">false</span>
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-atom">global</span> <span class="hljs-atom">event</span> <span class="hljs-atom">listener</span>
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-atom">libc</span>: <span class="hljs-name">Fatal</span> <span class="hljs-atom">signal</span> <span class="hljs-number">11</span> (<span class="hljs-name">SIGSEGV</span>) <span class="hljs-atom">at</span> <span class="hljs-number">0x00000014</span> (<span class="hljs-atom">code</span>=<span class="hljs-number">1</span>), <span class="hljs-atom">thread</span> <span class="hljs-number">2930</span> (<span class="hljs-name">KrollRuntimeThr</span>)
+</code></pre><p>Nothing I do makes it work … cleaning the project, using different Android API levels in genymotion, different Titanium SDK versions, putting the call in a different spot, running it directly on my Galaxy S5 … no joy.  </p>
+<p>Even stranger, if I comment out the Ti.API.addEventListener block, I get the following from the Ti.API.fireEvent() running in the window event handler.  (at least it isn&#39;t a hard segfault)</p>
+<pre><code class="hljs"><span class="hljs-comment">-- Start application log -----------------------------------------------------</span>
+[ERROR] :  Trace: error opening trace file: No such file or directory (2)
+[INFO] :   TiApplication: (main) [0,0] checkpoint, app created.
+[INFO] :   TiApplication: (main) [7,7] Titanium 3.2.3 (2014/04/22 10:17 b958a70)
+[INFO] :   TiApplication: (main) [17,24] Titanium Javascript runtime: v8
+[INFO] :   TiRootActivity: (main) [0,0] checkpoint, on root activity <span class="hljs-operator"><span class="hljs-keyword">create</span>, savedInstanceState: <span class="hljs-literal">null</span>
+[WARN] :   V8Object: Runtime disposed, cannot <span class="hljs-keyword">set</span> property <span class="hljs-string">'userAgent'</span>
+[INFO] :   <span class="hljs-keyword">starting</span> the app
+[INFO] :   <span class="hljs-literal">false</span>
+[INFO] :   <span class="hljs-keyword">and</span> <span class="hljs-keyword">open</span> the window
+[INFO] :   <span class="hljs-keyword">I</span>/dalvikvm-<span class="hljs-keyword">heap</span>: Grow <span class="hljs-keyword">heap</span> (frag <span class="hljs-keyword">case</span>) <span class="hljs-keyword">to</span> <span class="hljs-number">12.301</span>MB <span class="hljs-keyword">for</span> <span class="hljs-number">1536012</span>-<span class="hljs-keyword">byte</span> allocation
+[INFO] :   <span class="hljs-keyword">I</span>/dalvikvm-<span class="hljs-keyword">heap</span>: Grow <span class="hljs-keyword">heap</span> (frag <span class="hljs-keyword">case</span>) <span class="hljs-keyword">to</span> <span class="hljs-number">14.896</span>MB <span class="hljs-keyword">for</span> <span class="hljs-number">2731532</span>-<span class="hljs-keyword">byte</span> allocation
+[INFO] :   TiRootActivity: (<span class="hljs-keyword">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">0</span>] checkpoint, <span class="hljs-keyword">on</span> root activity <span class="hljs-keyword">resume</span>. activity = com.ontoreason.wth.WthActivity@<span class="hljs-number">536</span>efcd0
+[INFO] :   ALERT: (KrollRuntimeThread) [<span class="hljs-number">26</span>,<span class="hljs-number">26</span>] window <span class="hljs-keyword">open</span>
+[INFO] :   fire <span class="hljs-keyword">event</span> wth
+[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: (<span class="hljs-keyword">main</span>) [<span class="hljs-number">49</span>,<span class="hljs-number">75</span>] <span class="hljs-comment">----- Titanium Javascript Runtime Error -----</span>
+[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: (<span class="hljs-keyword">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">75</span>] - <span class="hljs-keyword">In</span> ti:/titanium.js:<span class="hljs-number">248</span>,<span class="hljs-number">26</span>
+[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: (<span class="hljs-keyword">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">75</span>] - Message: Uncaught TypeError: Cannot <span class="hljs-keyword">read</span> property <span class="hljs-string">'_hasJavaListener'</span> <span class="hljs-keyword">of</span> undefined
+[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: (<span class="hljs-keyword">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">75</span>] - <span class="hljs-keyword">Source</span>:         <span class="hljs-keyword">return</span> this._properties[property];</span>
+[ERROR] :  V8Exception: Exception occurred at ti:/titanium.js:248: Uncaught TypeError: Cannot read property '_hasJavaListener' of undefined
+[WARN] :   EGL_emulation: eglSurfaceAttrib not implemented
+[WARN] :   EGL_emulation: eglSurfaceAttrib not implemented
+[WARN] :   EGL_emulation: eglSurfaceAttrib not implemented
+</code></pre><p>Anyone have any ideas?  At this point I&#39;m giving up and will try a different technique to handle what I was doing with the global handler.</p>
+<p>Thanks,<br>Scott</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 23rd 2014, 7:14:03 pm">June 23rd 2014</span>
+				by <span class='authorname'>Scott Dickerson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>api</span></li>
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>sdk</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-280051">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>You shouldn&#39;t use the Ti.API namespace for global events. Try it again with</p>
+<p><code>Ti.App.addEventListener</code><br>and<br><code>Ti.App.fireEvent</code></p>
+<p>This should work better.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 23rd 2014, 7:31:05 pm">June 23rd 2014</span>
+								by <span class='authorname'>Manuel Lehner</span><br>
+								<a class="icon-bg icon-link" href="question/175455/tiapiaddeventlistener-causing-a-libc-fatal-signal-11-sigsev-on-android#answer-280051" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Of course! That worked!  Now I have no idea where I picked up using Ti.API instead of Ti.App.  Yet another instance of me thinking the problem was bigger than it really was.</p>
+<p>Many many thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 23rd 2014, 8:21:15 pm">June 23rd 2014</span>
+											by <span class='authorname'>Scott Dickerson</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

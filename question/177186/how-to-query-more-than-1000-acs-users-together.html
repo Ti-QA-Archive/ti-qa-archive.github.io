@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to Query more than 1000 ACS users together? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to Query more than 1000 ACS users together?</h1>
+		</header>
+		<section>
+			<p>Hi,<br>I have created an application which uses ACS. In the app I have a feature in which I need to list all the users who has created account using my application. I was using Cloud.Users.query method to get all users and now a days the users of my app has crossed 1000. So I get only 1000 users in a call. (I know the limit is 1000).</p>
+<p>My code is as follows</p>
+<pre><code class="hljs">function _getAllUsers(currentUser, callback){
+    <span class="hljs-keyword">if</span>(!currentUser){
+        currentUser = _getCurrentUser();
+    }
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">query</span> = {
+                    where: { <span class="hljs-string">"admin"</span> : false, <span class="hljs-string">"id"</span>: {<span class="hljs-string">"$ne"</span>: currentUser.id} },
+                    limit : 1000,
+                    <span class="hljs-keyword">order</span> : 'first_name'
+                };
+    Cloud.Users.<span class="hljs-keyword">query</span>(<span class="hljs-keyword">query</span>, function (<span class="hljs-keyword">e</span>) {
+              <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.success) {
+                    callback.success(<span class="hljs-keyword">e</span>.users);
+              } <span class="hljs-keyword">else</span> {
+                    callback.<span class="hljs-keyword">error</span>(<span class="hljs-keyword">e</span>);
+              }
+    });
+}
+</code></pre><p><strong>So now I want to query the remaning users. How can I get the count of total app users (I saw it is 1200 from ACS Server)?</strong></p>
+<p><strong>How can I include them in the list?</strong></p>
+<p>Can anybody help me to do it, any help will be appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 22nd 2014, 5:33:22 am">August 22nd 2014</span>
+				by <span class='authorname'>Anand T</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>cloud</span></li>
+					
+						<li><span class='tagname'>query</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+						<li><span class='tagname'>users</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-281929">
+				
+						<section>
+							<p>You can accomplish this with a recursive ACS call.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> totalUsers = [];
+        (function getPageOfUsers(pageParam){
+            Cloud.Users.<span class="hljs-keyword">query</span>({
+                per_page : 1000,
+                page : pageParam || 1
+            },function(<span class="hljs-keyword">e</span>){
+
+                <span class="hljs-comment">//if the process failed for some reason, output the ACS error message</span>
+                <span class="hljs-keyword">if</span>(!<span class="hljs-keyword">e</span>.success){
+                    alert(<span class="hljs-keyword">e</span>.message);
+                    <span class="hljs-keyword">return</span>;
+                }
+
+                <span class="hljs-comment">//else, if at least one user have been retrieved from ACS, add the payload to your list</span>
+                <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">e</span>.users &amp;&amp; <span class="hljs-keyword">e</span>.users.length &gt; 0){
+                    totalUsers.push.apply(totalUsers,<span class="hljs-keyword">e</span>.users);
+                }
+
+                Ti.API.info(<span class="hljs-string">"Retrieved page "</span> + <span class="hljs-keyword">e</span>.meta.page + <span class="hljs-string">" of "</span> + <span class="hljs-keyword">e</span>.meta.total_pages);
+
+
+                <span class="hljs-keyword">var</span> totalPages = <span class="hljs-keyword">e</span>.meta.total_pages;
+                <span class="hljs-keyword">e</span> = null;
+
+                <span class="hljs-comment">//if there are more users to fetch, get the next page</span>
+                <span class="hljs-keyword">if</span>(totalPages &gt; pageParam){
+
+                    getPageOfUsers(pageParam + 1);
+                }<span class="hljs-keyword">else</span>{
+
+                    <span class="hljs-comment">//You're done, so process all of the users</span>
+                }
+            });
+
+
+        })(1);
+</code></pre><p>If you need to know how many available objects there are, check the meta property of your ACS response. </p>
+<ul>
+<li>response.meta.total_results = the total amount of objects there are to fetch based on the query you submitted</li>
+<li>response.meta.total_pages = the total amount of pages there are to retrieve base on page &amp; per_page values</li>
+<li>response.meta.page = the current page you&#39;re on</li>
+</ul>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 25th 2014, 9:54:57 pm">August 25th 2014</span>
+								by <span class='authorname'>Michelle Joyner</span><br>
+								<a class="icon-bg icon-link" href="question/177186/how-to-query-more-than-1000-acs-users-together#answer-281929" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

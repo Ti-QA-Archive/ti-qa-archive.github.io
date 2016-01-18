@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>NullPointerException when Uploading a File » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>NullPointerException when Uploading a File</h1>
+		</header>
+		<section>
+			<p>I&#39;ve got file uploading working, except in one particular case.  Here&#39;s my code.</p>
+<pre><code class="hljs">  <span class="hljs-tag">Titanium</span><span class="hljs-class">.Media</span><span class="hljs-class">.openPhotoGallery</span>(<span class="hljs-rules">{
+    <span class="hljs-rule"><span class="hljs-attribute">success</span>:<span class="hljs-value"><span class="hljs-function">function</span>(event) {
+      uploader.<span class="hljs-function">upload</span>({ files: event.media </span></span></span>}, <span class="hljs-rules">{
+        <span class="hljs-rule"><span class="hljs-attribute">success</span>:<span class="hljs-value"> <span class="hljs-function">function</span>(response) {
+          <span class="hljs-function">cb</span>(response.id, filename)</span></span>;
+        }</span>
+      });
+    },
+</code></pre><pre><code class="hljs"><span class="hljs-keyword">var</span> upload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data, options</span>) </span>{
+  parentView.add(view);
+  $.progress.show();
+  options = options || {}
+  <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+  xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText)[<span class="hljs-number">0</span>];
+
+    <span class="hljs-keyword">if</span> (options.success) options.success(response)
+    close();
+  };
+  xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.error(e);
+    alert(<span class="hljs-string">'Upload failed.  Try again.'</span>);
+    <span class="hljs-keyword">if</span> (options.error) options.error()
+    close();
+  };
+  <span class="hljs-comment">//xhr.setRequestHeader("enctype", "multipart/form-data");</span>
+  xhr.open(<span class="hljs-string">'POST'</span>, Alloy.CFG.vaultUrl + <span class="hljs-string">'secure/'</span> + Ti.App.Properties.getString(<span class="hljs-string">'vaultToken'</span>));
+  xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (options.progress) options.progress()
+    $.progress.max = <span class="hljs-number">1</span>;
+    $.progress.value = e.progress;
+  };
+  xhr.send(data);
+}
+</code></pre><p>Now this works most of the time, except if I choose to upload from the &quot;Gallery&quot; and choose an image from a Picasa album.  </p>
+<p>I&#39;ve isolated this further to the blob object itself.  If I call event.media.length I get this stack trace.</p>
+<pre><code class="hljs">
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiMedia: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">1828</span>,<span class="hljs-number">30634</span>] OnResult called: <span class="hljs-number">-1</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err: java.lang.NullPointerException
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at java.io.File.fixSlashes<span class="hljs-list">(<span class="hljs-keyword">File.java:185</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at java.io.File.&lt;init&gt;<span class="hljs-list">(<span class="hljs-keyword">File.java:134</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at org.appcelerator.titanium.io.TitaniumBlob.getFile<span class="hljs-list">(<span class="hljs-keyword">TitaniumBlob.java:77</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at org.appcelerator.titanium.TiBlob.getLength<span class="hljs-list">(<span class="hljs-keyword">TiBlob.java:315</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at org.appcelerator.kroll.runtime.v8.V8Function.nativeInvoke<span class="hljs-list">(<span class="hljs-keyword">Native</span> Method)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at org.appcelerator.kroll.runtime.v8.V8Function.callSync<span class="hljs-list">(<span class="hljs-keyword">V8Function.java:57</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at org.appcelerator.kroll.runtime.v8.V8Function.call<span class="hljs-list">(<span class="hljs-keyword">V8Function.java:43</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at org.appcelerator.kroll.runtime.v8.V8Function$1.run<span class="hljs-list">(<span class="hljs-keyword">V8Function.java:70</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at android.os.Handler.handleCallback<span class="hljs-list">(<span class="hljs-keyword">Handler.java:733</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at android.os.Handler.dispatchMessage<span class="hljs-list">(<span class="hljs-keyword">Handler.java:95</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at android.os.Looper.loop<span class="hljs-list">(<span class="hljs-keyword">Looper.java:136</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] :   W/System.err:     at org.appcelerator.kroll.KrollRuntime$KrollRuntimeThread.run<span class="hljs-list">(<span class="hljs-keyword">KrollRuntime.java:112</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">98</span>,<span class="hljs-number">30732</span>] ----- Titanium Javascript Runtime Error -----
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">0</span>,<span class="hljs-number">30732</span>] - In alloy/controllers/gallery.js:1,<span class="hljs-number">69</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">1</span>,<span class="hljs-number">30733</span>] - Message: Uncaught Error: Java Exception occurred
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">0</span>,<span class="hljs-number">30733</span>] - Source: nium.Media.openPhotoGallery<span class="hljs-list">({success:function<span class="hljs-list">(<span class="hljs-keyword">t</span>)</span>{Ti.API.info<span class="hljs-list">(<span class="hljs-keyword">t.media.length</span>)</span><span class="hljs-comment">;v</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  V8Exception: Exception occurred at alloy/controllers/gallery.js:1: Uncaught Error: Java Exception occurred</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span>
+</code></pre><p>Any suggestions?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 7th 2014, 3:48:24 pm">August 7th 2014</span>
+				by <span class='authorname'>Ben Kittrell</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>media</span></li>
+					
+						<li><span class='tagname'>upload</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hi. Did you solve this? I&#39;m seeing similar problems with images stored in Picasa albums.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 29th 2015, 4:41:31 am">April 29th 2015</span>
+								by <span class='authorname'>Anders Dahl Pape</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

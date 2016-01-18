@@ -1,0 +1,583 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Activity has leaked window? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Activity has leaked window?</h1>
+		</header>
+		<section>
+			<p>I am having one java class in that class as soon some one purchases our application then it will start downloading and progress dialog has to appear instead it goes to some other page and when i come out of the application and when i restart then it starts downloading. I want to start downloading as soon as user purchases our application from in-App. My DownloadActivity.java in which this window leaked error occurs is as follows</p>
+<p>public class DownloadActivity extends Activity implements OnClickListener {<br>    private Context mContext = this;</p>
+<pre><code class="hljs"><span class="hljs-comment">//private static ProgressDialog pDialog;</span>
+
+<span class="hljs-keyword">private</span> LocalBroadcastManager mLocalBroadcastManager;
+
+<span class="hljs-keyword">private</span> String extention = <span class="hljs-string">".png"</span>;
+
+<span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>;
+
+<span class="hljs-keyword">private</span> SharedPreferences mediaPrefs = <span class="hljs-keyword">null</span>;
+
+<span class="hljs-keyword">public</span> BroadcastReceiver mReceiver;
+
+<span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> DownloadAsyncTask mDownloadTask;
+
+<span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> DOWNLOAD_REQUEST = <span class="hljs-number">3333</span>;
+
+<span class="hljs-keyword">private</span> AvailableSpaceHandler mchekSpace;
+
+<span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> String PATH = <span class="hljs-string">""</span>;
+
+List&lt;DownloadStatus&gt; dList1 = <span class="hljs-keyword">null</span>;
+
+List&lt;DownloadStatus&gt; dummyList1 = <span class="hljs-keyword">null</span>;
+
+List&lt;DownloadStatus&gt; dList2 = <span class="hljs-keyword">null</span>;
+
+List&lt;DownloadStatus&gt; dummyList2 = <span class="hljs-keyword">null</span>;
+
+<span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> listSize;
+
+<span class="hljs-annotation">@Override</span>
+<span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onCreate</span><span class="hljs-params">(Bundle savedInstanceState)</span> </span>{
+
+    <span class="hljs-keyword">super</span>.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_download);
+    PATH = Environment.getExternalStorageDirectory().toString()
+            + <span class="hljs-string">"/Android/data/"</span> + getPackageName();
+    Utils.mediaPrefs = <span class="hljs-keyword">this</span>.getSharedPreferences(<span class="hljs-string">"SHC"</span>, <span class="hljs-number">1</span>);
+    <span class="hljs-keyword">boolean</span> isVersionPurchased = Utils.mediaPrefs.getBoolean(
+            Utils.IS_VERSION_PURCHASED, <span class="hljs-keyword">false</span>);
+    getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    mchekSpace = <span class="hljs-keyword">new</span> AvailableSpaceHandler();
+    mediaPrefs = PreferenceManager.getDefaultSharedPreferences(<span class="hljs-keyword">this</span>);
+    DisplayMetrics metrics = <span class="hljs-keyword">new</span> DisplayMetrics();
+    getWindowManager().getDefaultDisplay().getMetrics(metrics);
+    <span class="hljs-keyword">float</span> widthInInches = metrics.widthPixels / metrics.xdpi;
+    <span class="hljs-keyword">float</span> heightInInches = metrics.heightPixels / metrics.ydpi;
+    <span class="hljs-keyword">double</span> sizeInInches = Math.sqrt(Math.pow(widthInInches, <span class="hljs-number">2</span>)
+            + Math.pow(heightInInches, <span class="hljs-number">2</span>));
+    <span class="hljs-comment">// 0.5" buffer for 7" devices</span>
+    Boolean is7inchTablet = sizeInInches &gt;= <span class="hljs-number">6.5</span> &amp;&amp; sizeInInches &lt;= <span class="hljs-number">7.5</span>;
+    <span class="hljs-keyword">if</span> (is7inchTablet) {
+        Utils.downloadDataURL = <span class="hljs-string">"http://cdl.tv/silicon/Android/12-April/sw600"</span>;
+    } <span class="hljs-keyword">else</span> {
+        Utils.downloadDataURL = <span class="hljs-string">"http://cdl.tv/silicon/Android/12-April/sw720"</span>;
+    }
+
+    <span class="hljs-comment">/*pDialog = new ProgressDialog(this);
+    pDialog.setTitle("Please wait...");
+    pDialog.setMessage("Downloading is in process...");
+    pDialog.setProgressStyle(pDialog.STYLE_HORIZONTAL);*/</span>
+    DownloadDataImpl mdownloadImpl = <span class="hljs-keyword">new</span> DownloadDataImpl(<span class="hljs-keyword">this</span>);
+
+    <span class="hljs-keyword">if</span> (isVersionPurchased) {
+        <span class="hljs-comment">// requiredSize = 370;</span>
+        dList2 = mdownloadImpl.getNewAll(DatabaseHelper.TABLE_NAME_04);
+        String[] mFilePathwithFileName2 = <span class="hljs-keyword">null</span>;
+
+        Utils.cLog(<span class="hljs-string">"Before for loop:: "</span> + dList2.size());
+
+        Collections.shuffle(dList2);
+        dummyList2 = mdownloadImpl.getAll(DatabaseHelper.TABLE_NAME_04);
+        listSize = dummyList2.size();
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-comment">// requiredSize = 280;</span>
+        dList1 = mdownloadImpl.getNewAll(DatabaseHelper.TABLE_NAME_03);
+        String[] mFilePathwithFileName1 = <span class="hljs-keyword">null</span>;
+
+        Utils.cLog(<span class="hljs-string">"Before for loop:: "</span> + dList1.size());
+
+        Collections.shuffle(dList1);
+        dummyList1 = mdownloadImpl.getAll(DatabaseHelper.TABLE_NAME_03);
+        listSize = dummyList1.size();
+    }
+
+    <span class="hljs-keyword">if</span> (listSize != <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">if</span> (Utils.isNetworkAvailable(getApplicationContext()) == <span class="hljs-keyword">true</span>
+                &amp;&amp; mchekSpace.getExternalAvailableSpaceInMB() &gt; <span class="hljs-number">650</span>) {
+            mDownloadTask = <span class="hljs-keyword">new</span> DownloadAsyncTask(mContext,
+                    Utils.downloadDataURL, DownloadActivity.<span class="hljs-keyword">this</span>);
+
+                mDownloadTask.execute();
+
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!(mchekSpace.getExternalAvailableSpaceInMB() &gt; <span class="hljs-number">650</span>)) {
+            <span class="hljs-keyword">try</span> {
+                showMessageDialogSettings(DownloadActivity.<span class="hljs-keyword">this</span>,
+                        <span class="hljs-string">"No space left on the device."</span>,
+                        <span class="hljs-string">"Please make sure that you have 630MB free in SDCARD."</span>);
+            } <span class="hljs-keyword">catch</span> (Exception e) {
+                e.printStackTrace();
+            }
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">try</span> {
+                Drawable d = <span class="hljs-keyword">this</span>
+                        .getResources()
+                        .getDrawable(
+                                R.drawable.dialog_you_are_not_connected_to_internet);
+                <span class="hljs-keyword">new</span> CustomDialoge(<span class="hljs-keyword">this</span>, d);
+            } <span class="hljs-keyword">catch</span> (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span> (isVersionPurchased &amp;&amp; InApp.inapp()) {
+            Intent intent = getIntent();
+            setResult(RESULT_OK);
+            finish();
+        } <span class="hljs-keyword">else</span> {
+            startActivityForResult(<span class="hljs-keyword">new</span> Intent(DownloadActivity.<span class="hljs-keyword">this</span>,
+                    SplashActivity.class), <span class="hljs-number">0</span>);
+        }
+    }
+    mLocalBroadcastManager = LocalBroadcastManager.getInstance(<span class="hljs-keyword">this</span>);
+    IntentFilter filter = <span class="hljs-keyword">new</span> IntentFilter();
+    filter.addAction(<span class="hljs-string">"cdl.shrihanuman3d.DOWNLOAD_STARTED"</span>);
+    filter.addAction(<span class="hljs-string">"cdl.shrihanuman3d.DOWNLOAD_FINISHED"</span>);
+    filter.addAction(<span class="hljs-string">"cdl.shrihanuman3d.DOWNLOAD_CANCELLED"</span>);
+    mReceiver = <span class="hljs-keyword">new</span> BroadcastReceiver() {
+        <span class="hljs-annotation">@Override</span>
+        <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onReceive</span><span class="hljs-params">(Context context, Intent intent)</span> </span>{
+            <span class="hljs-keyword">if</span> (intent.getAction().equals(
+                    <span class="hljs-string">"cdl.shrihanuman3d.DOWNLOAD_STARTED"</span>)) {
+                Log.d(<span class="hljs-string">"status"</span>, <span class="hljs-string">"Download start"</span>);
+            }
+            <span class="hljs-keyword">if</span> (intent.getAction().equals(
+                    <span class="hljs-string">"cdl.shrihanuman3d.DOWNLOAD_FINISHED"</span>)) {
+                Log.d(<span class="hljs-string">"status"</span>, <span class="hljs-string">"Download finish"</span>);
+                startActivityForResult(<span class="hljs-keyword">new</span> Intent(DownloadActivity.<span class="hljs-keyword">this</span>,
+                        SplashActivity.class), <span class="hljs-number">0</span>);
+            }
+            <span class="hljs-keyword">if</span> (intent.getAction().equals(
+                    <span class="hljs-string">"cdl.shrihanuman3d.DOWNLOAD_CANCELLED"</span>)) {
+                Log.d(<span class="hljs-string">"status"</span>, <span class="hljs-string">"Download cancelled"</span>);
+            }
+        }
+    };
+
+    mLocalBroadcastManager.registerReceiver(mReceiver, filter);
+
+}
+
+<span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">boolean</span> <span class="hljs-title">mCheckFilesDirs</span><span class="hljs-params">(String mFolderName)</span> </span>{
+    File mCheckdir = <span class="hljs-keyword">new</span> File(mFolderName);
+    <span class="hljs-keyword">if</span> (mCheckdir.exists()) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+    }
+
+}
+
+<span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onClick</span><span class="hljs-params">(View v)</span> </span>{
+
+}
+
+<span class="hljs-annotation">@Override</span>
+<span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onActivityResult</span><span class="hljs-params">(<span class="hljs-keyword">int</span> requestCode, <span class="hljs-keyword">int</span> resultCode, Intent data)</span> </span>{
+    <span class="hljs-keyword">super</span>.onActivityResult(requestCode, resultCode, data);
+    <span class="hljs-keyword">if</span> (requestCode == <span class="hljs-number">0</span>) {
+        finish();
+    }
+}
+
+<span class="hljs-annotation">@Override</span>
+<span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onStop</span><span class="hljs-params">()</span> </span>{
+    Log.e(<span class="hljs-string">"TAG"</span>, <span class="hljs-string">"onStop"</span>);
+    <span class="hljs-keyword">try</span> {
+
+        mDownloadTask.cancel(<span class="hljs-keyword">true</span>);
+    } <span class="hljs-keyword">catch</span> (Exception e) {
+        e.printStackTrace();
+    }
+    <span class="hljs-keyword">super</span>.onStop();
+}
+
+<span class="hljs-annotation">@Override</span>
+<span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onResume</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">super</span>.onResume();
+    Log.e(<span class="hljs-string">"TAG"</span>, <span class="hljs-string">"onResume"</span>);
+    <span class="hljs-keyword">boolean</span> isVersionPurchased = Utils.mediaPrefs.getBoolean(
+            Utils.IS_VERSION_PURCHASED, <span class="hljs-keyword">false</span>);
+
+    <span class="hljs-keyword">if</span>(isVersionPurchased){
+        <span class="hljs-keyword">if</span> (listSize != <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">if</span> (Utils.isNetworkAvailable(getApplicationContext()) == <span class="hljs-keyword">true</span>
+                    &amp;&amp; mchekSpace.getExternalAvailableSpaceInMB() &gt; <span class="hljs-number">650</span>) {
+                mDownloadTask = <span class="hljs-keyword">new</span> DownloadAsyncTask(mContext,
+                        Utils.downloadDataURL,DownloadActivity.<span class="hljs-keyword">this</span>);
+
+                    mDownloadTask.execute();
+
+            } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!(mchekSpace.getExternalAvailableSpaceInMB() &gt; <span class="hljs-number">650</span>)) {
+                <span class="hljs-keyword">try</span> {
+                    showMessageDialogSettings(DownloadActivity.<span class="hljs-keyword">this</span>,
+                            <span class="hljs-string">"No space left on the device."</span>,
+                            <span class="hljs-string">"Please make sure that you have 630MB free in SDCARD."</span>);
+                } <span class="hljs-keyword">catch</span> (Exception e) {
+                    e.printStackTrace();
+                }
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">try</span> {
+                    Drawable d = <span class="hljs-keyword">this</span>
+                            .getResources()
+                            .getDrawable(
+                                    R.drawable.dialog_you_are_not_connected_to_internet);
+                    <span class="hljs-keyword">new</span> CustomDialoge(<span class="hljs-keyword">this</span>, d);
+                } <span class="hljs-keyword">catch</span> (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">if</span> (isVersionPurchased &amp;&amp; InApp.inapp()) {
+                Intent intent = getIntent();
+                setResult(RESULT_OK);
+                finish();
+            } <span class="hljs-keyword">else</span> {
+                startActivityForResult(<span class="hljs-keyword">new</span> Intent(DownloadActivity.<span class="hljs-keyword">this</span>,
+                        SplashActivity.class), <span class="hljs-number">0</span>);
+            }
+        }
+    }<span class="hljs-keyword">else</span> {
+        startActivityForResult(<span class="hljs-keyword">new</span> Intent(DownloadActivity.<span class="hljs-keyword">this</span>,
+                SplashActivity.class), <span class="hljs-number">0</span>);
+    }
+
+}
+
+<span class="hljs-annotation">@Override</span>
+<span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onSaveInstanceState</span><span class="hljs-params">(Bundle savedInstanceState)</span> </span>{
+    savedInstanceState.putInt(<span class="hljs-string">"listSize"</span>, listSize);
+    Log.i(<span class="hljs-string">"SHC"</span>, <span class="hljs-string">"onSaveInstanceState::listSize:: "</span> + listSize);
+    <span class="hljs-keyword">super</span>.onSaveInstanceState(savedInstanceState);
+}
+
+<span class="hljs-annotation">@Override</span>
+<span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onRestoreInstanceState</span><span class="hljs-params">(Bundle savedInstanceState)</span> </span>{
+    <span class="hljs-keyword">super</span>.onRestoreInstanceState(savedInstanceState);
+    listSize = savedInstanceState.getInt(<span class="hljs-string">"listSize"</span>);
+    Log.i(<span class="hljs-string">"SHC"</span>, <span class="hljs-string">"onRestoreInstanceState::listSize:: "</span> + listSize);
+}
+
+<span class="hljs-annotation">@Override</span>
+<span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onDestroy</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">super</span>.onDestroy();
+    <span class="hljs-comment">//pDialog.dismiss();</span>
+    <span class="hljs-comment">/*if (DownloadAsyncTask.pDialog1.isShowing()) {
+        DownloadAsyncTask.pDialog1.dismiss();
+    }</span>
+</code></pre><p>*&#x2F;<br>    }</p>
+<pre><code class="hljs">public static <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DownloadAsyncTask</span> <span class="hljs-keyword"><span class="hljs-keyword">extends</span></span> <span class="hljs-title">AsyncTask&lt;String</span>, <span class="hljs-title">Integer</span>, <span class="hljs-title">String&gt;</span>
+</span>implements <span class="hljs-type">OnDismissListener</span> {
+</code></pre><p>final int BUFFER_SIZE = 1024 * 23;</p>
+<p>private String fileName;</p>
+<p>private String downloadUrl;</p>
+<p>private LocalBroadcastManager mLocalBroadcastManager;</p>
+<p>private static ProgressDialog pDialog;</p>
+<p>private File sdCard = new File(PATH + &quot;&#x2F;&quot;);</p>
+<p>private File dir;</p>
+<p>private double fileSize = 0;</p>
+<p>private List&lt;DownloadStatus&gt; downloadDataList;</p>
+<p>private Context mContext;</p>
+<p>private String mURL;</p>
+<p>public DownloadAsyncTask(Context mContext, String uRL, DownloadActivity dll) {</p>
+<pre><code class="hljs">boolean isVersionPurchased = Utils.mediaPrefs.getBoolean(Utils.IS_VERSION_PURCHASED, false)<span class="hljs-comment">;</span>
+
+DownloadDataImpl downloadImpl = new DownloadDataImpl(mContext.getApplicationContext())<span class="hljs-comment">;</span>
+
+if(isVersionPurchased) {
+    downloadDataList = downloadImpl.getAll(DatabaseHelper.TABLE_NAME_04)<span class="hljs-comment">;</span>
+} else {
+    downloadDataList = downloadImpl.getAll(DatabaseHelper.TABLE_NAME_03)<span class="hljs-comment">;</span>
+}
+
+Collections.shuffle(downloadDataList)<span class="hljs-comment">;</span>
+this.mURL = uRL<span class="hljs-comment">;</span>
+this.mLocalBroadcastManager = LocalBroadcastManager
+        .getInstance(mContext)<span class="hljs-comment">;</span>
+//this.pDialog = pDialog<span class="hljs-comment">;</span>
+this.mContext = mContext<span class="hljs-comment">;</span>
+pDialog = new ProgressDialog(dll)<span class="hljs-comment">;</span>
+pDialog.setTitle("Please wait...")<span class="hljs-comment">;</span>
+pDialog.setMessage("Downloading is in process...")<span class="hljs-comment">;</span>
+pDialog.setProgressStyle(pDialog.STYLE_HORIZONTAL)<span class="hljs-comment">;</span>
+</code></pre><p>}</p>
+<p>private boolean checkDirs(String mFolderName, String path) {<br>    if (path.contains(&quot;Audio&quot;)) {<br>        dir = new File(sdCard.getAbsolutePath() + &quot;&#x2F;Audio&#x2F;&quot;);<br>    } else if (path.contains(&quot;Video&quot;)) {<br>        dir = new File(sdCard.getAbsolutePath() + &quot;&#x2F;Video&#x2F;&quot;);<br>    } else {<br>        dir = new File(sdCard.getAbsolutePath() + &quot;&#x2F;&quot; + mFolderName</p>
+<pre><code class="hljs">            + <span class="hljs-string">"/"</span>);
+}
+<span class="hljs-keyword">if</span> (!dir.exists()) {
+    <span class="hljs-function"><span class="hljs-keyword">return</span> dir.<span class="hljs-title">mkdirs</span><span class="hljs-params">()</span></span>;
+}
+<span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+</code></pre><p>}</p>
+<p>@Override<br>protected String doInBackground(String… params) {</p>
+<pre><code class="hljs"><span class="hljs-keyword">for</span> (<span class="hljs-built_in">int</span> i = <span class="hljs-number">0</span>; i &lt; downloadDataList.<span class="hljs-built_in">size</span>(); i++) {
+    downloadUrl = downloadDataList.<span class="hljs-built_in">get</span>(i).getPath().toString()
+            .<span class="hljs-built_in">trim</span>();
+    <span class="hljs-keyword">String</span>[] mListFiles = downloadDataList.<span class="hljs-built_in">get</span>(i).getPath()
+            .toString().<span class="hljs-built_in">trim</span>().<span class="hljs-built_in">split</span>(<span class="hljs-string">".rv"</span>);
+
+    <span class="hljs-keyword">String</span>[] separated = downloadDataList.<span class="hljs-built_in">get</span>(i).getFilename()
+            .<span class="hljs-built_in">split</span>(<span class="hljs-string">" "</span>);
+    <span class="hljs-keyword">if</span> (!checkDirs(separated[<span class="hljs-number">0</span>], downloadDataList.<span class="hljs-built_in">get</span>(i).getPath())) {
+        <span class="hljs-keyword">return</span> <span class="hljs-string">"Making directories failed!"</span>;
+    }
+    fileName = downloadUrl
+            .substring(downloadUrl.lastIndexOf(<span class="hljs-string">"/"</span>) + <span class="hljs-number">1</span>);
+
+    <span class="hljs-keyword">if</span> (Utils.downloadDataURL.contains(<span class="hljs-string">"sw720"</span>)) {
+        downloadUrl = downloadUrl.replaceAll(<span class="hljs-string">"sw600"</span>, <span class="hljs-string">"sw720"</span>);
+    }
+    downloadUrl = downloadUrl.replaceAll(<span class="hljs-string">" "</span>, <span class="hljs-string">"%20"</span>);
+    <span class="hljs-keyword">String</span>[] dURL = downloadUrl.<span class="hljs-built_in">split</span>(<span class="hljs-string">".rv"</span>);
+    <span class="hljs-keyword">try</span> {
+        URL url = <span class="hljs-keyword">new</span> URL(dURL[<span class="hljs-number">0</span>]);
+        HttpURLConnection urlConnection = (HttpURLConnection) url
+                .openConnection();
+        urlConnection.setRequestMethod(<span class="hljs-string">"POST"</span>);
+        urlConnection.setDoOutput(<span class="hljs-keyword">true</span>);
+        urlConnection.connect();
+        fileSize = urlConnection.getContentLength();
+        FileOutputStream fos = <span class="hljs-keyword">new</span> FileOutputStream(<span class="hljs-keyword">new</span> File(dir,
+                fileName));
+        InputStream inputStream = urlConnection.getInputStream();
+        <span class="hljs-built_in">byte</span>[] buffer = <span class="hljs-keyword">new</span> <span class="hljs-built_in">byte</span>[<span class="hljs-number">1024</span>];
+        <span class="hljs-built_in">int</span> bufferLength = <span class="hljs-number">0</span>;
+        <span class="hljs-built_in">int</span> percentage = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">double</span> downloadedSize = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">while</span> ((bufferLength = inputStream.read(buffer)) != -<span class="hljs-number">1</span>) {
+            <span class="hljs-keyword">if</span> (isCancelled()) {
+                <span class="hljs-keyword">break</span>;
+            }
+            fos.write(buffer, <span class="hljs-number">0</span>, bufferLength);
+            downloadedSize += bufferLength;
+            <span class="hljs-comment">// percentage = (int) ((downloadedSize / fileSize) *</span>
+            <span class="hljs-comment">// 100);</span>
+            <span class="hljs-keyword">if</span> ((i * <span class="hljs-number">100</span>) / downloadDataList.<span class="hljs-built_in">size</span>() &gt; percentage) {
+                percentage = (i * <span class="hljs-number">100</span>) / downloadDataList.<span class="hljs-built_in">size</span>();
+                publishProgress(percentage);
+            }
+            <span class="hljs-keyword">if</span> (downloadedSize == fileSize) {
+                Log.e(<span class="hljs-string">"TAG"</span>, <span class="hljs-string">"DownloadSize: "</span> + downloadedSize
+                        + <span class="hljs-string">" Filesize: "</span> + fileSize);
+
+                <span class="hljs-built_in">boolean</span> isVersionPurchased = Utils.mediaPrefs.getBoolean(Utils.IS_VERSION_PURCHASED, <span class="hljs-keyword">false</span>);
+
+                DownloadDataImpl mDownloadDataImpl = <span class="hljs-keyword">new</span> DownloadDataImpl(mContext);
+
+                <span class="hljs-keyword">if</span>(isVersionPurchased) {
+                    mDownloadDataImpl.updateFileStatus(DatabaseHelper.TABLE_NAME_04, fileName, <span class="hljs-number">1</span>);
+                } <span class="hljs-keyword">else</span> {
+                    mDownloadDataImpl.updateFileStatus(DatabaseHelper.TABLE_NAME_03, fileName, <span class="hljs-number">1</span>);
+                }
+
+            }
+        }
+        fos.close();
+        urlConnection.disconnect();
+    } <span class="hljs-keyword">catch</span> (Exception e) {
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-built_in">boolean</span> isVersionPurchased = Utils.mediaPrefs.getBoolean(Utils.IS_VERSION_PURCHASED, <span class="hljs-keyword">false</span>);
+            DownloadDataImpl mDownloadDataImpl = <span class="hljs-keyword">new</span> DownloadDataImpl(mContext);
+            <span class="hljs-keyword">if</span>(isVersionPurchased) {
+                mDownloadDataImpl.updateFileStatus(DatabaseHelper.TABLE_NAME_04, fileName, <span class="hljs-number">1</span>);
+            } <span class="hljs-keyword">else</span> {
+                mDownloadDataImpl.updateFileStatus(DatabaseHelper.TABLE_NAME_03, fileName, <span class="hljs-number">1</span>);
+            }
+        } <span class="hljs-keyword">catch</span> (Exception e2) {
+            e.printStackTrace();
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-string">"Exception"</span>;
+    }
+    <span class="hljs-keyword">if</span> (isCancelled()) {
+        <span class="hljs-keyword">return</span> <span class="hljs-string">"isCancelled"</span>;
+    }
+}
+<span class="hljs-keyword">return</span> <span class="hljs-string">"dcompleted"</span>;
+</code></pre><p>}</p>
+<p>@Override<br>protected void onProgressUpdate(Integer… values) {<br>    super.onProgressUpdate(values[0]);<br>    if (pDialog != null) {<br>        pDialog.setProgress(values[0]);<br>    } else {<br>        Log.w(&quot;status&quot;, &quot;ProgressBar is null, please supply one!&quot;);<br>    }<br>}</p>
+<p>@Override<br>protected void onPreExecute() {<br>    pDialog.setOnDismissListener(this);<br>    mLocalBroadcastManager.sendBroadcast(new Intent(<br>            &quot;cdl.shrihanuman3d.DOWNLOAD_STARTED&quot;));<br>    if(pDialog!=null)<br>    {<br>      if(!pDialog.isShowing())<br>    {<br>    pDialog.show();<br>    }<br>    }<br>}</p>
+<p>@Override<br>protected void onPostExecute(String str) {<br>    if(pDialog.isShowing()){<br>        pDialog.dismiss();<br>    }<br>    if (str.equals(&quot;Exception&quot;)) {<br>        mLocalBroadcastManager.sendBroadcast(new Intent(<br>                &quot;cdl.shrihanuman3d.DOWNLOAD_CANCELLED&quot;));<br>    } else if (str.equals(&quot;dcompleted&quot;)) {<br>        mLocalBroadcastManager.sendBroadcast(new Intent(<br>                &quot;cdl.shrihanuman3d.DOWNLOAD_FINISHED&quot;));<br>    }<br>    Log.d(&quot;TAG&quot;, &quot;Download finished str&quot; + str);<br>}</p>
+<p>@Override<br>protected void onCancelled() {<br>    mLocalBroadcastManager.sendBroadcast(new Intent(<br>            &quot;cdl.shrihanuman3d.DOWNLOAD_CANCELLED&quot;));<br>}</p>
+<p>@Override<br>public void onDismiss(DialogInterface arg0) {<br>    showDismissMessageDialog(mContext, pDialog, &quot;Quite ?&quot;,<br>            &quot;It will stop download process.!&quot;);</p>
+<p>}</p>
+<p>}</p>
+<p>public static final void showMessageDialog(final Context contex,<br>    String title, String message) {<br>if (message != null &amp;&amp; message.trim().length() &gt; 0) {<br>    Builder builder = new AlertDialog.Builder(contex);<br>    builder.setTitle(title);<br>    builder.setMessage(message);<br>    builder.setPositiveButton(&quot;OK&quot;,<br>            new DialogInterface.OnClickListener() {<br>                public void onClick(DialogInterface dialog, int id) {</p>
+<pre><code class="hljs">                dialog.dismiss()<span class="hljs-comment">;</span>
+                ((Activity) contex).finish()<span class="hljs-comment">;</span>
+            }
+        })<span class="hljs-comment">;</span>
+builder.show()<span class="hljs-comment">;</span>
+</code></pre><p>}<br>}</p>
+<p>public static final void showMessageDialogSettings(final Context contex,<br>    String title, String message) {<br>if (message != null &amp;&amp; message.trim().length() &gt; 0) {<br>    Builder builder = new AlertDialog.Builder(contex);<br>    builder.setTitle(title);<br>    builder.setMessage(message);<br>    builder.setPositiveButton(&quot;Settings&quot;,<br>            new DialogInterface.OnClickListener() {<br>                public void onClick(DialogInterface dialog, int id) {</p>
+<pre><code class="hljs">                dialog.dismiss();
+                ((Activity) contex)
+                        .startActivityForResult(
+                                <span class="hljs-keyword">new</span> Intent(
+                                        android.provider.Settings.ACTION_INTERNAL_STORAGE_SETTINGS),
+                                <span class="hljs-number">0</span>);
+            }
+        });
+builder.setNegativeButton(<span class="hljs-string">"Cancel"</span>,
+        <span class="hljs-keyword">new</span> DialogInterface.OnClickListener() {
+            <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onClick</span><span class="hljs-params">(DialogInterface dialog, <span class="hljs-keyword">int</span> id)</span> </span>{
+                dialog.dismiss();
+                ((Activity) contex).finish();
+            }
+        });
+builder.show();
+</code></pre><p>}<br>}</p>
+<p>public static final void showDismissMessageDialog(final Context contex,<br>    final ProgressDialog pDialog2, String title, String message) {<br>if (message != null &amp;&amp; message.trim().length() &gt; 0) {<br>    Builder builder = new AlertDialog.Builder(contex);<br>    builder.setTitle(title);<br>    builder.setMessage(message);<br>    builder.setPositiveButton(&quot;OK&quot;,<br>            new DialogInterface.OnClickListener() {<br>                public void onClick(DialogInterface dialog, int id) {</p>
+<pre><code class="hljs">                dialog.dismiss();
+                <span class="hljs-comment">// pDialog.dismiss();</span>
+                <span class="hljs-keyword">if</span> (!mDownloadTask.isCancelled()) {
+                    mDownloadTask.cancel(<span class="hljs-keyword">true</span>);
+                }
+                ((Activity) contex).finish();
+            }
+        });
+builder.setNegativeButton(<span class="hljs-string">"Cancel"</span>,
+        <span class="hljs-keyword">new</span> DialogInterface.OnClickListener() {
+            <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onClick</span><span class="hljs-params">(DialogInterface dialog, <span class="hljs-keyword">int</span> id)</span> </span>{
+                dialog.dismiss();
+                pDialog2.show();
+                <span class="hljs-keyword">if</span> (mDownloadTask.isCancelled()) {
+                    mDownloadTask.execute();
+                }
+            }
+        });
+builder.show();
+</code></pre><p>}<br>}</p>
+<p>}</p>
+<p>And here is my Error Log</p>
+<pre><code class="hljs"><span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">14.899</span>: E/TAG(<span class="hljs-number">3913</span>): onResume
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.075</span>: E/KeyHash:(<span class="hljs-number">3913</span>): xbmcYcwUe42kPY5YkZOK10cNv8A=
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.227</span>: E/TAG(<span class="hljs-number">3913</span>): onStop
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>): Activity cdl.shrihanuman3d.DownloadActivity has leaked window com.android.internal.policy.impl.PhoneWindow$DecorView{<span class="hljs-number">5292810</span>c V.E..... R.....I. <span class="hljs-number">0</span>,<span class="hljs-number">0</span>-<span class="hljs-number">570</span>,<span class="hljs-number">212</span>} that was originally added here
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>): android.view.WindowLeaked: Activity cdl.shrihanuman3d.DownloadActivity has leaked window com.android.internal.policy.impl.PhoneWindow$DecorView{<span class="hljs-number">5292810</span>c V.E..... R.....I. <span class="hljs-number">0</span>,<span class="hljs-number">0</span>-<span class="hljs-number">570</span>,<span class="hljs-number">212</span>} that was originally added here
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.view.ViewRootImpl.&lt;init&gt;(ViewRootImpl.java:<span class="hljs-number">345</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.view.WindowManagerGlobal.addView(WindowManagerGlobal.java:<span class="hljs-number">239</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.view.WindowManagerImpl.addView(WindowManagerImpl.java:<span class="hljs-number">69</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.Dialog.show(Dialog.java:<span class="hljs-number">281</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at cdl.shrihanuman3d.DownloadActivity$DownloadAsyncTask.onPreExecute(DownloadActivity.java:<span class="hljs-number">473</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.os.AsyncTask.executeOnExecutor(AsyncTask.java:<span class="hljs-number">586</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.os.AsyncTask.execute(AsyncTask.java:<span class="hljs-number">534</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at cdl.shrihanuman3d.DownloadActivity.onCreate(DownloadActivity.java:<span class="hljs-number">132</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.Activity.performCreate(Activity.java:<span class="hljs-number">5133</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:<span class="hljs-number">1087</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:<span class="hljs-number">2175</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:<span class="hljs-number">2261</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.ActivityThread.access$<span class="hljs-number">600</span>(ActivityThread.java:<span class="hljs-number">141</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.ActivityThread$H.handleMessage(ActivityThread.java:<span class="hljs-number">1256</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.os.Handler.dispatchMessage(Handler.java:<span class="hljs-number">99</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.os.Looper.loop(Looper.java:<span class="hljs-number">137</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at android.app.ActivityThread.main(ActivityThread.java:<span class="hljs-number">5103</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at java.lang.reflect.Method.invokeNative(Native Method)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at java.lang.reflect.Method.invoke(Method.java:<span class="hljs-number">525</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:<span class="hljs-number">737</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:<span class="hljs-number">553</span>)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.263</span>: E/WindowManager(<span class="hljs-number">3913</span>):  at dalvik.system.NativeStart.main(Native Method)
+<span class="hljs-number">07</span>-<span class="hljs-number">17</span> <span class="hljs-number">10</span>:<span class="hljs-number">24</span>:<span class="hljs-number">15.795</span>: D/status(<span class="hljs-number">3913</span>): Download cancelled
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 17th 2014, 8:39:22 am">July 17th 2014</span>
+				by <span class='authorname'>Mehdi Sunasara</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>application</span></li>
+					
+						<li><span class='tagname'>asynctask</span></li>
+					
+						<li><span class='tagname'>leakedwindow</span></li>
+					
+						<li><span class='tagname'>progressdialog</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>You have provided way to much code to paste in which is why it failed,  You need to create a reproducible version of your code that others can run in a test app to review. for themselves.  </p>
+<p>This looks like a native Java app - is this for a module you are creating?  Is this anything to do with Titanium?  Is the log from the Titanium console?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 17th 2014, 9:15:07 am">July 17th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>wow, run on sentences, unformatted code, -1</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 17th 2014, 9:48:50 am">July 17th 2014</span>
+								by <span class='authorname'>Stephen Feather</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>-1</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

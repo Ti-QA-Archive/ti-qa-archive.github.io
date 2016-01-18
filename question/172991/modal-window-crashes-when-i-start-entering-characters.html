@@ -1,0 +1,289 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>modal window crashes when I start entering characters » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>modal window crashes when I start entering characters</h1>
+		</header>
+		<section>
+			<p>I have a modal window that displays locations and also returns the latitude and longitude  after I have entered a location using the google places API but sometimes when I start entering the location the app crushes.<br>&#39;I&#39;m using Alloy, myTitanium sdk version is 3.2.1 GA,<br>I&#39;m developing an android application. and running it on the android version 4.1.1.<br>The codes are below.<br>hope someone will help me out.<br>PS. The crashes do not happen often. but still i need to solve this.</p>
+<p>xml part:</p>
+<p>&lt;Alloy&gt;<br>    &lt;Window id=&quot;win&quot;&gt;<br>        &lt;View layout=&quot;vertical&quot; id=&quot;viewTable&quot;&gt;<br>            &lt;View layout=&quot;horizontal&quot; height=&quot;Ti.UI.SIZE&quot; width=&quot;Ti.UI.FILL&quot;&gt;<br>                &lt;TextField id=&quot;search&quot;&gt;&lt;&#x2F;TextField&gt;<br>                &lt;Button id=&quot;btnSearch&quot;&gt;Add Location&lt;&#x2F;Button&gt;<br>            &lt;&#x2F;View&gt;</p>
+<pre><code class="hljs">        <span class="hljs-tag">&lt;/View&gt;</span>
+<span class="hljs-tag">&lt;/Window&gt;</span>
+</code></pre><p>&lt;&#x2F;Alloy&gt;</p>
+<p>the style portion:<br>&quot;#search&quot;:{<br>     height : &#39;40sp&#39;,<br>        hintText : &#39;Location&#39;,<br>        top : &#39;15dp&#39;,<br>       left:10,<br>        width : &#39;60%&#39;,</p>
+<pre><code class="hljs">    <span class="hljs-string">textAlign :</span> <span class="hljs-string">'left'</span>,
+    <span class="hljs-string">font :</span> {
+
+        <span class="hljs-string">fontFamily :</span> <span class="hljs-string">'raleway-regular-webfont'</span>,
+        <span class="hljs-string">fontSize :</span> <span class="hljs-string">'13sp'</span>,
+
+    },
+</code></pre><p>}<br>&quot;#btnSearch&quot;:{<br>    left:&#39;5dp&#39;,<br>    top:&#39;15dp&#39;,<br>    height:40,<br>    right:&#39;5dp&#39;,<br>       font : {</p>
+<pre><code class="hljs">        <span class="hljs-attribute">fontFamily </span>: <span class="hljs-string">'raleway-regular-webfont'</span>,
+        <span class="hljs-attribute">fontSize </span>: <span class="hljs-string">'13sp'</span>,
+
+    },
+    <span class="hljs-attribute">visible</span>:true
+</code></pre><p>}</p>
+<p>&quot;Window&quot;:{<br>    modal:true,<br>    height:360,<br>    width:350,<br>    opacity:0.7,<br>    title:&quot;Search Location&quot;</p>
+<p>}</p>
+<p>the controller part</p>
+<p>var args = arguments[0] || {};</p>
+<p>var last_search = null;<br>table_data = [];<br>var MapModule = require(&#39;ti.map&#39;);<br>var timers = [];<br>var latitude=0;<br>var longitude=0;</p>
+<p>var resulttable=Ti.UI.createTableView({</p>
+<p>});</p>
+<p>$.search.addEventListener(&#39;change&#39;, function(event, type) {</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> <span class="hljs-comment">('' != $.search.value &amp;&amp; $.search.value.length&gt;1)</span>{
+    <span class="hljs-comment">//tabgroupContentView.add(resulttable);</span>
+    $.viewTable.add<span class="hljs-comment">(resulttable)</span>;
+    <span class="hljs-keyword">if</span> <span class="hljs-comment">(resulttable.data.length &gt; 0)</span> {
+        for <span class="hljs-comment">(var i = resulttable.data[0].rows.length - 1; i &gt;= 0; i--)</span> {
+            resulttable.deleteRow<span class="hljs-comment">(i)</span>;
+        }
+    }
+    auto_complete<span class="hljs-comment">($.search.value)</span>;
+} else {
+    $.viewTable.remove<span class="hljs-comment">(resulttable)</span>;
+}
+</code></pre><p>});</p>
+<p>function auto_complete(search_term) {</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> loader = Ti.Network.createHTTPClient({
+    onerror : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+
+        Ti.API.debug(<span class="hljs-string">"STATUS: "</span> + <span class="hljs-keyword">this</span>.status);
+Ti.API.debug(<span class="hljs-string">"TEXT:   "</span> + <span class="hljs-keyword">this</span>.responseText);
+        Ti.API.debug(e.error);
+        <span class="hljs-comment">//alert('There was an error during the connection');</span>
+
+
+    },
+
+    timeout : <span class="hljs-number">1000</span>,
+});
+
+
+loader.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-keyword">var</span> histryresult = <span class="hljs-built_in">eval</span>(<span class="hljs-string">'('</span> + <span class="hljs-keyword">this</span>.responseText + <span class="hljs-string">')'</span>);
+    jsonArry = histryresult.predictions;
+    jsonArryterms = histryresult.terms;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; jsonArry.length; i++) {
+
+        <span class="hljs-keyword">var</span> service_row = Ti.UI.createTableViewRow({
+            height : <span class="hljs-string">'70sp'</span>,
+            width : <span class="hljs-string">'100%'</span>,
+            backgroundColor : <span class="hljs-string">'#ffffff'</span>,
+            backgroundFocusedColor : <span class="hljs-string">'#FF8F2F'</span>,
+            backgroundSelectedColor : <span class="hljs-string">'#FF8F2F'</span>,
+            hasChild : <span class="hljs-literal">false</span>,
+            className:<span class="hljs-string">''</span>
+        });
+
+        <span class="hljs-keyword">var</span> lbl_oderid = Ti.UI.createLabel({
+            left : <span class="hljs-string">'3%'</span>,
+            top : <span class="hljs-string">'10%'</span>,
+            text : jsonArry[i].terms[<span class="hljs-number">1</span>].value,
+            color : <span class="hljs-string">'#A70CAF'</span>,
+            font : {
+                fontSize : <span class="hljs-string">'17sp'</span>,
+                fontWeight : <span class="hljs-string">'bold'</span>
+            },
+            height : <span class="hljs-string">'auto'</span>,
+            width : <span class="hljs-string">'auto'</span>,
+            className:<span class="hljs-string">''</span>
+        });
+
+        <span class="hljs-keyword">var</span> descriptiontext;
+        <span class="hljs-keyword">if</span> (jsonArry[i] == <span class="hljs-literal">undefined</span>) {
+            descriptiontext = <span class="hljs-string">'Not Valable'</span>;
+        } <span class="hljs-keyword">else</span> {
+            descriptiontext = jsonArry[i].description;
+        }
+
+        <span class="hljs-keyword">var</span> lbl_description = Ti.UI.createLabel({
+            left : <span class="hljs-string">'5%'</span>,
+            top : <span class="hljs-string">'50%'</span>,
+            text : descriptiontext,
+            color : <span class="hljs-string">'#000000'</span>,
+            font : {
+                fontSize : <span class="hljs-string">'12sp'</span>,
+
+            },
+            height : <span class="hljs-string">'auto'</span>,
+            width : <span class="hljs-string">'auto'</span>,
+            className:<span class="hljs-string">''</span>
+        });
+        service_row.className=descriptiontext;
+        lbl_oderid.className=descriptiontext;
+        lbl_description.className=descriptiontext;
+        service_row.add(lbl_oderid);
+        service_row.add(lbl_description);
+        service_row.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">var</span> loc=e.children;
+            <span class="hljs-keyword">var</span> d=e.source.className;
+
+            Ti.API.info(d);
+            setlocation(d);
+            <span class="hljs-keyword">var</span> locaName;
+            Ti.API.info(e.index);
+            Ti.API.info(jsonArry[e.index]);
+
+            <span class="hljs-keyword">if</span> (jsonArry[e.index] == <span class="hljs-literal">undefined</span>) {
+
+            } <span class="hljs-keyword">else</span> {
+            locaName = jsonArry[e.index].description;
+            }
+            <span class="hljs-keyword">if</span> (jsonArry[e.index] == <span class="hljs-literal">undefined</span>) {
+
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">var</span> reversGeoloader = Ti.Network.createHTTPClient({
+                    onerror : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                        Ti.API.debug(e.error);
+                        <span class="hljs-comment">//alert('There was an error during the connection reverse Geoloader');</span>
+
+
+                    },
+                    timeout : <span class="hljs-number">1000</span>,
+                });
+
+
+                reversGeoloader.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+                    <span class="hljs-keyword">var</span> geoResult = <span class="hljs-built_in">eval</span>(<span class="hljs-string">'('</span> + <span class="hljs-keyword">this</span>.responseText + <span class="hljs-string">')'</span>);
+                    jsonArry = geoResult.results;
+
+                    <span class="hljs-keyword">var</span> newlat = jsonArry[<span class="hljs-number">0</span>].geometry.location.lat;
+                    <span class="hljs-keyword">var</span> newlng = jsonArry[<span class="hljs-number">0</span>].geometry.location.lng;
+                    latitude=newlat;
+                    longitude=newlng;
+                    <span class="hljs-comment">//trigerCoord(newlat,newlng,d);</span>
+                    <span class="hljs-comment">//Ti.App.fireEvent('triggerCordinate');</span>
+                    $.search.value=res;
+                    Ti.UI.createNotification({ message : <span class="hljs-string">"latitude: "</span> +newlat}).show();
+                    Ti.UI.createNotification({ message : <span class="hljs-string">"longitude: "</span> +newlng}).show();
+                    Ti.API.info(newlat+<span class="hljs-string">" "</span>+newlng);
+
+                    <span class="hljs-comment">//var curentlatitude = newlat;</span>
+                    <span class="hljs-comment">//var curentlongitude = newlng;</span>
+
+                    <span class="hljs-comment">//getReversGeo(curentlatitude, curentlongitude, 'str');</span>
+                    <span class="hljs-comment">//usercurentlocation.setText('Set by serch');</span>
+                    <span class="hljs-comment">//$.win.close();</span>
+
+                };
+                reversGeoloader.open(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"http://maps.googleapis.com/maps/api/geocode/json?address="</span> + locaName + <span class="hljs-string">"&amp;sensor=false"</span>);
+                reversGeoloader.send();
+            }
+
+        });
+
+        resulttable.appendRow(service_row);
+
+    }
+
+};
+loader.open(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"https://maps.googleapis.com/maps/api/place/autocomplete/json?input="</span> + search_term + <span class="hljs-string">"&amp;types=geocode&amp;language=en&amp;sensor=true&amp;key=apiKey"</span>);
+loader.send();
+</code></pre><p>}</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 23rd 2014, 7:11:27 pm">April 23rd 2014</span>
+				by <span class='authorname'>nayram mensah</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>google places api</span></li>
+					
+						<li><span class='tagname'>modal</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Format your code properly using <code>~~~</code> ABOVE and BELOW your code. it look good and easy to read.</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"win"</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">View</span> <span class="hljs-attribute">layout</span>=<span class="hljs-value">"vertical"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"viewTable"</span>&gt;</span>
+         <span class="hljs-tag">&lt;<span class="hljs-title">View</span> <span class="hljs-attribute">layout</span>=<span class="hljs-value">"horizontal"</span> <span class="hljs-attribute">height</span>=<span class="hljs-value">"Ti.UI.SIZE"</span> <span class="hljs-attribute">width</span>=<span class="hljs-value">"Ti.UI.FILL"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">TextField</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"search"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Button</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"btnSearch"</span>&gt;</span>Add Location<span class="hljs-tag">&lt;/<span class="hljs-title">Button</span>&gt;</span>
+         <span class="hljs-tag">&lt;/<span class="hljs-title">View</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">View</span>&gt;</span>
+   <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="April 24th 2014, 2:39:39 am">April 24th 2014</span>
+								by <span class='authorname'>Sanat Mamtora</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

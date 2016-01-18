@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android Camera Settings » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android Camera Settings</h1>
+		</header>
+		<section>
+			<p>Hi Guys, </p>
+<p>Was wondering if someone would be kind enough to lead me in the right direction. I have an Android mobile app that allows the user to take pictures and send to us. I modified the app so that the image sent to us is no bigger than 3mb. The problem we have now is with he new mobile devices and the size of the images due to the increase in pixels. My question is the following: Is there a way temporarily modify the camera to take the picture in maximum 12 megapixels? Thanks for your assistance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 1st 2014, 12:32:44 am">December 1st 2014</span>
+				by <span class='authorname'>F. F.</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>camera</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-284163">
+				
+						<section>
+							<p>I don&#39;t know if you can change a camera setting like that.</p>
+<p>What you can do is downsample the image before sending it.  You&#39;ll need a couple of modules: ti.imagefactory for ios and FHImageFactory for android (I use the <a href="https:&#x2F;&#x2F;github.com&#x2F;freshheads&#x2F;fh.imagefactory&#x2F;">FHImageFactory</a> because it is smart enough to properly rotate images based on device orientation).</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ImageFactory = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.imagefactory'</span>);
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">downsample_image</span> (<span class="hljs-params">img</span>)
+    </span>{
+        <span class="hljs-keyword">var</span> imgnew;
+
+        <span class="hljs-keyword">if</span> (IS_IOS)
+        {
+            <span class="hljs-keyword">var</span> w, h, wnew, hnew;
+            w = img.width;
+            h = img.height;
+
+            <span class="hljs-keyword">if</span> (w &gt; h)
+            {
+                wnew = <span class="hljs-number">1600</span>;
+                hnew = <span class="hljs-built_in">parseInt</span> (h / w * <span class="hljs-number">1600</span>);
+            }
+            <span class="hljs-keyword">else</span>
+            {
+                hnew = <span class="hljs-number">1600</span>;
+                wnew = <span class="hljs-built_in">parseInt</span> (w / h * <span class="hljs-number">1600</span>);
+            }
+
+            <span class="hljs-keyword">var</span> quality = ImageFactory.QUALITY_MEDIUM;
+
+            imgnew = ImageFactory.imageAsResized (img, {
+                width: wnew,
+                height: hnew,
+                quality: quality
+            });
+
+            <span class="hljs-comment">// make sure we don't have a PNG by calling compress()...</span>
+            <span class="hljs-comment">// https://jira.appcelerator.org/browse/TIMODOPEN-228</span>
+
+            <span class="hljs-comment">// choose desired compression level (from 0.0 to 1.0)</span>
+            <span class="hljs-keyword">var</span> compression_level = <span class="hljs-number">0.75</span>;
+
+            <span class="hljs-comment">// convert image to jpeg</span>
+            imgnew = ImageFactory.compress(imgnew, compression_level);
+        }
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (IS_ANDROID)
+        {
+            <span class="hljs-keyword">var</span> quality = <span class="hljs-number">75</span>;
+
+            <span class="hljs-keyword">var</span> FHImageFactory = <span class="hljs-built_in">require</span>(<span class="hljs-string">'fh.imagefactory'</span>);
+            FHImageFactory.rotateResizeImage(img.nativePath, <span class="hljs-number">1600</span>, quality);
+
+            <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(img.nativePath);
+            imgnew = file.read();
+        }
+
+        <span class="hljs-keyword">return</span> imgnew;
+    }
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 1st 2014, 6:02:32 pm">December 1st 2014</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/179355/android-camera-settings#answer-284163" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks but we already have code that modifies the size of the image. The problem is that the software that we transfer the images to only allows the maximum of 3mb. This was fine before but now with the new phones the image size has increased and therefore when our app tries to modify the size it freezes. Thats why I was hoping to temporarily force the camera to take the picture at maximum 12 megapixels.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 1st 2014, 10:24:24 pm">December 1st 2014</span>
+											by <span class='authorname'>F. F.</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>What kind of megapixels are you talking about on these newer phones?  I use the Galaxy S4 (not the newest, but not too far off) – it has a 13 MP camera.  I use the code above to downsample, and it handles things quite well, downsampling to 1600x900 <em>and</em> to a small square cropped image in about 1-1.5 seconds.</p>
+<p>While a newer phone might have a higher-res camera, it probably has a faster processor, too, so I would expect that it should be able to efficiently downsample its own images.</p>
+<p>Even if it took, for example, 3 times as long as my S4 is taking, that would hardly constitute a &quot;freeze&quot;.  So I suspect you&#39;re describing something much more than that.</p>
+<p>Are you using the imagefactory modules to downsample?  You definitely want to be using native code for an operation like this.</p>
+<p>Assuming you&#39;re using native code, maybe you could experiment with different output sizes.  For example, I&#39;m downsampling to about 1.5 MP.  Maybe you&#39;re downsampling to a larger size than that, and maybe the output size is more important than the input size in determining how long it will take.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 1st 2014, 10:44:07 pm">December 1st 2014</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m talking about the S5 and the Note 4 and any other device with 16 megapixels and higher. I too have the S4 so I hadn&#39;t seen the issue until it was brought up. I&#39;ll do some testing with the sample code you provided and see if it helps. The only problem is going to be getting a hold of an S5 to test :) I may just have to send the test apk to the client. Thanks again for your help.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 2nd 2014, 12:12:38 pm">December 2nd 2014</span>
+											by <span class='authorname'>F. F.</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok I actually went and bought a Samsung Galaxy S5 and tried to modify the app but still no luck the only way so far has been to increase the file size to 5mb which is a bit too big and it takes longer to upload. I was wondering if there is now way to change the settings automatically maybe display the settings to allow the user to change it from 16mp to something smaller. What do you think?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 3rd 2014, 10:53:52 pm">December 3rd 2014</span>
+											by <span class='authorname'>F. F.</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

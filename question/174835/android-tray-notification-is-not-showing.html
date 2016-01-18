@@ -1,0 +1,276 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android tray notification is not showing » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android tray notification is not showing</h1>
+		</header>
+		<section>
+			<h1 id="here-is-my-code-">Here is my code:</h1>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+    <span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloudpush'</span>);
+
+     use UUID <span class="hljs-keyword">as</span> user name
+    <span class="hljs-keyword">var</span> username = Ti.Platform.id;
+    <span class="hljs-keyword">var</span> deviceToken;
+
+    CloudPush.retrieveDeviceToken({
+        success: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">'GCM Device Token: '</span> + e.deviceToken);
+            deviceToken = e.deviceToken;
+            CloudPush.setEnabled(<span class="hljs-literal">true</span>);
+            Cloud.Users.create({
+                username: username,
+                password: <span class="hljs-string">"mypassword"</span>,
+                password_confirmation: <span class="hljs-string">"mypassword"</span>,
+                first_name: <span class="hljs-string">"myfirstname"</span>,
+                last_name: <span class="hljs-string">"mylastname"</span>
+            }, 
+
+            <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    Ti.API.info(<span class="hljs-string">"create success"</span>);
+                } <span class="hljs-keyword">else</span> {
+                    Ti.API.info(<span class="hljs-string">'Error create: '</span> +((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                }
+            });
+
+            Cloud.Users.login({
+                 login: username,
+                 password: <span class="hljs-string">'mypassword'</span>
+             }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                     Ti.API.info(<span class="hljs-string">"login success"</span>); 
+                     Cloud.PushNotifications.subscribe({
+                        channel: <span class="hljs-string">'news'</span>,
+                        device_token: deviceToken,
+                        type: <span class="hljs-string">'android'</span>
+                    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                        <span class="hljs-keyword">if</span> (e.success) {
+                           Ti.API.info(<span class="hljs-string">'Subscribed!\n '</span>+deviceToken);
+                            CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                            <span class="hljs-keyword">var</span> payload = <span class="hljs-built_in">JSON</span>.parse(e.payload);
+                            <span class="hljs-keyword">var</span> dialog = Ti.UI.createAlertDialog({
+                                            message : payload.alert,
+                                            ok : <span class="hljs-string">'Okay'</span>,
+                                            title : payload.title,
+                                }).show();
+                });        
+                CloudPush.addEventListener(<span class="hljs-string">'trayClickLaunchedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+                                Ti.API.info(<span class="hljs-string">'Tray Click Launched App (app was not running)'</span>);
+                    });
+                   CloudPush.addEventListener(<span class="hljs-string">'trayClickFocusedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+                                   Ti.API.info(<span class="hljs-string">'Tray Click Focused App (app was already running)'</span>);
+                  });
+                        }
+                        <span class="hljs-keyword">else</span> {
+                            Ti.API.info(<span class="hljs-string">'Subscribe Error:'</span> +((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                        }
+                    });                        
+                 } <span class="hljs-keyword">else</span> {
+                     Ti.API.info(<span class="hljs-string">'Error login: '</span> +((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                 }
+            });        
+        },
+
+        error: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">'Failed to register for push! '</span> + e.error);
+        }
+
+    });
+</code></pre><p>===========================================================<br>I can get the callback when the push notification is sent. A alert message is prompted out as expected<br>by the function call back.<br>The problem is when the app is closed&#x2F;background the tray notification is not shown. I tested few devices<br>and mostly get the same problems. For the others, when receiving a push notification when the app is closed, the app will launch automatically and prompt the alert message from callback function.</p>
+<h1 id="here-is-my-push-notification-php-">here is my push notification php:</h1>
+<p>&lt;?php<br>$serverApiKey = &quot;AIzaxxxxxxxxxxxxxxxxxxxxxxxxxx&quot;;<br>$registrationIds = &#39;blablablablabla&#39;;<br> $regId = array($registrationIds);<br>&#x2F;&#x2F; prep the bundle</p>
+<p>$fields = array<br>(<br>    &#39;registration_ids&#39;     =&gt; $regId,<br>    &#39;data&#39; =&gt; array(<br>            &#39;payload&#39; =&gt; array<br>        (<br>                &#39;alert&#39;         =&gt; &#39;New Offers!!&#39;,<br>            &#39;title&#39;            =&gt; &#39;Touch4Points&#39;,<br>            &#39;vibrate&#39;    =&gt; true,<br>            &#39;icon&#39;        =&gt; &quot;appicon&quot;,<br>            &#39;badge&#39; =&gt; 1,<br>        ),<br>        ),<br>);</p>
+<p> $data = array(<br>        &#39;registration_ids&#39; =&gt; $registrationIdsArray<br>    );</p>
+<p>$headers = array<br>(<br>    &#39;Authorization: key=&#39; .$serverApiKey,<br>    &#39;Content-Type: application&#x2F;json&#39;<br>);</p>
+<p>$ch = curl_init();<br>curl_setopt( $ch,CURLOPT_URL, &#39;https:&#x2F;&#x2F;android.googleapis.com&#x2F;gcm&#x2F;send&#39; );<br>curl_setopt( $ch,CURLOPT_POST, true );<br>if ($headers)<br>curl_setopt( $ch,CURLOPT_HTTPHEADER, $headers );<br>curl_setopt( $ch,CURLOPT_RETURNTRANSFER, true );<br>curl_setopt( $ch,CURLOPT_SSL_VERIFYPEER, false );<br>curl_setopt( $ch,CURLOPT_POSTFIELDS, json_encode( $fields ) );<br>$result = curl_exec($ch );<br>curl_close( $ch );</p>
+<p>echo $result;</p>
+<p>?&gt;</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 4th 2014, 1:30:59 am">June 4th 2014</span>
+				by <span class='authorname'>Chee Seong Yong</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>cloudpush</span></li>
+					
+						<li><span class='tagname'>tray notification</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-279405">
+				
+						<section>
+							<p><code>Cloud.Users.create</code> is asynchon. You cannot login in the same &#39;timeline&#39;.  Cloud.Users.create has a success node and in this node you must call &#39;Cloud.Users.login&#39;. Do you need code?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 4th 2014, 4:53:11 am">June 4th 2014</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/174835/android-tray-notification-is-not-showing#answer-279405" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>show me your code thx.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2014, 5:19:50 am">June 4th 2014</span>
+											by <span class='authorname'>Chee Seong Yong</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>but I din see any relation to my error. My error is the tray notification which is not shown while receiving a push and the app is closed. When the app is opened, the push is received and show alert as the callback function above.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2014, 5:22:39 am">June 4th 2014</span>
+											by <span class='authorname'>Chee Seong Yong</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>and i can see login success message in my console although the create is failed since I had already created an user using the same id.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2014, 5:25:08 am">June 4th 2014</span>
+											by <span class='authorname'>Chee Seong Yong</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><pre><code class="hljs">Cloud.Users.create({
+    username: username,
+           password: <span class="hljs-string">"mypassword"</span>,
+        password_confirmation: <span class="hljs-string">"mypassword"</span>,
+        first_name: <span class="hljs-string">"myfirstname"</span>,
+        last_name: <span class="hljs-string">"mylastname"</span>
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                   Cloud.Users.login({
+                     login: username,
+                     password: <span class="hljs-string">'mypassword'</span>
+             }, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                } <span class="hljs-keyword">else</span> {
+<span class="hljs-comment">// and so on</span>
+
+                }
+            });
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2014, 6:44:37 am">June 4th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>else statement for create failed is not necessary?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2014, 7:20:11 am">June 4th 2014</span>
+											by <span class='authorname'>Chee Seong Yong</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>and what if the second time I open the app, i should not be logged in since the login function is inside the success of create (failed in second time open app.js). Am I right? @@</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2014, 7:32:35 am">June 4th 2014</span>
+											by <span class='authorname'>Chee Seong Yong</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nevermind. I solved. I used titanium to send notification and success.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 5th 2014, 5:05:07 am">June 5th 2014</span>
+											by <span class='authorname'>Chee Seong Yong</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

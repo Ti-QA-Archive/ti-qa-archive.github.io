@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Click event coordinates out of range on (some) Android platforms » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Click event coordinates out of range on (some) Android platforms</h1>
+		</header>
+		<section>
+			<p>I have a simple view that captures clicks and evaluates them on a complex image. On some phones (Samsung S3 Mini with Android 4.1.2) the code works fine, on others (HTC One X with Android 4.1.1) it doesn&#39;t. The problem appears to be click coordinates are out of bounds.</p>
+<p>In my view, I have a View object: viewCanvas with a width of 1250 and a height of 290. But when I click the lower right hand corner (for example) my event.x = 1762.20214 and event.y = 531.23968</p>
+<p>Why?? Shouldn&#39;t x&#x2F;y in the event be bound by the dimensions of the view object? I have checked event.source.id and it is the correct object: viewObject, and event.source.rect shows the correct width and height. I&#39;m stumped, has anyone seen this before?  I am on Studio 3.4, SDK 3.3.0 GA and Android Build Tools 20.</p>
+<p>Thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 22nd 2014, 3:27:36 pm">October 22nd 2014</span>
+				by <span class='authorname'>Mike Kazmier</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>click</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-283305">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Interesting. Per the docs, the e.x and e.y are supposed to be relative to the view that received the event. Check your default unit (in the tiapp.xml). It could be set to dp, which means a conversion to pixels is being performed and could be off. In such a case, your two devices with varying screen densities could report different results. You might have to manually re-scale based on the logicalDensityFactor or xdpi&#x2F;ydpi characteristics of each device. It&#39;s probably a good idea to file a <a href="https:&#x2F;&#x2F;jira.appcelerator.org">Jira ticket</a> for this issue.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 23rd 2014, 10:58:31 am">October 23rd 2014</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/178626/click-event-coordinates-out-of-range-on-some-android-platforms#answer-283305" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Interesting theory.  But it definitely doesn&#39;t affect every Android device so maybe some are not honoring the setting?  Here is my default units:</p>
+<pre><code class="hljs">&lt;<span class="hljs-keyword">property</span> <span class="hljs-property">name</span>=<span class="hljs-string">"ti.ui.defaultunit"</span> type=<span class="hljs-string">"string"</span>&gt;dp&lt;/<span class="hljs-keyword">property</span>&gt;
+</code></pre><p>So, I attempted to normalize the click position based on the display capibilities, I added a few debug lines which have given me the following:</p>
+<pre><code class="hljs">var touchPoint = {
+    <span class="hljs-string">"x"</span> : ( (e.x / Ti.Platform.displayCaps.logicalDensityFactor) - parseInt(e.source.<span class="hljs-built_in">rect</span>.x)  ) / parseInt(e.source.<span class="hljs-built_in">rect</span>.<span class="hljs-variable">width</span>), 
+    <span class="hljs-string">"y"</span> : ( (e.y / Ti.Platform.displayCaps.logicalDensityFactor) - parseInt(e.source.<span class="hljs-built_in">rect</span>.y)  ) / parseInt(e.source.<span class="hljs-built_in">rect</span>.<span class="hljs-variable">height</span>)
+};
+
+Ti.API.info(<span class="hljs-string">'Width: '</span> + parseInt(e.source.<span class="hljs-built_in">rect</span>.<span class="hljs-variable">width</span>) + <span class="hljs-string">' OffsetX: '</span> + parseInt(e.source.<span class="hljs-built_in">rect</span>.x) +
+        <span class="hljs-string">' Height: '</span> + parseInt(e.source.<span class="hljs-built_in">rect</span>.<span class="hljs-variable">height</span>) + <span class="hljs-string">' OffsetY: '</span> + parseInt(e.source.<span class="hljs-built_in">rect</span>.y) +
+        <span class="hljs-string">' x: '</span> + e.x + <span class="hljs-string">' y: '</span> + e.y + <span class="hljs-string">' source: '</span> + e.source.id );
+
+Ti.API.info(<span class="hljs-string">'touchPoint: '</span> + JSON.stringify(touchPoint) );
+
+Ti.API.info(<span class="hljs-string">'Display caps: '</span> + JSON.stringify(Ti.Platform.displayCaps));
+</code></pre><p>the output of these look like this.</p>
+<p>Click in the upper left (should be 0,0 position):</p>
+<pre><code class="hljs">[INFO] :   Width: <span class="hljs-number">1250</span> OffsetX: <span class="hljs-number">0</span> Height: <span class="hljs-number">290</span> OffsetY: <span class="hljs-number">0</span> x: <span class="hljs-number">737.3348388671875</span> y: <span class="hljs-number">43.96693420410156</span> source: canvasOverlay
+[INFO] :   touchPoint: {<span class="hljs-string">"x"</span>:<span class="hljs-number">0.294933935546875</span>,<span class="hljs-string">"y"</span>:<span class="hljs-number">0.0758050589725889</span>}
+[INFO] :   Display caps: {<span class="hljs-string">"bubbleParent"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"ydpi"</span>:<span class="hljs-number">315.6504821777344</span>,<span class="hljs-string">"xdpi"</span>:<span class="hljs-number">315.3103332519531</span>,<span class="hljs-string">"logicalDensityFactor"</span>:<span class="hljs-number">2</span>,<span class="hljs-string">"density"</span>:<span class="hljs-string">"xhigh"</span>,<span class="hljs-string">"platformWidth"</span>:<span class="hljs-number">1280</span>,<span class="hljs-string">"dpi"</span>:<span class="hljs-number">320</span>,<span class="hljs-string">"platformHeight"</span>:<span class="hljs-number">720</span>,<span class="hljs-string">"apiName"</span>:<span class="hljs-string">"Ti.Platform.DisplayCaps"</span>}
+</code></pre><p>Click in the lower right (should be 1.0, 1.0 position):</p>
+<pre><code class="hljs">[INFO] :   Width: <span class="hljs-number">1250</span> OffsetX: <span class="hljs-number">0</span> Height: <span class="hljs-number">290</span> OffsetY: <span class="hljs-number">0</span> x: <span class="hljs-number">1783.884765625</span> y: <span class="hljs-number">557.6859130859375</span> source: canvasOverlay
+[INFO] :   touchPoint: {<span class="hljs-string">"x"</span>:<span class="hljs-number">0.71355390625</span>,<span class="hljs-string">"y"</span>:<span class="hljs-number">0.9615274363550647</span>}
+[INFO] :   Display caps: {<span class="hljs-string">"bubbleParent"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"ydpi"</span>:<span class="hljs-number">315.6504821777344</span>,<span class="hljs-string">"xdpi"</span>:<span class="hljs-number">315.3103332519531</span>,<span class="hljs-string">"logicalDensityFactor"</span>:<span class="hljs-number">2</span>,<span class="hljs-string">"density"</span>:<span class="hljs-string">"xhigh"</span>,<span class="hljs-string">"platformWidth"</span>:<span class="hljs-number">1280</span>,<span class="hljs-string">"dpi"</span>:<span class="hljs-number">320</span>,<span class="hljs-string">"platformHeight"</span>:<span class="hljs-number">720</span>,<span class="hljs-string">"apiName"</span>:<span class="hljs-string">"Ti.Platform.DisplayCaps"</span>}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2014, 12:49:03 pm">October 23rd 2014</span>
+											by <span class='authorname'>Mike Kazmier</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Okay, we got it!  Thanks Tim.  You led us down the right path.  The problem was in that the view was being rendered with DP using a FILL and the event was in PX.  So, once we defined the view size explicitly using PX (well, more importantly using  Alloy.Globals.deviceUnitOfMeasure) we got the right values AFTER we normalized to logicalDenistyFactor like such: </p>
+<pre><code class="hljs"><span class="hljs-component">var touchPoint = {
+                    "x" : (e<span class="hljs-string">.x</span> / Ti<span class="hljs-string">.Platform.displayCaps.logicalDensityFactor)</span>  / parseInt(e<span class="hljs-string">.source.rect.width)</span>, 
+                    "y" : (e<span class="hljs-string">.y</span> / Ti<span class="hljs-string">.Platform.displayCaps.logicalDensityFactor)</span>  / parseInt(e<span class="hljs-string">.source.rect.height)</span>
+                }</span>;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2014, 2:31:55 pm">October 23rd 2014</span>
+											by <span class='authorname'>Mike Kazmier</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

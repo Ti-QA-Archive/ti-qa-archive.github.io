@@ -1,0 +1,237 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Disabling Scrolling in Listview and Improving the Touch and Swap Between Two List Items » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Disabling Scrolling in Listview and Improving the Touch and Swap Between Two List Items</h1>
+		</header>
+		<section>
+			<p>I&#39;m making for the improvement of item swapping for the list view. You see, when I long-pressed that list item and using the <code>scrollToItem(sectionIndex, itemIndex)</code> to mangae swapping while scrolling whenever I go up or down. The problem is that the <code>scrollToItem</code> function has a delay until after I scrolled for 1 or 2 seconds via touch-move event. I&#39;m resolving this kind of hiccup on how to change the direction of scrolling first before taking actions on swapping two items efficiently. Here&#39;s what I&#39;m planning to do.</p>
+<p>First, the following name of list items are from RESERVE 1 to RESERVE 26. They&#39;re all in exact order. Now, I&#39;m planning to switch places between two indexes in a listview, let&#39;s say RESERVE 25 on below and RESERVE 26 on top like this:</p>
+<p><strong>Before swapping list item index…</strong></p>
+<ul>
+<li><em>RESERVE 24</em></li>
+<li><em>RESERVE 25</em></li>
+<li><em>RESERVE 26</em></li>
+</ul>
+<p><strong>After swapping list item index…</strong></p>
+<ul>
+<li><em>RESERVE 24</em></li>
+<li><em>RESERVE 26</em></li>
+<li><em>RESERVE 25</em></li>
+</ul>
+<p>I decided to use a method to temporarily stop scrolling so that the scrolling direction will be according on what item from list view is dragging. There is the property or method for listview called <code>canScroll</code> but will only work on iPhone. Do you know how to fix it or there is an alternate reference for the Android?</p>
+<p>Here&#39;s the first step on how to switch between two items in the listview. I created the function for the <code>onLongpress</code> element under the <code>ListView</code> tag.</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * When user touch-hold an index item from the list section, it designates
+ * the starting point for touching, dragging, and swapping item index. 
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">startSwapping</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">// Initialize list item's content and info.</span>
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Swapping start!"</span>);
+    Alloy.Globals.list.setSeparatorColor(<span class="hljs-string">'#005fff'</span>);
+    item = e.itemIndex;
+
+    <span class="hljs-comment">// Settings for List Item's Properties.</span>
+    <span class="hljs-keyword">var</span> it = $.location_section.getItemAt(item);  <span class="hljs-comment">// --&gt; Also "Alloy.Globals.section" since I set it to static anyways.</span>
+    it.properties.backgroundColor = <span class="hljs-string">'#0000EE'</span>;
+    $.location_section.updateItemAt(item, it);
+
+    <span class="hljs-comment">// Enable swapping when the user successfully long-pressed an item.</span>
+    isSwapping = <span class="hljs-literal">true</span>;
+
+    <span class="hljs-comment">// Set starting swap index to be scrolled.</span>
+    Alloy.Globals.list.scrollToItem(<span class="hljs-number">0</span>, item); <span class="hljs-comment">// --&gt; Also, this is used to change the scroll direction gesture according to that item you're holding while swapping.</span>
+}
+</code></pre><p>Next, when the condition is passed for the <code>onTouchmove</code> event via element itself from the <code>ListView</code> tag, it will compute for the dragging the list item while changing the up-down direction of scrolling where the user will scroll up when his&#x2F;her finger lifts up while swapping during the list item swapping state and vice versa.</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * Button event function for item swapping. When touch-hold and drag, item
+ * will be rearranged or re-sorting in new order. 
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">itemDrag</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span>(isSwapping) {
+        <span class="hljs-keyword">if</span>(t &gt; <span class="hljs-number">1000</span>) { <span class="hljs-comment">// --&gt; I use the timer condition to reduce sensitivity of swapping. I set it for 1 sec per item swap.</span>
+            <span class="hljs-comment">// Set the background color of the list item for indications first.</span>
+            <span class="hljs-keyword">var</span> it = $.location_section.getItemAt(item);
+            it.properties.backgroundColor = <span class="hljs-string">'#005FFF'</span>;
+
+            <span class="hljs-comment">// Updating list item changes.</span>
+            $.location_section.updateItemAt(item, it); <span class="hljs-comment">// --&gt; Also "Alloy.Globals.section" since I set it to static anyways.</span>
+        }
+
+        <span class="hljs-comment">// Check direction of dragging on listview.</span>
+        <span class="hljs-keyword">if</span>(e.y &lt; y) {
+            <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Dragging Up from "</span> + y + <span class="hljs-string">". Dragging is "</span> + $.location_list_view.touchEnabled);
+            swapUp();
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(e.y &gt; y) {
+            <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Dragging Down from "</span> + y + <span class="hljs-string">". Dragging is "</span> + $.location_list_view.touchEnabled);
+            swapDown();
+        }
+
+        <span class="hljs-comment">// Update direcction changes.</span>
+        Alloy.Globals.list.scrollToItem(<span class="hljs-number">0</span>, item);
+        y = e.y;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Swapping not available. Dragging is "</span> + $.location_list_view.touchEnabled);
+    }
+}
+</code></pre><p>Here&#39;s how the process on swapping item index.</p>
+<pre><code class="hljs">//----------[ List <span class="hljs-keyword">Item </span>Index Functions ]----------
+
+<span class="hljs-comment">/**
+ * Sorting a specified list item index downward. 
+ */</span>
+<span class="hljs-label">function</span> swapDown() {
+    <span class="hljs-preprocessor">if</span>(y &gt;= <span class="hljs-number">0</span>) {
+        // Calculate sorting <span class="hljs-keyword">by </span>obtaining first the list <span class="hljs-keyword">item </span>to <span class="hljs-keyword">be </span>relocated <span class="hljs-keyword">and </span>set as a variable.
+        <span class="hljs-preprocessor">if</span>(t &gt; <span class="hljs-number">1000</span>) {
+            var n = Alloy.Globals<span class="hljs-preprocessor">.section</span>.getItemAt(<span class="hljs-keyword">item); </span>// --&gt; Next index to <span class="hljs-keyword">be </span><span class="hljs-keyword">moved </span>for the the current <span class="hljs-keyword">item's </span>content.
+            var p = Alloy.Globals<span class="hljs-preprocessor">.section</span>.getItemAt(<span class="hljs-keyword">item </span>+ <span class="hljs-number">1</span>)<span class="hljs-comment">; // --&gt; Previous index to be relocated for the item's content to be swapped.</span>
+            Alloy.Globals<span class="hljs-preprocessor">.section</span>.updateItemAt(<span class="hljs-keyword">item </span>+ <span class="hljs-number">1</span>, n)<span class="hljs-comment">;</span>
+            Alloy.Globals<span class="hljs-preprocessor">.section</span>.updateItemAt(<span class="hljs-keyword">item, </span>p)<span class="hljs-comment">;</span>
+        }
+
+        // Check <span class="hljs-preprocessor">if</span> a sorting index has reach at the <span class="hljs-preprocessor">end</span>.
+        <span class="hljs-preprocessor">if</span>((<span class="hljs-keyword">item </span>&lt; Alloy.Globals<span class="hljs-preprocessor">.section</span>.getItems().length - <span class="hljs-number">1</span>) &amp;&amp; (t &gt; <span class="hljs-number">1000</span>)) {
+            <span class="hljs-keyword">item++;
+</span>            t = <span class="hljs-number">0</span><span class="hljs-comment">;</span>
+        } <span class="hljs-preprocessor">else</span> {
+            t += <span class="hljs-number">100</span><span class="hljs-comment">;</span>
+        }
+
+            // Scroll down to the current <span class="hljs-keyword">item </span><span class="hljs-keyword">moved.
+</span>            // Alloy.Globals.list.scrollToItem(<span class="hljs-number">0</span>, <span class="hljs-keyword">item);
+</span>    }
+}
+
+<span class="hljs-comment">/**
+ * Sorting a specified list item index upward. 
+ */</span>
+<span class="hljs-label">function</span> swapUp() {
+    <span class="hljs-preprocessor">if</span>(y &gt;= <span class="hljs-number">0</span>) {
+        // Calculate sorting <span class="hljs-keyword">by </span>obtaining first the list <span class="hljs-keyword">item </span>to <span class="hljs-keyword">be </span>relocated <span class="hljs-keyword">and </span>set as a variable.
+        <span class="hljs-preprocessor">if</span>(t &gt; <span class="hljs-number">1000</span>) {
+            var n = Alloy.Globals<span class="hljs-preprocessor">.section</span>.getItemAt(<span class="hljs-keyword">item); </span>// --&gt; Next index to <span class="hljs-keyword">be </span><span class="hljs-keyword">moved </span>for the the current <span class="hljs-keyword">item's </span>content.
+            var p = Alloy.Globals<span class="hljs-preprocessor">.section</span>.getItemAt(<span class="hljs-keyword">item </span>- <span class="hljs-number">1</span>)<span class="hljs-comment">; // --&gt; Previous index to be relocated for the item's content to be swapped.</span>
+            Alloy.Globals<span class="hljs-preprocessor">.section</span>.updateItemAt(<span class="hljs-keyword">item </span>- <span class="hljs-number">1</span>, n)<span class="hljs-comment">;</span>
+            Alloy.Globals<span class="hljs-preprocessor">.section</span>.updateItemAt(<span class="hljs-keyword">item, </span>p)<span class="hljs-comment">;</span>
+        }
+
+        // Check <span class="hljs-preprocessor">if</span> a sorting index has reach at the start. 
+        <span class="hljs-preprocessor">if</span>((<span class="hljs-keyword">item </span>&gt; <span class="hljs-number">0</span>) &amp;&amp; (t &gt; <span class="hljs-number">1000</span>)) {
+            <span class="hljs-keyword">item--;
+</span>            t = <span class="hljs-number">0</span><span class="hljs-comment">;</span>
+        } <span class="hljs-preprocessor">else</span> {
+            t += <span class="hljs-number">100</span><span class="hljs-comment">;</span>
+        }
+
+            // Scroll up to the current <span class="hljs-keyword">item </span><span class="hljs-keyword">moved.
+</span>            // Alloy.Globals.list.scrollToItem(<span class="hljs-number">0</span>, <span class="hljs-keyword">item);
+</span>    }
+}
+</code></pre><p>Lastly, this swapping ends when the user lifts his&#x2F;her finger:</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * Swapping of index will be ended when a user lifts a finger. 
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">endSwapping</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">// Display status.</span>
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Swapping ended!"</span>);
+
+    <span class="hljs-comment">// Reset Y-coordinate for scrolling.</span>
+    y = <span class="hljs-number">0</span>;
+
+    <span class="hljs-comment">// Update list item when user ended scrolling.</span>
+    <span class="hljs-keyword">var</span> it = $.location_section.getItemAt(item);
+    it.properties.backgroundColor = <span class="hljs-string">'black'</span>;
+    it.properties.color = <span class="hljs-string">'white'</span>;
+    $.location_section.updateItemAt(item, it);
+
+    <span class="hljs-comment">// Disable swapping when finished.</span>
+    isSwapping = <span class="hljs-literal">false</span>;
+}
+</code></pre><p>These above code worked with some minor problems:</p>
+<ul>
+<li>The list item scrolls relatively instead by following from a finger when a user touch and hold an item while swapping, expecting for an effective hovering smoothly.</li>
+<li>I decided or looking for a solution to create a code for Android to temporarily stop scrolling of the listview due to this bug that instead for a scroll motion for swapping, when a user will scroll up if touch-dragging upward for example, it will use the normal scroll direction that normally used in devices that the user will scroll up when the finger drags downward that lasts for a delay of 1 1&#x2F;2 second when keep on scrolling. </li>
+<li>Once done swapping for a long time, the process of swapping is still computing and moving itself even when the finger lifted up after!</li>
+</ul>
+<p>Is there something needed to make item swapping gets smoother and is there something needed to recommend to fix these problems?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 6th 2014, 3:45:14 am">June 6th 2014</span>
+				by <span class='authorname'>David Dimalanta</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+						<li><span class='tagname'>listview</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Best Practices - Turning JSON into Annotations array » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Best Practices - Turning JSON into Annotations array</h1>
+		</header>
+		<section>
+			<p>I would like to learn how best to accomplish a task which up until now has only been achieved with an embarrassing hack of code.</p>
+<p>My app includes a map, and on that map are drawn a route and about 500 annotations.  The code I am about to reveal works fine on iOS 7 without any noticeable delay, but on Android it only loads 80% of the time, other times it just crashes the app.  The raw data for the annotations is stored in an HTML document (mistake number one I presume) and gets run though the below code.</p>
+<p>On the map.js page I am using INCLUDE to grab the points array.  Since the array never changes I presume that REQURE would be the better way to go but for the life of me I cannot wrap my head around how to convert this code into a module which exports the array.</p>
+<p>All help is greatly appreciated.  3.2.0 GA to Android 4+ and iOS 7+.</p>
+<p>Here is the hack:</p>
+<p>PointParser.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-built_in">Map</span> = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.map'</span>);
+
+<span class="hljs-comment">/// THIS BIT GRABS THE DATA</span>
+<span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(Titanium.Filesystem.resourcesDirectory,<span class="hljs-string">'routeconstants/points.html'</span>);        
+<span class="hljs-keyword">var</span> furl = f.read();
+<span class="hljs-keyword">var</span> url = furl.text;
+
+<span class="hljs-comment">/// THIS BIT CLEANS IT UP A BIT - You can see that regular expressions are not my thing</span>
+url = url.replace(<span class="hljs-regexp">/&amp;#039;/g</span>, <span class="hljs-string">"'"</span>);
+url = url.replace(<span class="hljs-regexp">/"/g</span>, <span class="hljs-string">"'"</span>);
+url = url.replace(<span class="hljs-regexp">/&amp;amp;/g</span>, <span class="hljs-string">"&amp;"</span>);
+
+url = <span class="hljs-built_in">eval</span>(<span class="hljs-string">'('</span> + url + <span class="hljs-string">');'</span>);
+
+<span class="hljs-comment">/// AND THIS BIT TURNS IT INTO AN ARRAY</span>
+<span class="hljs-keyword">var</span> points = [];
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">annotationPopulateData</span>(<span class="hljs-params">parsedData</span>) </span>{
+    <span class="hljs-keyword">if</span> (parsedData[<span class="hljs-string">'nodes'</span>]) {
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; parsedData[<span class="hljs-string">'nodes'</span>].length; i++) { 
+            <span class="hljs-keyword">var</span> title = parsedData[<span class="hljs-string">'nodes'</span>][i][<span class="hljs-string">'node'</span>].title;
+            <span class="hljs-keyword">var</span> latitude = parsedData[<span class="hljs-string">'nodes'</span>][i][<span class="hljs-string">'node'</span>].latitude;
+            <span class="hljs-keyword">var</span> longitude = parsedData[<span class="hljs-string">'nodes'</span>][i][<span class="hljs-string">'node'</span>].longitude;
+            <span class="hljs-keyword">var</span> image = parsedData[<span class="hljs-string">'nodes'</span>][i][<span class="hljs-string">'node'</span>].image;
+
+            rightbutton = leftbutton;            
+            points[i] = <span class="hljs-built_in">Map</span>.createAnnotation({
+                   latitude: latitude,
+                longitude: longitude,
+                title: title,
+                animate: <span class="hljs-literal">true</span>,
+                image: image,
+                myid: (i + <span class="hljs-number">1</span>),
+                leftView: Titanium.UI.createImageView
+                        ({
+                            image: image,
+                            height: <span class="hljs-number">32</span> * dp,
+                            width: <span class="hljs-number">32</span> * dp
+                        }),
+                rightView: Titanium.UI.createImageView
+                        ({
+                            image: image,
+                            height: <span class="hljs-number">32</span> * dp,
+                            width: <span class="hljs-number">32</span> * dp
+                        }),
+            });
+
+        }
+    }
+}
+
+
+annotationPopulateData(url);
+</code></pre><p>Then on maps.js </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> points = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/routeconstants/PointsParserAndroid'</span>).points;
+
+<span class="hljs-comment">/// STUFF ///</span>
+        <span class="hljs-keyword">var</span> mapview = mapModule.createView({
+            top: <span class="hljs-number">48</span> * dp,
+            mapType: Ti.App.Properties.getString(<span class="hljs-string">'maptype'</span>),
+            animate: <span class="hljs-literal">true</span>,
+            regionFit: <span class="hljs-literal">true</span>,
+            userLocation: <span class="hljs-literal">true</span>,
+            annotations: points  <span class="hljs-comment">//&lt;---</span>
+        });
+        <span class="hljs-keyword">this</span>.MapWin.add(mapview);
+<span class="hljs-comment">/// OTHER STUFF</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 22nd 2014, 11:43:06 am">April 22nd 2014</span>
+				by <span class='authorname'>Michael Matynka</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>annotation</span></li>
+					
+						<li><span class='tagname'>map</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-278021">
+				
+						<section>
+							<p>Adding 500 annotations is always going to take time - if you are adding the annotations to display a route then it would be better to use the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Modules.Map.Route">route</a> and add the route to the map.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 22nd 2014, 12:59:35 pm">April 22nd 2014</span>
+								by <span class='authorname'>Larrie Wilson</span><br>
+								<a class="icon-bg icon-link" href="question/172903/best-practices---turning-json-into-annotations-array#answer-278021" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>The annotations are not part of a route.  That is actually added as well through a similar mechanism.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 22nd 2014, 1:06:47 pm">April 22nd 2014</span>
+											by <span class='authorname'>Michael Matynka</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In that case I would just add the route to start and then when they zoom in to a certain level, then add the annotations.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 22nd 2014, 1:37:57 pm">April 22nd 2014</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>And just leave the current methodology?  Is there no more efficient way?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 22nd 2014, 1:43:10 pm">April 22nd 2014</span>
+											by <span class='authorname'>Michael Matynka</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>No - 500 annotations on a map isn&#39;t very user friendly as I imagine they overlap which means that the user would have to zoom in to tap on each one any way.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2014, 4:39:12 am">April 23rd 2014</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

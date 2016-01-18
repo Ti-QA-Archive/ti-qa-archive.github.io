@@ -1,0 +1,953 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Button bar and tabbed bar in android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Button bar and tabbed bar in android</h1>
+		</header>
+		<section>
+			<p>Hi. I found this cool module that allows you to have a tabbed bar in android just like iOS. Im trying to make it act as either a tabbed bar or a button bar depending on if I tell it to be a button bar or not in the arguments I pass the function. Basically I want it to &quot;click&quot; when I tell it to act as a button bar. I tried adding a timeout to revert the colors back to normal but it&#39;s not working. Any ideas? lines 54 and 129 are where I put my code to do this.</p>
+<p>I got the original code from here:</p>
+<p>https:&#x2F;&#x2F;github.com&#x2F;Marcocanc&#x2F;TiModules&#x2F;blob&#x2F;master&#x2F;TabbedBar&#x2F;TabbedBar.js</p>
+<p>and the modified code is below. </p>
+<pre><code class="hljs"><span class="hljs-comment">/*
+ * Written by Marco Cancellieri (Applaud GmbH)
+ *
+ * A truly cross-platform "TabbedBar" for Titanium
+ * Tested on Android 4 &amp; iOS
+ *
+ *
+ * Instructions:
+ *
+ * Simply use this like the native Ti.UI.iOS.TabbedBar (The Module also works with iOS!)
+ * Additional available options for android:
+ * - barBorderWidth
+ * - selectedColor (selected Text Color)
+ * - color (text color)
+ * - font (font for the buttons)
+ */</span>
+<span class="hljs-built_in">module</span>.exports = (<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-comment">//since the options are compatible with the native iOS tabbed bar, only use the custom bar when the platform isn't iOS</span>
+    <span class="hljs-keyword">switch</span> (Ti.Platform.name) {
+    <span class="hljs-keyword">case</span> <span class="hljs-string">"iPhone OS"</span>:
+        <span class="hljs-keyword">return</span> {
+            createTabbedBar: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">options</span>) </span>{
+                <span class="hljs-keyword">return</span> Ti.UI.iOS.createTabbedBar(options);
+            }
+        };
+        <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">default</span>: <span class="hljs-comment">//e.g. android</span>
+        <span class="hljs-keyword">return</span> {
+            createTabbedBar: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">options</span>) </span>{
+                <span class="hljs-keyword">return</span> createBar(options);
+            }
+        };
+        <span class="hljs-keyword">break</span>;
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createBar</span>(<span class="hljs-params">options</span>) </span>{
+        <span class="hljs-keyword">var</span> barBorderWidth,
+            barTextColor,
+            barSelectedTextColor,
+            barTextFont,
+            barTintColor,
+            barBackgroundColor,
+            barWidth,
+            barHeight,
+            barLabels,
+            barSelectedBackground,
+            barButtonBar,
+            barIndex;
+        <span class="hljs-comment">//setting options/default values</span>
+        options.borderWidth ? barBorderWidth = options.borderWidth : barBorderWidth = _toDp(<span class="hljs-number">1</span>);
+        options.selectedColor ? barSelectedTextColor = options.selectedColor : barSelectedTextColor = <span class="hljs-string">"#ffffff"</span>;
+        options.tintColor ? barTintColor = options.tintColor : barTintColor = <span class="hljs-string">"#007AFF"</span>;
+        options.buttonBar ? barButtonBar = options.buttonBar : barButtonBar = <span class="hljs-literal">false</span>; <span class="hljs-comment">//used to signal if the buttons should "click" or "select"</span>
+        options.color ? barTextColor = options.color : barTextColor = barTintColor;
+        options.selectedBackground ? barSelectedBackground = options.selectedBackground : barSelectedBackground = barTintColor;
+        options.backgroundColor ? barBackgroundColor = options.backgroundColor : barBackgroundColor = <span class="hljs-string">"transparent"</span>;
+        options.font ? barTextFont = options.font : barTextFont = {
+            fontSize: _toDp(<span class="hljs-number">9</span>)
+        };
+        options.width ? barWidth = options.width : barWidth = _toDp(<span class="hljs-number">200</span>);
+        options.height ? barHeight = options.height : barHeight = _toDp(<span class="hljs-number">18</span>);
+        barLabels= options.labels;
+        barIndex = options.index;
+
+        <span class="hljs-comment">//Errors &amp; Warnings</span>
+        <span class="hljs-keyword">if</span> (barBorderWidth &lt; <span class="hljs-number">1</span>) Ti.API.warn(<span class="hljs-string">"Borders between buttons may not be visible on devices with &lt;= 160 dpi. Consider using a value &gt;= 1"</span>);
+
+        <span class="hljs-comment">//Bar construction</span>
+
+        <span class="hljs-keyword">var</span> bar = Ti.UI.createView({
+            touchEnabled: <span class="hljs-literal">false</span>,
+            height: barHeight,
+            width: barWidth,
+            borderRadius: _toDp(<span class="hljs-number">3.5</span>),
+            borderWidth: barBorderWidth,
+            borderColor: barTintColor
+        });
+
+        <span class="hljs-comment">//passing positioning data to the view</span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.top !== <span class="hljs-string">"undefined"</span>) bar.top = options.top;
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.bottom !== <span class="hljs-string">"undefined"</span>) bar.bottom = options.bottom;
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.left !== <span class="hljs-string">"undefined"</span>) bar.left = options.left;
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.right !== <span class="hljs-string">"undefined"</span>) bar.right = options.right;
+
+
+        <span class="hljs-comment">//create Buttons and add behavior</span>
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">generateLabels</span>(<span class="hljs-params"></span>)</span>{
+            <span class="hljs-comment">//delete existing labels</span>
+            <span class="hljs-keyword">if</span> (bar.children &amp;&amp; bar.children.length&gt;<span class="hljs-number">0</span>){
+                bar.children.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">button</span>)</span>{
+                    bar.remove(button);
+                });
+            }
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; barLabels.length; i++) {
+                <span class="hljs-keyword">var</span> button = Ti.UI.createButton({
+                    bubbleParent: <span class="hljs-literal">false</span>,
+                    <span class="hljs-comment">// Don't use title if an image is set.</span>
+                    title: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? <span class="hljs-string">""</span> : (<span class="hljs-keyword">typeof</span> barLabels[i] == <span class="hljs-string">"string"</span>) ? barLabels[i] : barLabels[i].title,
+                    <span class="hljs-comment">// Add a backgroundImage if image is set.</span>
+                    backgroundImage: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].image : <span class="hljs-string">""</span>,
+                    height: <span class="hljs-string">"100%"</span>,
+                    <span class="hljs-comment">// If label width is set use that, otherwise evenly divide</span>
+                    <span class="hljs-comment">// the bar based on the number of labels. This may cause</span>
+                    <span class="hljs-comment">// issues if a width is set on some labels but not all labels</span>
+                    <span class="hljs-comment">// but it is up to the developer to not do that.</span>
+                    width: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width : <span class="hljs-number">100</span> / barLabels.length + <span class="hljs-string">"%"</span>,
+                    left: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width: <span class="hljs-number">100</span> / barLabels.length * i + <span class="hljs-string">"%"</span>,
+                    backgroundColor: barBackgroundColor,
+                    color: barTextColor,
+                    font: barTextFont,
+                    borderWidth: barBorderWidth / <span class="hljs-number">2</span>,
+                    borderColor: barTintColor,
+                    index: i,
+                    <span class="hljs-comment">//--------functions--------</span>
+                    setTabSelected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                        <span class="hljs-keyword">this</span>.color = barSelectedTextColor;
+                        <span class="hljs-keyword">this</span>.backgroundColor = barSelectedBackground;
+                    },
+                    setTabDeselected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                        <span class="hljs-keyword">this</span>.backgroundColor = barBackgroundColor;
+                        <span class="hljs-keyword">this</span>.color = barTextColor;
+                    }
+                });
+
+                <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> barIndex !== <span class="hljs-string">"undefined"</span>) {
+                    <span class="hljs-keyword">if</span> (barIndex &gt; -<span class="hljs-number">1</span> &amp;&amp; barIndex == i) {
+                        button.setTabSelected();
+                        <span class="hljs-keyword">if</span>(barButtonBar){setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{button.setTabDeselected;},<span class="hljs-number">500</span>);} <span class="hljs-comment">// my attempt at making the button "seem clicked"</span>
+                    }
+                }
+
+                button.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                    selectTab(e.source.index);
+                });
+
+                bar.add(button);
+            }
+        }
+        <span class="hljs-comment">//getters/setters</span>
+        bar.getLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+            <span class="hljs-keyword">return</span> barLabels;
+        };
+        bar.setLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">labels</span>)</span>{
+            barLabels = labels;
+            generateLabels(); 
+        };
+        <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"labels"</span>, {
+            get: bar.getLabels,
+            set: bar.setLabels
+        });
+
+        bar.setIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">index</span>)</span>{
+            barIndex = index;
+            selectTab(index);
+        };
+        bar.getIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+            <span class="hljs-keyword">return</span> barIndex;
+        };
+
+        <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"index"</span>, {
+           get: bar.getIndex,
+           set: bar.setIndex
+        });
+
+        <span class="hljs-comment">//initialize the object</span>
+        <span class="hljs-keyword">if</span> (barLabels &amp;&amp; barLabels.length &gt;= <span class="hljs-number">2</span>){
+            generateLabels();
+        }
+
+
+        <span class="hljs-keyword">return</span> bar;
+
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">selectTab</span>(<span class="hljs-params">index</span>) </span>{
+
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; bar.children.length; c++) {
+                <span class="hljs-keyword">if</span> (bar.children[c].index !== index) {
+                    bar.children[c].setTabDeselected();
+                } <span class="hljs-keyword">else</span> {
+                    bar.children[c].setTabSelected();
+
+                    barIndex = index;
+                    <span class="hljs-comment">//simulate same behavior of the iOS tabbedBar</span>
+                    bar.fireEvent(<span class="hljs-string">"click"</span>, {
+                        index: index
+                    });
+                }
+            }
+        }
+
+
+    }
+
+    <span class="hljs-comment">//create density independent pixels</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_toDp</span>(<span class="hljs-params">pixels</span>) </span>{
+        <span class="hljs-keyword">return</span> (pixels * (Titanium.Platform.displayCaps.dpi / <span class="hljs-number">160</span>));
+    }
+
+})();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 29th 2014, 1:59:42 am">October 29th 2014</span>
+				by <span class='authorname'>Glen-Erik Cortés</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>appcelerator</span></li>
+					
+						<li><span class='tagname'>buttonbar</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I guess the code can&#39;t paste in code form when it&#39;s so long so I shortened it a bit. these are the two things I changed:</p>
+<ol>
+<li>Added this to the options block in line 54<pre><code class="hljs"><span class="hljs-label">options.buttonBar</span> ? <span class="hljs-keyword">barButtonBar </span>= options.<span class="hljs-keyword">buttonBar </span>: <span class="hljs-keyword">barButtonBar </span>= false<span class="hljs-comment">;</span>
+</code></pre></li>
+</ol>
+<p>and </p>
+<ol>
+<li>Added &#39;if(barButtonBar){setTimeout(function(){button.setTabDeselected;},500);}&#39; to the below part of the code  (line 124) like so:</li>
+</ol>
+<pre><code class="hljs"><span class="hljs-comment">//--------functions--------</span>
+setTabSelected: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.color = barSelectedTextColor;
+    <span class="hljs-keyword">this</span>.backgroundColor = barSelectedBackground;
+},
+setTabDeselected: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.backgroundColor = barBackgroundColor;
+    <span class="hljs-keyword">this</span>.color = barTextColor;
+}
+});
+
+<span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> barIndex !== <span class="hljs-string">"undefined"</span>) {
+    <span class="hljs-keyword">if</span> (barIndex &gt; -<span class="hljs-number">1</span> &amp;&amp; barIndex == i) {
+     button.setTabSelected();
+         <span class="hljs-keyword">if</span>(barButtonBar){setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{button.setTabDeselected;},<span class="hljs-number">500</span>);} <span class="hljs-comment">// my attempt at making the button "seem clicked"</span>
+     }
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="October 29th 2014, 2:12:47 am">October 29th 2014</span>
+								by <span class='authorname'>Glen-Erik Cortés</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hello Glen, I tried the module, it’s great. If i understand correctly, you want that after timeout the selected tabbedBar would unselect. I tried with your modified code. your buttonBar and barButtonBar is not defined in the original code.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 29th 2014, 3:32:41 am">October 29th 2014</span>
+								by <span class='authorname'>Amimul Hossain</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I am fairly certain that this is the block of code I need to modify to tell it to deselect the tab after a certain period of time (appear as if you click it). I tried it before but I keep getting a <em>cannot read property &#39;setTabDeselected&#39; of undefined</em> error. I think it&#39;s because the code runs and after .2 seconds we are done with that function and it&#39;s no longer defined. Not sure how to get around that.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">selectTab</span><span class="hljs-params">(index)</span> {</span>
+
+    <span class="hljs-keyword">for</span> (var c = <span class="hljs-number">0</span>; c &lt; bar.<span class="hljs-built_in">children</span>.length; c++) {
+        <span class="hljs-keyword">if</span> (bar.<span class="hljs-built_in">children</span>[c].index <span class="hljs-built_in">!</span>== index) {
+            bar.<span class="hljs-built_in">children</span>[c].setTabDeselected();
+        } <span class="hljs-keyword">else</span> {
+            bar.<span class="hljs-built_in">children</span>[c].setTabSelected();
+            <span class="hljs-keyword">if</span>(barButtonBar){setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>bar.<span class="hljs-built_in">children</span>[c].setTabDeselected;},<span class="hljs-number">200</span>);} <span class="hljs-comment">// deselect tab after 0.2 seconds</span>
+            barIndex = index;
+            <span class="hljs-comment">//simulate same behavior of the iOS tabbedBar                    </span>
+            bar.fireEvent(<span class="hljs-string">"click"</span>, {
+                index: index
+            });             
+        }
+    }
+}
+</code></pre><p>Here is my full modified code:</p>
+<p>module.exports = (function () {</p>
+<pre><code class="hljs"><span class="hljs-comment">//since the options are compatible with the native iOS tabbed bar, only use the custom bar when the platform isn't iOS</span>
+<span class="hljs-keyword">switch</span> (Ti.Platform.name) {
+<span class="hljs-keyword">case</span> <span class="hljs-string">"iPhone OS"</span>:
+    <span class="hljs-keyword">return</span> {
+        createTabbedBar: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">options</span>) </span>{
+            <span class="hljs-keyword">return</span> Ti.UI.iOS.createTabbedBar(options);
+        }
+    };
+    <span class="hljs-keyword">break</span>;
+<span class="hljs-keyword">default</span>: <span class="hljs-comment">//e.g. android</span>
+    <span class="hljs-keyword">return</span> {
+        createTabbedBar: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">options</span>) </span>{
+            <span class="hljs-keyword">return</span> createBar(options);
+        }
+    };
+    <span class="hljs-keyword">break</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createBar</span>(<span class="hljs-params">options</span>) </span>{
+    <span class="hljs-keyword">var</span> barBorderWidth,
+        barTextColor,
+        barSelectedTextColor,
+        barTextFont,
+        barTintColor,
+        barBackgroundColor,
+        barWidth,
+        barHeight,
+        barLabels,
+        barSelectedBackground,
+        barButtonBar,
+        barIndex;
+    <span class="hljs-comment">//setting options/default values</span>
+    options.borderWidth ? barBorderWidth = options.borderWidth : barBorderWidth = _toDp(<span class="hljs-number">1</span>);
+    options.selectedColor ? barSelectedTextColor = options.selectedColor : barSelectedTextColor = <span class="hljs-string">"#ffffff"</span>;
+    options.tintColor ? barTintColor = options.tintColor : barTintColor = <span class="hljs-string">"#007AFF"</span>;
+    options.buttonBar ? barButtonBar = options.buttonBar : barButtonBar = <span class="hljs-literal">false</span>; <span class="hljs-comment">//used to signal if the buttons should "click" or "select"</span>
+    options.color ? barTextColor = options.color : barTextColor = barTintColor;
+    options.selectedBackground ? barSelectedBackground = options.selectedBackground : barSelectedBackground = barTintColor;
+    options.backgroundColor ? barBackgroundColor = options.backgroundColor : barBackgroundColor = <span class="hljs-string">"transparent"</span>;
+    options.font ? barTextFont = options.font : barTextFont = {
+        fontSize: _toDp(<span class="hljs-number">9</span>)
+    };
+    options.width ? barWidth = options.width : barWidth = _toDp(<span class="hljs-number">200</span>);
+    options.height ? barHeight = options.height : barHeight = _toDp(<span class="hljs-number">18</span>);
+    barLabels= options.labels;
+    barIndex = options.index;
+
+    <span class="hljs-comment">//Errors &amp; Warnings</span>
+    <span class="hljs-keyword">if</span> (barBorderWidth &lt; <span class="hljs-number">1</span>) Ti.API.warn(<span class="hljs-string">"Borders between buttons may not be visible on devices with &lt;= 160 dpi. Consider using a value &gt;= 1"</span>);
+
+    <span class="hljs-comment">//Bar construction</span>
+
+    <span class="hljs-keyword">var</span> bar = Ti.UI.createView({
+        touchEnabled: <span class="hljs-literal">false</span>,
+        height: barHeight,
+        width: barWidth,
+        borderRadius: _toDp(<span class="hljs-number">3.5</span>),
+        borderWidth: barBorderWidth,
+        borderColor: barTintColor
+    });
+
+    <span class="hljs-comment">//passing positioning data to the view</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.top !== <span class="hljs-string">"undefined"</span>) bar.top = options.top;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.bottom !== <span class="hljs-string">"undefined"</span>) bar.bottom = options.bottom;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.left !== <span class="hljs-string">"undefined"</span>) bar.left = options.left;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.right !== <span class="hljs-string">"undefined"</span>) bar.right = options.right;
+
+
+    <span class="hljs-comment">//create Buttons and add behavior</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">generateLabels</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-comment">//delete existing labels</span>
+        <span class="hljs-keyword">if</span> (bar.children &amp;&amp; bar.children.length&gt;<span class="hljs-number">0</span>){
+            bar.children.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">button</span>)</span>{
+                bar.remove(button);
+            });
+        }
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; barLabels.length; i++) {
+            <span class="hljs-keyword">var</span> button = Ti.UI.createButton({
+                bubbleParent: <span class="hljs-literal">false</span>,
+                <span class="hljs-comment">// Don't use title if an image is set.</span>
+                title: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? <span class="hljs-string">""</span> : (<span class="hljs-keyword">typeof</span> barLabels[i] == <span class="hljs-string">"string"</span>) ? barLabels[i] : barLabels[i].title,
+                <span class="hljs-comment">// Add a backgroundImage if image is set.</span>
+                backgroundImage: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].image : <span class="hljs-string">""</span>,
+                height: <span class="hljs-string">"100%"</span>,
+                <span class="hljs-comment">// If label width is set use that, otherwise evenly divide</span>
+                <span class="hljs-comment">// the bar based on the number of labels. This may cause</span>
+                <span class="hljs-comment">// issues if a width is set on some labels but not all labels</span>
+                <span class="hljs-comment">// but it is up to the developer to not do that.</span>
+                width: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width : <span class="hljs-number">100</span> / barLabels.length + <span class="hljs-string">"%"</span>,
+                left: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width: <span class="hljs-number">100</span> / barLabels.length * i + <span class="hljs-string">"%"</span>,
+                backgroundColor: barBackgroundColor,
+                color: barTextColor,
+                font: barTextFont,
+                borderWidth: barBorderWidth / <span class="hljs-number">2</span>,
+                borderColor: barTintColor,
+                index: i,
+                <span class="hljs-comment">//--------functions--------</span>
+                setTabSelected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-keyword">this</span>.color = barSelectedTextColor;
+                    <span class="hljs-keyword">this</span>.backgroundColor = barSelectedBackground;
+                },
+                setTabDeselected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-keyword">this</span>.backgroundColor = barBackgroundColor;
+                    <span class="hljs-keyword">this</span>.color = barTextColor;
+                }
+            });
+
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> barIndex !== <span class="hljs-string">"undefined"</span>) {
+                <span class="hljs-keyword">if</span> (barIndex &gt; -<span class="hljs-number">1</span> &amp;&amp; barIndex == i) {
+                    button.setTabSelected();
+                }
+            }
+
+            button.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                selectTab(e.source.index);
+
+            });
+
+            bar.add(button);
+        }
+    }
+    <span class="hljs-comment">//getters/setters</span>
+    bar.getLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">return</span> barLabels;
+    };
+    bar.setLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">labels</span>)</span>{
+        barLabels = labels;
+        generateLabels(); 
+    };
+    <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"labels"</span>, {
+        get: bar.getLabels,
+        set: bar.setLabels
+    });
+
+    bar.setIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">index</span>)</span>{
+        barIndex = index;
+        selectTab(index);
+    };
+    bar.getIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">return</span> barIndex;
+    };
+
+    <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"index"</span>, {
+       get: bar.getIndex,
+       set: bar.setIndex
+    });
+
+    <span class="hljs-comment">//initialize the object</span>
+    <span class="hljs-keyword">if</span> (barLabels &amp;&amp; barLabels.length &gt;= <span class="hljs-number">2</span>){
+        generateLabels();
+    }
+
+
+    <span class="hljs-keyword">return</span> bar;
+
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">selectTab</span>(<span class="hljs-params">index</span>) </span>{
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; bar.children.length; c++) {
+            <span class="hljs-keyword">if</span> (bar.children[c].index !== index) {
+                bar.children[c].setTabDeselected();
+            } <span class="hljs-keyword">else</span> {
+                bar.children[c].setTabSelected();
+                <span class="hljs-keyword">if</span>(barButtonBar){setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{bar.children[c].setTabDeselected;},<span class="hljs-number">200</span>);} <span class="hljs-comment">// deselect tab after 0.2 seconds</span>
+                barIndex = index;
+                <span class="hljs-comment">//simulate same behavior of the iOS tabbedBar                    </span>
+                bar.fireEvent(<span class="hljs-string">"click"</span>, {
+                    index: index
+                });             
+            }
+        }
+    }
+
+
+}
+
+<span class="hljs-comment">//create density independent pixels</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_toDp</span>(<span class="hljs-params">pixels</span>) </span>{
+    <span class="hljs-keyword">return</span> (pixels * (Titanium.Platform.displayCaps.dpi / <span class="hljs-number">160</span>));
+}
+</code></pre><p>})();</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 29th 2014, 11:33:27 pm">October 29th 2014</span>
+								by <span class='authorname'>Glen-Erik Cortés</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Solved it! now I have tabbedBar and buttonBar in android :). </p>
+<p>module.exports = (function () {</p>
+<pre><code class="hljs">    <span class="hljs-keyword">return</span> {
+        createTabbedBar: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">options</span>) </span>{
+            <span class="hljs-keyword">return</span> createBar(options);
+        }
+    };
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createBar</span>(<span class="hljs-params">options</span>) </span>{
+    <span class="hljs-keyword">var</span> barBorderWidth,
+        barTextColor,
+        barSelectedTextColor,
+        barTextFont,
+        barTintColor,
+        barBackgroundColor,
+        barWidth,
+        barHeight,
+        barLabels,
+        barSelectedBackground,
+        barButtonBar,
+        barIndex;
+
+    <span class="hljs-comment">//setting options/default values</span>
+    options.borderWidth ? barBorderWidth = options.borderWidth : barBorderWidth = _toDp(<span class="hljs-number">1</span>);
+    options.selectedColor ? barSelectedTextColor = options.selectedColor : barSelectedTextColor = <span class="hljs-string">"#ffffff"</span>;
+    options.tintColor ? barTintColor = options.tintColor : barTintColor = <span class="hljs-string">"#007AFF"</span>;
+    options.buttonBar ? barButtonBar = options.buttonBar : barButtonBar = <span class="hljs-literal">false</span>; <span class="hljs-comment">//used to signal if the buttons should "click" or "select"</span>
+    options.color ? barTextColor = options.color : barTextColor = barTintColor;
+    options.selectedBackground ? barSelectedBackground = options.selectedBackground : barSelectedBackground = barTintColor;
+    options.backgroundColor ? barBackgroundColor = options.backgroundColor : barBackgroundColor = <span class="hljs-string">"transparent"</span>;
+    options.font ? barTextFont = options.font : barTextFont = {
+        fontSize: _toDp(<span class="hljs-number">9</span>)
+    };
+    options.width ? barWidth = options.width : barWidth = _toDp(<span class="hljs-number">200</span>);
+    options.height ? barHeight = options.height : barHeight = _toDp(<span class="hljs-number">18</span>);
+    barLabels= options.labels;
+    barIndex = options.index;
+
+    <span class="hljs-comment">//Errors &amp; Warnings</span>
+    <span class="hljs-keyword">if</span> (barBorderWidth &lt; <span class="hljs-number">1</span>) Ti.API.warn(<span class="hljs-string">"Borders between buttons may not be visible on devices with &lt;= 160 dpi. Consider using a value &gt;= 1"</span>);
+
+    <span class="hljs-comment">//Bar construction</span>
+
+    <span class="hljs-keyword">var</span> bar = Ti.UI.createView({
+        touchEnabled: <span class="hljs-literal">false</span>,
+        height: barHeight,
+        width: barWidth,
+        borderRadius: _toDp(<span class="hljs-number">3.5</span>),
+        borderWidth: barBorderWidth,
+        borderColor: barTintColor
+    });
+
+    <span class="hljs-comment">//passing positioning data to the view</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.top !== <span class="hljs-string">"undefined"</span>) bar.top = options.top;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.bottom !== <span class="hljs-string">"undefined"</span>) bar.bottom = options.bottom;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.left !== <span class="hljs-string">"undefined"</span>) bar.left = options.left;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.right !== <span class="hljs-string">"undefined"</span>) bar.right = options.right;
+
+
+    <span class="hljs-comment">//create Buttons and add behavior</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">generateLabels</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-comment">//delete existing labels</span>
+        <span class="hljs-keyword">if</span> (bar.children &amp;&amp; bar.children.length&gt;<span class="hljs-number">0</span>){
+            bar.children.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">button</span>)</span>{
+                bar.remove(button);
+            });
+        }
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; barLabels.length; i++) {
+            <span class="hljs-keyword">var</span> button = Ti.UI.createButton({
+                bubbleParent: <span class="hljs-literal">false</span>,
+                <span class="hljs-comment">// Don't use title if an image is set.</span>
+                title: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? <span class="hljs-string">""</span> : (<span class="hljs-keyword">typeof</span> barLabels[i] == <span class="hljs-string">"string"</span>) ? barLabels[i] : barLabels[i].title,
+                <span class="hljs-comment">// Add a backgroundImage if image is set.</span>
+                backgroundImage: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].image : <span class="hljs-string">""</span>,
+                height: <span class="hljs-string">"100%"</span>,
+                <span class="hljs-comment">// If label width is set use that, otherwise evenly divide</span>
+                <span class="hljs-comment">// the bar based on the number of labels. This may cause</span>
+                <span class="hljs-comment">// issues if a width is set on some labels but not all labels</span>
+                <span class="hljs-comment">// but it is up to the developer to not do that.</span>
+                width: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width : <span class="hljs-number">100</span> / barLabels.length + <span class="hljs-string">"%"</span>,
+                left: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width: <span class="hljs-number">100</span> / barLabels.length * i + <span class="hljs-string">"%"</span>,
+                backgroundColor: barBackgroundColor,
+                color: barTextColor,
+                font: barTextFont,
+                borderWidth: barBorderWidth / <span class="hljs-number">2</span>,
+                borderColor: barTintColor,
+                index: i,
+                <span class="hljs-comment">//--------functions--------</span>
+                setTabSelected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-keyword">this</span>.color = barSelectedTextColor;
+                    <span class="hljs-keyword">this</span>.backgroundColor = barSelectedBackground;
+                },
+                setTabDeselected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-keyword">this</span>.backgroundColor = barBackgroundColor;
+                    <span class="hljs-keyword">this</span>.color = barTextColor;
+                }
+            });
+
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> barIndex !== <span class="hljs-string">"undefined"</span>) {
+                <span class="hljs-keyword">if</span> (barIndex &gt; -<span class="hljs-number">1</span> &amp;&amp; barIndex == i) {
+                    button.setTabSelected();
+                }
+            }
+
+            button.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                selectTab(e.source.index);
+
+            });
+
+            bar.add(button);
+        }
+    }
+    <span class="hljs-comment">//getters/setters</span>
+    bar.getLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">return</span> barLabels;
+    };
+    bar.setLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">labels</span>)</span>{
+        barLabels = labels;
+        generateLabels(); 
+    };
+    <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"labels"</span>, {
+        get: bar.getLabels,
+        set: bar.setLabels
+    });
+
+    bar.setIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">index</span>)</span>{
+        barIndex = index;
+        selectTab(index);
+    };
+    bar.getIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">return</span> barIndex;
+    };
+
+    <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"index"</span>, {
+       get: bar.getIndex,
+       set: bar.setIndex
+    });
+
+    <span class="hljs-comment">//initialize the object</span>
+    <span class="hljs-keyword">if</span> (barLabels &amp;&amp; barLabels.length &gt;= <span class="hljs-number">2</span>){
+        generateLabels();
+    }
+
+
+    <span class="hljs-keyword">return</span> bar;
+
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">selectTab</span>(<span class="hljs-params">index</span>) </span>{
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; bar.children.length; c++) {
+            <span class="hljs-keyword">if</span> (bar.children[c].index !== index) {
+                bar.children[c].setTabDeselected();
+            } <span class="hljs-keyword">else</span> {
+                bar.children[c].setTabSelected();
+                <span class="hljs-keyword">if</span>(barButtonBar){DeSelectTab();} <span class="hljs-comment">// deselect tab after 0.2 seconds</span>
+                barIndex = index;
+                <span class="hljs-comment">//simulate same behavior of the iOS tabbedBar                    </span>
+                bar.fireEvent(<span class="hljs-string">"click"</span>, {
+                    index: index
+                });             
+            }
+        }
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">DeSelectTab</span>(<span class="hljs-params">index</span>) </span>{
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; bar.children.length; c++) {
+                bar.children[c].setTabDeselected();
+                barIndex = <span class="hljs-literal">null</span>;
+                <span class="hljs-comment">//simulate same behavior of the iOS buttonBar                       </span>
+            }
+        }, <span class="hljs-number">50</span>);
+    }
+
+}
+
+<span class="hljs-comment">//create density independent pixels</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_toDp</span>(<span class="hljs-params">pixels</span>) </span>{
+    <span class="hljs-keyword">return</span> (pixels * (Titanium.Platform.displayCaps.dpi / <span class="hljs-number">160</span>));
+}
+</code></pre><p>})();</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 30th 2014, 12:05:01 am">October 30th 2014</span>
+								by <span class='authorname'>Glen-Erik Cortés</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-283486">
+				
+						<section>
+							<p>Solved it! now I have tabbedBar and buttonBar in android :). This only works for Android, iOS has the Ti.UI.createTabbedBar and Ti.UI.createButtonBar functions. Special thanks to Marco Cancellieri for the original code. This could be cleaned up better to have two functions but basically if you want to create a button bar all you do is:</p>
+<pre><code class="hljs">    var btnBarLogOutReset = tabbedBar.createTabbedBar({
+        labels: [<span class="hljs-string">'Reset Password'</span>, <span class="hljs-string">'log out'</span>],
+        <span class="hljs-built_in">color</span>: <span class="hljs-string">'green'</span>, <span class="hljs-comment">//font color</span>
+        <span class="hljs-variable">height</span>: <span class="hljs-string">'25dip'</span>,
+        selectedColor: <span class="hljs-string">'#111'</span>, <span class="hljs-comment">//font color</span>
+        <span class="hljs-variable">width</span>: <span class="hljs-string">'80%'</span>,
+        selectedBackground: <span class="hljs-string">'green'</span>,
+        backgroundColor: <span class="hljs-string">'transparent'</span>, <span class="hljs-comment">//already defaults to transparent</span>
+        buttonBar: <span class="hljs-keyword">true</span>,
+        borderRadius: <span class="hljs-number">10</span>, <span class="hljs-comment">//</span>
+        borderWidth: <span class="hljs-number">1.5</span>,<span class="hljs-comment">//</span>
+        tintColor: <span class="hljs-string">'green'</span>,    <span class="hljs-comment">//border color    </span>
+    });
+</code></pre><p>Module code:</p>
+<p>module.exports = (function () {</p>
+<pre><code class="hljs">    <span class="hljs-keyword">return</span> {
+        createTabbedBar: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">options</span>) </span>{
+            <span class="hljs-keyword">return</span> createBar(options);
+        }
+    };
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createBar</span>(<span class="hljs-params">options</span>) </span>{
+    <span class="hljs-keyword">var</span> barBorderWidth,
+        barTextColor,
+        barSelectedTextColor,
+        barTextFont,
+        barTintColor,
+        barBackgroundColor,
+        barWidth,
+        barHeight,
+        barLabels,
+        barSelectedBackground,
+        barButtonBar,
+        barIndex;
+
+    <span class="hljs-comment">//setting options/default values</span>
+    options.borderWidth ? barBorderWidth = options.borderWidth : barBorderWidth = _toDp(<span class="hljs-number">1</span>);
+    options.selectedColor ? barSelectedTextColor = options.selectedColor : barSelectedTextColor = <span class="hljs-string">"#ffffff"</span>;
+    options.tintColor ? barTintColor = options.tintColor : barTintColor = <span class="hljs-string">"#007AFF"</span>;
+    options.buttonBar ? barButtonBar = options.buttonBar : barButtonBar = <span class="hljs-literal">false</span>; <span class="hljs-comment">//used to signal if the buttons should "click" or "select"</span>
+    options.color ? barTextColor = options.color : barTextColor = barTintColor;
+    options.selectedBackground ? barSelectedBackground = options.selectedBackground : barSelectedBackground = barTintColor;
+    options.backgroundColor ? barBackgroundColor = options.backgroundColor : barBackgroundColor = <span class="hljs-string">"transparent"</span>;
+    options.font ? barTextFont = options.font : barTextFont = {
+        fontSize: _toDp(<span class="hljs-number">9</span>)
+    };
+    options.width ? barWidth = options.width : barWidth = _toDp(<span class="hljs-number">200</span>);
+    options.height ? barHeight = options.height : barHeight = _toDp(<span class="hljs-number">18</span>);
+    barLabels= options.labels;
+    barIndex = options.index;
+
+    <span class="hljs-comment">//Errors &amp; Warnings</span>
+    <span class="hljs-keyword">if</span> (barBorderWidth &lt; <span class="hljs-number">1</span>) Ti.API.warn(<span class="hljs-string">"Borders between buttons may not be visible on devices with &lt;= 160 dpi. Consider using a value &gt;= 1"</span>);
+
+    <span class="hljs-comment">//Bar construction</span>
+
+    <span class="hljs-keyword">var</span> bar = Ti.UI.createView({
+        touchEnabled: <span class="hljs-literal">false</span>,
+        height: barHeight,
+        width: barWidth,
+        borderRadius: _toDp(<span class="hljs-number">3.5</span>),
+        borderWidth: barBorderWidth,
+        borderColor: barTintColor
+    });
+
+    <span class="hljs-comment">//passing positioning data to the view</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.top !== <span class="hljs-string">"undefined"</span>) bar.top = options.top;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.bottom !== <span class="hljs-string">"undefined"</span>) bar.bottom = options.bottom;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.left !== <span class="hljs-string">"undefined"</span>) bar.left = options.left;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options.right !== <span class="hljs-string">"undefined"</span>) bar.right = options.right;
+
+
+    <span class="hljs-comment">//create Buttons and add behavior</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">generateLabels</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-comment">//delete existing labels</span>
+        <span class="hljs-keyword">if</span> (bar.children &amp;&amp; bar.children.length&gt;<span class="hljs-number">0</span>){
+            bar.children.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">button</span>)</span>{
+                bar.remove(button);
+            });
+        }
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; barLabels.length; i++) {
+            <span class="hljs-keyword">var</span> button = Ti.UI.createButton({
+                bubbleParent: <span class="hljs-literal">false</span>,
+                <span class="hljs-comment">// Don't use title if an image is set.</span>
+                title: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? <span class="hljs-string">""</span> : (<span class="hljs-keyword">typeof</span> barLabels[i] == <span class="hljs-string">"string"</span>) ? barLabels[i] : barLabels[i].title,
+                <span class="hljs-comment">// Add a backgroundImage if image is set.</span>
+                backgroundImage: (<span class="hljs-keyword">typeof</span> barLabels[i].image !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].image : <span class="hljs-string">""</span>,
+                height: <span class="hljs-string">"100%"</span>,
+                <span class="hljs-comment">// If label width is set use that, otherwise evenly divide</span>
+                <span class="hljs-comment">// the bar based on the number of labels. This may cause</span>
+                <span class="hljs-comment">// issues if a width is set on some labels but not all labels</span>
+                <span class="hljs-comment">// but it is up to the developer to not do that.</span>
+                width: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width : <span class="hljs-number">100</span> / barLabels.length + <span class="hljs-string">"%"</span>,
+                left: (<span class="hljs-keyword">typeof</span> barLabels[i].width !== <span class="hljs-string">"undefined"</span>) ? barLabels[i].width: <span class="hljs-number">100</span> / barLabels.length * i + <span class="hljs-string">"%"</span>,
+                backgroundColor: barBackgroundColor,
+                color: barTextColor,
+                font: barTextFont,
+                borderWidth: barBorderWidth / <span class="hljs-number">2</span>,
+                borderColor: barTintColor,
+                index: i,
+                <span class="hljs-comment">//--------functions--------</span>
+                setTabSelected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-keyword">this</span>.color = barSelectedTextColor;
+                    <span class="hljs-keyword">this</span>.backgroundColor = barSelectedBackground;
+                },
+                setTabDeselected: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-keyword">this</span>.backgroundColor = barBackgroundColor;
+                    <span class="hljs-keyword">this</span>.color = barTextColor;
+                }
+            });
+
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> barIndex !== <span class="hljs-string">"undefined"</span>) {
+                <span class="hljs-keyword">if</span> (barIndex &gt; -<span class="hljs-number">1</span> &amp;&amp; barIndex == i) {
+                    button.setTabSelected();
+                }
+            }
+
+            button.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                selectTab(e.source.index);
+
+            });
+
+            bar.add(button);
+        }
+    }
+    <span class="hljs-comment">//getters/setters</span>
+    bar.getLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">return</span> barLabels;
+    };
+    bar.setLabels = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">labels</span>)</span>{
+        barLabels = labels;
+        generateLabels(); 
+    };
+    <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"labels"</span>, {
+        get: bar.getLabels,
+        set: bar.setLabels
+    });
+
+    bar.setIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">index</span>)</span>{
+        barIndex = index;
+        selectTab(index);
+    };
+    bar.getIndex = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">return</span> barIndex;
+    };
+
+    <span class="hljs-built_in">Object</span>.defineProperty(bar, <span class="hljs-string">"index"</span>, {
+       get: bar.getIndex,
+       set: bar.setIndex
+    });
+
+    <span class="hljs-comment">//initialize the object</span>
+    <span class="hljs-keyword">if</span> (barLabels &amp;&amp; barLabels.length &gt;= <span class="hljs-number">2</span>){
+        generateLabels();
+    }
+
+
+    <span class="hljs-keyword">return</span> bar;
+
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">selectTab</span>(<span class="hljs-params">index</span>) </span>{
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; bar.children.length; c++) {
+            <span class="hljs-keyword">if</span> (bar.children[c].index !== index) {
+                bar.children[c].setTabDeselected();
+            } <span class="hljs-keyword">else</span> {
+                bar.children[c].setTabSelected();
+                <span class="hljs-keyword">if</span>(barButtonBar){DeSelectTab();} <span class="hljs-comment">// deselect tab after 0.2 seconds</span>
+                barIndex = index;
+                <span class="hljs-comment">//simulate same behavior of the iOS tabbedBar                    </span>
+                bar.fireEvent(<span class="hljs-string">"click"</span>, {
+                    index: index
+                });             
+            }
+        }
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">DeSelectTab</span>(<span class="hljs-params">index</span>) </span>{
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; bar.children.length; c++) {
+                bar.children[c].setTabDeselected();
+                barIndex = <span class="hljs-literal">null</span>;
+                <span class="hljs-comment">//simulate same behavior of the iOS buttonBar                       </span>
+            }
+        }, <span class="hljs-number">50</span>);
+    }
+
+}
+
+<span class="hljs-comment">//create density independent pixels</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_toDp</span>(<span class="hljs-params">pixels</span>) </span>{
+    <span class="hljs-keyword">return</span> (pixels * (Titanium.Platform.displayCaps.dpi / <span class="hljs-number">160</span>));
+}
+</code></pre><p>})();</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 30th 2014, 12:16:38 am">October 30th 2014</span>
+								by <span class='authorname'>Glen-Erik Cortés</span><br>
+								<a class="icon-bg icon-link" href="question/178748/button-bar-and-tabbed-bar-in-android#answer-283486" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

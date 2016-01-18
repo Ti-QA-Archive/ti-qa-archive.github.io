@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium Database Confusion » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium Database Confusion</h1>
+		</header>
+		<section>
+			<p>I&#39;m fairly new to Titanium development (but not Javascript) and unfortunately inherited a very complex application right before another contractor was let go.</p>
+<p>This is an iOS application.</p>
+<p>My question, and confusion, stems with how the databases in this particular application are being set up and used.</p>
+<p>There is a predefined database that contains minimal tables and data that is deployed when the app is installed.  That database is named &quot;main_db.sqlite&quot;.  When a user starts the app, additional tables are created and populated via a web service call.</p>
+<p>The original developer created a database function as follows:  </p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Database</span><span class="hljs-params">(db_path, db_name)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (db_path === <span class="hljs-literal">undefined</span>){
+        <span class="hljs-keyword">this</span>.db = Ti.Database.install(<span class="hljs-string">'/databases/main_db.sqlite'</span>, Titanium.App.Properties.getString(<span class="hljs-string">"databaseVersion"</span>) );
+    }
+    <span class="hljs-keyword">else</span>{
+        <span class="hljs-keyword">this</span>.db = Ti.Database.install(db_path, Titanium.App.Properties.getString(<span class="hljs-string">"databaseVersion"</span>)+<span class="hljs-string">"_"</span>+db_name );    
+    }        
+};
+
+Database.prototype.install =  <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(db_path, db_name)</span></span>{
+    <span class="hljs-keyword">if</span> (db_path === <span class="hljs-literal">undefined</span>){
+        <span class="hljs-keyword">this</span>.db = Ti.Database.install(<span class="hljs-string">'/databases/main_db.sqlite'</span>, Titanium.App.Properties.getString(<span class="hljs-string">"databaseVersion"</span>) );
+    }
+    <span class="hljs-keyword">else</span>{
+        <span class="hljs-comment">//Ti.API.info("Installed database from: "+db_path);</span>
+        <span class="hljs-keyword">this</span>.db = Ti.Database.install(db_path, Titanium.App.Properties.getString(<span class="hljs-string">"databaseVersion"</span>)+<span class="hljs-string">"_"</span>+db_name );
+    }
+};
+</code></pre><p>databaseVersion is set to &quot;DB_Ver28&quot; in app.js.</p>
+<p>What is confusing is that throughout the application, when a database CRUD operation is performed, there are two methods used, interspersed throughout the application:</p>
+<p>Version 1:</p>
+<pre><code class="hljs">var database = Ti.Database.install('/databases/main_db.sqlite', Titanium.App.Properties.getString("databaseVersion"));
+database.execute('<span class="hljs-operator"><span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> <span class="hljs-keyword">table</span>(<span class="hljs-keyword">Id</span>, <span class="hljs-keyword">status</span>, <span class="hljs-keyword">name</span>) <span class="hljs-keyword">VALUES</span> (?, ?, ?)<span class="hljs-string">',  applicationId, assignStatus,  bizOrPersonName);
+
+database.close();</span></span>
+</code></pre><p>Version 2:</p>
+<pre><code class="hljs"><span class="hljs-keyword">DB</span> = require('/databases/Database');
+<span class="hljs-keyword">var</span> database = new <span class="hljs-keyword">DB</span>();
+database.install();    
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">query</span> = <span class="hljs-string">"SELECT value FROM table WHERE ID = 1"</span>;
+<span class="hljs-keyword">var</span> queryRS = database.execute(<span class="hljs-keyword">query</span>);
+<span class="hljs-keyword">var</span> localValue costDataUpdatedTimestamp = queryRS.fieldByName('value');    
+
+database.<span class="hljs-keyword">close</span>();
+</code></pre><p>There are about 270 instances of Version 1, and about 450 instances of version 2.</p>
+<p>On the surface, it looks like there are two databases being used, however the &quot;main_db.sqlite&quot; doesn&#39;t appear in the Private Documents folder.  There is, however, a DB_Ver28.sql database in Private Documents, as expected.  I can open DB_Ver28 with a Sqlite DB manager and look at data, etc.  </p>
+<p>From what I can tell, all INSERT&#x2F;UPDATE commands use Version 1, and all SELECT commands use Version 2.</p>
+<p>Why would the main_db.sqlite need to be installed every time an operation is performed on it?  Is that standard and am I missing something?  And why is the predefined database being written to, or am I not understanding what&#39;s happening with database.install?</p>
+<p>If there is a resource on the web that lays all this out, I&#39;m happy to go read it, but haven&#39;t seen anything that explains why the predefined database is referenced with INSERT&#x2F;UPDATE statements, and a different call is made for SELECT statements.</p>
+<p>Any help or clarification would be greatly appreciated!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 31st 2014, 12:09:53 pm">July 31st 2014</span>
+				by <span class='authorname'>Mark Smith</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-281325">
+				
+						<section>
+							<p>You only need to install the database ONCE. After that, any calls to install the same DB with the same name will silently fail but WILL return you a handle on the already installed database. If you look at the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Database-method-install">documentation</a> you will see that the second parameter to the install method names the database in the private documents folder.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 31st 2014, 12:24:45 pm">July 31st 2014</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/176657/titanium-database-confusion#answer-281325" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>That makes absolute sense.  Note, I am not the original developer, and that person is not accessible.</p>
+<p>Why would each access to the database be done through an <em>install</em> operation?  And why would each INSERT&#x2F;UPDATE be done on the pre-populated database, and all SELECTs be done on the already installed database?  Is he a genius, or is this an example of poor app design?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 31st 2014, 12:28:30 pm">July 31st 2014</span>
+											by <span class='authorname'>Mark Smith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The code is awful! Its just nice that the <code>install</code> method gives you an open handle back on the db. It also appears to be an attempt to be able send out upgrades to the App by giving it a new name when the <code>databaseVersion</code> property gets updated… I&#39;m just guessing because the default behaviour when you push out a new version of an App will be that the existing database will NOT get replaced - it will get reused UNLESS you change its name.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 31st 2014, 12:52:43 pm">July 31st 2014</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I guess that&#39;s good, that it makes sending out updates easier, which are rarely done ironically.</p>
+<p>What about the INSERT&#x2F;UPDATES going to the &quot;main_db.sql&quot; and the SELECTs being done differently.</p>
+<p>I can put a debug statements in the Database function, and there are no INSERT&#x2F;UPDATES being executed by that.  </p>
+<p>Where are the inserts going??</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 31st 2014, 1:16:12 pm">July 31st 2014</span>
+											by <span class='authorname'>Mark Smith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>There is no main_db.sql  </p>
+<p>As you mentioned its not in the Documents folder.  The &#39;name&#39; of the db being used is what ever value is being returned from </p>
+<pre><code class="hljs">Titanium<span class="hljs-class">.App</span><span class="hljs-class">.Properties</span><span class="hljs-class">.getString</span>(<span class="hljs-string">"databaseVersion"</span>)
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 31st 2014, 1:28:46 pm">July 31st 2014</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

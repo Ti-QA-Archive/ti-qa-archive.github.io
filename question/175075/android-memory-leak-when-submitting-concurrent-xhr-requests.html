@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android memory leak when submitting concurrent xhr requests » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android memory leak when submitting concurrent xhr requests</h1>
+		</header>
+		<section>
+			<p>I noticed lots of HttpClientProxy leaks in our application. We double checked our code, ran some tests, profiled the same code base on iOS (it was fine on iOS). Eventually we realized the the HTTPClient object is leaking only when there are concurrent xhr requests.</p>
+<h2 id="test-1-leaks-">Test 1 (Leaks)</h2>
+<p>I built a test case and profiled it to confirm our conclusion. In test one, the app will send 20 concurrent HTTP requests. When profiled, it will show that all the HTTPClientProxy objects were leaked, even after invoking GC multiple times.</p>
+<p>&quot;20 instances of &quot;ti.modules.titanium.network.HTTPClientProxy&quot;, loaded by &quot;dalvik.system.PathClassLoader @ 0xb1083270&quot; occupy 5,327,960 (28.38%) bytes.&quot;</p>
+<h2 id="test-2-doesn-39-t-leak-">Test 2 (Doesn&#39;t Leak)</h2>
+<p>While with test 2, the requests are queued and sent one at a time (100ms delay between every response and next request). The profile result showed that none of the HTTPClientProxy objects were leaked.</p>
+<p>I read numerous posts on this forum and most of them were old (from 1.8 days). I&#39;m running my tests on version 3.2.3. Android 4.3.2.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">xhrRequest</span>(<span class="hljs-params">callback</span>) </span>{
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+        timeout : <span class="hljs-number">5000</span>,
+        cache : <span class="hljs-literal">false</span>,
+        onload : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (callback) {
+                callback();
+            }
+        }
+    });
+
+    xhr.open(<span class="hljs-string">'POST'</span>, <span class="hljs-string">'https://www.yahoo.com/'</span>);
+    xhr.send();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">xhrRequestTest1</span>(<span class="hljs-params">tests, callback</span>) </span>{
+    <span class="hljs-keyword">var</span> completed = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>;i&lt;tests;i++) {
+        xhrRequest(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Test 1 #'</span> + completed + <span class="hljs-string">' completed'</span>);
+            completed += <span class="hljs-number">1</span>;
+            <span class="hljs-keyword">if</span> (completed == tests) {
+                callback();
+            }
+        });
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">xhrRequestTest2</span>(<span class="hljs-params">tests, callback</span>) </span>{
+    <span class="hljs-keyword">if</span> (tests == <span class="hljs-number">0</span>) {
+        callback();
+        <span class="hljs-keyword">return</span>;
+    }
+    xhrRequest(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Test 2 #'</span> + tests + <span class="hljs-string">' completed'</span>);
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            xhrRequestTest2(tests-<span class="hljs-number">1</span>, callback);
+        }, <span class="hljs-number">100</span>);
+    });
+
+}
+
+
+<span class="hljs-keyword">var</span> <span class="hljs-built_in">window</span> = Ti.UI.createWindow({
+    layout : <span class="hljs-string">'vertical'</span>
+});
+
+<span class="hljs-keyword">var</span> button1 = Ti.UI.createButton({
+    title : <span class="hljs-string">'Test #1: Concurrent XHR requests'</span>
+});
+
+button1.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    xhrRequestTest1(<span class="hljs-number">20</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        alert(<span class="hljs-string">'Test 1 completed. Invoke GC and test for leaks'</span>);
+    });
+});
+
+<span class="hljs-keyword">var</span> button2 = Ti.UI.createButton({
+    title : <span class="hljs-string">'Test #2: Queued XHR requests'</span>
+});
+
+button2.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    xhrRequestTest2(<span class="hljs-number">20</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        alert(<span class="hljs-string">'Test 2 completed. Invoke GC and test for leaks'</span>);
+    });
+});
+
+<span class="hljs-built_in">window</span>.add(button1);
+<span class="hljs-built_in">window</span>.add(button2);
+
+<span class="hljs-built_in">window</span>.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 11th 2014, 8:13:10 pm">June 11th 2014</span>
+				by <span class='authorname'>Elie Khoury</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>memory leak</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-279706">
+				
+						<section>
+							<p>You say that the concurrent HTTP requests leak .. you mean they&#39;re never cleaned up? JavaScript and native-layer garbage collection occurs on different schedules. So, there can be some gap. This can lead to troubles when the JavaScript layer moves faster than the native-layer, over-consuming resources before the native-layer can free unused resources. </p>
+<p>I&#39;m not sure of the wisdom or feasibility of running 20 concurrent HTTP requests as you&#39;re attempting. I&#39;m not saying it&#39;s a bad idea or unsupported, just that I&#39;ve never had the need to try. Independent of this thread, if asked, I&#39;d recommend to launch them in series as you did with test two. It seems like you&#39;re asking a lot out of a low-powered mobile device to open and maintain 20 concurrent network channels.</p>
+<p>Perhaps it would be best if you filed a <a href="https:&#x2F;&#x2F;jira.appcelerator.org">Jira ticket</a> for this. Please include code illustrating both of the tests you describe above, as well as the other relevant details you described. It would be great if you added a comment to this thread with the ticket link so that future readers can follow the resulting discussion.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 12th 2014, 11:23:12 am">June 12th 2014</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/175075/android-memory-leak-when-submitting-concurrent-xhr-requests#answer-279706" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>The reason I&#39;m sending 20 http requests in the demo is to demonstrate the issue. For instance, if you&#39;re downloading a file and make another http request in the same time, the whole file being downloaded may leak. Developers shouldn&#39;t worry about this issue. I&#39;ll post it on Jira. Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 12th 2014, 5:16:32 pm">June 12th 2014</span>
+											by <span class='authorname'>Elie Khoury</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

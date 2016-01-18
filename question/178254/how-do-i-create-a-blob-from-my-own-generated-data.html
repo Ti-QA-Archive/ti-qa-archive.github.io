@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How do I create a Blob from my own generated data? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How do I create a Blob from my own generated data?</h1>
+		</header>
+		<section>
+			<p>I am searching but finding any examples woefully incomplete. Here is my situation: I am trying to get pdfkit.js working in Titanium.<br>https:&#x2F;&#x2F;github.com&#x2F;devongovett&#x2F;pdfkit</p>
+<p>Actually, so far, that has been successful. The web&#x2F;html5 version just needed the bind function to exist in titanium and requiring this bind.js file was all it needed: </p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> (!<span class="hljs-built_in">Function</span>.prototype.bind) {
+  <span class="hljs-built_in">Function</span>.prototype.bind = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">oThis</span>) </span>{
+    <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">typeof</span> <span class="hljs-keyword">this</span> !== <span class="hljs-string">"function"</span>) {
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">TypeError</span>(<span class="hljs-string">"Function.prototype.bind - what is trying to be bound is not callable"</span>);
+    }
+    <span class="hljs-keyword">var</span> aArgs = <span class="hljs-built_in">Array</span>.prototype.slice.call(<span class="hljs-built_in">arguments</span>, <span class="hljs-number">1</span>), fToBind = <span class="hljs-keyword">this</span>, fNOP = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    }, fBound = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      <span class="hljs-keyword">return</span> fToBind.apply(<span class="hljs-keyword">this</span> <span class="hljs-keyword">instanceof</span> fNOP &amp;&amp; oThis ? <span class="hljs-keyword">this</span> : oThis, aArgs.concat(<span class="hljs-built_in">Array</span>.prototype.slice.call(<span class="hljs-built_in">arguments</span>)));
+    };
+    fNOP.prototype = <span class="hljs-keyword">this</span>.prototype;
+    fBound.prototype = <span class="hljs-keyword">new</span> fNOP();
+    <span class="hljs-keyword">return</span> fBound;
+  };
+}
+</code></pre><p>I&#39;m just including this in case anyone feels like running pdfkit.js. Just add this code somewhere before you require pdfkit.js and all is well.</p>
+<p>However, PDF kit wants to pipe it&#39;s data to a blob. This is where I get stuck. The documentation on how to get this data into a Titanium.Blob is lacking. </p>
+<p>One thing I decided to try was to get blob-stream working in Titanium:<br>https:&#x2F;&#x2F;github.com&#x2F;devongovett&#x2F;blob-stream</p>
+<p>Again, this worked ok, almost Blob-Stream requires support for TypedArrays. Lucky, there was this:<br>https:&#x2F;&#x2F;www.npmjs.org&#x2F;package&#x2F;typedarray<br>And through that I was able to require what I needed and add in the line to the start of blob-stream.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-built_in">Uint8Array</span> = <span class="hljs-built_in">require</span>(<span class="hljs-string">'typedarray'</span>).Uint8Array;
+</code></pre><p>Here is where I am completely stuck. Blob stream, at some final point, creates a Uint8Array assigned to the object _chunks and this is the code that wants to return a blob:</p>
+<pre><code class="hljs"><span class="hljs-type">BlobStream</span>.prototype.toBlob = function(<span class="hljs-class"><span class="hljs-keyword">type</span>) {</span>
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-type">Blob</span>(<span class="hljs-keyword">this</span>._chunks, {
+    <span class="hljs-class"><span class="hljs-keyword">type</span>:</span> <span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-title">||</span> '<span class="hljs-title">application/octet-stream</span>'
+</span>  });
+};
+</code></pre><p>With just pdfkit.js, I have a stream of data that I can look at and JSON.stringify into an array of int byte values. </p>
+<p>Running through blob-stream, I can generate a Uint8Array all ready to be shoved into a blob. </p>
+<p>And now…. I just need to get this data into a ti.Blob object. There I&#39;ll want to print, store and display it. But I assume, being a blob, I can move it around as we would expect to. </p>
+<p>I am hoping that someone with far more experience with Ti.Blobs can help this bridge. This is a great idea to support, as the pdfkit.js library is a great start in a javascript PDF creation library.</p>
+<p>Thanks in advance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 7th 2014, 4:34:22 pm">October 7th 2014</span>
+				by <span class='authorname'>Brian McBride</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>blob</span></li>
+					
+						<li><span class='tagname'>pdfkit.js</span></li>
+					
+						<li><span class='tagname'>ti.blob</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Just to distill what is above, I am looking for a clear example in taking a Uint8Array and getting that data into a Titanium.Bolb object, and assign a mime type.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 8th 2014, 2:40:03 pm">October 8th 2014</span>
+								by <span class='authorname'>Brian McBride</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

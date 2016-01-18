@@ -1,0 +1,394 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Access and Use data in a Table Row » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Access and Use data in a Table Row</h1>
+		</header>
+		<section>
+			<p>Developing a mobile app in Studio 3.2.x, SDK 3.2.3, for iOS and Android, on a OSX Mavericks box.</p>
+<p>I have an RSS feed stored in data[] array and displayed as a table in an &quot;event detail&quot; view (eventDetail.xml)  using this code snippet:</p>
+<pre><code class="hljs">exports.loadRssFeed = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(o, tries)</span> </span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    tries = tries || <span class="hljs-number">0</span>;
+    xhr.open(<span class="hljs-string">'GET'</span>, RSS_URL);
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">var</span> xml = <span class="hljs-keyword">this</span>.responseXML;
+
+        <span class="hljs-keyword">if</span>(xml === <span class="hljs-literal">null</span> || xml.documentElement === <span class="hljs-literal">null</span>) {
+            <span class="hljs-keyword">if</span>(tries &lt; <span class="hljs-number">3</span>) {
+                tries++;
+                exports.loadRssFeed(o, tries);
+                <span class="hljs-keyword">return</span>;
+            } <span class="hljs-keyword">else</span> {
+                alert(<span class="hljs-string">'Error reading RSS feed. Make sure you have a network connection and try refreshing.'</span>);
+                <span class="hljs-keyword">if</span>(o.error) {
+                    o.error();
+                }
+                <span class="hljs-keyword">return</span>;
+            }
+        }
+
+        <span class="hljs-keyword">var</span> items = xml.documentElement.getElementsByTagName(<span class="hljs-string">"EVENT"</span>);
+      <span class="hljs-comment">//  Ti.API.log(items.length);</span>
+        <span class="hljs-keyword">var</span> data = [];
+
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; items.length; i++) {
+            <span class="hljs-keyword">var</span> item = items.item(i);
+            <span class="hljs-keyword">var</span> image;
+            <span class="hljs-keyword">try</span> {
+                <span class="hljs-keyword">var</span> elems = item.getElementsByTagNameNS(<span class="hljs-string">'http://mashable.com/rss'</span>, <span class="hljs-string">'thumbnail'</span>);
+                image = Ti.XML.parseString(elems.item(<span class="hljs-number">0</span>).textContent).getElementsByTagName(<span class="hljs-string">'img'</span>).item(<span class="hljs-number">0</span>).getAttribute(<span class="hljs-string">'src'</span>);
+            } <span class="hljs-keyword">catch</span>(ex) {
+                image = <span class="hljs-string">''</span>;
+            }
+
+            data.push({
+                title: getRssText(item, <span class="hljs-string">'Name'</span>),
+                desc: getRssText(item, <span class="hljs-string">'Description'</span>),
+                link: getRssText(item, <span class="hljs-string">'EventURL'</span>),
+                sDate: getRssText(item, <span class="hljs-string">'StartDate'</span>),
+                eDate: getRssText(item, <span class="hljs-string">'EndDate'</span>),
+                sTime: getRssText(item, <span class="hljs-string">'StartTime'</span>),
+                eTime: getRssText(item, <span class="hljs-string">'EndTime'</span>)
+              <span class="hljs-comment">// location: getRssText(item, 'BuildingName'),</span>
+              <span class="hljs-comment">// room: getRssText(item, 'RoomName')</span>
+                <span class="hljs-comment">//image: image</span>
+            });
+        }
+        <span class="hljs-keyword">if</span>(o.success) {
+            o.success(data);
+        }
+    };
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">if</span>(o.error) {
+            o.error();
+        }
+    };
+
+    <span class="hljs-keyword">if</span>(o.start) {
+        o.start();
+    }
+    xhr.send();
+};
+</code></pre><p>I want to be able to retrieve the data stored in the data array (below) when a row of the table is clicked and display the same in another view (eventDetail.xml).</p>
+<pre><code class="hljs"> <span class="hljs-tag">data</span><span class="hljs-class">.push</span>(<span class="hljs-rules">{
+                <span class="hljs-rule"><span class="hljs-attribute">title</span>:<span class="hljs-value"> <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'Name'</span>),
+                desc: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'Description'</span>),
+                link: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'EventURL'</span>),
+                sDate: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'StartDate'</span>),
+                eDate: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'EndDate'</span>),
+                sTime: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'StartTime'</span>),
+                eTime: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'EndTime'</span>)
+              // location: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'BuildingName'</span>),
+              // room: <span class="hljs-function">getRssText</span>(item, <span class="hljs-string">'RoomName'</span>)
+                //image: image
+            </span></span></span>});
+</code></pre><p>eventDetail.xml:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-comment">&lt;!--&lt;NavigationWindow id="navgroup"&gt; --&gt;</span>    
+        <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"eventDetail"</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Event Detail"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">View</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"Wrapper"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"Detail"</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">Require</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"widget"</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"com.mcongrove.navigationBar"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"NavigationBar"</span> /&gt;</span>
+
+                <span class="hljs-tag">&lt;<span class="hljs-title">ScrollView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"container"</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"eventName_table"</span> <span class="hljs-attribute">height</span>=<span class="hljs-value">"45dp"</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"eventName"</span> /&gt;</span>
+
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"sDate"</span> /&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"period"</span> /&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"logs"</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Event Location"</span> /&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"desc_table"</span>&gt;</span>
+
+                        <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"desc"</span> /&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+
+
+
+                <span class="hljs-tag">&lt;/<span class="hljs-title">ScrollView</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">View</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+    <span class="hljs-comment">&lt;!--&lt;/NavigationWindow&gt;--&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>eventDetail.js</p>
+<pre><code class="hljs"><span class="hljs-component"><span class="hljs-keyword">exports</span>.setEvent = function(e) {
+   // Ti<span class="hljs-string">.API.log(e)</span>;
+     $<span class="hljs-string">.web.url</span> = e<span class="hljs-string">.link</span>;
+     $<span class="hljs-string">.eventName.title</span> = e<span class="hljs-string">.title</span>;
+     $<span class="hljs-string">.desc.title</span> = e<span class="hljs-string">.desc</span>;
+     $<span class="hljs-string">.sDate.text</span> = e<span class="hljs-string">.sDate</span>;
+     $<span class="hljs-string">.period.text</span> = e<span class="hljs-string">.sTime</span> + "-" + e<span class="hljs-string">.eTime</span>;
+
+}</span>;
+</code></pre><p>I have inspected what values are embedded in each row data and only the link (url) is accessible and all toehr data are null.</p>
+<p>HOW DO I ACCESS THE OTHER DATA ELEMENTS USED TO CONSTRUCT AND DISPLAY THE TABLE? I am trying to display the data I need in a custom view rather than a web view with a url; the url doesn&#39;t have the data I need displayed in the way I want to.</p>
+<p>Please note that the url to my news feed is an xml file available via this url: </p>
+<p><a href="https:&#x2F;&#x2F;webapps.nsu.edu&#x2F;eventscalendar&#x2F;downloadevents.aspx?crawl=true&amp;export=export&amp;fType=xml&amp;futureevents=true&amp;type=N&amp;ctgrys=public&amp;approved=approved">Event Feed</a></p>
+<p>Thanks for your insights and assistance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 8th 2014, 11:47:16 pm">June 8th 2014</span>
+				by <span class='authorname'>adebisi oladipupo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>table</span></li>
+					
+						<li><span class='tagname'>tableviewrow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Here&#39;s additional info that may help in understanding what I have done and trying to do.</p>
+<p>events.js (snippet)</p>
+<pre><code class="hljs"><span class="hljs-comment">// respond to detail event triggered on index controller</span>
+$.on(<span class="hljs-string">'eventDetail'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">// get the detail controller and window references</span>
+    <span class="hljs-keyword">var</span> controller = isIpad ? $.eventDetail : Alloy.createController(<span class="hljs-string">'eventDetail'</span>);
+    <span class="hljs-keyword">var</span> win = controller.getView();
+
+    <span class="hljs-comment">// set the new detail article</span>
+    controller.setEvent(e.row);
+    <span class="hljs-comment">// controller.setArticle(e.row.articleUrl);</span>
+    <span class="hljs-comment">//Ti.API.log(e.row.articleUrl);</span>
+    <span class="hljs-comment">//Ti.API.log(e.row.title);</span>
+    <span class="hljs-comment">// open the detail windows</span>
+    <span class="hljs-keyword">if</span>(OS_IOS) {
+        $.navgroup.openWindow(win);
+    } <span class="hljs-keyword">else</span> {
+        win.open();
+    }
+
+});
+
+<span class="hljs-keyword">if</span>(OS_ANDROID) {
+    $.events.getView().open();
+} <span class="hljs-keyword">else</span> {
+    $.events.open();
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">closeWindow</span>(<span class="hljs-params"></span>) </span>{
+    tabGroup.close();
+}
+
+<span class="hljs-comment">// open detail window</span>
+
+
+<span class="hljs-comment">/*
+
+function openDetail(e) {
+   // Ti.API.log(e);
+    $.trigger('eventDetail', e);
+}
+*/</span>
+
+<span class="hljs-comment">// open detail window on table row click</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openDetail</span>(<span class="hljs-params">e</span>) </span>{
+
+    <span class="hljs-keyword">var</span> controller = isIpad ? $.eventDetail : Alloy.createController(<span class="hljs-string">'eventDetail'</span>, e);
+    <span class="hljs-keyword">var</span> win = controller.getView();
+
+
+    <span class="hljs-comment">// open the detail windows</span>
+    <span class="hljs-keyword">if</span>(OS_IOS) {
+        $.navgroup.openWindow(win);
+    } <span class="hljs-keyword">else</span> {
+        win.open();
+    }
+   <span class="hljs-comment">// Ti.API.log("I am inside openDetail");</span>
+
+
+}
+</code></pre><p><a href="http:&#x2F;&#x2F;tinypic.com&#x2F;r&#x2F;w9gzfp&#x2F;8">Screenshot showing blank fields</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 9th 2014, 12:10:47 am">June 9th 2014</span>
+								by <span class='authorname'>adebisi oladipupo</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>-1</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-279568">
+				
+						<section>
+							<p>I&#39;ve never worked with Alloy but I do this every time in Classic. Here&#39;s how I&#39;m handling it:</p>
+<pre><code class="hljs"><span class="hljs-built_in">var</span> item = {
+    name:<span class="hljs-string">'Homer'</span>,lastname:<span class="hljs-string">'Simpson'</span>
+};
+
+<span class="hljs-built_in">var</span> row = Titanium<span class="hljs-built_in">.</span>UI<span class="hljs-built_in">.</span>createTableViewRow({
+    height:<span class="hljs-number">60</span>,<span class="hljs-built_in">data</span>:item
+});
+
+tableView<span class="hljs-built_in">.</span>addEventListener(<span class="hljs-string">'click'</span>,tableViewHandler);
+
+function tableViewHandler(e){
+    <span class="hljs-built_in">var</span> <span class="hljs-built_in">data</span> = e<span class="hljs-built_in">.</span>rowData<span class="hljs-built_in">.</span><span class="hljs-built_in">data</span>;
+    console<span class="hljs-built_in">.</span><span class="hljs-keyword">log</span>(<span class="hljs-built_in">data</span><span class="hljs-built_in">.</span>name); <span class="hljs-comment">//should print 'Homer'</span>
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 9th 2014, 2:24:21 am">June 9th 2014</span>
+								by <span class='authorname'>Carlos Henrique Lustosa Zinato</span><br>
+								<a class="icon-bg icon-link" href="question/174984/access-and-use-data-in-a-table-row#answer-279568" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Carlos thanks for the hint. However, it doesn&#39;t work for me. I am able to extract the link in each row (articleUrl) using e.row.articleUrl but unable to get any other data (e.g. title) using the same format (e.row.title) which returns null. Even when I use e.rowData.data.articleUrl I get a null object returned instead of the correct data returned with e.row.artcileUrl.</p>
+<p>See the eventListner handler used below:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openDetail</span>(<span class="hljs-params">e</span>) </span>{
+
+    <span class="hljs-keyword">var</span> controller = isIpad ? $.eventDetail : Alloy.createController(<span class="hljs-string">'eventDetail'</span>);
+    <span class="hljs-keyword">var</span> win = controller.getView();
+    <span class="hljs-keyword">var</span> eventData = e.row;
+    <span class="hljs-built_in">console</span>.log(eventData.articleUrl); <span class="hljs-comment">// this returns the link attached to the row clicked but returns null for other</span>
+                                       <span class="hljs-comment">// data elements such as title, desc,etc which are part of the dataset</span>
+<span class="hljs-comment">//    controller.setEvent(eventData); (attempt to send row data to another function where labels are set in another view)</span>
+    <span class="hljs-comment">//var eventData = e.rowData.data;</span>
+    <span class="hljs-comment">//console.log(eventData.articleUrl); (this returns a null object with no data)</span>
+
+    <span class="hljs-comment">// open the detail windows</span>
+    <span class="hljs-keyword">if</span>(OS_IOS) {
+        $.navgroup.openWindow(win);
+    } <span class="hljs-keyword">else</span> {
+        win.open();
+    }
+   <span class="hljs-comment">// Ti.API.log("I am inside openDetail");</span>
+
+
+}
+</code></pre><p>I have confirmed that the code in my eventsDetail.js works fine if I assign static labels to each filed. This means the variable are not being passed because they are null in the calling function.<br>Thanks for assisting.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2014, 11:43:59 am">June 9th 2014</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Did you try:</p>
+<pre><code class="hljs">e<span class="hljs-class">.rowData</span><span class="hljs-class">.title</span>
+</code></pre><p>?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2014, 1:19:26 pm">June 9th 2014</span>
+											by <span class='authorname'>Carlos Henrique Lustosa Zinato</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yes and it returned  &lt;null&gt; for all data even if I do e.rowData.articleUrl and e.rowData.data.title too.</p>
+<p>I don&#39;t understand why e.row.articleUrl returns the link data but not other data elements using the same format.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2014, 2:30:02 pm">June 9th 2014</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I again tried e.rowData.artcileUrl and that returned the link for the clicked tableViewrow.  But the same format (e.rowData.title) is returning &lt;null&gt; even though the table row labels came from the title variable data!!</p>
+<p>Frustrating and begging for assistance.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2014, 2:45:48 pm">June 9th 2014</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Happy 4th to y&#39;all.  I am back on this freedom day to again ask for the comity help on this intractable issue.  Someone on this forum has a solution or an insight that can help me.  Thanks as you help me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 4th 2014, 9:16:43 pm">July 4th 2014</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

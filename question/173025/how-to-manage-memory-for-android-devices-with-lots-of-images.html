@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to manage memory for android devices with lots of images. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to manage memory for android devices with lots of images.</h1>
+		</header>
+		<section>
+			<p>We are having massive issues with memory management on Android.<br>The issue appears to arise when we dispose of views that have images in them.<br>It simply looks like the garbage collector is never getting rid of the image data. </p>
+<p>Things we have tried:</p>
+<p>No global variables</p>
+<p>Completely closing and deallocating windows when switching pages (closing and deallocating windows doesn&#39;t seem to clear ANY memory or any of the views inside those windows)</p>
+<p>Switching from a multi-window app to a single window app that swaps out views instead of switches windows (helped, since we don&#39;t have to deal with all of the extra memory from closed&#x2F;nulled windows)</p>
+<p>Recursively deleting &#x2F; nulling child elements when removing a view from the window (helped a lot, but doesn&#39;t return any memory from images in those views&#x2F;children)</p>
+<p>When removing a child element, manually setting its image and backgroundImage attributes to null (didn&#39;t do anything)</p>
+<p>Switching everything to factory methods (helped a bit)</p>
+<p>Creating a huge fake array to force the OS to call garbage collection (helped a lot)</p>
+<p>After all of that work, our current issue is still just that no memory gets returned that was allocated for images.<br>We have tested this simply by removing only the images from the app, which instantly solves our memory problem.</p>
+<p>Basically we start at 55 Mb worth of RAM usage and the app just constantly grows from there, regardless of how much we close, remove and null out views. </p>
+<p>DDMS shows the heap never goes above 40 to 45 megs, but the android task manager shows memory from anywhere around 55m to 150m before crashing. We also have largeHeap set to true.</p>
+<p>Below is our recursive methods to clear the views. Is there something that we are doing wrong or is there another way to clear the memory of non used objects?</p>
+<pre><code class="hljs">RecursiveClearChildViews: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(targetView, parentWindow, currentLevel)</span></span>{
+
+        <span class="hljs-keyword">this</span>.internalRecursiveClearChildViews(targetView, parentWindow, currentLevel);
+
+        <span class="hljs-keyword">var</span> crapholdingarray = [];
+
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">20000</span>; i++)
+        {
+            crapholdingarray.push(<span class="hljs-string">"SOMESTUFFGOESHERETOFILLUPMEMORY,YO"</span>);
+        }
+
+        crapholdingarray = <span class="hljs-literal">null</span>;
+
+    },
+    internalRecursiveClearChildViews: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(targetView, parentWindow, currentLevel)</span></span>{
+        currentLevel = currentLevel || <span class="hljs-number">0</span>;
+
+        <span class="hljs-keyword">if</span> (currentLevel == <span class="hljs-number">1</span>)
+        {
+            targetView.hide();
+            <span class="hljs-keyword">if</span> (parentWindow)
+            {
+                parentWindow.remove(targetView);
+            }
+        }
+
+        <span class="hljs-keyword">var</span> children = targetView.children.slice(<span class="hljs-number">0</span>);
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; children.length; ++i) {
+             <span class="hljs-keyword">var</span> thisChild = children[i];
+             <span class="hljs-keyword">if</span> (thisChild.children.length &gt; <span class="hljs-number">0</span>)
+             {
+                 <span class="hljs-keyword">this</span>.internalRecursiveClearChildViews(thisChild, parentWindow, currentLevel+<span class="hljs-number">1</span>);
+             }
+
+             <span class="hljs-keyword">if</span>(thisChild.backgroundImage){
+                 thisChild.backgroundImage = <span class="hljs-literal">null</span>;
+                 Ti.API.info( <span class="hljs-string">'Deleted backgroundImage'</span> );
+             }
+
+              <span class="hljs-keyword">if</span>(thisChild.image){
+                 thisChild.image = <span class="hljs-literal">null</span>;
+                 Ti.API.info( <span class="hljs-string">'Deleted image'</span> );
+             }
+             targetView.remove(thisChild);
+             thisChild = <span class="hljs-literal">null</span>;
+        }
+}
+</code></pre><p>We are using:</p>
+<p>Titanium SDK 3.2.2.GA</p>
+<p>Targeting Android and iPad (no memory issues with ios)</p>
+<p>Testing on Android devices not emulators</p>
+<p>Thanks!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 24th 2014, 2:05:16 pm">April 24th 2014</span>
+				by <span class='authorname'>keefe higgins</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>android gc</span></li>
+					
+						<li><span class='tagname'>android memory</span></li>
+					
+						<li><span class='tagname'>android memory leak</span></li>
+					
+						<li><span class='tagname'>memory management</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>FYI, If you haven&#39;t followed before - <a href="http:&#x2F;&#x2F;www.tidev.io&#x2F;2014&#x2F;03&#x2F;27&#x2F;memory-management&#x2F;">http:&#x2F;&#x2F;www.tidev.io&#x2F;2014&#x2F;03&#x2F;27&#x2F;memory-management&#x2F;</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 24th 2014, 4:27:23 pm">April 24th 2014</span>
+								by <span class='authorname'>Ranjith Kumar Nagella</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Yes, we have followed that. The only thought we have is that using the loop to clear the memory could be causing issues with java releasing it in a timely manner?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 25th 2014, 10:14:35 am">April 25th 2014</span>
+								by <span class='authorname'>keefe higgins</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

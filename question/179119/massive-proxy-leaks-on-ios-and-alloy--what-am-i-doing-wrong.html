@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Massive Proxy Leaks on IOS and Alloy- What am I doing wrong? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Massive Proxy Leaks on IOS and Alloy- What am I doing wrong?</h1>
+		</header>
+		<section>
+			<p>I have a very photo intensive app that is experiencing major memory leaks with the TI…Proxy objects.  I&#39;m running xcode 5.1.1 and studio Titanium Studio, build: 3.4.0.201409261227.  </p>
+<p>I have implemented a WindowManager module to help manage my windows. Here&#39;s my code for opening a window:</p>
+<pre><code class="hljs">exports.<span class="hljs-keyword">open</span> = function(windowName)
+{
+   <span class="hljs-comment">// get a handle to the view window that is currently open</span>
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> curWindow</span> = exports.previousWindowView;
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> =  <span class="hljs-literal">null</span>;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> winController;
+
+     winController</span> = Alloy.createController(windowName);
+     win = winController.getView();  
+     exports.push(windowName);
+     win.<span class="hljs-keyword">open</span>();
+
+
+  <span class="hljs-comment">// Get a handle to the view of the window that was  open  </span>
+    <span class="hljs-keyword">if</span> ( curWindow != <span class="hljs-literal">null</span> )
+    {
+        curWindow.close();
+        curWindow = <span class="hljs-literal">null</span>;    
+    } 
+
+    <span class="hljs-comment">// Get a handle to the previous window's controller and free it</span>
+    <span class="hljs-keyword">if</span> (exports.previousWindowController != <span class="hljs-literal">null</span> )
+    {
+        exports.previousWindowController.destroy();
+        exports.previousWindowController = <span class="hljs-literal">null</span>;
+
+    }
+
+      <span class="hljs-comment">// save the current window for next time</span>
+      exports.previousWindowView = win;
+      exports.previousWindowController = winController;
+}
+</code></pre><p>When I open a window I callout to my server and get photos to display to the user.  For each of my windows I have implemented a module to handle to creation of rows for my table views.  A typical callback function for populating my table view looks like </p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> <span class="hljs-type">FeedUI</span> = require(<span class="hljs-string">"FeedUI"</span>);
+    <span class="hljs-keyword">for</span>( i=<span class="hljs-number">0</span>; i&lt;<span class="hljs-literal">result</span>.content.length; i++)
+    {        
+           row = <span class="hljs-type">FeedUI</span>.createCommentRow(<span class="hljs-literal">result</span>.content[i],editComment,deleteComment,showUser);
+           $.table.appendRow(row);
+   }
+</code></pre><p>Where FeedUI.createCommentRow is implemented as follows</p>
+<pre><code class="hljs">exports.createCommentRow = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(  feedInfo,fcnEditComment,fcnDeleteComment,fcnShowUser )</span> 
+ </span>{
+
+          <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+                    ActivityType : <span class="hljs-string">"Comment"</span>,
+                     backgroundColor : exports.commentBackgroundColor 
+
+            });
+
+           <span class="hljs-keyword">var</span> wrapperView = UIBase.createVerticalView();
+           <span class="hljs-keyword">var</span> line = UIBase.createHorizontalView();
+           wrapperView.add(line);
+
+           <span class="hljs-keyword">var</span> hv = UIBase.createHorizontalView();
+
+        <span class="hljs-comment">// avatar image</span>
+           <span class="hljs-keyword">var</span> imgAvatar = Ti.UI.createImageView({
+                image: feedInfo.CommentAvatarUrl ,
+                 left : <span class="hljs-number">5</span>,
+                 height : exports.commentAvatarWidth ,
+                 width : exports.commentAvatarWidth ,
+                 top: <span class="hljs-number">10</span>
+
+           });
+
+           imgAvatar.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+
+                     fcnShowUser(feedInfo.CommentSubscriberId);
+
+
+            });
+
+           hv.add(imgAvatar);
+           row.add(hv);
+           <span class="hljs-keyword">return</span> row;
+</code></pre><p>I have verified that in all of my helper modules I have declared all local variables with var.  After opening m and closing my window 5 times here&#39;s what instruments shows:</p>
+<p>Graph          Category                            Live Bytes                # Living              # Transient    </p>
+<p>1                 TiUIViewProxy           900.00 KB                900                      44    </p>
+<p>0                TiUILabelProxy             512.00 KB                    512                      0    </p>
+<p>0                   TiUIImageViewProxy        324.00 KB                   324                 0    </p>
+<p>0            TiUITableViewRowProxy     292.00 KB                   292               0    </p>
+<p>0            TiUIView                             61.64 KB                      263                     609    </p>
+<p>0            TiUILabel                             47.80 KB                     161                     351     </p>
+<p>0            TiUIImageView             45.94 KB                        147                    177    </p>
+<p>0            TiUIListItemProxy            40.00 KB                        40                     0    </p>
+<p>As you can see, the # of living for the proxies is much larger than the # of Transients but for the the non<br>proxy objects the number of transients is larger that the number of living as it should be.</p>
+<p>What am I doing wrong??  Thanks!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 17th 2014, 8:42:39 pm">November 17th 2014</span>
+				by <span class='authorname'>Jim Brazil</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Here&#39;s an update.  I&#39;ve refactored some code and instruments shows things working as expected in the simulator but on my real IPHONE running 7.1.1 it still leaks as bad as ever.  On my other test device running 7.1.2 it seems to have solved the problem.  I&#39;m going to test on IOS 8 and hopefully the issue is fixed.</p>
+<p>I&#39;ll try to explain what I have done.</p>
+<p>My Controller is named Feed with a supporting modules name FeedPublic and FeedUI. </p>
+<p>FeedPublic is public properties for the view that persist across instantiation of Feed<br>FeedUI is a helper module that create row and other ui element to be shown on Feed.table<br>My original code was:</p>
+<pre><code class="hljs">1) <span class="hljs-operator"><span class="hljs-keyword">Call</span> Feed.CallServer(Feed.Callback) <span class="hljs-keyword">from</span> the onLoad <span class="hljs-keyword">function</span> <span class="hljs-keyword">of</span> Feed
+
+<span class="hljs-number">2</span>) Feed.Callback would populate Feed.<span class="hljs-keyword">table</span> <span class="hljs-keyword">with</span> <span class="hljs-keyword">element</span> created <span class="hljs-keyword">by</span> FeedUI</span>
+</code></pre><p>I&#39;ve refactored to:</p>
+<pre><code class="hljs">1) <span class="hljs-operator"><span class="hljs-keyword">Call</span> FeedPublic.CallServer(Feed.Callback) <span class="hljs-keyword">from</span> the onLoad <span class="hljs-keyword">function</span> <span class="hljs-keyword">of</span> Feed
+
+<span class="hljs-number">2</span>) <span class="hljs-keyword">In</span> the FeedPublic.Callback  <span class="hljs-keyword">I</span> <span class="hljs-keyword">now</span> pass the results back <span class="hljs-keyword">to</span> Feed <span class="hljs-keyword">with</span> Feed.CallBack(results)
+
+<span class="hljs-number">3</span>) Feed.Callback <span class="hljs-keyword">now</span> populates Feed.<span class="hljs-keyword">table</span> <span class="hljs-keyword">with</span> elements created <span class="hljs-keyword">by</span> FeedUI</span>
+</code></pre><p>There was no additional memory housekeeping added so I&#39;m thinking there was a treading issues since the httprequest to my server is async.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 18th 2014, 12:36:53 pm">November 18th 2014</span>
+								by <span class='authorname'>Jim Brazil</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-283874">
+				
+						<section>
+							<p>I would start by removing the anonymous functions and then making sure you remove the event listener.</p>
+<p>Just saying that he title of the question is deceptive…. I would not recommend saying &quot;Alloy&quot; here when you have this combination of Alloy and old style creation of objects and views inside of the code.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 18th 2014, 1:29:15 am">November 18th 2014</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/179119/massive-proxy-leaks-on-ios-and-alloy--what-am-i-doing-wrong#answer-283874" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Good point its a combo of the two.  Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 18th 2014, 12:15:06 pm">November 18th 2014</span>
+											by <span class='authorname'>Jim Brazil</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>List view Pull to refresh » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>List view Pull to refresh</h1>
+		</header>
+		<section>
+			<p>I am trying to implement list view pull to refresh functionality and making use of this <a href="https:&#x2F;&#x2F;github.com&#x2F;jolicode&#x2F;Alloy-PullToRefresh">widget</a> But here the problem is the pull to refresh event is fired too quickly, what i mean by that is even when the user has just scrolled to the top the pull to refresh event is triggered. I am not able to figure out what exactly needs to be done here to prevent this from happening and ensure refresh event is fired only when the user actually does a pull action<br>here is the file widget.js</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> args = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">0</span>] || {};
+
+<span class="hljs-keyword">var</span> api = {
+    <span class="hljs-comment">// initialization of our variables</span>
+    callback: <span class="hljs-literal">null</span>,
+
+    content: <span class="hljs-literal">null</span>,
+    contentView: <span class="hljs-literal">null</span>,
+    headerPullView: <span class="hljs-literal">null</span>,
+    headerPullControl: <span class="hljs-literal">null</span>,
+    headerPullViewSize : <span class="hljs-number">60</span>,
+    headerPullViewArgs : [],
+
+    <span class="hljs-comment">// ios ptr parameters</span>
+    iosRefreshControl: [],
+
+    <span class="hljs-comment">// android ptr flags</span>
+    isChecking: <span class="hljs-literal">false</span>,
+    offset: <span class="hljs-number">0</span>, <span class="hljs-comment">// The position of the scroll considering the pull action</span>
+    previousOffset: <span class="hljs-number">0</span>,
+    pulling: <span class="hljs-literal">false</span>,
+    reloading: <span class="hljs-literal">false</span>, <span class="hljs-comment">// boolean to know if it's already reload</span>
+
+    initialize: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">parameters</span>) </span>{
+        parameters.arguments = parameters.arguments || {};
+
+        <span class="hljs-comment">// create the controller given in argument witch we give the var api in argument</span>
+        api.content = Alloy.createController(parameters.controller, { pulltorefresh: api, <span class="hljs-built_in">arguments</span>: parameters.arguments });
+
+        api.contentView = api.content.getView();
+
+        <span class="hljs-keyword">if</span> (OS_IOS) {
+            <span class="hljs-keyword">if</span> (parameters.iosRefreshControl) {
+                api.iosRefreshControl.tintColor = parameters.iosRefreshControl.tintColor ? parameters.iosRefreshControl.tintColor : <span class="hljs-string">'black'</span>;
+                api.iosRefreshControl.title = parameters.iosRefreshControl.title ? parameters.iosRefreshControl.title : <span class="hljs-literal">null</span>;
+            }
+
+            <span class="hljs-keyword">var</span> control = Ti.UI.createRefreshControl({
+                tintColor: api.iosRefreshControl.tintColor,
+                title: api.iosRefreshControl.title
+            });
+            control.addEventListener(<span class="hljs-string">'refreshstart'</span>, api.doRefresh);
+            api.contentView.refreshControl = control;
+
+            $.pulltorefresh.add(api.contentView);
+        }
+        <span class="hljs-comment">// Our headerpullView for other devices</span>
+        <span class="hljs-keyword">else</span> {
+
+            <span class="hljs-keyword">if</span> (parameters.headerPullView) {
+                api.headerPullViewArgs = parameters.headerPullView;
+                <span class="hljs-keyword">if</span> (parameters.headerPullView.view) {
+                    api.headerPullViewSize = parameters.headerPullView.view.size ? parameters.headerPullView.view.size : <span class="hljs-number">60</span>;
+                }
+            }
+
+            <span class="hljs-comment">// create the controller headerPullView</span>
+            api.headerPullControl = Widget.createController(<span class="hljs-string">'headerPullView'</span>, { parameters: api.headerPullViewArgs });
+            api.headerPullView = api.headerPullControl.getView();
+
+            <span class="hljs-comment">// add it in the ptr scrollview</span>
+            $.container.add(api.headerPullView);
+            $.container.addEventListener(<span class="hljs-string">'touchend'</span>, api.touchEnd);
+            $.container.addEventListener(<span class="hljs-string">'scroll'</span>, api.scroll);
+
+            <span class="hljs-comment">// add the content to the root of the ptr component</span>
+            $.container.add(api.contentView);
+        }
+    },
+
+    <span class="hljs-comment">/*
+     * Callback function to refresh the data
+     * of your ListView
+     */</span>
+    doRefresh: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (api.callback) {
+            api.callback();
+        } <span class="hljs-keyword">else</span> {
+            api.stop();
+        }
+    },
+
+    setCallback: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">callback</span>) </span>{
+        api.callback = callback;
+    },
+
+    <span class="hljs-comment">// only for Android</span>
+    scroll: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.y != <span class="hljs-literal">null</span>) {
+            api.offset = e.y;
+        }
+
+        <span class="hljs-keyword">if</span> (!api.isChecking) {
+            api.isChecking = <span class="hljs-literal">true</span>;
+
+            <span class="hljs-keyword">var</span> interval = setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                <span class="hljs-keyword">if</span> (api.previousOffset != api.offset) {
+                    api.previousOffset = api.offset;
+                    api.isChecking = <span class="hljs-literal">true</span>;
+                } <span class="hljs-keyword">else</span> {
+
+                    <span class="hljs-keyword">if</span> (api.offset !== api.headerPullViewSize * Ti.Platform.displayCaps.logicalDensityFactor){
+
+                        <span class="hljs-comment">// the scroll has ended \o/</span>
+                        clearInterval(interval);
+                        api.isChecking = <span class="hljs-literal">false</span>;
+                        api.touchEnd();
+                    }
+                }
+            }, <span class="hljs-number">2000</span>);
+        }
+
+        <span class="hljs-keyword">if</span> (api.offset &lt;= <span class="hljs-number">0</span> &amp;&amp; !api.pulling) {
+            api.pulling = <span class="hljs-literal">true</span>;
+            api.headerPullControl.pulling();
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (api.pulling &amp;&amp; api.offset &gt;= <span class="hljs-number">1</span> &amp;&amp; api.offset &lt; api.headerPullViewSize * Ti.Platform.displayCaps.logicalDensityFactor) {
+
+            api.pulling = <span class="hljs-literal">false</span>;
+            api.headerPullControl.pullingStop();
+        }
+    },
+
+    <span class="hljs-comment">/**
+     *   contentHeight: height of the content
+     *   hideHeight : size of the header - size of the navBar if there is a navBar
+     */</span>
+    stop: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">contentHeight, hideHeight</span>) </span>{
+        hideHeight = hideHeight || <span class="hljs-number">0</span>;
+
+        <span class="hljs-keyword">if</span> (OS_ANDROID) {
+            api.reloading = <span class="hljs-literal">false</span>;
+            $.container.scrollTo(<span class="hljs-number">0</span>, api.headerPullViewSize * Ti.Platform.displayCaps.logicalDensityFactor);
+            api.headerPullControl &amp;&amp; api.headerPullControl.updateComplete();
+
+            <span class="hljs-keyword">if</span> (contentHeight) {
+                $.container.contentHeight = hideHeight * Ti.Platform.displayCaps.logicalDensityFactor
+                    + <span class="hljs-built_in">Math</span>.max(contentHeight * Ti.Platform.displayCaps.logicalDensityFactor, Ti.Platform.displayCaps.platformHeight);
+            }
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">if</span> (api.contentView &amp;&amp; api.contentView.refreshControl) {
+                api.contentView.refreshControl.endRefreshing();
+            }
+        }
+    },
+
+    <span class="hljs-comment">/*
+     *
+     */</span>
+    touchEnd: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (api.offset &lt;= <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">if</span> (api.pulling &amp;&amp; !api.reloading) {
+                api.reloading = <span class="hljs-literal">true</span>;
+                api.pulling = <span class="hljs-literal">false</span>;
+                api.headerPullControl.pullingComplete();
+                api.doRefresh();
+            }
+
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (api.offset &lt; api.headerPullViewSize * Ti.Platform.displayCaps.logicalDensityFactor) {
+            api.pulling = <span class="hljs-literal">false</span>;
+            api.headerPullControl.pullingStop();
+            api.stop();
+        }
+    },
+};
+
+exports.initialize = api.initialize;
+</code></pre><p>and headerpullview.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> args = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">0</span>] || {};
+<span class="hljs-keyword">var</span> parameters = args[<span class="hljs-string">"parameters"</span>] || {};
+
+<span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'alloy/moment'</span>);
+
+<span class="hljs-keyword">var</span> api = {
+
+    initialize : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (parameters) {
+            <span class="hljs-keyword">if</span> (parameters.view) {
+                $.headerPullView.height = parameters.view.size ? parameters.view.size : <span class="hljs-number">60</span>;
+                $.headerPullView.backgroundColor = parameters.view.backgroundColor ? parameters.view.backgroundColor :<span class="hljs-string">'FFF'</span>;
+            }
+
+            <span class="hljs-keyword">if</span> (parameters.border) {
+                $.border.backgroundColor = parameters.border.backgroundColor ? parameters.border.backgroundColor : <span class="hljs-string">'black'</span>;
+                $.border.height = parameters.border.height ? parameters.border.height : <span class="hljs-number">2</span>;
+            }
+
+            <span class="hljs-keyword">if</span> (parameters.arrow) {
+                $.arrow.backgroundImage = parameters.arrow.backgroundImage ? parameters.arrow.backgroundImage : WPATH(<span class="hljs-string">'/images/arrow.png'</span>);
+                $.arrow.bottom = parameters.arrow.bottom ? parameters.arrow.bottom : <span class="hljs-number">7</span>;
+                $.arrow.height = parameters.arrow.height ? parameters.arrow.height : <span class="hljs-number">45</span>;
+                $.arrow.left = parameters.arrow.left ? parameters.arrow.left : <span class="hljs-number">35</span>;
+                $.arrow.width = parameters.arrow.width ? parameters.arrow.width : <span class="hljs-number">11</span>;
+            }
+
+            <span class="hljs-keyword">if</span> (parameters.indicator) {
+                $.indicator.bottom = parameters.indicator.bottom ? parameters.indicator.bottom : <span class="hljs-string">"auto"</span>;
+                $.indicator.left = parameters.indicator.left ? parameters.indicator.left : <span class="hljs-string">"auto"</span>;
+                $.indicator.right = parameters.indicator.right ? parameters.indicator.right : <span class="hljs-string">"auto"</span>;
+                $.indicator.top = parameters.indicator.top ? parameters.indicator.top : <span class="hljs-number">0</span>;
+            }
+
+            <span class="hljs-keyword">if</span> (parameters.status) {
+                $.status.bottom =  parameters.status.bottom ? parameters.status.bottom : <span class="hljs-number">30</span> ;
+                $.status.color = parameters.status.color ? parameters.status.color: <span class="hljs-string">"black"</span>;
+                $.status.font = parameters.status.font ? parameters.status.font : { fontSize : <span class="hljs-number">13</span>, fontWeight: <span class="hljs-string">"bold"</span> };
+                $.status.height = parameters.status.height ? parameters.status.height: <span class="hljs-string">"auto"</span>;
+                $.status.textAlign = parameters.status.textAlign ? parameters.status.textAlign : <span class="hljs-string">"center"</span>;
+                $.status.width = parameters.status.width ? parameters.status.width: <span class="hljs-number">200</span>;
+            }
+
+            <span class="hljs-keyword">if</span> (parameters.lastUpdate) {
+                $.lastUpdate.bottom = parameters.lastUpdate.bottom ? parameters.lastUpdate.bottom :  <span class="hljs-number">15</span>,
+                $.lastUpdate.color = parameters.lastUpdate.color ? parameters.lastUpdate.color :  <span class="hljs-string">"black"</span>,
+                $.lastUpdate.font = parameters.lastUpdate.font ? parameters.lastUpdate.font : { fontSize: <span class="hljs-number">12</span> },
+                $.lastUpdate.height = parameters.lastUpdate.height ? parameters.lastUpdate.height :  <span class="hljs-string">"auto"</span>,
+                $.lastUpdate.textAlign = parameters.lastUpdate.textAlign ? parameters.lastUpdate.textAlign : <span class="hljs-string">"center"</span>;
+                $.lastUpdate.width = parameters.lastUpdate.width ? parameters.lastUpdate.width: <span class="hljs-number">200</span>;
+            }
+        }
+    },
+
+    formatDate: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">date</span>) </span>{
+        <span class="hljs-keyword">var</span> date = date ? date : <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+        <span class="hljs-keyword">return</span> moment(date).format(<span class="hljs-string">'LLL'</span>);
+    },
+
+    pulling: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> t = Ti.UI.create2DMatrix();
+        t = t.rotate(-<span class="hljs-number">180</span>);
+        $.arrow.animate({
+            transform: t,
+            duration: <span class="hljs-number">180</span>
+        });
+        $.status.text = L(<span class="hljs-string">'release_to_update'</span>);
+    },
+
+    pullingComplete: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        $.arrow.hide();
+        $.indicator.show();
+        $.status.text = L(<span class="hljs-string">'loading'</span>);
+        $.arrow.transform = Ti.UI.create2DMatrix();
+    },
+
+    pullingStop: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> t = Ti.UI.create2DMatrix();
+        $.arrow.animate({
+            transform: t,
+            duration: <span class="hljs-number">180</span>
+        });
+        $.status.text = L(<span class="hljs-string">'pull_to_reload'</span>);
+    },
+
+    updateComplete: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        $.indicator.hide();
+        $.arrow.show();
+        $.status.text = L(<span class="hljs-string">'pull_to_reload'</span>);
+        $.lastUpdate.text = L(<span class="hljs-string">'updated_at'</span>) + <span class="hljs-string">' '</span> + api.formatDate();
+    }
+};
+
+exports.pulling = api.pulling;
+exports.pullingComplete = api.pullingComplete;
+exports.pullingStop = api.pullingStop;
+exports.updateComplete = api.updateComplete;
+
+api.initialize();
+api.updateComplete();
+</code></pre><p>thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 11th 2014, 10:01:25 am">August 11th 2014</span>
+				by <span class='authorname'>Vishnu Khaunte</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>listview</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+						<li><span class='tagname'>titanium studio</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>right now it is fired when the offset reached zero. How can i fire it such that the offset reches a negative value?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 11th 2014, 10:47:06 am">August 11th 2014</span>
+								by <span class='authorname'>Vishnu Khaunte</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

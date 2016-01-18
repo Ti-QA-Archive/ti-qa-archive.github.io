@@ -1,0 +1,628 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android ListView PullToRefresh CommonJS - Not Alloy » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android ListView PullToRefresh CommonJS - Not Alloy</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I&#39;m using latest continuous build Titanium 3.3.1 (2014&#x2F;07&#x2F;25 13:09 3b7fb31).<br>I&#39;m testing on a Nexus 7 Android v4.4.4.</p>
+<p>I&#39;ve been trying to create the &quot;pull to refresh&quot; functionality on a ListView.<br>Ti does not provide a pull to refresh method for Android out of the box. It does for iOS and it works fine.</p>
+<p>I&#39;m trying with a ScollView and the touchstart, scroll, touchend events.<br>It&#39;s not the best, I know, but I can&#39;t find any other solution.<br>The problem I&#39;m facing is that if I set ScrollView.contentHeight = &#39;auto&#39;, the scroll event is not fired (why why why?) . The touchend event is fired but e.y is 0.</p>
+<p>If I set contentHeight to 4000 (to say any number), this works fine, but the ListView is cut to 4000. </p>
+<p>Here&#39;s the code… a complete app.js so you can test it. I had to cut it into several code portions.. This editor did not allow me to paste it into one piece… so… place the whole code into a app.js file.</p>
+<p>ANY idea is welcome.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    backgroundColor:<span class="hljs-string">'white'</span>
+});
+
+
+<span class="hljs-comment">///// some functions ... don't worry about this</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">Global</span> = {};
+<span class="hljs-keyword">Global</span>.isAndroid = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">return</span> Ti.Platform.osname===<span class="hljs-string">'android'</span>;
+};
+<span class="hljs-keyword">Global</span>.isTablet =  <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">var</span> platform = Ti.Platform.osname;
+
+    <span class="hljs-keyword">switch</span> (platform) {
+      <span class="hljs-keyword">case</span> <span class="hljs-string">'ipad'</span>:
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+      <span class="hljs-keyword">case</span> <span class="hljs-string">'android'</span>:
+        <span class="hljs-keyword">var</span> psc = Ti.Platform.Android.physicalSizeCategory;
+        <span class="hljs-keyword">var</span> tiAndroid = Ti.Platform.Android;
+        <span class="hljs-keyword">return</span> psc === tiAndroid.PHYSICAL_SIZE_CATEGORY_LARGE || psc === tiAndroid.PHYSICAL_SIZE_CATEGORY_XLARGE;
+      <span class="hljs-keyword">default</span>:
+        <span class="hljs-keyword">return</span> Math.min(
+          Ti.Platform.displayCaps.platformHeight,
+          Ti.Platform.displayCaps.platformWidth
+        ) &gt;= <span class="hljs-number">400</span>;
+    }
+};
+
+<span class="hljs-keyword">var</span> Misc = {};
+Misc.dpRatio = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(theValue)</span>
+</span>{
+    <span class="hljs-keyword">var</span> ratio;
+
+    <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">Global</span>.isAndroid()){
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">Global</span>.isTablet()){
+            ratio = <span class="hljs-number">2</span>;
+        }<span class="hljs-keyword">else</span>{
+            ratio = <span class="hljs-number">1</span>;
+        }
+    }<span class="hljs-keyword">else</span>{
+        ratio = (Ti.Platform.displayCaps.platformWidth/(Titanium.Platform.displayCaps.dpi / <span class="hljs-number">160</span>))/<span class="hljs-number">320</span>;
+    }
+
+    <span class="hljs-keyword">return</span> (theValue * ratio)+<span class="hljs-string">'dp'</span>;    
+
+};
+<span class="hljs-comment">///////////////////////</span>
+
+
+
+
+<span class="hljs-comment">// drag pull for Android vars</span>
+<span class="hljs-keyword">var</span> 
+        isChecking = <span class="hljs-keyword">false</span>,
+        offset = <span class="hljs-number">0</span>, 
+        checkOffset = <span class="hljs-number">230</span>,
+        pullingOffset = <span class="hljs-number">50</span>,
+        pulling = <span class="hljs-keyword">false</span>,
+        touching = <span class="hljs-keyword">true</span>,
+        reloading = <span class="hljs-keyword">false</span>; 
+
+
+
+
+<span class="hljs-comment">/// HEADER</span>
+
+<span class="hljs-keyword">var</span> tableHeader = Ti.UI.createView({
+    backgroundColor: <span class="hljs-string">'#aaa'</span>,
+    width:Misc.dpRatio(<span class="hljs-number">320</span>), height:Misc.dpRatio(<span class="hljs-number">60</span>),
+    top:<span class="hljs-number">0</span>
+});
+
+<span class="hljs-keyword">var</span> border = Ti.UI.createView({
+    backgroundColor:<span class="hljs-string">'transparent'</span>,
+    bottom:<span class="hljs-number">0</span>,
+    height:Misc.dpRatio(<span class="hljs-number">2</span>)
+});
+tableHeader.add(border);
+
+<span class="hljs-keyword">var</span> imageArrow = Ti.UI.createImageView({
+    image:<span class="hljs-string">'images/whiteArrow.png'</span>,
+    left:Misc.dpRatio(<span class="hljs-number">20</span>), bottom:Misc.dpRatio(<span class="hljs-number">20</span>),
+    width:Misc.dpRatio(<span class="hljs-number">23</span>), height:Misc.dpRatio(<span class="hljs-number">23</span>)
+});
+tableHeader.add(imageArrow);
+
+<span class="hljs-keyword">var</span> labelStatus = Ti.UI.createLabel({
+    color:<span class="hljs-string">'#576c89'</span>,
+    font:{fontSize:Misc.dpRatio(<span class="hljs-number">13</span>), fontWeight:<span class="hljs-string">'bold'</span>},
+    text:L(<span class="hljs-string">'pull_refresh'</span>),
+    textAlign:<span class="hljs-string">'center'</span>,
+    left:Misc.dpRatio(<span class="hljs-number">55</span>), bottom:Misc.dpRatio(<span class="hljs-number">30</span>),
+    width:Misc.dpRatio(<span class="hljs-number">200</span>)
+});
+tableHeader.add(labelStatus);
+
+<span class="hljs-keyword">var</span> labelLastUpdated = Ti.UI.createLabel({
+    color:<span class="hljs-string">'#576c89'</span>,
+    font:{fontSize:Misc.dpRatio(<span class="hljs-number">12</span>)},
+    text:<span class="hljs-string">'Last Updated: '</span> + getFormattedDate(),
+    textAlign:<span class="hljs-string">'center'</span>,
+    left:Misc.dpRatio(<span class="hljs-number">55</span>), bottom:Misc.dpRatio(<span class="hljs-number">15</span>),
+    width:Misc.dpRatio(<span class="hljs-number">200</span>)
+});
+tableHeader.add(labelLastUpdated);
+
+<span class="hljs-keyword">var</span> actInd = Ti.UI.createActivityIndicator({
+    left:Misc.dpRatio(<span class="hljs-number">20</span>), bottom:Misc.dpRatio(<span class="hljs-number">13</span>),
+    width:Misc.dpRatio(<span class="hljs-number">30</span>), height:Misc.dpRatio(<span class="hljs-number">30</span>)
+});
+tableHeader.add(actInd);
+
+
+<span class="hljs-comment">//////////</span>
+</code></pre><pre><code class="hljs"><span class="hljs-keyword">var</span> myTemplate = {
+    childTemplates: [
+        {
+            <span class="hljs-class"><span class="hljs-keyword">type</span>:</span> <span class="hljs-symbol">'Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">View</span>',
+            bindId: <span class="hljs-symbol">'ro</span>w' ,
+            properties: {
+                backgroundColor:<span class="hljs-symbol">'yello</span>w',
+                height: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">SIZE</span>,
+                width: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">FILL</span>
+            },
+            childTemplates: [
+
+                {                            <span class="hljs-comment">// Image justified left</span>
+                    <span class="hljs-class"><span class="hljs-keyword">type</span>:</span> <span class="hljs-symbol">'Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">ImageView</span>', <span class="hljs-comment">// Use an image view for the image</span>
+                    bindId: <span class="hljs-symbol">'pi</span>c',           <span class="hljs-comment">// Maps to a custom pic property of the item data</span>
+                    properties: {            <span class="hljs-comment">// Sets the image view  properties</span>
+                        width: <span class="hljs-symbol">'50d</span>p', height: <span class="hljs-symbol">'50d</span>p', left: <span class="hljs-number">0</span>
+                    }
+                },
+                {                            <span class="hljs-comment">// Title </span>
+                    <span class="hljs-class"><span class="hljs-keyword">type</span>:</span> <span class="hljs-symbol">'Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">Label</span>',     <span class="hljs-comment">// Use a label for the title </span>
+                    bindId: <span class="hljs-symbol">'inf</span>o',          <span class="hljs-comment">// Maps to a custom info property of the item data</span>
+                    properties: {            <span class="hljs-comment">// Sets the label properties</span>
+                        color: <span class="hljs-symbol">'blac</span>k',
+                        font: { fontFamily:<span class="hljs-symbol">'Aria</span>l', fontSize: <span class="hljs-symbol">'20d</span>p', fontWeight:<span class="hljs-symbol">'bol</span>d' },
+                        left: <span class="hljs-symbol">'60d</span>p', top: <span class="hljs-number">0</span>,
+                    }
+                },
+                {                            <span class="hljs-comment">// Subtitle</span>
+                    <span class="hljs-class"><span class="hljs-keyword">type</span>:</span> <span class="hljs-symbol">'Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">Label</span>',     <span class="hljs-comment">// Use a label for the subtitle</span>
+                    bindId: <span class="hljs-symbol">'es_inf</span>o',       <span class="hljs-comment">// Maps to a custom es_info property of the item data</span>
+                    properties: {            <span class="hljs-comment">// Sets the label properties</span>
+                        color: <span class="hljs-symbol">'gra</span>y',
+                        font: { fontFamily:<span class="hljs-symbol">'Aria</span>l', fontSize: <span class="hljs-symbol">'14d</span>p' },
+                        left: <span class="hljs-symbol">'60d</span>p', top: <span class="hljs-symbol">'25d</span>p',
+                    }
+                }
+            ]
+        }
+    ]
+};
+
+<span class="hljs-keyword">var</span> listView = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createListView({
+
+    <span class="hljs-comment">// Maps myTemplate dictionary to 'template' string</span>
+    templates: { <span class="hljs-symbol">'templat</span>e': myTemplate }, <span class="hljs-comment">//'refreshTemplate': refreshTemplate},</span>
+    <span class="hljs-comment">// Use 'template', that is, the myTemplate dict created earlier</span>
+    <span class="hljs-comment">// for all items as long as the template property is not defined for an item.</span>
+    defaultItemTemplate: <span class="hljs-symbol">'templat</span>e'
+});
+<span class="hljs-keyword">var</span> sections = createSections();
+
+listView.setSections(sections);
+
+<span class="hljs-comment">////////////////////////////</span>
+
+<span class="hljs-keyword">var</span> sv = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createScrollView({
+    top:<span class="hljs-number">0</span>, 
+    height: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">FILL</span>,
+    contentWidth: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">FILL</span>,
+    contentHeight: <span class="hljs-number">4000</span>,  <span class="hljs-comment">/// HERE'S THE PROBLEM!!!!! test with 'auto'</span>
+    scrollType: <span class="hljs-symbol">'vertica</span>l',
+    backgroundColor: <span class="hljs-symbol">'re</span>d'
+});
+
+sv.add(listView);
+
+win.add(sv);
+
+sv.addEventListener(<span class="hljs-symbol">'scrol</span>l', scroll);
+sv.addEventListener(<span class="hljs-symbol">'touchstar</span>t',touchStart);
+sv.addEventListener(<span class="hljs-symbol">'touchmov</span>e',touchMove);
+sv.addEventListener(<span class="hljs-symbol">'touchen</span>d',touchEnd);    
+
+win.open();
+</code></pre><pre><code class="hljs"><span class="hljs-comment">// set the initial position of the scrollView's content</span>
+<span class="hljs-keyword">var</span> init = setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">if</span> (offset==checkOffset) {
+        <span class="hljs-comment">//Ti.API.debug('we have just done what the scrollView\'s contentOffset should be doing');</span>
+        clearInterval(init);
+    }
+    sv.scrollTo(<span class="hljs-number">0</span>,checkOffset);
+},<span class="hljs-number">100</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">scroll</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">if</span> (e.y != <span class="hljs-literal">null</span>){
+        offset = e.y;
+    }
+
+    <span class="hljs-comment">//Ti.API.info('scroll, offset: ' + offset + ' pulling: '+ pulling + ' touching: ' + touching);</span>
+
+    <span class="hljs-comment">//var tolerance = 500;</span>
+    <span class="hljs-comment">//Ti.API.info('near bottom ',sv.getContentHeight(), listView.getRect().height, sv.getRect().height, e.y ,  (listView.getRect().height - e.y) &lt;= (sv.getRect().height + tolerance));    </span>
+
+
+    <span class="hljs-keyword">if</span> (!touching &amp;&amp; offset &lt;= checkOffset){
+        Ti.API.info(<span class="hljs-string">'not touching'</span>);
+        pullListener({active: <span class="hljs-literal">false</span>});
+        stop();        
+    }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (offset &lt;= pullingOffset &amp;&amp; !pulling) {
+        pulling = <span class="hljs-literal">true</span>;
+        pullListener({active: <span class="hljs-literal">true</span>});
+    }  <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (pulling &amp;&amp; offset &gt; pullingOffset &amp;&amp; offset &lt; checkOffset) { 
+
+        pulling = <span class="hljs-literal">false</span>;
+        pullListener({active: <span class="hljs-literal">false</span>});
+    } 
+
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">touchStart</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-comment">//Ti.API.info('touchStart');</span>
+    touching = <span class="hljs-literal">true</span>;
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">touchMove</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-comment">//Ti.API.info('touchMove');</span>
+    touching = <span class="hljs-literal">true</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">touchEnd</span>(<span class="hljs-params">e</span>)</span>{
+    Ti.API.info(<span class="hljs-string">'touchEnd, offset: '</span>+ offset+ <span class="hljs-string">' pulling: '</span>+ pulling+<span class="hljs-string">' reloading: '</span>+ reloading);
+
+    touching = <span class="hljs-literal">false</span>;
+
+    <span class="hljs-keyword">if</span> (offset &lt;= pullingOffset) {
+        <span class="hljs-keyword">if</span> (pulling &amp;&amp; !reloading) {
+            reloading = <span class="hljs-literal">true</span>;
+            pulling = <span class="hljs-literal">false</span>;
+            reloadTableData();
+
+        }
+
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (offset &lt; checkOffset){ 
+        pulling = <span class="hljs-literal">false</span>;
+        resetPullHeader();
+        stop();
+    }        
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">stop</span>(<span class="hljs-params"></span>)</span>{
+
+    reloading = <span class="hljs-literal">false</span>;
+    sv.scrollTo(<span class="hljs-number">0</span>,checkOffset);
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">reloadTableData</span>(<span class="hljs-params"></span>)
+</span>{
+    lastIndex = <span class="hljs-number">0</span>;
+
+    resetPullHeader();
+    refresh();
+
+    <span class="hljs-keyword">if</span> (Global.isAndroid())
+        stop();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">resetPullHeader</span>(<span class="hljs-params"></span>)</span>{
+
+
+    actInd.hide();
+    imageArrow.transform=Ti.UI.create2DMatrix();
+    imageArrow.show();
+    labelStatus.text = L(<span class="hljs-string">'pull_refresh'</span>);
+    labelLastUpdated.text = <span class="hljs-string">'Last Updated: '</span> + getFormattedDate();      
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pullListener</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">if</span> (e.active == <span class="hljs-literal">false</span>) {
+        <span class="hljs-keyword">var</span> unrotate = Ti.UI.create2DMatrix();
+
+        imageArrow.animate({transform:unrotate, duration:<span class="hljs-number">180</span>});
+        labelStatus.text = L(<span class="hljs-string">'pull_refresh'</span>);            
+
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">var</span> rotate = Ti.UI.create2DMatrix().rotate(<span class="hljs-number">180</span>);
+
+        imageArrow.animate({transform:rotate, duration:<span class="hljs-number">180</span>});
+        labelStatus.text = <span class="hljs-string">'Release to reload...'</span>;
+
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pullendListener</span>(<span class="hljs-params">e</span>)</span>{    
+
+    labelStatus.text = <span class="hljs-string">'Loading ...'</span>;        
+
+    imageArrow.hide();
+    actInd.show();
+
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        reloadTableData();
+    }, <span class="hljs-number">1000</span>);
+}
+
+
+
+<span class="hljs-comment">//fake</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">refresh</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-comment">// here you should call your API to get more data</span>
+    Ti.API.info(<span class="hljs-string">'refreshing'</span>);
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getFormattedDate</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-keyword">var</span> date = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+    <span class="hljs-keyword">return</span> date.getMonth() + <span class="hljs-string">'/'</span> + date.getDate() + <span class="hljs-string">'/'</span> + date.getFullYear() + <span class="hljs-string">' '</span> + date.getHours() + <span class="hljs-string">':'</span> + date.getMinutes();
+}
+</code></pre><pre><code class="hljs">function createSections(){
+    var sections = [];
+    var refreshSection = Ti.UI.createListSection({<span class="hljs-string">headerView:</span> tableHeader});
+
+    sections.push(refreshSection);
+
+    var fruitSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Fruits / Frutas'</span>});
+    var fruitDataSet = [
+        <span class="hljs-comment">// the text property of info maps to the text property of the title label</span>
+        <span class="hljs-comment">// the text property of es_info maps to text property of the subtitle label</span>
+        <span class="hljs-comment">// the image property of pic maps to the image property of the image view</span>
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Apple'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Manzana afdsfs fdsf sdfdskrmwekrj fdsklfjsdlkfj erlkjewlrkj fsdfj ds sdlfkjdsl wekj fdslkjsd ewrkljlfksd lkjlewkj lkjlkjdslfj ewlj;kfpkf;ds  ;sldfk;slkfwe ;lk;l fsdofipores;lrk fsd;lk ;lk ;lk;lk fdsf'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'apple.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Banana'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Banana'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'banana.png'</span>}}
+    ];
+    fruitSection.setItems(fruitDataSet);
+    sections.push(fruitSection);
+
+    var vegSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Vegetables / Verduras'</span>});
+    var vegDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Carrot'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Zanahoria'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'carrot.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Potato'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Patata dasklj lkjkljf  fjfdskjfdskfj lkjlksdjf kjkfdsjk lewkjr visrjsifjslkj lskjkdjfaltkjakljfksjdtk rlj '</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'potato.png'</span>}}
+    ];
+    vegSection.setItems(vegDataSet);
+    sections.push(vegSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+</code></pre><pre><code class="hljs">    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+</code></pre><pre><code class="hljs">
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    var grainSection = Ti.UI.createListSection({ <span class="hljs-string">headerTitle:</span> <span class="hljs-string">'Grains / Granos'</span>});
+    var grainDataSet = [
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Corn'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Maiz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'corn.png'</span>}},
+        { <span class="hljs-string">info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Rice'</span>}, <span class="hljs-string">es_info:</span> {<span class="hljs-string">text:</span> <span class="hljs-string">'Arroz'</span>}, <span class="hljs-string">pic:</span> {<span class="hljs-string">image:</span> <span class="hljs-string">'rice.png'</span>}}
+    ];
+    grainSection.setItems(grainDataSet);
+    sections.push(grainSection);
+
+    <span class="hljs-keyword">return</span> sections;
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 5th 2014, 1:39:55 pm">August 5th 2014</span>
+				by <span class='authorname'>Inzori DevTeam</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>listview</span></li>
+					
+						<li><span class='tagname'>pull</span></li>
+					
+						<li><span class='tagname'>pulltorefresh</span></li>
+					
+						<li><span class='tagname'>refresh</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I give up.</p>
+<p>This solution kinda worked using the scrollView scroll event and recalculating contentHeight… but I found more problems on the road.</p>
+<p>The listView didn&#39;t fire the &quot;marker&quot; event (because I was scrolling the scrollview and not the listview I guess) so the listview wasn&#39;t loading more rows automatically.</p>
+<p>Changing the contentHeight didn&#39;t fire &quot;postlayout&quot; event.</p>
+<p>I wonder why the scroll event is not even fired when contentHeight = &#39;auto&#39; , this would be really helpful… the offset is the distance from the top… so why do Ti need to set a fixed height to be able to calculate it????</p>
+<p>There are a few Android widgets out there that claim to be very easy to integrate into a project… but I don&#39;t know how to integrate or create a Ti module for Android.</p>
+<p>It would be great if we could have 2 markers on the listView, and that 2 different events fire when they are reached. This would help to keep an eye on top scroll.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 6th 2014, 6:52:35 pm">August 6th 2014</span>
+								by <span class='authorname'>Inzori DevTeam</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

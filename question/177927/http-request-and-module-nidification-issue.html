@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTP request and module nidification issue » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTP request and module nidification issue</h1>
+		</header>
+		<section>
+			<p>Hi, I use this very useful code by Malcolm Hollingsworth to make ajax requests (I don&#39;t post the entire net module, it&#39;s very easy to find using this forum):</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Net = <span class="hljs-keyword">Require</span>(<span class="hljs-string">'/net'</span>);
+Net.download({
+    method: <span class="hljs-string">'POST'</span>, <span class="hljs-comment">// GET is default</span>
+    url: <span class="hljs-string">'http://www.somewhere.com/someplace/somepage'</span>,
+    timeout: <span class="hljs-number">5</span>, <span class="hljs-comment">// in seconds (10 = default)</span>
+    type: <span class="hljs-string">'json'</span>, <span class="hljs-comment">// is default or html</span>
+    param: {<span class="hljs-string">"key1"</span>:<span class="hljs-string">"string"</span>,<span class="hljs-string">"key2"</span>:{<span class="hljs-string">"foo"</span>:<span class="hljs-string">"bar"</span>,<span class="hljs-string">"baz"</span>:<span class="hljs-string">"ar"</span>}}, 
+    success: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(success)</span> </span>{
+        <span class="hljs-comment">// put the code you want to run if successful here</span>
+        <span class="hljs-comment">// returns either JSON or the HTML content requested</span>
+        Ti.API.info(success);
+    },
+    error: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(error)</span> </span>{
+        <span class="hljs-comment">// put the code you want to run if UNsuccessful here</span>
+        <span class="hljs-comment">// returns an object with error info</span>
+        Ti.API.info(error);
+    },
+    progress: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(progress)</span> </span>{
+        <span class="hljs-comment">// put the code you want to respond to progress value updates</span>
+        <span class="hljs-comment">// returns progress value [e.progress]</span>
+        Ti.API.info(progress.value);
+    },
+    state: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(state)</span> </span>{
+        <span class="hljs-comment">// put the code you want to respond to state changes</span>
+        <span class="hljs-comment">// returns an object with state info</span>
+        Ti.API.info(state);
+    }
+});
+</code></pre><p>In the error function body, if a I receive a certain error, I need to use the net module again to send another request. Being the resulting code not very readible (imagine the entire above code contained in the error function), I thought to create a new module: I did it, I imported inside it the net module again and I pass it the parameters it needs right from the error function above.</p>
+<p>What happens: from inside the &quot;second&quot; module, the &quot;net&quot; code never reaches the function success: I never get success nor error. The only things I receive is, probably from the state function:</p>
+<pre><code class="hljs">{
+[INFO] :       caption = Loading;
+[INFO] :       <span class="hljs-keyword">state</span> = <span class="hljs-number">3</span>;
+[INFO] :   }
+[INFO] :   {
+[INFO] :       caption = Done;
+[INFO] :       <span class="hljs-keyword">state</span> = <span class="hljs-number">4</span>;
+[INFO] :   }
+[INFO] :   {
+[INFO] :       caption = Done;
+[INFO] :       <span class="hljs-keyword">state</span> = <span class="hljs-number">4</span>;
+[INFO] :   }
+</code></pre><p>My suspect is the code is too &quot;nidified&quot; and the module doesn&#39;t properly work. The &quot;prove&quot; is that if in the module I added I don&#39;t use Malcolm&#39;s full featured module but I use a this very basic code, anything works fine.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> data = <span class="hljs-built_in">JSON</span>.stringify(obj);
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+        onload : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+          Ti.API.info(ev);
+          Ti.API.info(<span class="hljs-keyword">this</span>.responseText);
+        },
+        onerror : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+            Ti.API.info(ev);
+        }
+    });
+    xhr.open(<span class="hljs-string">"POST"</span>, <span class="hljs-string">'myURL'</span>);
+    xhr.setRequestHeader(<span class="hljs-string">'Content-Type'</span>, <span class="hljs-string">"application/json"</span>);
+    xhr.send(data);
+</code></pre><p>Any help is welcome   :-)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 24th 2014, 6:19:01 am">September 24th 2014</span>
+				by <span class='authorname'>Red Reef</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I found it seems not a nidification issue: for no apparent reason sometimes the module fails to work correctly.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 24th 2014, 12:17:50 pm">September 24th 2014</span>
+								by <span class='authorname'>Red Reef</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I finally found what it was: the module checks for the status received. I received a status that wasn&#39;t between the possible statuses the module checks for. So, the code inside the switch was never executed.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 24th 2014, 3:39:18 pm">September 24th 2014</span>
+								by <span class='authorname'>Red Reef</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

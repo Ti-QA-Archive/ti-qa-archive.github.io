@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>SalesForce Mobile Pack Connector: Persistence of Authentication » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>SalesForce Mobile Pack Connector: Persistence of Authentication</h1>
+		</header>
+		<section>
+			<p>I am using the SalesForce Mobile Pack Connector to authenticate users against my salesforce instance and would like to persist the authentication information in Ti.App.Properties so the user doesn&#39;t have to log in every time the app is relaunched. I am able to successfully trigger the login process the very first time the app is launched. However on subsequent launches I receive the following message:</p>
+<h3 id="verification-issue">Verification Issue</h3>
+<h4 id="unlicensed-module-s-detected-you-must-be-a-subscriber-to-use-one-or-more-of-the-modules-included-within-this-project-">Unlicensed module(s) detected. You must be a subscriber to use one or more of the modules included within this project.</h4>
+<p>My app.js is as follows:</p>
+<pre><code class="hljs"><span class="hljs-comment">//bootstrap and check dependencies</span>
+<span class="hljs-keyword">if</span> (Ti.version &lt; <span class="hljs-number">1.8</span>) {
+  alert(<span class="hljs-string">'Sorry - this application template requires Titanium Mobile SDK 1.8 or later'</span>);
+}
+
+<span class="hljs-comment">// This is a single context application with multiple windows in a stack</span>
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-comment">//render appropriate components based on the platform and form factor</span>
+    <span class="hljs-comment">//render appropriate components based on the platform and form factor</span>
+    <span class="hljs-keyword">var</span> globals = <span class="hljs-built_in">require</span>(<span class="hljs-string">'globals'</span>).Globals,
+        moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/moment'</span>),
+        login, openApplicationWindow,
+        expiry = Ti.App.Properties.hasProperty(<span class="hljs-string">'expiry'</span>) ? Ti.App.Properties.getDouble(<span class="hljs-string">'expiry'</span>) : <span class="hljs-number">0</span>,
+        salesforce = <span class="hljs-built_in">require</span>(<span class="hljs-string">'appcelerator.salesforce'</span>),
+        connectedApp = <span class="hljs-keyword">new</span> salesforce.ConnectedApp({
+            consumerKey : globals.sfConsumerKey,
+            consumerSecret : globals.sfConsumerSecret
+        });
+
+    <span class="hljs-keyword">if</span> (Ti.App.Properties.hasProperty(<span class="hljs-string">'access_token'</span>) &amp;&amp;
+        expiry &gt; moment().valueOf()) {
+
+        <span class="hljs-comment">//User has previously launched app and successfully authenticated with SalesForce. Continue to Application window.</span>
+        connectedApp.accessToken = Ti.App.Properties.getString(<span class="hljs-string">'access_token'</span>);
+        connectedApp.instanceUrl = Ti.App.Properties.getString(<span class="hljs-string">'instance_url'</span>);
+        connectedApp.currentUser = Ti.App.Properties.getString(<span class="hljs-string">'current_user'</span>);
+
+        openApplicationWindow = globals.device.isAndroid
+            ? <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/handheld/android/Windows'</span>).openApplicationWindow
+            : <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/handheld/iphone/Windows'</span>).openApplicationWindow;
+
+        openApplicationWindow();
+
+    } <span class="hljs-keyword">else</span>{
+        <span class="hljs-comment">//First time app is launched. Require user to log into SalesForce.</span>
+        Ti.App.Properties.setDouble(<span class="hljs-string">'expiry'</span>, <span class="hljs-number">0</span>);
+        Ti.App.Properties.setString(<span class="hljs-string">'access_token'</span>, <span class="hljs-string">''</span>);
+
+        connectedApp.login({
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e, meta</span>) </span>{
+                <span class="hljs-comment">//Set application variables.</span>
+                Ti.App.Properties.setString(<span class="hljs-string">'access_token'</span>, e.access_token);
+                Ti.App.Properties.setString(<span class="hljs-string">'instance_url'</span>, e.instance_url);
+                Ti.App.Properties.setString(<span class="hljs-string">'current_user'</span>, connectedApp.currentUser);
+                Ti.App.Properties.setDouble(<span class="hljs-string">'expiry'</span>, moment().add(<span class="hljs-number">30</span>, <span class="hljs-string">'d'</span>).valueOf());
+
+                openApplicationWindow = globals.device.isAndroid
+                    ? <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/handheld/android/Windows'</span>).openApplicationWindow
+                    : <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/handheld/iphone/Windows'</span>).openApplicationWindow;
+
+                openApplicationWindow();
+
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e, meta</span>) </span>{
+                Ti.UI.createAlertDialog({
+                    message: <span class="hljs-string">'An error occurred during authentication. Please try again.'</span>,
+                    ok: <span class="hljs-string">'OK'</span>,
+                    title: <span class="hljs-string">'Oops'</span>
+                }).show();
+            }
+        });
+    }
+
+})();
+</code></pre><ul>
+<li>Titanium SDK: 3.3.0.GA</li>
+<li>Platform&#x2F;Version: iOS SDK v. 7.1</li>
+<li>Device: iOS Simulator</li>
+<li>Host OS: OSX v. 10.9.4</li>
+</ul>
+<p>What is the proper method for persisting the authentication information for the SalesForce Connector?</p>
+<p>Thank you.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 3rd 2014, 4:37:08 pm">September 3rd 2014</span>
+				by <span class='authorname'>John Vician</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>authentication</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>persistence</span></li>
+					
+						<li><span class='tagname'>salesforce</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-282134">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>That error is not referring to your login persistence, (which looks good) but rather one of the modules in the project. Try cleaning and re-building the project, and make sure that you are creating the project with the same account that you used to purchase and download the module.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 3rd 2014, 10:09:15 pm">September 3rd 2014</span>
+								by <span class='authorname'>Josh Rhinehart</span><br>
+								<a class="icon-bg icon-link" href="question/177448/salesforce-mobile-pack-connector-persistence-of-authentication#answer-282134" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Josh. Thank you for the response. I have cleaned and rebuilt the project and I am still receiving the same error. The SalesForce Mobile Pack Connector is the only module I have added to the project. I don&#39;t understand why I don&#39;t get this error the first time the app is run. Do you have any other ideas&#x2F;suggestions?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 4th 2014, 1:38:51 pm">September 4th 2014</span>
+											by <span class='authorname'>John Vician</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Josh, I also never got this error until after I added the SalesForce Mobile Pack Connector module. Thanks, John.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 4th 2014, 1:40:42 pm">September 4th 2014</span>
+											by <span class='authorname'>John Vician</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks, Josh. Turns out the project was created using a different account than what was used to purchase and download the module.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 8th 2014, 1:43:38 pm">September 8th 2014</span>
+											by <span class='authorname'>John Vician</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-282177">
+				
+						<section>
+							<p>Try running this cURL command with the corresponding guids:<br>curl -v -k -d &quot;{\&quot;guid\&quot;:\”&lt;APP_GUID&gt;\&quot;,\&quot;modules\&quot;:[{\&quot;guid\&quot;:\”&lt;MODULE_GUID&gt;\&quot;}]}&quot; https:&#x2F;&#x2F;api.appcelerator.net&#x2F;p&#x2F;v1&#x2F;module-verify</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 5th 2014, 10:26:19 pm">September 5th 2014</span>
+								by <span class='authorname'>Josh Rhinehart</span><br>
+								<a class="icon-bg icon-link" href="question/177448/salesforce-mobile-pack-connector-persistence-of-authentication#answer-282177" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Update map when location changes » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Update map when location changes</h1>
+		</header>
+		<section>
+			<p>I am developing a mobile application which has a requirement that I use Ti.Map for iOS and Android and that I can track your location on the map, and keep your location in the centre of the map.</p>
+<p>I am using 3.4.0 of the API.</p>
+<p>I have use the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;Tracking_Position_and_Heading">Tracking Position and Heading</a> to find out what is needed to get the location and to get the updates.</p>
+<p>I have used Ti.Android.currentActivity and added event handlers as mentioned in the section <strong>Android Lifecycle Events</strong></p>
+<p>I have used the Ti.Map to create a map view, added two annotations to it, and added a route between those two points.</p>
+<p>The problem that I am having is that the log is showing that the <strong>Destroy</strong> event is being fired on my Activity and so that <strong>location</strong> event is only fired once.</p>
+<pre><code class="hljs">Ti.Geolocation.purpose = 'Get Current Location'<span class="hljs-comment">;</span>
+Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_BEST<span class="hljs-comment">;</span>
+
+if (Ti.API.IsAndroid) {
+    Ti.Geolocation.Android.accuracy = Titanium.Geolocation.ACCURACY_BEST<span class="hljs-comment">;</span>
+}
+
+Ti.Geolocation.distanceFilter = 10<span class="hljs-comment">;</span>
+Ti.Geolocation.preferredProvider = Ti.Geolocation.PROVIDER_GPS<span class="hljs-comment">;</span>
+
+addHandler()<span class="hljs-comment">;</span>
+
+if (Ti.API.IsAndroid) {  // Defined in globals.js
+    var activity = Ti.Android.currentActivity<span class="hljs-comment">;</span>
+    activity.addEventListener('destroy', stopHandler)<span class="hljs-comment">;</span>
+    activity.addEventListener('pause', pauseHandler)<span class="hljs-comment">;</span>
+    activity.addEventListener('resume', addHandler)<span class="hljs-comment">;</span>
+}
+</code></pre><p>This is run once and then the Activity seems to be destroyed and I am not sure why. Obviously I have missed something, but not quite sure what.</p>
+<p>The code for the event handlers is as follows:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> locationAdded = <span class="hljs-literal">false</span>;
+
+<span class="hljs-keyword">var</span> location = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (!e.success) {
+        alert(<span class="hljs-string">'Error: '</span> + e.error);
+    } <span class="hljs-keyword">else</span> {
+        Ti.API.debug(<span class="hljs-string">'Locationn Handler: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+        <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">typeof</span> e.coords !== <span class="hljs-string">'undefined'</span>) {
+            createNetworkRoute(e.coords.latitude, e.coords.longitude, mapview);
+        }
+    }
+};
+
+<span class="hljs-keyword">var</span> addHandler = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> (!locationAdded) {
+        Ti.API.debug(<span class="hljs-string">'Add Handler run'</span>);
+        Ti.Geolocation.addEventListener(<span class="hljs-string">'location'</span>, location);
+        locationAdded = <span class="hljs-literal">true</span>;
+    }
+};
+
+<span class="hljs-keyword">var</span> pauseHandler = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.debug(<span class="hljs-string">'Pause Handler run'</span>);
+    removeHandler();
+};
+
+<span class="hljs-keyword">var</span> stopHandler = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.debug(<span class="hljs-string">'Stop Handler run'</span>);
+    removeHandler();
+};
+
+
+<span class="hljs-keyword">var</span> removeHandler = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> (locationAdded) {
+        Ti.API.debug(<span class="hljs-string">'Remove Handler run'</span>);
+        Ti.Geolocation.removeEventListener(<span class="hljs-string">'location'</span>, location);
+        locationAdded = <span class="hljs-literal">false</span>;
+    }
+};
+</code></pre><p>Here is the log from when Add Handler is run, to when the Window is closed.</p>
+<p>Note that the windows says it is closed, even though the MapView and another button View is still visible on screen and function as expected.</p>
+<pre><code class="hljs">DEBUG] :  Add Handler run
+[DEBUG] :  Locationn Handler: {<span class="hljs-string">"type"</span>:<span class="hljs-string">"location"</span>,<span class="hljs-string">"source"</span>:{<span class="hljs-string">"bubbleParent"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"hasCompass"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"__propertiesDefined__"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"preferredProvider"</span>:<span class="hljs-string">"gps"</span>,<span class="hljs-string">"purpose"</span>:<span class="hljs-string">"Get Current Location"</span>,<span class="hljs-string">"lastGeolocation"</span>:<span class="hljs-string">"{\"timestamp\":1416804388000,\"longitude\":138.65011800080538,\"latitude\":-34.79561974760145,\"speed\":0,\"accuracy\":10,\"heading\":294,\"altitude\":31.9000244140625}"</span>,<span class="hljs-string">"Android"</span>:{<span class="hljs-string">"bubbleParent"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"manualMode"</span>:<span class="hljs-literal">false</span>,<span class="hljs-string">"apiName"</span>:<span class="hljs-string">"Ti.Geolocation.Android"</span>,<span class="hljs-string">"accuracy"</span>:<span class="hljs-number">2</span>},<span class="hljs-string">"locationServicesEnabled"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"distanceFilter"</span>:<span class="hljs-number">10</span>,<span class="hljs-string">"accuracy"</span>:<span class="hljs-number">2</span>,<span class="hljs-string">"_events"</span>:{<span class="hljs-string">"location"</span>:{}},<span class="hljs-string">"apiName"</span>:<span class="hljs-string">"Ti.Geolocation"</span>},<span class="hljs-string">"provider"</span>:{<span class="hljs-string">"power"</span>:<span class="hljs-number">3</span>,<span class="hljs-string">"accuracy"</span>:<span class="hljs-number">1</span>,<span class="hljs-string">"name"</span>:<span class="hljs-string">"gps"</span>},<span class="hljs-string">"coords"</span>:{<span class="hljs-string">"timestamp"</span>:<span class="hljs-number">1416804388000</span>,<span class="hljs-string">"speed"</span>:<span class="hljs-number">0</span>,<span class="hljs-string">"altitude"</span>:<span class="hljs-number">31.9000244140625</span>,<span class="hljs-string">"longitude"</span>:<span class="hljs-number">138.65011800080538</span>,<span class="hljs-string">"latitude"</span>:-<span class="hljs-number">34.79561974760145</span>,<span class="hljs-string">"accuracy"</span>:<span class="hljs-number">10</span>,<span class="hljs-string">"heading"</span>:<span class="hljs-number">294</span>,<span class="hljs-string">"altitudeAccuracy"</span>:null},<span class="hljs-string">"bubbles"</span>:<span class="hljs-literal">false</span>,<span class="hljs-string">"success"</span>:<span class="hljs-literal">true</span>,<span class="hljs-string">"code"</span>:<span class="hljs-number">0</span>,<span class="hljs-string">"cancelBubble"</span>:<span class="hljs-literal">false</span>}
+[INFO] :   URL: https:<span class="hljs-comment">//maps.googleapis.com/maps/api/directions/json?origin=-34.79561974760145,138.65011800080538&amp;destination=-37.922783,145.046548&amp;sensor=true</span>
+[DEBUG] :  Window: Checkpoint: postWindowCreated()
+[INFO] :   u: Making Creator dynamically
+[INFO] :   I/Google Maps Android API: Google Play services client version: <span class="hljs-number">6171000</span>
+[INFO] :   I/Google Maps Android API: Google Play services package version: <span class="hljs-number">6188034</span>
+[DEBUG] :  dalvikvm: GC_CONCURRENT freed <span class="hljs-number">701</span>K, <span class="hljs-number">13</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">13848</span>K/<span class="hljs-number">15879</span>K, paused <span class="hljs-number">17</span>ms+<span class="hljs-number">13</span>ms, total <span class="hljs-number">61</span>ms
+[DEBUG] :  dalvikvm: GC_CONCURRENT freed <span class="hljs-number">787</span>K, <span class="hljs-number">13</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">14507</span>K/<span class="hljs-number">16647</span>K, paused <span class="hljs-number">12</span>ms+<span class="hljs-number">3</span>ms, total <span class="hljs-number">45</span>ms
+[DEBUG] :  dalvikvm: WAIT_FOR_CONCURRENT_GC blocked <span class="hljs-number">32</span>ms
+[DEBUG] :  dalvikvm: GC_FOR_ALLOC freed <span class="hljs-number">869</span>K, <span class="hljs-number">16</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">14734</span>K/<span class="hljs-number">17351</span>K, paused <span class="hljs-number">33</span>ms, total <span class="hljs-number">33</span>ms
+[DEBUG] :  dalvikvm: GC_CONCURRENT freed <span class="hljs-number">692</span>K, <span class="hljs-number">12</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">15880</span>K/<span class="hljs-number">17863</span>K, paused <span class="hljs-number">4</span>ms+<span class="hljs-number">3</span>ms, total <span class="hljs-number">42</span>ms
+[DEBUG] :  dalvikvm: WAIT_FOR_CONCURRENT_GC blocked <span class="hljs-number">29</span>ms
+[DEBUG] :  REQUEST: Using server: https:<span class="hljs-comment">//clients4.google.com/glm/mmap/api</span>
+[DEBUG] :  REQUEST: Add Data Request: <span class="hljs-number">75</span>
+[DEBUG] :  dalvikvm: GC_CONCURRENT freed <span class="hljs-number">1373</span>K, <span class="hljs-number">14</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">16586</span>K/<span class="hljs-number">19271</span>K, paused <span class="hljs-number">19</span>ms+<span class="hljs-number">34</span>ms, total <span class="hljs-number">217</span>ms
+[DEBUG] :  REQUEST: Add Data Request: <span class="hljs-number">75</span>
+[DEBUG] :  REQUEST: Connection opened to:https:<span class="hljs-comment">//clients4.google.com/glm/mmap/api</span>
+[DEBUG] :  REQUEST: Open Connection
+[DEBUG] :  USER_EVENTS: Event: type=<span class="hljs-number">78</span>, status: MD, data: T
+[INFO] :   [{<span class="hljs-string">"distance"</span>:{<span class="hljs-string">"text"</span>:<span class="hljs-string">"0.1 km"</span>,<span class="hljs-string">"value"</span>:<span class="hljs-number">121</span>},<span class="hljs-string">"duration"</span>:{<span class="hljs-string">"text"</span>:<span class="hljs-string">"1 min"</span>,<span class="hljs-string">"value"</span>:<span class="hljs-number">10</span>},<span class="hljs-string">"end_location"</span>:{<span class="hljs-string">"lat"</span>:-<span class="hljs-number">34.79657830000001</span>,<span class="hljs-string">"lng"</span>:<span class="hljs-number">138.6491145</span>},&lt;SNIP&gt;
+[DEBUG] :  adding <span class="hljs-keyword">new</span> route
+[DEBUG] :  AbsListView: Get MotionRecognitionManager
+[DEBUG] :  dalvikvm: GC_CONCURRENT freed <span class="hljs-number">1397</span>K, <span class="hljs-number">14</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">17184</span>K/<span class="hljs-number">19975</span>K, paused <span class="hljs-number">15</span>ms+<span class="hljs-number">4</span>ms, total <span class="hljs-number">84</span>ms
+[DEBUG] :  dalvikvm: WAIT_FOR_CONCURRENT_GC blocked <span class="hljs-number">60</span>ms
+[DEBUG] :  USER_EVENTS: Event: type=<span class="hljs-number">113</span>, status: mc, data:
+[DEBUG] :  REQUEST: Add Data Request: <span class="hljs-number">147</span>
+[WARN] :   ResourceType: Failure getting entry <span class="hljs-keyword">for</span> <span class="hljs-number">0x010802c0</span> (t=<span class="hljs-number">7</span> e=<span class="hljs-number">704</span>) in package <span class="hljs-number">0</span> (error -<span class="hljs-number">75</span>)
+[WARN] :   ResourceType: Failure getting entry <span class="hljs-keyword">for</span> <span class="hljs-number">0x010802c0</span> (t=<span class="hljs-number">7</span> e=<span class="hljs-number">704</span>) in package <span class="hljs-number">0</span> (error -<span class="hljs-number">75</span>)
+[DEBUG] :  HTTPClient: The persistent handle is disposed.
+[DEBUG] :  USER_EVENTS: Event: type=<span class="hljs-number">58</span>, status: gl, data: |r=<span class="hljs-number">8</span>|g=<span class="hljs-number">8</span>|b=<span class="hljs-number">8</span>|a=<span class="hljs-number">0</span>|d=<span class="hljs-number">24</span>|s=<span class="hljs-number">8</span>|v=ARM|i=OpenGL ES-CM <span class="hljs-number">1.1</span>|c=Mali-<span class="hljs-number">400</span> MP|e=t|
+[DEBUG] :  REQUEST: Processing DataRequest: com.google.maps.api.android.lib6.b.d@<span class="hljs-number">42</span>d9b6a0
+[DEBUG] :  REQUEST: Processing DataRequest: com.google.maps.api.android.lib6.gmm6.d.h@<span class="hljs-number">431</span>cf660
+[DEBUG] :  REQUEST: Processing DataRequest: com.google.maps.api.android.lib6.gmm6.n.o@<span class="hljs-number">42</span>c9d988
+[DEBUG] :  REQUEST: DRD(<span class="hljs-number">0</span>): <span class="hljs-number">62</span>|<span class="hljs-number">75</span>|<span class="hljs-number">75</span>, <span class="hljs-number">1</span>s, &lt;<span class="hljs-number">1</span>kb
+[DEBUG] :  REQUEST: Close
+[DEBUG] :  USER_EVENTS: Event: type=<span class="hljs-number">22</span>, status: fb, data: <span class="hljs-number">1122</span>
+[DEBUG] :  REQUEST: Connection opened to:https:<span class="hljs-comment">//clients4.google.com/glm/mmap/api</span>
+[DEBUG] :  REQUEST: Open Connection
+[DEBUG] :  dalvikvm: GC_FOR_ALLOC freed <span class="hljs-number">1469</span>K, <span class="hljs-number">15</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">17508</span>K/<span class="hljs-number">20551</span>K, paused <span class="hljs-number">89</span>ms, total <span class="hljs-number">89</span>ms
+[DEBUG] :  USER_EVENTS: Event: type=<span class="hljs-number">22</span>, status: lb, data: <span class="hljs-number">1178</span>
+[DEBUG] :  USER_EVENTS: Event: type=<span class="hljs-number">22</span>, status: flbs, data: fb=<span class="hljs-number">1122</span>|lb=<span class="hljs-number">1178</span>|s=<span class="hljs-number">61</span>
+[DEBUG] :  REQUEST: Add Data Request: <span class="hljs-number">7</span>
+[DEBUG] :  Stop Handler run
+[DEBUG] :  Remove Handler run
+[DEBUG] :  Window: Window is closed normally.
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 24th 2014, 4:11:00 am">November 24th 2014</span>
+				by <span class='authorname'>Chris Paraskiv</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>events</span></li>
+					
+						<li><span class='tagname'>maps</span></li>
+					
+						<li><span class='tagname'>tracking</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-284037">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>This may be irrelevant but the way Android Activity event handlers are used has changed slightly in Ti 3.4. See <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.Android.Activity">the section in the docs on Android Activities</a> for details</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 25th 2014, 9:12:46 am">November 25th 2014</span>
+								by <span class='authorname'>Terry Morgan</span><br>
+								<a class="icon-bg icon-link" href="question/179242/update-map-when-location-changes#answer-284037" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Terry, using the Window level events defintely has fixed up the issue, so your answer is pretty right on.</p>
+<p>I had missed that part of the doco.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 26th 2014, 2:27:03 am">November 26th 2014</span>
+											by <span class='authorname'>Chris Paraskiv</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

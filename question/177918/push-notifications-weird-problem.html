@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Push Notifications weird problem » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Push Notifications weird problem</h1>
+		</header>
+		<section>
+			<p>Hello, i am developing an android app which contains push notifications. The app works properly with the push notif. service but there is a small problem. When app opens, it logins to acs, retrieves device token and then it subscribes to a channel. But if i close the app and then reopen it, the function <code>CloudPush.retrieveDeviceToken()</code> cant run. Here is the code</p>
+<p>alloy.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> com = <span class="hljs-built_in">require</span>(<span class="hljs-string">'common'</span>);
+com.loginToACS();
+</code></pre><p>common.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+exports.loginToACS = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> (Titanium.Network.networkType == Titanium.Network.NETWORK_NONE) {
+        alert(L(<span class="hljs-string">'alert_nonetwork'</span>));        
+    } <span class="hljs-keyword">else</span> {
+        Cloud.debug = <span class="hljs-literal">true</span>;
+        <span class="hljs-comment">// Login to Titanium Cloud</span>
+        Cloud.Users.login({
+            login : <span class="hljs-string">'myLogin'</span>,
+            password : <span class="hljs-string">'myPass'</span>
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                Ti.API.info(<span class="hljs-string">'Login success!'</span>);
+                registerForACSNotifications();
+            } <span class="hljs-keyword">else</span> {
+                alert(<span class="hljs-string">'Error: '</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+            }
+        });
+    }
+};
+
+<span class="hljs-comment">// Retrieve device token and subscribe to channel in success</span>
+<span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloudpush'</span>);
+<span class="hljs-keyword">var</span> deviceToken = <span class="hljs-literal">null</span>;
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForACSNotifications</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">try</span> {
+        CloudPush.retrieveDeviceToken({
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span>(<span class="hljs-params">e</span>) </span>{
+                Cloud.PushNotifications.subscribe({
+                    channel : <span class="hljs-string">'myChannel'</span>,
+                    type : <span class="hljs-string">'gcm'</span>,
+                    device_token : e.deviceToken
+                }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                    <span class="hljs-keyword">if</span> (e.success) {
+                        Ti.API.info(<span class="hljs-string">'Success! '</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                    } <span class="hljs-keyword">else</span> {
+                        Ti.API.info(<span class="hljs-string">'Error:\\n '</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                    }
+                });
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span>(<span class="hljs-params">e</span>) </span>{
+                Ti.API.info(<span class="hljs-string">'Failed to register for push! '</span> + e.error);
+            }
+        });
+        CloudPush.enabled = <span class="hljs-literal">true</span>;
+        CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"evt.payload: "</span> + evt.payload);
+        });
+    } <span class="hljs-keyword">catch</span>(x) {
+        alert(L(<span class="hljs-string">'alert_acsregerror'</span>));
+    }
+}
+</code></pre><p>When the app reopens, it goes to <code>catch(x) { alert(L(&amp;#39;alert_acsregerror&amp;#39;)); }</code><br>Where is the problem? Should i get deviceToken once and then save it locally and use it for ever? The app must get device token every time it opens?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 23rd 2014, 4:09:27 pm">September 23rd 2014</span>
+				by <span class='authorname'>Teo Xant</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>cloudpush</span></li>
+					
+						<li><span class='tagname'>devicetoken</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>6 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>And here is the log when it pops the error</p>
+<pre><code class="hljs">[INFO] :   Login success!
+[WARN] :   W/System<span class="hljs-class">.err</span>: java<span class="hljs-class">.lang</span><span class="hljs-class">.IllegalStateException</span>: APSCloudPush has not been enabled. Call APSCloud.<span class="hljs-function"><span class="hljs-title">enable</span><span class="hljs-params">(context, key)</span></span> to enable.
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at com<span class="hljs-class">.appcelerator</span><span class="hljs-class">.cloudpush</span><span class="hljs-class">.APSCloudPush</span><span class="hljs-class">.throwUnlessEnabled</span>(APSCloudPush<span class="hljs-class">.java</span>:<span class="hljs-number">1083</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at com<span class="hljs-class">.appcelerator</span><span class="hljs-class">.cloudpush</span><span class="hljs-class">.APSCloudPush</span><span class="hljs-class">.retrieveDeviceToken</span>(APSCloudPush<span class="hljs-class">.java</span>:<span class="hljs-number">912</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at ti<span class="hljs-class">.cloudpush</span><span class="hljs-class">.CloudpushModuleGeneric</span><span class="hljs-class">.retrieveDeviceToken</span>(CloudpushModuleGeneric<span class="hljs-class">.java</span>:<span class="hljs-number">270</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.nativeCallProperty</span>(Native Method)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.callProperty</span>(V8Object<span class="hljs-class">.java</span>:<span class="hljs-number">69</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollProxy</span><span class="hljs-class">.handleMessage</span>(KrollProxy<span class="hljs-class">.java</span>:<span class="hljs-number">1121</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Handler</span><span class="hljs-class">.dispatchMessage</span>(Handler<span class="hljs-class">.java</span>:<span class="hljs-number">95</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Looper</span><span class="hljs-class">.loop</span>(Looper<span class="hljs-class">.java</span>:<span class="hljs-number">137</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollRuntime</span><span class="hljs-variable">$KrollRuntimeThread</span>.<span class="hljs-function"><span class="hljs-title">run</span><span class="hljs-params">(KrollRuntime.java:<span class="hljs-number">112</span>)</span></span>
+[INFO] :   ALERT: (KrollRuntimeThread) [<span class="hljs-number">144</span>,<span class="hljs-number">5623</span>] Failed to register <span class="hljs-keyword">for</span> Notification Service, check your connection
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="September 23rd 2014, 4:29:35 pm">September 23rd 2014</span>
+								by <span class='authorname'>Teo Xant</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I am also facing an issue once i close the app.. i just posted a <a href="https:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;177913&#x2F;not-receiving-push-notification-when-app-not-running">question</a> a while back. May be we are facing a similar issue</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 23rd 2014, 4:43:33 pm">September 23rd 2014</span>
+								by <span class='authorname'>Vishnu Khaunte</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>i think that device token must obtained once because its unique to each application and device. Device token should stored locally if the app has the option to turn off notifications, so you need device token to call <code>Cloud.PushNotifications.unsubscribe()</code> method. Iam not sure about that..i ll try it now</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 23rd 2014, 5:12:21 pm">September 23rd 2014</span>
+								by <span class='authorname'>Teo Xant</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Even i will try. So strange that i am facing this issue last few days. Previously i never faced this issue. Please let me know if you have any luck</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 24th 2014, 3:26:15 am">September 24th 2014</span>
+								by <span class='authorname'>Vishnu Khaunte</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Storing the device token did not work. But what worked was when i downgraded the cloudpush version to 3.2.0 in my tiapp i was able to receive push notifications when the app was closed. But i am unable to find any documentation in the appcelerator or any ticket raised on this issue.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 24th 2014, 4:15:48 pm">September 24th 2014</span>
+								by <span class='authorname'>Vishnu Khaunte</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Vishnu for me, saving device token locally and then use it for toggle off push notifications, worked fine! I put some extra code for obtaining device token once at first run and then save it locally. Now it works fine. Sorry for the late answer.. :&#x2F;</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 6th 2014, 11:57:51 am">October 6th 2014</span>
+								by <span class='authorname'>Teo Xant</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

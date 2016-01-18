@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy Models and Relationships » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy Models and Relationships</h1>
+		</header>
+		<section>
+			<p>I&#39;m still in the process of evaluating Alloy (see <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;178036&#x2F;choosing-between-alloy-and-html5">this question</a> if you have general comments) and one thing I wanted to confirm was my understanding of models and relationships.</p>
+<p>From what I understand Alloy&#x2F;Backbone does not natively support relationships in models.  So if I have a &quot;Quiz&quot; which has &quot;Questions&quot; and questions with &quot;answers&quot;, can I not model this in models?  I&#39;m a bit baffled as this would seem to be a necessity for any real application.  I read about integrating with backbone-associate or supermodel, but is that really required?  </p>
+<p>I feel like I&#39;m missing something.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 29th 2014, 2:27:21 pm">September 29th 2014</span>
+				by <span class='authorname'>Frank A</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>model</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-282750">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Right, models do not specifically encode table relationships. But this is because the underlying data structure may have know knowledge or mechanism for creating and enforcing relationships. Not every storage location will be a relational SQL data store. You could be storing data in an app property, Mongo database, JSON-ized array, etc.</p>
+<p>You will have to enforce relations programatically. </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> coll = Alloy.createCollection(<span class="hljs-string">'myModel'</span>);
+coll.fetch({
+   query: <span class="hljs-string">'SELECT * FROM table1 JOIN table2 ON table1.foreignKey = table2.key'</span>
+});
+</code></pre><p>Or, probably better if you&#39;ll be doing this sort of query more than once or twice, is to extend the collection to do the custom query for you:</p>
+<pre><code class="hljs">extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span> </span>{
+    _.extend(Collection.prototype, {
+    getRelatedQuery: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">this</span>.fetch({
+            query: {
+                statement: <span class="hljs-string">'SELECT * FROM table1 JOIN table2 ON table1.foreignKey = table2.key'</span>
+            }
+        });
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+    }
+});
+</code></pre><p>Then use it by:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> coll = Alloy.createCollection(<span class="hljs-string">'myModel'</span>);
+coll.getRelatedQuery();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 29th 2014, 3:09:28 pm">September 29th 2014</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/178045/alloy-models-and-relationships#answer-282750" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for the response.  Your comments are related to fetching the data for the relationship, but what about defining it to begin with?  Coming from a Java background I&#39;m trying to (perhaps incorrectly) figure out where I would model&#x2F;define the relationship, e.g…</p>
+<pre><code class="hljs">
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">exam</span></span>{
+
+<span class="hljs-built_in">List</span>&lt;Question&gt; questions;
+
+}
+</code></pre><p>From the examples I&#39;ve seen the attributes of a given model are only defined in the config&#x2F;columns meta data, but that wouldn&#39;t apply here.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 29th 2014, 3:19:46 pm">September 29th 2014</span>
+											by <span class='authorname'>Frank A</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>None of the local storage mechanisms enforce relationships (e.g. SQLite, file system, app property). So while we could probably have designed a models&#x2F;collections mechanism for doing so, it would be a band-aid over the underlying mechanisms and probably not super-robust. Of course, that would have meant not using Backbone as the framework for our models&#x2F;collections system.</p>
+<p>Don&#39;t rely too heavily on your Java background. JavaScript is not Java. And the environments in which JavaScript is typically used rarely use the sorts of backend resources (SQLServer, Oracle, etc.) that you&#39;d use with a Java environment.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 30th 2014, 12:27:00 pm">September 30th 2014</span>
+											by <span class='authorname'>Tim Poulsen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,544 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Push notification types for iOS8 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Push notification types for iOS8</h1>
+		</header>
+		<section>
+			<p>I had push notifications in my app for iOS, and till iOS7.1 it was working fine. Now on iOS8 i got warning message while trying to register for push:</p>
+<pre><code class="hljs">[WARN] :   Passing `types` <span class="hljs-keyword">to</span> registerForPushNotifications <span class="hljs-keyword">is</span> <span class="hljs-keyword">not</span> supported <span class="hljs-keyword">on</span> iOS <span class="hljs-number">8</span> <span class="hljs-keyword">and</span> greater. <span class="hljs-keyword">Use</span> registerUserNotificationSettings <span class="hljs-keyword">to</span> <span class="hljs-keyword">register</span> notification types.
+</code></pre><p>My question is… where is documentation for this new method…?</p>
+<p>Working with Ti SDK 3.4.0.RC2, iOS8 device, Studio 3.4.0</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 24th 2014, 10:21:44 am">September 24th 2014</span>
+				by <span class='authorname'>Tomasz Krzywda</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>sdk 3.4.0</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-282677">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>This should work for you. The iOS8 + 3.4 test is there to ensure you don&#39;t try to run the userNotifications request on pre-3.4 SDKs otherwise it fails.</p>
+<pre><code class="hljs">        Alloy.Globals.registerForPush = function() {
+
+      <span class="hljs-keyword">var</span> onSuccess = function(<span class="hljs-keyword">e</span>) {
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.deviceToken) {
+          console.<span class="hljs-literal">log</span>(<span class="hljs-string">"TOKEN: "</span> + <span class="hljs-keyword">e</span>.deviceToken);
+        }
+      };
+
+      <span class="hljs-keyword">var</span> receivePush = function(<span class="hljs-keyword">e</span>) {
+        console.<span class="hljs-literal">log</span>('Received push: ' + JSON.stringify(<span class="hljs-keyword">e</span>));
+      };
+
+      <span class="hljs-comment">// Save the device token for subsequent API calls</span>
+
+      <span class="hljs-keyword">var</span> deviceTokenError = function(<span class="hljs-keyword">e</span>) {
+        console.<span class="hljs-literal">log</span>('Failed to register <span class="hljs-keyword">for</span> push notifications! ' + <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>);
+      };
+
+      <span class="hljs-keyword">if</span> (parseInt(Titanium.Platform.<span class="hljs-keyword">version</span>) === 8 &amp;&amp; parseFloat(Ti.<span class="hljs-keyword">version</span>) &gt; 3.3) {
+        console.<span class="hljs-literal">log</span>(<span class="hljs-string">"==== iOS8 detected ===="</span>);
+
+        Ti.<span class="hljs-keyword">App</span>.iOS.addEventListener('usernotificationsettings', <span class="hljs-keyword">e</span> = function() {
+          Ti.<span class="hljs-keyword">App</span>.iOS.removeEventListener('usernotificationsettings', <span class="hljs-keyword">e</span>);
+
+          Ti.Network.registerForPushNotifications({
+            success : onSuccess,
+            <span class="hljs-keyword">error</span> : deviceTokenError,
+            callback : receivePush
+          });
+        });
+
+        Ti.<span class="hljs-keyword">App</span>.iOS.registerUserNotificationSettings({
+          types : [Ti.<span class="hljs-keyword">App</span>.iOS.USER_NOTIFICATION_TYPE_ALERT, Ti.<span class="hljs-keyword">App</span>.iOS.USER_NOTIFICATION_TYPE_SOUND, Ti.<span class="hljs-keyword">App</span>.iOS.USER_NOTIFICATION_TYPE_BADGE]
+        });
+      } <span class="hljs-keyword">else</span> {
+        console.<span class="hljs-literal">log</span>(<span class="hljs-string">"==== iOS7 detected ===="</span>);
+        Ti.Network.registerForPushNotifications({
+          types : [Ti.<span class="hljs-keyword">App</span>.iOS.USER_NOTIFICATION_TYPE_ALERT, Ti.<span class="hljs-keyword">App</span>.iOS.USER_NOTIFICATION_TYPE_SOUND, Ti.<span class="hljs-keyword">App</span>.iOS.USER_NOTIFICATION_TYPE_BADGE],
+          success : onSuccess,
+          <span class="hljs-keyword">error</span> : deviceTokenError,
+          callback : receivePush
+        });
+      }
+
+    };
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 25th 2014, 11:09:39 am">September 25th 2014</span>
+								by <span class='authorname'>Jason Kneen</span><br>
+								<a class="icon-bg icon-link" href="question/177934/push-notification-types-for-ios8#answer-282677" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>PS. the documentation is being updated to reflect all this</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2014, 11:10:13 am">September 25th 2014</span>
+											by <span class='authorname'>Jason Kneen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>PPS: Online documentation for SDKs is released at nearly the same time the SDK is released as most devs are too dumb to make a note of the sdk level of the API.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2014, 11:12:56 am">September 25th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>PPPS: For those using urban airship and fokke&#39;s urbanairport, update hack:</p>
+<p><a href="https:&#x2F;&#x2F;gist.github.com&#x2F;sfeather&#x2F;cade27befd6ce89d6efd">https:&#x2F;&#x2F;gist.github.com&#x2F;sfeather&#x2F;cade27befd6ce89d6efd</a></p>
+<p>It is anything but dry, but it worked to get a test build out the door this morning.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2014, 11:14:07 am">September 25th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yeah, this is good answer. I have read about it yesterday in release notes for 3.4.0.RC2, but forgot to update question…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2014, 12:34:33 pm">September 25th 2014</span>
+											by <span class='authorname'>Tomasz Krzywda</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I cloned your solution and the console doesn&#39;t show any device token log which I need to send through xhr to a remote server database, I tried many other ways but it seems to me that it doesn&#39;t listen to the onSuccess at all ! Please advise as I need to update an important app rejected by apple due to the notification registration issue after the iOS8 updates ! is there any thing I&#39;m missing in the tiapp.xml for example? I think it shouldn&#39;t need any key in the tiapp.xml as I read in the documentation mentioned <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Subscribing_to_push_notifications-section-37551717_Subscribingtopushnotifications-ObtainingadevicetokenoniOS">Here http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Subscribing_to_push_notifications-section-37551717_Subscribingtopushnotifications-ObtainingadevicetokenoniOS</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 4th 2014, 8:52:30 am">November 4th 2014</span>
+											by <span class='authorname'>Talal Manaa</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This please!!!  I have been trying to get this to work FOREVER and it seems impossible now… about to give up and switch platforms..nothing works.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 25th 2015, 7:16:09 pm">May 25th 2015</span>
+											by <span class='authorname'>Chad Stachowicz</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Chad Stachowicz: What problems do you have? Maybe some code? Write your question, so that we could help you, right now - no one can ;p</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 25th 2015, 8:07:46 pm">May 25th 2015</span>
+											by <span class='authorname'>Tomasz Krzywda</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-286019">
+				
+						<section>
+							<p>please check this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//*********************  PUSH NOTIFICATIONS **************************/</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">subscribeToken</span><span class="hljs-params">(token)</span> </span>{
+    Cloud.PushNotifications.subscribeToken({
+            device_token : token,
+            type : VARS._iOS ? <span class="hljs-string">"ios"</span> : <span class="hljs-string">"android"</span>,
+            channel : <span class="hljs-string">"news"</span>,
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                Titanium.App.Properties.setBool(<span class="hljs-string">"tokenSubscribed"</span>, <span class="hljs-literal">true</span>);
+            }
+        });
+    }
+    <span class="hljs-keyword">if</span> (VARS._platform == VARS._android) {
+        <span class="hljs-keyword">var</span> CloudPush = require(<span class="hljs-string">'ti.cloudpush'</span>);
+        CloudPush.retrieveDeviceToken({
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span><span class="hljs-params">(e)</span> </span>{
+                Ti.API.info(<span class="hljs-string">'Device Token: '</span> + e.deviceToken);
+                Ti.App.Properties.setString(<span class="hljs-string">"tokenANDROID"</span>, e.deviceToken);
+                <span class="hljs-keyword">if</span> (!Titanium.App.Properties.getBool(<span class="hljs-string">'tokenSubscribed'</span>, <span class="hljs-literal">false</span>)) {
+                    subscribeToken(e.deviceToken);
+                }
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span><span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-comment">//alert('Failed to register for push! ' + e.error);</span>
+            }
+        });
+        CloudPush.enabled = <span class="hljs-literal">true</span>;
+
+        CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(evt)</span> </span>{
+            alert(evt.payload);
+        });
+
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (VARS._platform == VARS._iPhone) {
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">tokenReceivedIOS</span><span class="hljs-params">(e)</span> </span>{
+            Ti.App.Properties.setString(<span class="hljs-string">"tokenIOS"</span>, e.deviceToken);
+            <span class="hljs-keyword">if</span> (!Titanium.App.Properties.getBool(<span class="hljs-string">'tokenSubscribed'</span>, <span class="hljs-literal">false</span>)) {
+                subscribeToken(e.deviceToken);
+            }
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">errorCallbackPush</span><span class="hljs-params">(e)</span> </span>{
+            Ti.App.Properties.setString(<span class="hljs-string">"tokenIOS"</span>, <span class="hljs-string">""</span>);
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">messageCallbackPush</span><span class="hljs-params">(thePush)</span> </span>{
+            alert(thePush);  <span class="hljs-comment">//or alert(thePush.data);</span>
+        }
+
+
+        <span class="hljs-keyword">if</span> (Ti.Platform.name == <span class="hljs-string">"iPhone OS"</span> &amp;&amp; parseInt(Ti.Platform.version.split(<span class="hljs-string">"."</span>)[<span class="hljs-number">0</span>]) &gt;= <span class="hljs-number">8</span>) {
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span><span class="hljs-params">()</span> </span>{
+                Ti.Network.registerForPushNotifications({
+                    success: tokenReceivedIOS,
+                    error: errorCallbackPush,
+                    <span class="hljs-keyword">callback</span>: messageCallbackPush
+                });
+                <span class="hljs-comment">// Remove event listener once registered for push notifications</span>
+                Ti.App.iOS.removeEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush); 
+            };
+
+            <span class="hljs-comment">// Wait for user settings to be registered before registering for push notifications</span>
+            Ti.App.iOS.addEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush);
+
+            <span class="hljs-comment">// Register notification types to use</span>
+            Ti.App.iOS.registerUserNotificationSettings({
+                types: [
+                    Ti.App.iOS.USER_NOTIFICATION_TYPE_ALERT,
+                    Ti.App.iOS.USER_NOTIFICATION_TYPE_SOUND,
+                    Ti.App.iOS.USER_NOTIFICATION_TYPE_BADGE
+                ]
+            });
+
+        }<span class="hljs-keyword">else</span>{
+            <span class="hljs-comment">//This is in iOS &lt;8</span>
+            <span class="hljs-comment">/**
+             * Register user for push notification
+             * @param {Object} p
+             */</span>
+            <span class="hljs-keyword">var</span> registerForPushIOS = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(p)</span> </span>{
+                Titanium.Network.registerForPushNotifications({
+                    types : [Titanium.Network.NOTIFICATION_TYPE_BADGE, Titanium.Network.NOTIFICATION_TYPE_ALERT, Titanium.Network.NOTIFICATION_TYPE_SOUND],
+                    success : tokenReceivedIOS,
+                    error : errorCallbackPush,
+                    <span class="hljs-keyword">callback</span> : messageCallbackPush
+                });
+            };
+            registerForPushIOS();
+        }
+
+
+}
+
+    <span class="hljs-comment">//********************* END PUSH NOTIFICATION ************************/</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 21st 2015, 7:58:46 am">February 21st 2015</span>
+								by <span class='authorname'>sami alnaabi</span><br>
+								<a class="icon-bg icon-link" href="question/177934/push-notification-types-for-ios8#answer-286019" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-286021">
+				
+						<section>
+							<p>please check this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//*********************  PUSH NOTIFICATIONS **************************/</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">subscribeToken</span><span class="hljs-params">(token)</span> </span>{
+    Cloud.PushNotifications.subscribeToken({
+            device_token : token,
+            type : VARS._iOS ? <span class="hljs-string">"ios"</span> : <span class="hljs-string">"android"</span>,
+            channel : <span class="hljs-string">"news"</span>,
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                Titanium.App.Properties.setBool(<span class="hljs-string">"tokenSubscribed"</span>, <span class="hljs-literal">true</span>);
+            }
+        });
+    }
+    <span class="hljs-keyword">if</span> (VARS._platform == VARS._android) {
+        <span class="hljs-keyword">var</span> CloudPush = require(<span class="hljs-string">'ti.cloudpush'</span>);
+        CloudPush.retrieveDeviceToken({
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span><span class="hljs-params">(e)</span> </span>{
+                Ti.API.info(<span class="hljs-string">'Device Token: '</span> + e.deviceToken);
+                Ti.App.Properties.setString(<span class="hljs-string">"tokenANDROID"</span>, e.deviceToken);
+                <span class="hljs-keyword">if</span> (!Titanium.App.Properties.getBool(<span class="hljs-string">'tokenSubscribed'</span>, <span class="hljs-literal">false</span>)) {
+                    subscribeToken(e.deviceToken);
+                }
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span><span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-comment">//alert('Failed to register for push! ' + e.error);</span>
+            }
+        });
+        CloudPush.enabled = <span class="hljs-literal">true</span>;
+
+        CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(evt)</span> </span>{
+            alert(evt.payload);
+        });
+
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (VARS._platform == VARS._iPhone) {
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">tokenReceivedIOS</span><span class="hljs-params">(e)</span> </span>{
+            Ti.App.Properties.setString(<span class="hljs-string">"tokenIOS"</span>, e.deviceToken);
+            <span class="hljs-keyword">if</span> (!Titanium.App.Properties.getBool(<span class="hljs-string">'tokenSubscribed'</span>, <span class="hljs-literal">false</span>)) {
+                subscribeToken(e.deviceToken);
+            }
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">errorCallbackPush</span><span class="hljs-params">(e)</span> </span>{
+            Ti.App.Properties.setString(<span class="hljs-string">"tokenIOS"</span>, <span class="hljs-string">""</span>);
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">messageCallbackPush</span><span class="hljs-params">(thePush)</span> </span>{
+            alert(thePush);  <span class="hljs-comment">//or alert(thePush.data);</span>
+        }
+
+
+        <span class="hljs-keyword">if</span> (Ti.Platform.name == <span class="hljs-string">"iPhone OS"</span> &amp;&amp; parseInt(Ti.Platform.version.split(<span class="hljs-string">"."</span>)[<span class="hljs-number">0</span>]) &gt;= <span class="hljs-number">8</span>) {
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span><span class="hljs-params">()</span> </span>{
+                Ti.Network.registerForPushNotifications({
+                    success: tokenReceivedIOS,
+                    error: errorCallbackPush,
+                    <span class="hljs-keyword">callback</span>: messageCallbackPush
+                });
+                <span class="hljs-comment">// Remove event listener once registered for push notifications</span>
+                Ti.App.iOS.removeEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush); 
+            };
+
+            <span class="hljs-comment">// Wait for user settings to be registered before registering for push notifications</span>
+            Ti.App.iOS.addEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush);
+
+            <span class="hljs-comment">// Register notification types to use</span>
+            Ti.App.iOS.registerUserNotificationSettings({
+                types: [
+                    Ti.App.iOS.USER_NOTIFICATION_TYPE_ALERT,
+                    Ti.App.iOS.USER_NOTIFICATION_TYPE_SOUND,
+                    Ti.App.iOS.USER_NOTIFICATION_TYPE_BADGE
+                ]
+            });
+
+        }<span class="hljs-keyword">else</span>{
+            <span class="hljs-comment">//This is in iOS &lt;8</span>
+            <span class="hljs-comment">/**
+             * Register user for push notification
+             * @param {Object} p
+             */</span>
+            <span class="hljs-keyword">var</span> registerForPushIOS = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(p)</span> </span>{
+                Titanium.Network.registerForPushNotifications({
+                    types : [Titanium.Network.NOTIFICATION_TYPE_BADGE, Titanium.Network.NOTIFICATION_TYPE_ALERT, Titanium.Network.NOTIFICATION_TYPE_SOUND],
+                    success : tokenReceivedIOS,
+                    error : errorCallbackPush,
+                    <span class="hljs-keyword">callback</span> : messageCallbackPush
+                });
+            };
+            registerForPushIOS();
+        }
+
+
+}
+
+    <span class="hljs-comment">//********************* END PUSH NOTIFICATION ************************/</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 21st 2015, 8:17:58 am">February 21st 2015</span>
+								by <span class='authorname'>sami alnaabi</span><br>
+								<a class="icon-bg icon-link" href="question/177934/push-notification-types-for-ios8#answer-286021" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-283495">
+				
+						<section>
+							<p>can someone advise me what do I change from the below code. The developer isn&#39;t responding </p>
+<p>Thanks and Regards<br>Andrew</p>
+<p>pushmodule.js</p>
+<p>&#x2F;**</p>
+<ul>
+<li></li>
+<li>@param {Object} p</li>
+<li>@config {String} URBAN_AIRSHIP_APP_KEY</li>
+<li><p>@config {String} URBAN_AIRSHIP_MASTER_SECRET<br>*&#x2F;<br>exports.registerDisplayUrbanAirshipPush=function(p)<br>{</p>
+<p> Titanium.Network.registerForPushNotifications({</p>
+<pre><code class="hljs"> types:[
+     Titanium<span class="hljs-class">.Network</span><span class="hljs-class">.NOTIFICATION_TYPE_BADGE</span>,
+     Titanium<span class="hljs-class">.Network</span><span class="hljs-class">.NOTIFICATION_TYPE_ALERT</span>,
+     Titanium<span class="hljs-class">.Network</span><span class="hljs-class">.NOTIFICATION_TYPE_SOUND</span>
+ ],
+ success: successCallback,
+ error: errorCallback,
+ callback: messageCallback
+</code></pre><p> });</p>
+<p> function successCallback(e) {</p>
+<pre><code class="hljs"> <span class="hljs-keyword">var</span> request = Titanium.Network.createHTTPClient({
+     onload:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+         <span class="hljs-keyword">if</span> (request.status != <span class="hljs-number">200</span> &amp;&amp; request.status != <span class="hljs-number">201</span>) {
+             request.onerror(e);
+             <span class="hljs-keyword">return</span>;
+         }
+     },
+     onerror:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+         Ti.API.info(<span class="hljs-string">"Register with Urban Airship Push Service failed. Error: "</span> + e.error);
+     }
+ });
+
+ <span class="hljs-comment">// Register device token with UA</span>
+ request.open(<span class="hljs-string">'PUT'</span>, <span class="hljs-string">'https://go.urbanairship.com/api/device_tokens/'</span>+ e.deviceToken, <span class="hljs-literal">true</span>);
+ request.setRequestHeader(<span class="hljs-string">'Authorization'</span>,<span class="hljs-string">'Basic '</span>  +Titanium.Utils.base64encode(p.URBAN_AIRSHIP_APP_KEY + <span class="hljs-string">':'</span> + p.URBAN_AIRSHIP_MASTER_SECRET));
+ request.send();
+</code></pre><p> }</p>
+<p> function errorCallback(e) {</p>
+<pre><code class="hljs"> <span class="hljs-tag">Ti</span><span class="hljs-class">.API</span><span class="hljs-class">.info</span>("<span class="hljs-tag">Error</span> <span class="hljs-tag">during</span> <span class="hljs-tag">registration</span>: " + <span class="hljs-tag">e</span><span class="hljs-class">.error</span>);
+</code></pre><p> }</p>
+<p> function messageCallback(thePush) {</p>
+<pre><code class="hljs">  <span class="hljs-atom">var</span> <span class="hljs-atom">message</span>;
+  <span class="hljs-atom">if</span>(<span class="hljs-atom">thePush</span>[<span class="hljs-string">'aps'</span>] != <span class="hljs-atom">undefined</span>) {
+       <span class="hljs-atom">if</span>(<span class="hljs-atom">thePush</span>[<span class="hljs-string">'aps'</span>][<span class="hljs-string">'alert'</span>] != <span class="hljs-atom">undefined</span>){
+            <span class="hljs-atom">if</span>(<span class="hljs-atom">thePush</span>[<span class="hljs-string">'aps'</span>][<span class="hljs-string">'alert'</span>][<span class="hljs-string">'body'</span>] != <span class="hljs-atom">undefined</span>){
+                 <span class="hljs-atom">message</span> = <span class="hljs-atom">thePush</span>[<span class="hljs-string">'aps'</span>][<span class="hljs-string">'alert'</span>][<span class="hljs-string">'body'</span>];
+            } <span class="hljs-atom">else</span> {
+                 <span class="hljs-atom">message</span> = <span class="hljs-atom">thePush</span>[<span class="hljs-string">'aps'</span>][<span class="hljs-string">'alert'</span>];
+            }
+       } 
+  } 
+</code></pre><p> }<br>}</p>
+</li>
+</ul>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 30th 2014, 11:11:16 am">October 30th 2014</span>
+								by <span class='authorname'>Andrew Harvey</span><br>
+								<a class="icon-bg icon-link" href="question/177934/push-notification-types-for-ios8#answer-283495" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

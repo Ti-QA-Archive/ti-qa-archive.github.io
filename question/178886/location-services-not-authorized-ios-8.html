@@ -1,0 +1,1246 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Location services not authorized iOS 8 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Location services not authorized iOS 8</h1>
+		</header>
+		<section>
+			<p>Hi my app no longer asks users to allow location services i have to manually go to Settings &gt; Privacy &gt; Location Services and switch it on. How can i ask for authorization and enable location services?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 5th 2014, 9:36:57 am">November 5th 2014</span>
+				by <span class='authorname'>Matt Pilott</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>location</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>5 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hi,</p>
+<p>Take a look at <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;benbahrenburg&#x2F;c4c992c8c61d197510ea">iOS 8: Geo Location Permissions Fix</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 6th 2014, 4:38:53 am">November 6th 2014</span>
+								by <span class='authorname'>Raju ®</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Half of that gist is now apart of titanium so im not sure where to add all these bits of code or if this solution is old now. Any ideas?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 6th 2014, 8:48:12 am">November 6th 2014</span>
+								by <span class='authorname'>Matt Pilott</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>This is my code post edit</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * Appcelerator Titanium Mobile
+ * Copyright (c) 2009-2010 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the Apache Public License
+ * Please see the LICENSE included with this distribution for details.
+ */</span>
+<span class="hljs-preprocessor">#ifdef USE_TI_GEOLOCATION</span>
+
+<span class="hljs-preprocessor">#import <span class="hljs-title">"GeolocationModule.h"</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">"TiApp.h"</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">"TiEvaluator.h"</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">"SBJSON.h"</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">&lt;sys/utsname.h&gt;</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">"NSData+Additions.h"</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">"APSAnalytics.h"</span></span>
+
+<span class="hljs-keyword">extern</span> <span class="hljs-built_in">NSString</span> * <span class="hljs-keyword">const</span> TI_APPLI<span class="hljs-built_in">CATION_GUID</span>;
+<span class="hljs-keyword">extern</span> <span class="hljs-built_in">BOOL</span> <span class="hljs-keyword">const</span> TI_APPLI<span class="hljs-built_in">CATION_ANALYTICS</span>;
+
+<span class="hljs-class"><span class="hljs-keyword">@interface</span> <span class="hljs-title">GeolocationCallback</span> : <span class="hljs-title">NSObject</span>&lt;<span class="hljs-title">APSHTTPRequestDelegate</span>&gt;</span>
+{
+    <span class="hljs-keyword">id</span>&lt;TiEvaluator&gt; context;
+    KrollCallback *callback;
+}
+-(<span class="hljs-keyword">id</span>)initWithCallback:(KrollCallback*)callback context:(<span class="hljs-keyword">id</span>&lt;TiEvaluator&gt;)context;
+<span class="hljs-keyword">@end</span>
+
+<span class="hljs-class"><span class="hljs-keyword">@implementation</span> <span class="hljs-title">GeolocationCallback</span></span>
+
+-(<span class="hljs-keyword">id</span>)initWithCallback:(KrollCallback*)callback_ context:(<span class="hljs-keyword">id</span>&lt;TiEvaluator&gt;)context_
+{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">self</span> = [<span class="hljs-keyword">super</span> init])
+    {
+        callback = [callback_ retain];
+        context = [context_ retain];
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+}
+
+-(<span class="hljs-keyword">void</span>)dealloc
+{
+    RELEASE_TO_NIL(callback);
+    RELEASE_TO_NIL(context);
+    [<span class="hljs-keyword">super</span> dealloc];
+}
+
+-(<span class="hljs-keyword">void</span>)start:(<span class="hljs-built_in">NSDictionary</span>*)params
+{
+    <span class="hljs-comment">// http://api.appcelerator.net/p/v1/geo</span>
+    <span class="hljs-built_in">NSString</span> *kGeolocationURL = stringWithHexString(<span class="hljs-string">@"687474703a2f2f6170692e61707063656c657261746f722e6e65742f702f76312f67656f"</span>);
+
+    <span class="hljs-built_in">NSMutableString</span> *url = [[[<span class="hljs-built_in">NSMutableString</span> alloc] init] autorelease];
+    [url appendString:kGeolocationURL];
+    [url appendString:<span class="hljs-string">@"?"</span>];
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">id</span> key <span class="hljs-keyword">in</span> params)
+    {
+        <span class="hljs-built_in">NSString</span> *value = [TiUtils stringValue:[params objectForKey:key]];
+        [url appendFormat:<span class="hljs-string">@"%@=%@&amp;"</span>,key,[value stringByAddingPercentEscapesUsingEncoding:<span class="hljs-built_in">NSUTF8StringEncoding</span>]];
+    }
+
+    APSHTTPRequest *req = [[APSHTTPRequest alloc] init];
+    [req addRequestHeader:<span class="hljs-string">@"User-Agent"</span> value:[[TiApp app] userAgent]];
+    [req setUrl:[<span class="hljs-built_in">NSURL</span> URLWithString:url]];
+    [req setDelegate:<span class="hljs-keyword">self</span>];
+    [req setMethod:<span class="hljs-string">@"GET"</span>];
+    <span class="hljs-comment">// Place it in the main thread since we're not using a queue and yet we need the</span>
+    <span class="hljs-comment">// delegate methods to be called...</span>
+    TiThreadPerformOnMainThread(^{
+        [req send];
+        [req autorelease];
+    }, <span class="hljs-literal">NO</span>);
+}
+
+-(<span class="hljs-keyword">void</span>)requestSuccess:(<span class="hljs-built_in">NSString</span>*)data
+{
+}
+
+-(<span class="hljs-keyword">void</span>)requestError:(<span class="hljs-built_in">NSError</span>*)error
+{
+    <span class="hljs-built_in">NSDictionary</span> *event = [TiUtils dictionaryWithCode:[error code] message:[TiUtils messageFromError:error]];
+    [context fireEvent:callback withObject:event remove:<span class="hljs-literal">NO</span> thisObject:<span class="hljs-literal">nil</span>];
+}
+
+-(<span class="hljs-keyword">void</span>)request:(APSHTTPRequest*)request onLoad:(APSHTTPResponse*)response
+{
+    [[TiApp app] stopNetwork];
+
+    <span class="hljs-keyword">if</span> (request!=<span class="hljs-literal">nil</span> &amp;&amp; [response error]==<span class="hljs-literal">nil</span>)
+    {
+        <span class="hljs-built_in">NSString</span> *data = [response responseString];
+        [<span class="hljs-keyword">self</span> requestSuccess:data];
+    }
+    <span class="hljs-keyword">else</span> 
+    {
+        [<span class="hljs-keyword">self</span> requestError:[response error]];
+    }
+
+    [<span class="hljs-keyword">self</span> autorelease];
+}
+
+-(<span class="hljs-keyword">void</span>)request:(APSHTTPRequest *)request onError:(APSHTTPResponse *)response
+{
+    [[TiApp app] stopNetwork];
+    [<span class="hljs-keyword">self</span> requestError:[response error]];
+    [<span class="hljs-keyword">self</span> autorelease];
+}
+
+<span class="hljs-keyword">@end</span>
+
+
+<span class="hljs-class"><span class="hljs-keyword">@interface</span> <span class="hljs-title">ForwardGeoCallback</span> : <span class="hljs-title">GeolocationCallback</span></span>
+<span class="hljs-keyword">@end</span>
+
+<span class="hljs-class"><span class="hljs-keyword">@interface</span> <span class="hljs-title">ReverseGeoCallback</span> : <span class="hljs-title">GeolocationCallback</span></span>
+<span class="hljs-keyword">@end</span>
+
+<span class="hljs-class"><span class="hljs-keyword">@implementation</span> <span class="hljs-title">ForwardGeoCallback</span></span>
+
+-(<span class="hljs-keyword">void</span>)requestSuccess:(<span class="hljs-built_in">NSString</span>*)locationString
+{
+    <span class="hljs-built_in">NSMutableDictionary</span> *event = <span class="hljs-literal">nil</span>;
+
+    <span class="hljs-built_in">NSArray</span> *listItems = [locationString componentsSeparatedByString:<span class="hljs-string">@","</span>];
+    <span class="hljs-keyword">if</span>([listItems count] == <span class="hljs-number">4</span> &amp;&amp; [[listItems objectAtIndex:<span class="hljs-number">0</span>] isEqualToString:<span class="hljs-string">@"200"</span>]) 
+    {
+        <span class="hljs-keyword">id</span> accuracy = [listItems objectAtIndex:<span class="hljs-number">1</span>];
+        <span class="hljs-keyword">id</span> latitude = [listItems objectAtIndex:<span class="hljs-number">2</span>];
+        <span class="hljs-keyword">id</span> longitude = [listItems objectAtIndex:<span class="hljs-number">3</span>];
+        event = [TiUtils dictionaryWithCode:<span class="hljs-number">0</span> message:<span class="hljs-literal">nil</span>];
+        [event setObject:accuracy forKey:<span class="hljs-string">@"accuracy"</span>];
+        [event setObject:latitude forKey:<span class="hljs-string">@"latitude"</span>];
+        [event setObject:longitude forKey:<span class="hljs-string">@"longitude"</span>];
+    }
+    <span class="hljs-keyword">else</span> 
+    {
+        <span class="hljs-comment">//<span class="hljs-doctag">TODO:</span> better error handling</span>
+        event = [TiUtils dictionaryWithCode:-<span class="hljs-number">1</span> message:<span class="hljs-string">@"error obtaining geolocation"</span>];
+    }
+
+    [context fireEvent:callback withObject:event remove:<span class="hljs-literal">NO</span> thisObject:<span class="hljs-literal">nil</span>];
+}
+
+<span class="hljs-keyword">@end</span>
+
+<span class="hljs-class"><span class="hljs-keyword">@implementation</span> <span class="hljs-title">ReverseGeoCallback</span></span>
+
+-(<span class="hljs-keyword">void</span>)requestSuccess:(<span class="hljs-built_in">NSString</span>*)locationString
+{
+    SBJSON *json = [[SBJSON alloc] init];
+    <span class="hljs-built_in">NSError</span> * error = <span class="hljs-literal">nil</span>;
+    <span class="hljs-keyword">id</span> event = [json fragmentWithString:locationString error:&amp;error];
+    [json release];
+    <span class="hljs-keyword">if</span> (error != <span class="hljs-literal">nil</span>) {
+        [<span class="hljs-keyword">self</span> requestError:error];
+    }
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-built_in">BOOL</span> success = [TiUtils boolValue:<span class="hljs-string">@"success"</span> properties:event def:<span class="hljs-literal">YES</span>];
+        <span class="hljs-built_in">NSMutableDictionary</span> * revisedEvent = [TiUtils dictionaryWithCode:success?<span class="hljs-number">0</span>:-<span class="hljs-number">1</span> message:success?<span class="hljs-literal">nil</span>:<span class="hljs-string">@"error reverse geocoding"</span>];
+        [revisedEvent setValuesForKeysWithDictionary:event];
+        [context fireEvent:callback withObject:revisedEvent remove:<span class="hljs-literal">NO</span> thisObject:<span class="hljs-literal">nil</span>];
+    }
+}
+
+<span class="hljs-keyword">@end</span>
+
+
+
+<span class="hljs-class"><span class="hljs-keyword">@implementation</span> <span class="hljs-title">GeolocationModule</span></span>
+
+<span class="hljs-preprocessor">#pragma mark Internal</span>
+
+<span class="hljs-comment">// <span class="hljs-doctag">TODO:</span> Do we need to force this onto the main thread?</span>
+-(<span class="hljs-keyword">void</span>)shutdownLocationManager
+{
+    [lock lock];
+    <span class="hljs-keyword">if</span> (locationManager == <span class="hljs-literal">nil</span>) {
+        [lock unlock];
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (trackingHeading) {
+        [locationManager stopUpdatingHeading];
+    }
+
+    <span class="hljs-keyword">if</span> (trackingLocation) {
+        <span class="hljs-keyword">if</span> (trackSignificantLocationChange) {
+            [locationManager stopMonitoringSignificantLocationChanges];
+        }
+        <span class="hljs-keyword">else</span>{
+            [locationManager stopUpdatingLocation];
+        }
+    }
+    RELEASE_TO_NIL_AUTORELEASE(locationManager);
+    [lock unlock];
+}
+
+-(<span class="hljs-keyword">void</span>)_destroy
+{
+    [<span class="hljs-keyword">self</span> shutdownLocationManager];
+    RELEASE_TO_NIL(tempManager);
+    RELEASE_TO_NIL(locationPermissionManager);
+    RELEASE_TO_NIL(singleHeading);
+    RELEASE_TO_NIL(singleLocation);
+    RELEASE_TO_NIL(purpose);
+    RELEASE_TO_NIL(lock);
+    RELEASE_TO_NIL(lastLocationDict);
+    [<span class="hljs-keyword">super</span> _destroy];
+}
+
+-(<span class="hljs-built_in">NSString</span>*)apiName
+{
+    <span class="hljs-keyword">return</span> <span class="hljs-string">@"Ti.Geolocation"</span>;
+}
+
+-(<span class="hljs-keyword">void</span>)contextWasShutdown:(KrollBridge*)bridge
+{
+    <span class="hljs-keyword">if</span> (singleHeading!=<span class="hljs-literal">nil</span>)
+    {
+        <span class="hljs-keyword">for</span> (KrollCallback *callback <span class="hljs-keyword">in</span> [<span class="hljs-built_in">NSArray</span> arrayWithArray:singleHeading])
+        {
+            KrollContext *ctx = (KrollContext*)[callback context];
+            <span class="hljs-keyword">if</span> ([bridge krollContext] == ctx)
+            {
+                [singleHeading removeObject:callback];
+            }
+        }
+        <span class="hljs-keyword">if</span> ([singleHeading count]==<span class="hljs-number">0</span>)
+        {
+            RELEASE_TO_NIL(singleHeading);
+            [locationManager stopUpdatingHeading];
+        }
+    }
+    <span class="hljs-keyword">if</span> (singleLocation!=<span class="hljs-literal">nil</span>)
+    {
+        <span class="hljs-keyword">for</span> (KrollCallback *callback <span class="hljs-keyword">in</span> [<span class="hljs-built_in">NSArray</span> arrayWithArray:singleLocation])
+        {
+            KrollContext *ctx = (KrollContext*)[callback context];
+            <span class="hljs-keyword">if</span> ([bridge krollContext] == ctx)
+            {
+                [singleLocation removeObject:callback];
+            }
+        }
+        <span class="hljs-keyword">if</span> ([singleLocation count]==<span class="hljs-number">0</span>)
+        {
+            RELEASE_TO_NIL(singleLocation);
+            [locationManager stopUpdatingLocation];
+        }
+    }
+}
+
+-(<span class="hljs-keyword">void</span>)_configure
+{
+    <span class="hljs-comment">// reasonable defaults:</span>
+
+    <span class="hljs-comment">// accuracy by default</span>
+    accuracy = kCLLocationAccuracyThreeKilometers;
+
+    <span class="hljs-comment">// distance filter by default is notify of all movements</span>
+    distance = kCLDistanceFilterNone;
+
+    <span class="hljs-comment">// minimum heading filter by default</span>
+    heading = kCLHeadingFilterNone;
+
+    <span class="hljs-comment">// should we show heading calibration dialog? defaults to YES</span>
+    calibration = <span class="hljs-literal">YES</span>;
+
+    <span class="hljs-comment">// track all location changes by default </span>
+    trackSignificantLocationChange = <span class="hljs-literal">NO</span>;
+
+<span class="hljs-preprocessor">#if __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= __IPHONE_6_0</span>
+    <span class="hljs-keyword">if</span> ([TiUtils isIOS6OrGreater]) {
+        <span class="hljs-comment">// activity Type by default</span>
+        activityType = CLActivityTypeOther;
+
+        <span class="hljs-comment">// pauseLocationupdateAutomatically by default NO</span>
+        pauseLocationUpdateAutomatically  = <span class="hljs-literal">NO</span>;
+
+    }
+<span class="hljs-preprocessor">#endif</span>
+
+    lock = [[<span class="hljs-built_in">NSRecursiveLock</span> alloc] init];
+
+    [<span class="hljs-keyword">super</span> _configure]; 
+}
+
+-(CLLocationManager*)locationManager
+{
+    [lock lock];
+    <span class="hljs-keyword">if</span> (locationManager==<span class="hljs-literal">nil</span>)
+    {
+        RELEASE_TO_NIL(tempManager);
+        locationManager = [[CLLocationManager alloc] init];
+        locationManager<span class="hljs-variable">.delegate</span> = <span class="hljs-keyword">self</span>;
+        <span class="hljs-keyword">if</span> (!trackSignificantLocationChange) {
+            <span class="hljs-keyword">if</span> (accuracy!=-<span class="hljs-number">1</span>)
+            {
+                locationManager<span class="hljs-variable">.desiredAccuracy</span> = accuracy;
+            }
+            <span class="hljs-keyword">else</span>
+            {
+                locationManager<span class="hljs-variable">.desiredAccuracy</span> = kCLLocationAccuracyThreeKilometers;
+            }
+            locationManager<span class="hljs-variable">.distanceFilter</span> = distance;
+        }
+        locationManager<span class="hljs-variable">.headingFilter</span> = heading;
+
+        <span class="hljs-keyword">if</span> ([TiUtils isIOS8OrGreater]) {
+            <span class="hljs-keyword">if</span>([[<span class="hljs-built_in">NSBundle</span> mainBundle] objectForInfoDictionaryKey:<span class="hljs-string">@"NSLocationAlwaysUsageDescription"</span>]){
+                [locationManager requestAlwaysAuthorization];
+            }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> ([[<span class="hljs-built_in">NSBundle</span> mainBundle] objectForInfoDictionaryKey:<span class="hljs-string">@"NSLocationWhenInUseUsageDescription"</span>]){
+                [locationManager requestWhenInUseAuthorization];
+            }<span class="hljs-keyword">else</span>{
+                <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@"[ERROR] The keys NSLocationAlwaysUsageDescription or NSLocationWhenInUseUsageDescription are not defined in your tiapp.xml.  Starting with iOS8 this is required."</span>);
+            }
+        }<span class="hljs-keyword">else</span>{
+            <span class="hljs-keyword">if</span> (purpose==<span class="hljs-literal">nil</span>)
+            {
+                DebugLog(<span class="hljs-string">@"[WARN] The Ti.Geolocation.purpose property must be set."</span>);
+            }
+            <span class="hljs-keyword">else</span>
+            {
+                [locationManager setPurpose:purpose];
+            }
+        }
+
+<span class="hljs-preprocessor">#if __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= __IPHONE_6_0</span>
+        <span class="hljs-keyword">if</span> ([TiUtils isIOS6OrGreater]) {
+            locationManager<span class="hljs-variable">.activityType</span> = activityType;
+            locationManager<span class="hljs-variable">.pausesLocationUpdatesAutomatically</span> = pauseLocationUpdateAutomatically;
+
+        }
+<span class="hljs-preprocessor">#endif</span>
+
+        <span class="hljs-keyword">if</span> ([CLLocationManager locationServicesEnabled]== <span class="hljs-literal">NO</span>) 
+        {
+            <span class="hljs-comment">//<span class="hljs-doctag">NOTE:</span> this is from Apple example from LocateMe and it works well. the developer can still check for the</span>
+            <span class="hljs-comment">//property and do this message themselves before calling geo. But if they don't, we at least do it for them.</span>
+            <span class="hljs-built_in">NSString</span> *title = <span class="hljs-built_in">NSLocalizedString</span>(<span class="hljs-string">@"Location Services Disabled"</span>,<span class="hljs-string">@"Location Services Disabled Alert Title"</span>);
+            <span class="hljs-built_in">NSString</span> *msg = <span class="hljs-built_in">NSLocalizedString</span>(<span class="hljs-string">@"You currently have all location services for this device disabled. If you proceed, you will be asked to confirm whether location services should be reenabled."</span>,<span class="hljs-string">@"Location Services Disabled Alert Message"</span>);
+            <span class="hljs-built_in">NSString</span> *ok = <span class="hljs-built_in">NSLocalizedString</span>(<span class="hljs-string">@"OK"</span>,<span class="hljs-string">@"Location Services Disabled Alert OK Button"</span>);
+            <span class="hljs-built_in">UIAlertView</span> *servicesDisabledAlert = [[<span class="hljs-built_in">UIAlertView</span> alloc] initWithTitle:title message:msg delegate:<span class="hljs-literal">nil</span> cancelButtonTitle:ok otherButtonTitles:<span class="hljs-literal">nil</span>];
+            [servicesDisabledAlert show];
+            [servicesDisabledAlert release];
+
+            -(<span class="hljs-built_in">NSNumber</span>*)AUTHORIZATION_ALWAYS
+            {
+                <span class="hljs-keyword">if</span> ([TiUtils isIOS8OrGreater]) {
+                    <span class="hljs-keyword">return</span> NUMINT(kCLAuthorizationStatusAuthorizedAlways);
+                }
+                <span class="hljs-keyword">return</span> NUMINT(<span class="hljs-number">0</span>);
+            }
+
+            -(<span class="hljs-built_in">NSNumber</span>*)AUTHORIZATION_WHEN_IN_USE
+            {
+                <span class="hljs-keyword">if</span> ([TiUtils isIOS8OrGreater]) {
+                    <span class="hljs-keyword">return</span> NUMINT(kCLAuthorizationStatusAuthorizedWhenInUse);
+                }
+                <span class="hljs-keyword">return</span> NUMINT(<span class="hljs-number">0</span>);
+            }
+        }
+    }
+    [lock unlock];
+    <span class="hljs-keyword">return</span> locationManager;
+}
+
+<span class="hljs-comment">// this is useful for a few methods below that need to use an instance but we</span>
+<span class="hljs-comment">// don't necessarily want to hold on to this guy</span>
+-(CLLocationManager*)tempLocationManager
+{
+    <span class="hljs-keyword">if</span> (locationManager!=<span class="hljs-literal">nil</span>)
+    {
+        <span class="hljs-comment">// if we have an instance, just use it</span>
+        <span class="hljs-keyword">return</span> locationManager;
+    }
+
+    <span class="hljs-keyword">if</span> (tempManager == <span class="hljs-literal">nil</span>) {
+        tempManager = [[CLLocationManager alloc] init];
+    }
+    <span class="hljs-keyword">return</span> tempManager;
+}
+
+-(<span class="hljs-keyword">void</span>)startStopLocationManagerIfNeeded
+{
+    <span class="hljs-built_in">BOOL</span> startHeading = <span class="hljs-literal">NO</span>;
+    <span class="hljs-built_in">BOOL</span> startLocation = <span class="hljs-literal">NO</span>;
+
+    <span class="hljs-keyword">if</span> (singleHeading!=<span class="hljs-literal">nil</span> &amp;&amp; [singleHeading count] &gt; <span class="hljs-number">0</span>)
+    {
+        startHeading = <span class="hljs-literal">YES</span>;
+    }
+    <span class="hljs-keyword">if</span> (singleLocation!=<span class="hljs-literal">nil</span> &amp;&amp; [singleLocation count] &gt; <span class="hljs-number">0</span>)
+    {
+        startLocation = <span class="hljs-literal">YES</span>;
+    }
+    <span class="hljs-keyword">if</span> (!startHeading &amp;&amp; [<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"heading"</span>])
+    {
+        startHeading = <span class="hljs-literal">YES</span>;
+    }
+    <span class="hljs-keyword">if</span> (!startLocation &amp;&amp; [<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"location"</span>])
+    {
+        startLocation = <span class="hljs-literal">YES</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (startHeading || startLocation)
+    {
+        CLLocationManager *lm = [<span class="hljs-keyword">self</span> locationManager];
+        <span class="hljs-keyword">if</span> (startHeading &amp;&amp; trackingHeading==<span class="hljs-literal">NO</span>)
+        {
+            [lm startUpdatingHeading];
+            trackingHeading = <span class="hljs-literal">YES</span>;
+        }
+        <span class="hljs-keyword">if</span> (startLocation &amp;&amp; trackingLocation==<span class="hljs-literal">NO</span>)
+        {
+            <span class="hljs-keyword">if</span> (trackSignificantLocationChange) {
+                [lm startMonitoringSignificantLocationChanges];
+            }
+            <span class="hljs-keyword">else</span>{
+                [lm startUpdatingLocation];
+            }
+            trackingLocation = <span class="hljs-literal">YES</span>;
+        }
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> ((!startHeading || !startLocation) &amp;&amp; locationManager!=<span class="hljs-literal">nil</span>)
+    {
+        CLLocationManager *lm = [<span class="hljs-keyword">self</span> locationManager];
+        <span class="hljs-keyword">if</span> (startHeading==<span class="hljs-literal">NO</span> &amp;&amp; trackingHeading)
+        {
+            trackingHeading = <span class="hljs-literal">NO</span>;
+            [lm stopUpdatingHeading];
+        }
+        <span class="hljs-keyword">if</span> (startLocation==<span class="hljs-literal">NO</span> &amp;&amp; trackingLocation)
+        {
+            trackingLocation = <span class="hljs-literal">NO</span>;
+            <span class="hljs-keyword">if</span> (trackSignificantLocationChange){
+                [lm stopMonitoringSignificantLocationChanges];
+            }
+            <span class="hljs-keyword">else</span>{
+                [lm stopUpdatingLocation];
+            }
+
+        }
+        <span class="hljs-keyword">if</span> ((startHeading==<span class="hljs-literal">NO</span> &amp;&amp; startLocation==<span class="hljs-literal">NO</span>) ||
+            (trackingHeading==<span class="hljs-literal">NO</span> &amp;&amp; trackingLocation==<span class="hljs-literal">NO</span>))
+        {
+            [<span class="hljs-keyword">self</span> shutdownLocationManager];
+            trackingLocation = <span class="hljs-literal">NO</span>;
+            trackingHeading = <span class="hljs-literal">NO</span>;
+        }
+    }
+}
+
+-(<span class="hljs-keyword">void</span>)_listenerAdded:(<span class="hljs-built_in">NSString</span> *)type count:(<span class="hljs-keyword">int</span>)count
+{
+    <span class="hljs-built_in">BOOL</span> startStop = <span class="hljs-literal">NO</span>;
+
+    <span class="hljs-keyword">if</span> (count == <span class="hljs-number">1</span> &amp;&amp; [type isEqualToString:<span class="hljs-string">@"heading"</span>])
+    {
+        startStop = <span class="hljs-literal">YES</span>;
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (count == <span class="hljs-number">1</span> &amp;&amp; [type isEqualToString:<span class="hljs-string">@"location"</span>])
+    {
+        startStop = <span class="hljs-literal">YES</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (startStop)
+    {
+        TiThreadPerformOnMainThread(^{[<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];}, <span class="hljs-literal">NO</span>);
+    }
+}
+
+-(<span class="hljs-keyword">void</span>)_listenerRemoved:(<span class="hljs-built_in">NSString</span> *)type count:(<span class="hljs-keyword">int</span>)count
+{
+    <span class="hljs-built_in">BOOL</span> check = <span class="hljs-literal">NO</span>;
+    <span class="hljs-keyword">if</span> (count == <span class="hljs-number">0</span> &amp;&amp; [type isEqualToString:<span class="hljs-string">@"heading"</span>])
+    {
+        check = <span class="hljs-literal">YES</span>;
+        <span class="hljs-keyword">if</span> (trackingHeading)
+        {
+            trackingHeading = <span class="hljs-literal">NO</span>;
+            [locationManager stopUpdatingHeading];
+        }
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (count == <span class="hljs-number">0</span> &amp;&amp; [type isEqualToString:<span class="hljs-string">@"location"</span>])
+    {
+        check = <span class="hljs-literal">YES</span>;
+        <span class="hljs-keyword">if</span> (trackingLocation)
+        {
+            trackingLocation = <span class="hljs-literal">NO</span>;
+            [locationManager stopUpdatingLocation];
+        }
+    }
+
+    <span class="hljs-keyword">if</span> (check &amp;&amp; ![<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"heading"</span>] &amp;&amp; ![<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"location"</span>])
+    {
+        TiThreadPerformOnMainThread(^{[<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];}, <span class="hljs-literal">YES</span>);
+        [<span class="hljs-keyword">self</span> shutdownLocationManager];
+        trackingLocation = <span class="hljs-literal">NO</span>;
+        trackingHeading = <span class="hljs-literal">NO</span>;
+        RELEASE_TO_NIL(singleHeading);
+        RELEASE_TO_NIL(singleLocation);
+    }
+}
+
+-(<span class="hljs-built_in">BOOL</span>)headingAvailable
+{
+    <span class="hljs-keyword">return</span> [CLLocationManager headingAvailable];
+}
+
+<span class="hljs-preprocessor">#pragma mark Public APIs</span>
+
+-(<span class="hljs-built_in">NSNumber</span>*)hasCompass
+{
+    <span class="hljs-built_in">UIDevice</span> * theDevice = [<span class="hljs-built_in">UIDevice</span> currentDevice];
+    <span class="hljs-built_in">NSString</span>* version = [theDevice systemVersion];
+
+    <span class="hljs-built_in">BOOL</span> headingAvailableBool = [<span class="hljs-keyword">self</span> headingAvailable];
+    <span class="hljs-keyword">if</span> (headingAvailableBool)
+    {
+        <span class="hljs-keyword">struct</span> utsname u;
+        uname(&amp;u);
+        <span class="hljs-keyword">if</span> (!strcmp(u<span class="hljs-variable">.machine</span>, <span class="hljs-string">"i386"</span>)) 
+        {
+            <span class="hljs-comment">// 3.0 simulator headingAvailable will report YES but its not really available except post 3.0</span>
+            headingAvailableBool = [version hasPrefix:<span class="hljs-string">@"3.0"</span>] ? <span class="hljs-literal">NO</span> : [CLLocationManager headingAvailable];
+        }    
+    }
+    <span class="hljs-keyword">return</span> NUMBOOL(headingAvailableBool);
+}
+
+-(<span class="hljs-keyword">void</span>)performGeo:(<span class="hljs-built_in">NSString</span>*)direction address:(<span class="hljs-built_in">NSString</span>*)address callback:(GeolocationCallback*)callback
+{
+    [[TiApp app] startNetwork];
+
+    <span class="hljs-keyword">id</span> aguid = TI_APPLI<span class="hljs-built_in">CATION_GUID</span>;
+    <span class="hljs-keyword">id</span> sid = [[TiApp app] sessionId];
+
+    <span class="hljs-built_in">NSDictionary</span> *params = [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:
+                            direction, <span class="hljs-string">@"d"</span>,
+                            aguid,<span class="hljs-string">@"aguid"</span>,
+                            [TiUtils appIdentifier],<span class="hljs-string">@"mid"</span>,
+                            sid,<span class="hljs-string">@"sid"</span>,
+                            address,<span class="hljs-string">@"q"</span>,
+                            [[<span class="hljs-built_in">NSLocale</span> currentLocale] objectForKey: <span class="hljs-built_in">NSLocaleCountryCode</span>],<span class="hljs-string">@"c"</span>,
+                            <span class="hljs-literal">nil</span>];
+
+    [callback start:params];
+}
+
+-(<span class="hljs-keyword">void</span>)reverseGeocoder:(<span class="hljs-keyword">id</span>)args
+{
+    E<span class="hljs-built_in">NSURE_ARG_COUNT</span>(args,<span class="hljs-number">3</span>);
+    <span class="hljs-built_in">CGFloat</span> lat = [TiUtils floatValue:[args objectAtIndex:<span class="hljs-number">0</span>]];
+    <span class="hljs-built_in">CGFloat</span> lon = [TiUtils floatValue:[args objectAtIndex:<span class="hljs-number">1</span>]];
+    KrollCallback *callback = [args objectAtIndex:<span class="hljs-number">2</span>];
+    E<span class="hljs-built_in">NSURE_TYPE</span>(callback,KrollCallback);
+    ReverseGeoCallback *rcb = [[ReverseGeoCallback alloc] initWithCallback:callback context:[<span class="hljs-keyword">self</span> executionContext]];
+    [<span class="hljs-keyword">self</span> performGeo:<span class="hljs-string">@"r"</span> address:[<span class="hljs-built_in">NSString</span> stringWithFormat:<span class="hljs-string">@"%f,%f"</span>,lat,lon] callback:rcb];
+}
+
+-(<span class="hljs-keyword">void</span>)forwardGeocoder:(<span class="hljs-keyword">id</span>)args
+{
+    E<span class="hljs-built_in">NSURE_ARG_COUNT</span>(args,<span class="hljs-number">2</span>);
+    KrollCallback *callback = [args objectAtIndex:<span class="hljs-number">1</span>];
+    E<span class="hljs-built_in">NSURE_TYPE</span>(callback,KrollCallback);
+    ForwardGeoCallback *fcb = [[ForwardGeoCallback alloc] initWithCallback:callback context:[<span class="hljs-keyword">self</span> executionContext]];
+    [<span class="hljs-keyword">self</span> performGeo:<span class="hljs-string">@"f"</span> address:[TiUtils stringValue:[args objectAtIndex:<span class="hljs-number">0</span>]] callback:fcb];
+}
+
+-(<span class="hljs-keyword">void</span>)getCurrentHeading:(<span class="hljs-keyword">id</span>)callback 
+{
+    E<span class="hljs-built_in">NSURE_SINGLE_ARG</span>(callback,KrollCallback);
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(getCurrentHeading,callback);
+    <span class="hljs-keyword">if</span> (singleHeading==<span class="hljs-literal">nil</span>)
+    {
+        singleHeading = [[<span class="hljs-built_in">NSMutableArray</span> alloc] initWithCapacity:<span class="hljs-number">1</span>];
+    }
+    [singleHeading addObject:callback];
+    [<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded]; 
+}
+
+-(<span class="hljs-keyword">void</span>)getCurrentPosition:(<span class="hljs-keyword">id</span>)callback
+{
+    E<span class="hljs-built_in">NSURE_SINGLE_ARG</span>(callback,KrollCallback);
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(getCurrentPosition,callback);
+
+    <span class="hljs-comment">// If the location updates are started, invoke the callback directly.</span>
+    <span class="hljs-keyword">if</span> (locationManager != <span class="hljs-literal">nil</span> &amp;&amp; locationManager<span class="hljs-variable">.location</span> != <span class="hljs-literal">nil</span> &amp;&amp; trackingLocation == <span class="hljs-literal">YES</span> ) {
+        CLLocation *currentLocation = locationManager<span class="hljs-variable">.location</span>;
+        <span class="hljs-built_in">NSMutableDictionary</span> *event = [TiUtils dictionaryWithCode:<span class="hljs-number">0</span> message:<span class="hljs-literal">nil</span>];
+        [event setObject:[<span class="hljs-keyword">self</span> locationDictionary:currentLocation] forKey:<span class="hljs-string">@"coords"</span>];
+        [<span class="hljs-keyword">self</span> _fireEventToListener:<span class="hljs-string">@"location"</span> withObject:event listener:callback thisObject:<span class="hljs-literal">nil</span>];
+    }
+    <span class="hljs-comment">// Otherwise, start the location manager.</span>
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span> (singleLocation==<span class="hljs-literal">nil</span>)
+        {
+            singleLocation = [[<span class="hljs-built_in">NSMutableArray</span> alloc] initWithCapacity:<span class="hljs-number">1</span>];
+        }        
+        [singleLocation addObject:callback];
+        [<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];
+    }
+}
+
+-(<span class="hljs-built_in">NSString</span> *)lastGeolocation
+{
+    SBJSON *json = [[SBJSON alloc] init];
+    <span class="hljs-built_in">NSString</span> * result = [json stringWithObject:lastLocationDict error:<span class="hljs-literal">nil</span>];
+    [json release];
+    <span class="hljs-keyword">return</span> result;
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)highAccuracy
+{
+    <span class="hljs-keyword">return</span> NUMBOOL(accuracy==kCLLocationAccuracyBest);
+}
+
+-(<span class="hljs-keyword">void</span>)setHighAccuracy:(<span class="hljs-built_in">NSNumber</span> *)value
+{
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(setHighAccuracy,value);
+    accuracy = kCLLocationAccuracyBest;
+    <span class="hljs-comment">// don't prematurely start it</span>
+    <span class="hljs-keyword">if</span> (locationManager!=<span class="hljs-literal">nil</span>)
+    {
+        [locationManager setDesiredAccuracy:kCLLocationAccuracyBest];
+    }
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)accuracy
+{
+    <span class="hljs-keyword">return</span> NUMDOUBLE(accuracy);
+}
+
+-(<span class="hljs-keyword">void</span>)setAccuracy:(<span class="hljs-built_in">NSNumber</span> *)value
+{
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(setAccuracy,value);
+    accuracy = [TiUtils doubleValue:value];
+    <span class="hljs-comment">// don't prematurely start it</span>
+    <span class="hljs-keyword">if</span> (locationManager!=<span class="hljs-literal">nil</span>)
+    {
+        [locationManager setDesiredAccuracy:accuracy];
+    }
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)distanceFilter
+{
+    <span class="hljs-keyword">return</span> NUMDOUBLE(distance);
+}
+
+-(<span class="hljs-keyword">void</span>)setDistanceFilter:(<span class="hljs-built_in">NSNumber</span> *)value
+{
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(setDistanceFilter,value);
+    distance = [TiUtils doubleValue:value];
+    <span class="hljs-comment">// don't prematurely start it</span>
+    <span class="hljs-keyword">if</span> (locationManager!=<span class="hljs-literal">nil</span>)
+    {
+        [locationManager setDistanceFilter:distance];
+    }
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)headingFilter
+{
+    <span class="hljs-keyword">return</span> NUMDOUBLE(heading);
+}
+
+-(<span class="hljs-keyword">void</span>)setHeadingFilter:(<span class="hljs-built_in">NSNumber</span> *)value
+{
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(setHeadingFilter,value);
+    heading = [TiUtils doubleValue:value];
+    <span class="hljs-comment">// don't prematurely start it</span>
+    <span class="hljs-keyword">if</span> (locationManager!=<span class="hljs-literal">nil</span>)
+    {
+        [locationManager setHeadingFilter:heading];
+    }
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)showCalibration
+{
+    <span class="hljs-keyword">return</span> NUMBOOL(calibration);
+}
+
+-(<span class="hljs-keyword">void</span>)setShowCalibration:(<span class="hljs-built_in">NSNumber</span> *)value
+{
+    calibration = [TiUtils boolValue:value];
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)locationServicesEnabled
+{
+    <span class="hljs-keyword">return</span> NUMBOOL([CLLocationManager locationServicesEnabled]);
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)locationServicesAuthorization
+{
+<span class="hljs-preprocessor">#if __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= __IPHONE_4_2</span>
+    <span class="hljs-keyword">if</span> ([TiUtils isIOS4_2OrGreater]) {
+        <span class="hljs-keyword">return</span> NUMINT([CLLocationManager authorizationStatus]);
+    }
+<span class="hljs-preprocessor">#endif</span>
+    <span class="hljs-keyword">return</span> [<span class="hljs-keyword">self</span> AUTHORIZATION_UNKNOWN];
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)trackSignificantLocationChange
+{
+    <span class="hljs-keyword">return</span> NUMBOOL(trackSignificantLocationChange);
+}
+
+-(<span class="hljs-keyword">void</span>)setTrackSignificantLocationChange:(<span class="hljs-keyword">id</span>)value
+{
+    <span class="hljs-keyword">if</span> ([CLLocationManager significantLocationChangeMonitoringAvailable]) {
+        <span class="hljs-built_in">BOOL</span> newval = [TiUtils boolValue:value def:<span class="hljs-literal">YES</span>];
+
+        <span class="hljs-keyword">if</span> (newval != trackSignificantLocationChange) {
+            <span class="hljs-keyword">if</span> ( trackingLocation &amp;&amp; locationManager != <span class="hljs-literal">nil</span> ) {
+                [lock lock];
+                [<span class="hljs-keyword">self</span> shutdownLocationManager];
+                trackingHeading = <span class="hljs-literal">NO</span>;
+                trackingLocation = <span class="hljs-literal">NO</span>;
+                trackSignificantLocationChange = newval;
+                [lock unlock];
+                TiThreadPerformOnMainThread(^{[<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];}, <span class="hljs-literal">NO</span>);
+                <span class="hljs-keyword">return</span> ;
+            }
+        }
+        trackSignificantLocationChange = newval;
+    }
+    <span class="hljs-keyword">else</span>{
+        trackSignificantLocationChange = <span class="hljs-literal">NO</span>;
+        DebugLog(<span class="hljs-string">@"[WARN] Ti.Geolocation.setTrackSignificantLocationChange is not supported on this device."</span>);
+    }
+}
+
+<span class="hljs-preprocessor">#if __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= __IPHONE_6_0</span>
+<span class="hljs-comment">// Activity Type for CLlocationManager.</span>
+-(<span class="hljs-built_in">NSNumber</span>*)activityType
+{
+    <span class="hljs-keyword">return</span> NUMINT(activityType);
+}
+
+-(<span class="hljs-keyword">void</span>)setActivityType:(<span class="hljs-built_in">NSNumber</span> *)value
+{
+    <span class="hljs-keyword">if</span> ([TiUtils isIOS6OrGreater]) {
+        activityType = [TiUtils intValue:value];
+        TiThreadPerformOnMainThread(^{[locationManager setActivityType:activityType];}, <span class="hljs-literal">NO</span>);
+    }
+
+}
+
+<span class="hljs-comment">// Flag to decide whether or not the app should continue to send location updates while the app is in background.</span>
+
+-(<span class="hljs-built_in">NSNumber</span>*)pauseLocationUpdateAutomatically
+{
+    <span class="hljs-keyword">return</span> NUMBOOL(pauseLocationUpdateAutomatically);
+}
+
+-(<span class="hljs-keyword">void</span>)setPauseLocationUpdateAutomatically:(<span class="hljs-keyword">id</span>)value
+{
+    <span class="hljs-keyword">if</span> ([TiUtils isIOS6OrGreater]) {
+        pauseLocationUpdateAutomatically = [TiUtils boolValue:value];
+        TiThreadPerformOnMainThread(^{[locationManager setPausesLocationUpdatesAutomatically:pauseLocationUpdateAutomatically];}, <span class="hljs-literal">NO</span>);
+    }
+}
+<span class="hljs-preprocessor">#endif</span>
+
+
+-(<span class="hljs-keyword">void</span>)restart:(<span class="hljs-keyword">id</span>)arg
+{
+    [lock lock];
+    [<span class="hljs-keyword">self</span> shutdownLocationManager];
+    trackingHeading = <span class="hljs-literal">NO</span>;
+    trackingLocation = <span class="hljs-literal">NO</span>;
+    [lock unlock];
+    <span class="hljs-comment">// must be on UI thread</span>
+    TiThreadPerformOnMainThread(^{[<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];}, <span class="hljs-literal">NO</span>);
+}
+
+MAKE_SYSTEM_PROP_DBL(ACCURACY_BEST,kCLLocationAccuracyBest);
+MAKE_SYSTEM_PROP_DBL(ACCURACY_HIGH,kCLLocationAccuracyBest);
+MAKE_SYSTEM_PROP_DBL(ACCURACY_NEAREST_TEN_METERS,kCLLocationAccuracyNearestTenMeters);
+MAKE_SYSTEM_PROP_DBL(ACCURACY_HUNDRED_METERS,kCLLocationAccuracyHundredMeters);
+MAKE_SYSTEM_PROP_DBL(ACCURACY_KILOMETER,kCLLocationAccuracyKilometer);
+MAKE_SYSTEM_PROP_DBL(ACCURACY_THREE_KILOMETERS,kCLLocationAccuracyThreeKilometers);
+MAKE_SYSTEM_PROP_DBL(ACCURACY_LOW, kCLLocationAccuracyThreeKilometers);
+MAKE_SYSTEM_PROP(ACCURACY_BEST_FOR_N<span class="hljs-built_in">AVIGATION</span>, kCLLocationAccuracyBestForNavigation);<span class="hljs-comment">//Since 2.1.3</span>
+
+<span class="hljs-preprocessor">#if __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= __IPHONE_4_2</span>
+MAKE_SYSTEM_PROP(AUTHORIZATION_UNKNOWN, kCLAuthorizationStatusNotDetermined);
+MAKE_SYSTEM_PROP(AUTHORIZATION_AUTHORIZED, kCLAuthorizationStatusAuthorized);
+MAKE_SYSTEM_PROP(AUTHORIZATION_DENIED, kCLAuthorizationStatusDenied);
+MAKE_SYSTEM_PROP(AUTHORIZATION_RESTRICTED, kCLAuthorizationStatusRestricted);
+<span class="hljs-preprocessor">#else</span>
+<span class="hljs-comment">// We only need auth unknown, because that's all the system will return.</span>
+MAKE_SYSTEM_PROP(AUTHORIZATION_UNKNOWN, <span class="hljs-number">0</span>);
+<span class="hljs-preprocessor">#endif</span>
+
+MAKE_SYSTEM_PROP(ERROR_LO<span class="hljs-built_in">CATION_UNKNOWN</span>, kCLErrorLocationUnknown);
+MAKE_SYSTEM_PROP(ERROR_DENIED, kCLErrorDenied);
+MAKE_SYSTEM_PROP(ERROR_NETWORK, kCLErrorNetwork);
+MAKE_SYSTEM_PROP(ERROR_HEADING_FAILURE, kCLErrorHeadingFailure);
+
+MAKE_SYSTEM_PROP(ERROR_REGION_MONITORING_DENIED, kCLErrorRegionMonitoringDenied);
+MAKE_SYSTEM_PROP(ERROR_REGION_MONITORING_FAILURE, kCLErrorRegionMonitoringFailure);
+MAKE_SYSTEM_PROP(ERROR_REGION_MONITORING_DELAYED, kCLErrorRegionMonitoringSetupDelayed);
+
+<span class="hljs-preprocessor">#if __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= __IPHONE_6_0</span>
+MAKE_SYSTEM_PROP(ACTIVITYTYPE_OTHER, CLActivityTypeOther);
+MAKE_SYSTEM_PROP(ACTIVITYTYPE_AUTOMOTIVE_N<span class="hljs-built_in">AVIGATION</span>, CLActivityTypeAutomotiveNavigation);
+MAKE_SYSTEM_PROP(ACTIVITYTYPE_FITNESS, CLActivityTypeFitness);
+MAKE_SYSTEM_PROP(ACTIVITYTYPE_OTHER_N<span class="hljs-built_in">AVIGATION</span>, CLActivityTypeOtherNavigation);
+<span class="hljs-preprocessor">#endif</span>
+
+-(<span class="hljs-built_in">NSNumber</span>*)AUTHORIZATION_ALWAYS
+{
+    <span class="hljs-keyword">if</span> ([TiUtils isIOS8OrGreater]) {
+        <span class="hljs-keyword">return</span> NUMINT(kCLAuthorizationStatusAuthorizedAlways);
+    }
+    <span class="hljs-keyword">return</span> NUMINT(<span class="hljs-number">0</span>);
+}
+
+-(<span class="hljs-built_in">NSNumber</span>*)AUTHORIZATION_WHEN_IN_USE
+{
+    <span class="hljs-keyword">if</span> ([TiUtils isIOS8OrGreater]) {
+        <span class="hljs-keyword">return</span> NUMINT(kCLAuthorizationStatusAuthorizedWhenInUse);
+    }
+    <span class="hljs-keyword">return</span> NUMINT(<span class="hljs-number">0</span>);
+}
+
+-(CLLocationManager*)locationPermissionManager
+{
+    <span class="hljs-comment">// if we don't have an instance, create it</span>
+    <span class="hljs-keyword">if</span> (locationPermissionManager == <span class="hljs-literal">nil</span>) {
+        locationPermissionManager = [[CLLocationManager alloc] init];
+        locationPermissionManager<span class="hljs-variable">.delegate</span> = <span class="hljs-keyword">self</span>;
+    }
+    <span class="hljs-keyword">return</span> locationPermissionManager;
+}
+
+-(<span class="hljs-keyword">void</span>)requestAuthorization:(<span class="hljs-keyword">id</span>)value
+{
+    <span class="hljs-keyword">if</span> (![TiUtils isIOS8OrGreater]) {
+        <span class="hljs-keyword">return</span>;
+    }
+    E<span class="hljs-built_in">NSURE_SINGLE_ARG</span>(value, <span class="hljs-built_in">NSNumber</span>);
+
+    CLAuthorizationStatus requested = [TiUtils intValue: value];
+    CLAuthorizationStatus currentPermissionLevel = [CLLocationManager authorizationStatus];
+
+    <span class="hljs-keyword">if</span>(requested == kCLAuthorizationStatusAuthorizedWhenInUse){
+        <span class="hljs-keyword">if</span> ([[<span class="hljs-built_in">NSBundle</span> mainBundle] objectForInfoDictionaryKey:<span class="hljs-string">@"NSLocationWhenInUseUsageDescription"</span>]) {
+            <span class="hljs-keyword">if</span>((currentPermissionLevel == kCLAuthorizationStatusAuthorizedAlways) ||
+               (currentPermissionLevel == kCLAuthorizationStatusAuthorized)) {
+                <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@"[WARN] cannot change already granted permission from AUTHORIZATION_ALWAYS to AUTHORIZATION_WHEN_IN_USE"</span>);
+            }<span class="hljs-keyword">else</span>{
+                [[<span class="hljs-keyword">self</span> locationPermissionManager] requestWhenInUseAuthorization];
+            }
+        }<span class="hljs-keyword">else</span>{
+            <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@"[ERROR] the NSLocationWhenInUseUsageDescription key must be defined in your tiapp.xml in order to request this permission"</span>);
+        }
+    }
+    <span class="hljs-keyword">if</span> ((requested == kCLAuthorizationStatusAuthorizedAlways) ||
+        (requested == kCLAuthorizationStatusAuthorized)) {
+        <span class="hljs-keyword">if</span> ([[<span class="hljs-built_in">NSBundle</span> mainBundle] objectForInfoDictionaryKey:<span class="hljs-string">@"NSLocationAlwaysUsageDescription"</span>]) {
+            <span class="hljs-keyword">if</span> (currentPermissionLevel == kCLAuthorizationStatusAuthorizedWhenInUse) {
+                <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@"[ERROR] cannot change already granted permission from AUTHORIZATION_WHEN_IN_USE to AUTHORIZATION_ALWAYS"</span>);
+            } <span class="hljs-keyword">else</span> {
+                [[<span class="hljs-keyword">self</span> locationPermissionManager] requestAlwaysAuthorization];
+            }
+            [[<span class="hljs-keyword">self</span> locationPermissionManager] requestAlwaysAuthorization];
+        }<span class="hljs-keyword">else</span>{
+            <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@"[ERROR] the NSLocationAlwaysUsageDescription key must be defined in your tiapp.xml in order to request this permission"</span>);
+        }
+    }
+}
+
+<span class="hljs-preprocessor">#pragma mark Internal</span>
+
+-(<span class="hljs-built_in">NSDictionary</span>*)locationDictionary:(CLLocation*)newLocation;
+{
+    <span class="hljs-keyword">if</span> ([newLocation timestamp] == <span class="hljs-number">0</span>)
+    {
+        <span class="hljs-comment">// this happens when the location object is essentially null (as in no location)</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>;
+    }
+
+    CLLocationCoordinate2D latlon = [newLocation coordinate];
+
+
+    <span class="hljs-built_in">NSDictionary</span> * data = [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:
+                           [<span class="hljs-built_in">NSNumber</span> numberWithFloat:latlon<span class="hljs-variable">.latitude</span>],<span class="hljs-string">@"latitude"</span>,
+                           [<span class="hljs-built_in">NSNumber</span> numberWithFloat:latlon<span class="hljs-variable">.longitude</span>],<span class="hljs-string">@"longitude"</span>,
+                           [<span class="hljs-built_in">NSNumber</span> numberWithFloat:[newLocation altitude]],<span class="hljs-string">@"altitude"</span>,
+                           [<span class="hljs-built_in">NSNumber</span> numberWithFloat:[newLocation horizontalAccuracy]],<span class="hljs-string">@"accuracy"</span>,
+                           [<span class="hljs-built_in">NSNumber</span> numberWithFloat:[newLocation verticalAccuracy]],<span class="hljs-string">@"altitudeAccuracy"</span>,
+                           [<span class="hljs-built_in">NSNumber</span> numberWithFloat:[newLocation course]],<span class="hljs-string">@"heading"</span>,
+                           [<span class="hljs-built_in">NSNumber</span> numberWithFloat:[newLocation speed]],<span class="hljs-string">@"speed"</span>,
+                           [<span class="hljs-built_in">NSNumber</span> numberWithLongLong:(<span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>)([[newLocation timestamp] timeIntervalSince1970] * <span class="hljs-number">1000</span>)],<span class="hljs-string">@"timestamp"</span>,
+                           <span class="hljs-literal">nil</span>];
+    <span class="hljs-keyword">return</span> data;
+}
+
+-(<span class="hljs-built_in">NSDictionary</span>*)headingDictionary:(CLHeading*)newHeading
+{
+    <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> ts = (<span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>)[[newHeading timestamp] timeIntervalSince1970] * <span class="hljs-number">1000</span>;
+
+    <span class="hljs-built_in">NSDictionary</span> *data = [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:
+                          [<span class="hljs-built_in">NSNumber</span> numberWithDouble:[newHeading magneticHeading]],<span class="hljs-string">@"magneticHeading"</span>,
+                          [<span class="hljs-built_in">NSNumber</span> numberWithDouble:[newHeading trueHeading]],<span class="hljs-string">@"trueHeading"</span>,
+                          [<span class="hljs-built_in">NSNumber</span> numberWithDouble:[newHeading headingAccuracy]],<span class="hljs-string">@"accuracy"</span>,
+                          [<span class="hljs-built_in">NSNumber</span> numberWithLongLong:ts],<span class="hljs-string">@"timestamp"</span>,
+                          [<span class="hljs-built_in">NSNumber</span> numberWithDouble:[newHeading x]],<span class="hljs-string">@"x"</span>,
+                          [<span class="hljs-built_in">NSNumber</span> numberWithDouble:[newHeading y]],<span class="hljs-string">@"y"</span>,
+                          [<span class="hljs-built_in">NSNumber</span> numberWithDouble:[newHeading z]],<span class="hljs-string">@"z"</span>,
+                          <span class="hljs-literal">nil</span>];
+    <span class="hljs-keyword">return</span> data;
+}
+
+<span class="hljs-preprocessor">#pragma mark Single Shot Handling</span>
+
+-(<span class="hljs-built_in">BOOL</span>)fireSingleShotLocationIfNeeded:(<span class="hljs-built_in">NSDictionary</span>*)event stopIfNeeded:(<span class="hljs-built_in">BOOL</span>)stopIfNeeded
+{
+    <span class="hljs-comment">// check to see if we have any single shot location callbacks</span>
+    <span class="hljs-keyword">if</span> (singleLocation!=<span class="hljs-literal">nil</span>)
+    {
+        <span class="hljs-keyword">for</span> (KrollCallback *callback <span class="hljs-keyword">in</span> singleLocation)
+        {
+            [<span class="hljs-keyword">self</span> _fireEventToListener:<span class="hljs-string">@"location"</span> withObject:event listener:callback thisObject:<span class="hljs-literal">nil</span>];
+        }
+
+        <span class="hljs-comment">// after firing, we remove them</span>
+        RELEASE_TO_NIL(singleLocation);
+
+        <span class="hljs-comment">// check to make sure we don't need to stop after the single shot</span>
+        <span class="hljs-keyword">if</span> (stopIfNeeded)
+        {
+            [<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">YES</span>;
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">NO</span>;
+}
+
+-(<span class="hljs-built_in">BOOL</span>)fireSingleShotHeadingIfNeeded:(<span class="hljs-built_in">NSDictionary</span>*)event stopIfNeeded:(<span class="hljs-built_in">BOOL</span>)stopIfNeeded
+{
+    <span class="hljs-comment">// check to see if we have any single shot heading callbacks</span>
+    <span class="hljs-keyword">if</span> (singleHeading!=<span class="hljs-literal">nil</span>)
+    {
+        <span class="hljs-keyword">for</span> (KrollCallback *callback <span class="hljs-keyword">in</span> singleHeading)
+        {
+            [<span class="hljs-keyword">self</span> _fireEventToListener:<span class="hljs-string">@"heading"</span> withObject:event listener:callback thisObject:<span class="hljs-literal">nil</span>];
+        }
+
+        <span class="hljs-comment">// after firing, we remove them</span>
+        RELEASE_TO_NIL(singleHeading);
+
+        <span class="hljs-comment">// check to make sure we don't need to stop after the single shot</span>
+        <span class="hljs-keyword">if</span> (stopIfNeeded)
+        { 
+            [<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">YES</span>;
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">NO</span>;
+} 
+
+-(<span class="hljs-built_in">NSString</span>*)purpose
+{
+    <span class="hljs-keyword">return</span> purpose;
+}
+
+-(<span class="hljs-keyword">void</span>)setPurpose:(<span class="hljs-built_in">NSString</span> *)reason
+{
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(setPurpose,reason);
+    RELEASE_TO_NIL(purpose);
+    purpose = [reason retain];
+    <span class="hljs-keyword">if</span> (locationManager!=<span class="hljs-literal">nil</span>)
+    {
+        [locationManager setPurpose:purpose];
+    }
+
+}
+
+<span class="hljs-preprocessor">#pragma mark Geolacation Analytics</span>
+
+-(<span class="hljs-keyword">void</span>)fireApplicationAnalyticsIfNeeded:(<span class="hljs-built_in">NSArray</span> *)locations{
+    <span class="hljs-keyword">static</span> <span class="hljs-built_in">BOOL</span> analyticsSend = <span class="hljs-literal">NO</span>;
+    [lastLocationDict release];
+    lastLocationDict = [[<span class="hljs-keyword">self</span> locationDictionary:[locations lastObject]] <span class="hljs-keyword">copy</span>];
+    <span class="hljs-keyword">if</span> (TI_APPLI<span class="hljs-built_in">CATION_ANALYTICS</span> &amp;&amp; !analyticsSend)
+    {
+        analyticsSend = <span class="hljs-literal">YES</span>;
+        [[APSAnalytics sharedInstance] sendAppGeoEvent:[locations lastObject]];
+    }
+}
+
+<span class="hljs-preprocessor">#pragma mark Delegates</span>
+
+<span class="hljs-preprocessor">#if __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= __IPHONE_6_0</span>
+
+- (<span class="hljs-keyword">void</span>)locationManagerDidPauseLocationUpdates:(CLLocationManager *)manager
+{
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"locationupdatepaused"</span>])
+    {
+        [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"locationupdatepaused"</span> withObject:<span class="hljs-literal">nil</span>];
+    }
+}
+
+- (<span class="hljs-keyword">void</span>)locationManagerDidResumeLocationUpdates:(CLLocationManager *)manager
+{
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"locationupdateresumed"</span>])
+    {
+        [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"locationupdateresumed"</span> withObject:<span class="hljs-literal">nil</span>];
+    }
+}
+
+<span class="hljs-preprocessor">#endif</span>
+
+- (<span class="hljs-keyword">void</span>)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
+    <span class="hljs-built_in">NSDictionary</span> *event = [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:
+                           NUMINT([CLLocationManager authorizationStatus]),<span class="hljs-string">@"authorizationStatus"</span>,<span class="hljs-literal">nil</span>];
+
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"authorization"</span>])
+    {
+        [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"authorization"</span> withObject:event];
+    }
+}
+
+<span class="hljs-comment">//Using new delegate instead of the old deprecated method - (void)locationManager:didUpdateToLocation:fromLocation:</span>
+
+-(<span class="hljs-keyword">void</span>)locationManager:(CLLocationManager *)manager didUpdateLocations:(<span class="hljs-built_in">NSArray</span> *)locations{
+    <span class="hljs-built_in">NSDictionary</span> *todict = [<span class="hljs-keyword">self</span> locationDictionary:[locations lastObject]];
+
+    <span class="hljs-comment">//Must use dictionary because of singleshot.</span>
+    <span class="hljs-built_in">NSMutableDictionary</span> *event = [TiUtils dictionaryWithCode:<span class="hljs-number">0</span> message:<span class="hljs-literal">nil</span>];
+    [event setObject:todict forKey:<span class="hljs-string">@"coords"</span>];
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"location"</span>])
+    {
+        [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"location"</span> withObject:event];
+    }
+
+    [<span class="hljs-keyword">self</span> fireApplicationAnalyticsIfNeeded:locations];
+    [<span class="hljs-keyword">self</span> fireSingleShotLocationIfNeeded:event stopIfNeeded:<span class="hljs-literal">YES</span>];
+}
+
+
+
+- (<span class="hljs-keyword">void</span>)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation
+{
+    <span class="hljs-keyword">if</span> (newLocation != <span class="hljs-literal">nil</span>) {
+        <span class="hljs-keyword">if</span> (oldLocation == <span class="hljs-literal">nil</span>) {
+            [<span class="hljs-keyword">self</span> locationManager:manager didUpdateLocations:[<span class="hljs-built_in">NSArray</span> arrayWithObject:newLocation]];
+        }
+        <span class="hljs-keyword">else</span>{
+            [<span class="hljs-keyword">self</span> locationManager:manager didUpdateLocations:[<span class="hljs-built_in">NSArray</span> arrayWithObjects:oldLocation,newLocation,<span class="hljs-literal">nil</span>]];
+        }
+    }
+
+}
+
+
+- (<span class="hljs-keyword">void</span>)locationManager:(CLLocationManager *)manager didFailWithError:(<span class="hljs-built_in">NSError</span> *)error
+{
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"location"</span>])
+    {
+        [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"location"</span> withObject:<span class="hljs-literal">nil</span> errorCode:[error code] message:[TiUtils messageFromError:error]];
+    }
+
+    <span class="hljs-built_in">NSMutableDictionary</span> * event = [TiUtils dictionaryWithCode:[error code] message:[TiUtils messageFromError:error]];
+    <span class="hljs-built_in">BOOL</span> recheck = [<span class="hljs-keyword">self</span> fireSingleShotLocationIfNeeded:event stopIfNeeded:<span class="hljs-literal">NO</span>];
+    recheck = recheck || [<span class="hljs-keyword">self</span> fireSingleShotHeadingIfNeeded:event stopIfNeeded:<span class="hljs-literal">NO</span>];
+
+    <span class="hljs-keyword">if</span> (recheck)
+    {
+        <span class="hljs-comment">// check to make sure we don't need to stop after the single shot</span>
+        [<span class="hljs-keyword">self</span> startStopLocationManagerIfNeeded];
+    }
+}
+
+- (<span class="hljs-keyword">void</span>)locationManager:(CLLocationManager *)manager didUpdateHeading:(CLHeading *)newHeading
+{
+    <span class="hljs-comment">//Unfortunately, because of the single shot overloaded here, we can't use the faster eventing.</span>
+    <span class="hljs-built_in">NSMutableDictionary</span> * event = [TiUtils dictionaryWithCode:<span class="hljs-number">0</span> message:<span class="hljs-literal">nil</span>];
+    [event setObject:[<span class="hljs-keyword">self</span> headingDictionary:newHeading] forKey:<span class="hljs-string">@"heading"</span>];
+
+    [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"heading"</span> withObject:event];
+
+    [<span class="hljs-keyword">self</span> fireSingleShotHeadingIfNeeded:event stopIfNeeded:<span class="hljs-literal">YES</span>];
+}
+
+- (<span class="hljs-built_in">BOOL</span>)locationManagerShouldDisplayHeadingCalibration:(CLLocationManager *)manager
+{
+    <span class="hljs-keyword">if</span> (calibration)
+    {
+        <span class="hljs-comment">// fire an event in case the dev wants to hide it</span>
+        <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"calibration"</span>])
+        {
+            [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"calibration"</span> withObject:<span class="hljs-literal">nil</span>];
+        }
+    }
+    <span class="hljs-keyword">return</span> calibration;
+}
+
+- (<span class="hljs-keyword">void</span>)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
+    <span class="hljs-built_in">NSDictionary</span> *event = [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:
+                           NUMINT([CLLocationManager authorizationStatus]),<span class="hljs-string">@"authorizationStatus"</span>,<span class="hljs-literal">nil</span>];
+
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span> _hasListeners:<span class="hljs-string">@"authorization"</span>])
+    {
+        [<span class="hljs-keyword">self</span> fireEvent:<span class="hljs-string">@"authorization"</span> withObject:event];
+    }
+}
+
+<span class="hljs-keyword">@end</span>
+
+<span class="hljs-preprocessor">#endif</span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="November 6th 2014, 8:57:58 am">November 6th 2014</span>
+								by <span class='authorname'>Matt Pilott</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>http:&#x2F;&#x2F;pastebin.com&#x2F;REfCpq6r</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 6th 2014, 8:59:49 am">November 6th 2014</span>
+								by <span class='authorname'>Matt Pilott</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I don&#39;t know much of native iOS, apology for the inconvenience. Thought this could be a help for you.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 7th 2014, 7:00:56 am">November 7th 2014</span>
+								by <span class='authorname'>Raju ®</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy and singleton models » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy and singleton models</h1>
+		</header>
+		<section>
+			<p>Hi everybody, let me start by apologising for the long post.</p>
+<p>I&#39;m new to Alloy models and I&#39;m trying to study them but I can&#39;t find a way to understand and make use of them.</p>
+<p>For example, let&#39;s say we have a model that will hold the user details, accessible throughout the application. The user data doesn&#39;t have to persist since next time the application is loaded, another user can use it,</p>
+<p>So I&#39;m talking here about a singleton (can I call it?) model.</p>
+<p><code>models&amp;#x2F;user.js</code></p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+        columns: {
+            name: <span class="hljs-string">"TEXT"</span>
+        },
+        adapter: {
+            type: <span class="hljs-string">"sql"</span>,
+            collection_name: <span class="hljs-string">"name"</span>
+        }
+    },
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span> </span>{
+        _.extend(Model.prototype, {
+            <span class="hljs-comment">// extended functions and properties go here</span>
+            validate: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(attrs)</span></span>{
+                <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> attrs){
+                    <span class="hljs-keyword">var</span> value = attrs[key];
+                    <span class="hljs-keyword">if</span>(key === <span class="hljs-string">'name'</span>){
+                        <span class="hljs-keyword">if</span>(value.length &lt;= <span class="hljs-number">0</span>){
+                            <span class="hljs-keyword">return</span> <span class="hljs-string">"Name can't be empty!"</span>;
+                        }
+                    }
+                }
+            }
+        });
+        <span class="hljs-keyword">return</span> Model;
+    }
+};
+</code></pre><h3 id="1st-question-">1st question:</h3>
+<ul>
+<li>Since this is going to be a singleton and no data needs to persist, do I have to specify the <strong>adapter type</strong>, <strong>collection_name</strong> and <strong>attributeId</strong>?</li>
+<li>Do I also have to extend Model and Collection?</li>
+</ul>
+<h3 id="2nd-question-">2nd question:</h3>
+<ul>
+<li>How to instantiate a singleton using this module?</li>
+</ul>
+<p><code>alloy.js</code></p>
+<pre><code class="hljs">Alloy.Models.<span class="hljs-keyword">user</span> <span class="hljs-title">= Alloy</span>.createModel('user');
+// <span class="hljs-operator">or</span>
+Alloy.Models.<span class="hljs-keyword">user</span> <span class="hljs-title">= Alloy</span>.Models.instance('user');
+</code></pre><p>…and access it: <code>controllers&amp;#x2F;otherfile.js</code></p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> userModel</span> = Alloy.Models.user;
+</code></pre><p>I&#39;m a bit confused because I&#39;ve seen both here on Q&amp;A, but also on other websites explaining the use of Alloy Models. </p>
+<h3 id="3rd-question-">3rd question:</h3>
+<p><code>controllers&amp;#x2F;otherfile.js</code></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> userModel = Alloy.Models.user;
+
+userModel.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(mode, error)</span></span>{
+    Ti.API.info(error);    
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">saveUserData</span><span class="hljs-params">()</span></span>{
+    userModel.<span class="hljs-keyword">set</span>(<span class="hljs-string">'name'</span>, $.textFieldUserName.value);
+    Ti.API.info(<span class="hljs-string">'Is valid? '</span> + userModel.isValid());
+}
+</code></pre><p>When <strong>saveUserData()</strong> is called, the model will set the <strong>name</strong> property and the <strong>validate</strong> function will in the module will evaluate the data sent. If the data is invalid (this case, no name entered) it will return an error message.<br><code>Console</code></p>
+<pre><code class="hljs">// <span class="hljs-comment">[INFO]</span> :   Name can't be empty!
+// <span class="hljs-comment">[INFO]</span> :   <span class="hljs-keyword">Is</span> valid? true
+</code></pre><ul>
+<li>Why <strong>isValid() true</strong> if it didn&#39;t pass the <strong>validation</strong> function? </li>
+</ul>
+<h3 id="4th-question-">4th question:</h3>
+<p>When I close and reopen <code>controllers&amp;#x2F;otherfile.js</code>, and call <strong>saveUserData()</strong> again without sending any value to the property <strong>name</strong>, the output is:</p>
+<p><code>Console</code></p>
+<pre><code class="hljs">// <span class="hljs-comment">[INFO]</span> :   Name can't be empty!
+// <span class="hljs-comment">[INFO]</span> :   Name can't be empty!
+// <span class="hljs-comment">[INFO]</span> :   <span class="hljs-keyword">Is</span> valid? true
+</code></pre><p>… and if a close and reopen it again and to the same, the output is:</p>
+<p><code>Console</code></p>
+<pre><code class="hljs">// <span class="hljs-comment">[INFO]</span> :   Name can't be empty!
+// <span class="hljs-comment">[INFO]</span> :   Name can't be empty!
+// <span class="hljs-comment">[INFO]</span> :   Name can't be empty!
+// <span class="hljs-comment">[INFO]</span> :   <span class="hljs-keyword">Is</span> valid? true
+</code></pre><ul>
+<li>Does this means that I&#39;m getting multiple instantiations of the model?</li>
+</ul>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 27th 2014, 8:23:18 am">July 27th 2014</span>
+				by <span class='authorname'>Luis Ferreira</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>isvalid()</span></li>
+					
+						<li><span class='tagname'>models</span></li>
+					
+						<li><span class='tagname'>singleton</span></li>
+					
+						<li><span class='tagname'>validation</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-281183">
+				
+						<section>
+							<p>First off I would recommend that you read the official backbone documentation to get an overall understanding of models beyond what is in the Appcelerator Documentation <a href="http:&#x2F;&#x2F;backbonejs.org&#x2F;#">http:&#x2F;&#x2F;backbonejs.org&#x2F;#</a></p>
+<p><strong>1st question:</strong> Yes you do, I would suggest using the properties adapter since it is a pretty simple use case and does not require setting columns and such.</p>
+<p><strong>2nd question:</strong> I would use the second approach since it should create the object if it does not exist yet</p>
+<pre><code class="hljs">Alloy.Models.<span class="hljs-keyword">user</span> <span class="hljs-title">= Alloy</span>.Models.instance('user');
+</code></pre><p>For the third and fourth questions it would be helpful if you provided a complete sample for someone to work through, it is difficult to just eyeball these snippets and provide a solution</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 27th 2014, 2:36:18 pm">July 27th 2014</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/176528/alloy-and-singleton-models#answer-281183" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>this has some helpful pointers on using properties as models and cleaning up on restart <a href="http:&#x2F;&#x2F;www.slideshare.net&#x2F;aaronksaunders&#x2F;model-help-june2013">Quick Way to work with Models and Alloy in Appcelerator Titanium</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 27th 2014, 2:45:35 pm">July 27th 2014</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Aaron.</p>
+<p>Many thanks for your reply.</p>
+<p>I think the documentation you&#39;re referring is <a href="http:&#x2F;&#x2F;htmlpreview.github.io&#x2F;?https:&#x2F;&#x2F;raw.github.com&#x2F;jashkenas&#x2F;backbone&#x2F;0.9.2&#x2F;index.html">Backbone 0.9.2</a>, which is the version currently used by Alloy.</p>
+<p>I read, and keep reading since is a very good tool to understand Backbone models, however Alloy applies it in a slight different way.</p>
+<p>Regarding to <strong>question 1</strong>, you suggest the the use of property adapters, and what you mean that it doesn&#39;t require setting columns?</p>
+<p>I mean, I&#39;m trying to create a model to be used as a singleton so it can be available on all application files and to hold data only when the application is running. Once the application is closed, the singleton data disappears. Do I really need to set everything on the model, or maybe a Model is not the best approach for this case. I use to do this with a commonJS module on classic titanium,</p>
+<p><strong>Question 3 and 4</strong>, the code is very simple, in fact is just what I posted before, the only different is that there is a file called <code>otherfile.xml</code> that has a button who has a <code>onClick=&amp;#39;saveUserData&amp;#39;</code> but if it helps, I&#39;ll post the code from those 3 files.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 28th 2014, 5:36:04 am">July 28th 2014</span>
+											by <span class='authorname'>Luis Ferreira</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Freeing Titanium objects for garbage collection » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Freeing Titanium objects for garbage collection</h1>
+		</header>
+		<section>
+			<p>Not really a question, but I had been struggling with memory leaks for a while. There isn&#39;t a lot of code examples out there that illustrate the best practices–especially when views have large tables. I&#39;ve finally worked out what I believe to be a good way of freeing memory and put it together into a pretty concise function. I&#39;d love to get feedback on any way I could improve it. I&#39;ve tested it–though not extensively–on the iphone simulator and will soon test in android.</p>
+<pre><code class="hljs">
+<span class="hljs-comment">//$.win is declared in the Alloy. Also declared in Alloy is a</span>
+<span class="hljs-comment">// table which is loaded with remote json data</span>
+<span class="hljs-comment">// the table has sections with header views that contains</span>
+<span class="hljs-comment">// 1 label and rows that contain 2-3 labels. The largest</span>
+<span class="hljs-comment">// table in the app i'm currently working on is over</span>
+<span class="hljs-comment">// 1500 rows. The heap in the iOS simulator goes from</span>
+<span class="hljs-comment">// ~23Mb to ~4Mb</span>
+$.win.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+</span>{
+    <span class="hljs-comment">////////////////////////////////////////////////////////////////////////////////</span>
+    <span class="hljs-comment">/////// Frees Titanium objects by stepping through the </span>
+    <span class="hljs-comment">/////// views passed to it and removes children from  </span>
+    <span class="hljs-comment">/////// last to first  then sets them to null. It has two </span>
+    <span class="hljs-comment">/////// arguments obj (the view) and par (the view's </span>
+    <span class="hljs-comment">/////// parent)</span>
+    <span class="hljs-comment">///////////////////////////////////////////////////////////////////////////////</span>
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">freeMemory</span>(<span class="hljs-params">obj, par</span>)
+    </span>{
+        <span class="hljs-comment">// since tableviews and tableview sections store their children</span>
+        <span class="hljs-comment">// differently from regular views (correct me if i'm wrong)</span>
+        <span class="hljs-comment">// the function checks for those two types. if the view has</span>
+        <span class="hljs-comment">// children the function wraps otherwise. In windows/views</span>
+        <span class="hljs-comment">// with other objects that don't keep view in the children</span>
+        <span class="hljs-comment">// property should be taken into consideration.</span>
+
+        <span class="hljs-keyword">if</span>(obj.apiName == <span class="hljs-string">"Ti.UI.TableView"</span>)
+        {
+            <span class="hljs-keyword">if</span>(obj.data.length)
+            {    
+
+                freeMemory(obj.sections[obj.data.length - <span class="hljs-number">1</span>], obj);
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+            }
+            <span class="hljs-keyword">else</span>
+            {
+                par.remove(obj);
+                obj = <span class="hljs-literal">null</span>;
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+            }    
+        }
+
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(obj.apiName == <span class="hljs-string">"Ti.UI.TableViewSection"</span>)
+        {
+
+            <span class="hljs-keyword">if</span>(obj.rows.length &gt; <span class="hljs-number">0</span>)
+            {    
+                <span class="hljs-comment">// this seems to be best way of lopping off the last</span>
+                <span class="hljs-comment">// element of the table's data. pop() raised an error.</span>
+                <span class="hljs-comment">// suggestions encouraged</span>
+
+                freeMemory(obj.rows[obj.rows.length - <span class="hljs-number">1</span>], obj);
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+            }
+            <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(obj.rows.length == <span class="hljs-number">0</span>)
+            {
+                par.data = par.data.slice((par.data.length - <span class="hljs-number">1</span>), <span class="hljs-number">1</span>);
+                obj = <span class="hljs-literal">null</span>;
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+            }    
+        }
+
+        <span class="hljs-keyword">else</span>
+        {    
+            <span class="hljs-keyword">if</span>(obj.children.length &gt; <span class="hljs-number">0</span>)
+            {
+                freeMemory(obj.children[obj.children.length - <span class="hljs-number">1</span>], obj);
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+            }
+            <span class="hljs-keyword">else</span>
+            {
+                par.remove(obj);
+                obj = <span class="hljs-literal">null</span>;
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+            }    
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;    
+    }
+
+    <span class="hljs-comment">// this how I call the function at the moment. suggestions </span>
+    <span class="hljs-comment">// encouraged for this part as well. This loop steps through</span>
+    <span class="hljs-comment">// the windows and passes its children to freeMemory</span>
+
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> x = $.rootWin.children.length - <span class="hljs-number">1</span>; x &gt; -<span class="hljs-number">1</span>; x--)
+    {
+        <span class="hljs-keyword">var</span> flag = <span class="hljs-literal">false</span>;
+        <span class="hljs-keyword">while</span>(!flag)
+        {
+            flag = freeMemory($.win.children[x], $.win);
+        }
+    }
+    $.win = <span class="hljs-literal">null</span>;
+});
+</code></pre><p>it still need to be tested more but it&#39;s a start. once again any suggestions would be greatly appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 5th 2014, 1:28:02 am">July 5th 2014</span>
+				by <span class='authorname'>Allie Fitter</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-280380">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Nice idea, but in IMHO completely unneccessary. Manage the objects within a window correctly and the GC will reclaim them by itself when the window itself is closed&#x2F;nulled</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 5th 2014, 4:44:36 am">July 5th 2014</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/175775/freeing-titanium-objects-for-garbage-collection#answer-280380" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>oh, if you&#39;re using Alloy, be sure to call $.destroy() on closing windows - if not, that may be the source of your heap increase.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 5th 2014, 4:54:04 am">July 5th 2014</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Focus on;</p>
+<ul>
+<li>Event Listener - use Remove Event Listener once they are nbo longer required</li>
+<li>For tables simply use <strong>table.setData([]);</strong> nothing more complicated than that</li>
+<li>If you use <strong>setTimeout</strong> or <strong>setInterval</strong> you must always <strong>clear(thing)</strong> each of these</li>
+</ul>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 5th 2014, 8:26:22 am">July 5th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>First off, after further test my function is not the Rosetta stone I hoped it would be. Android especially doesn&#39;t like it. Moving on…<br>Bear with me as this is my first app in titanium, but from what I&#39;ve observed in allocations and ddms $.destroy() doesn&#39;t seem to do anything. As for event listeners, I can never find a good code snippet on proper removal. Do you have to remove alloy onClick or onAndroidBack? What about &#39;close&#39; listeners. Table.setData([]) left all the labels that I have on the rows in memory, which lead me to write this function. As for clear(thing), I&#39;ve never seen that before. I&#39;m going to look it up, but would you mind elaborating?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 5th 2014, 4:53:27 pm">July 5th 2014</span>
+											by <span class='authorname'>Allie Fitter</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>ok I get what you meant by clear(thing) now. I&#39;m new to javascript so i&#39;m not familiar with setTimeout. And I was totally wrong about <code>setData([])</code>. it has the same affect as my function. if you set it up like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">// note that each of these calls is in its own block of an if </span>
+<span class="hljs-comment">// statement or function.</span>
+<span class="hljs-keyword">var</span> id = setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-comment">// do something</span>
+    clearTimeout(id);
+}
+</code></pre><p>I&#39;m not sure if it&#39;s clearing it or not, but doing that along with this: </p>
+<pre><code class="hljs">$.win.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+</span>{
+    $.table.setData([]);
+    $.win.remove($.table);
+    $.table = <span class="hljs-literal">null</span>;
+    $.win = <span class="hljs-literal">null</span>;
+    $.destroy();
+}
+</code></pre><p>It&#39;s freeing data nicely, but now the app crashes with no errors in the console occasionally when being monitored by allocations. I haven&#39;t seen the crash when allocations isn&#39;t monitoring it. I still have questions about <code>removeListener</code> though, like &#39;close&#39; listeners and onClick Alloy listeners. do you have to remove them too?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 5th 2014, 11:54:43 pm">July 5th 2014</span>
+											by <span class='authorname'>Allie Fitter</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Strange Memory issue » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Strange Memory issue</h1>
+		</header>
+		<section>
+			<p>Titanium SDK: 3.2.3 GA</p>
+<p>iOS: 7.1</p>
+<p>While trying the following sample code on iOS (I used iPad3) I noticed that the created views are never garbage collected. (the code is pretty simple, clicking the button creates 200 views and adds them to the window).</p>
+<p>For profiling the memory I used the Instruments tool from XCode. Each time the button is pressed new bunch of views are created but the old ones are never returned.</p>
+<p>Here is the code:</p>
+<p>MyView.js</p>
+<pre><code class="hljs">exports.MyView = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+
+    <span class="hljs-keyword">var</span> view = Ti.UI.createView({
+        top : <span class="hljs-number">0</span>,
+        left : <span class="hljs-number">0</span>,
+        width : <span class="hljs-number">1000</span>,
+        height : <span class="hljs-number">500</span>,
+        backgroundColor : <span class="hljs-string">'white'</span>
+    });
+
+    view.myFunc = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">10</span>; i++) {
+            Ti.API.info(<span class="hljs-string">"Counting: "</span> + i);
+        }
+    };
+
+    <span class="hljs-comment">/**
+     * Creates 200 views and adds them to the view object above
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createManyViews</span><span class="hljs-params">(view)</span> </span>{
+
+        <span class="hljs-keyword">var</span> colors = [<span class="hljs-string">'blue'</span>, <span class="hljs-string">'yellow'</span>, <span class="hljs-string">'green'</span>, <span class="hljs-string">'pink'</span>, <span class="hljs-string">'orange'</span>, <span class="hljs-string">'red'</span>];
+
+        <span class="hljs-keyword">var</span> top = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">10</span>; i++) {
+            <span class="hljs-keyword">var</span> left = <span class="hljs-number">0</span>;
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> j = <span class="hljs-number">0</span>; j &lt; <span class="hljs-number">20</span>; j++) {
+                <span class="hljs-keyword">var</span> v = Ti.UI.createView({
+                    top : top,
+                    left : left,
+                    width : <span class="hljs-number">50</span>,
+                    height : <span class="hljs-number">50</span>,
+                    backgroundColor : colors[(i + j) % <span class="hljs-number">5</span>],
+                });
+                view.add(v);
+                left = left + <span class="hljs-number">50</span>;
+            }
+            top = top + <span class="hljs-number">50</span>;
+        }
+    };
+
+    createManyViews(view);
+
+    <span class="hljs-keyword">return</span> view;
+};
+</code></pre><p>app.js</p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> <span class="hljs-collection">{
+    var MyView = require<span class="hljs-list">(<span class="hljs-string">"MyDir/MyView"</span>)</span>.MyView;
+    var myView = null;
+    var win = Ti.UI.createWindow<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+    var btn = Ti.UI.createButton<span class="hljs-list">(<span class="hljs-collection">{
+        bottom : <span class="hljs-number">10</span>,
+        width : <span class="hljs-number">150</span>,
+        title : <span class="hljs-string">"Create views"</span> 
+    }</span>)</span><span class="hljs-comment">;</span>
+    btn.addEventListener<span class="hljs-list">(<span class="hljs-keyword">'click'</span>, function<span class="hljs-list">()</span> <span class="hljs-collection">{
+        if <span class="hljs-list">(<span class="hljs-keyword">myView</span>)</span> <span class="hljs-collection">{
+            win.remove<span class="hljs-list">(<span class="hljs-keyword">myView</span>)</span><span class="hljs-comment">;</span>
+        }</span>
+
+        myView = new MyView<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+        win.add<span class="hljs-list">(<span class="hljs-keyword">myView</span>)</span><span class="hljs-comment">;</span>
+    }</span>)</span><span class="hljs-comment">;</span>
+    win.add<span class="hljs-list">(<span class="hljs-keyword">btn</span>)</span><span class="hljs-comment">;</span>
+    win.open<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>The problem can be resolved by one of the following:</p>
+<ol>
+<li>Remove the definition of <code>view.myFunc()</code></li>
+<li>Move the code from <code>createManyViews()</code> out of the function (remove the function)</li>
+</ol>
+<p>However, I would like to know what is the actual cause for this so I can avoid similar problems.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 19th 2014, 12:50:38 pm">August 19th 2014</span>
+				by <span class='authorname'>I T</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>leak</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-281798">
+				
+						<section>
+							<p>A couple of thoughts:</p>
+<p>We strongly recommend that you do not modify any of the view proxy objects (Ti.UI.*), especially by adding functions. You are doing this with view.myFunc(). Android seems to handle this better. But on iOS, it can lead to race conditions and memory problems like the ones you&#39;re seeing.</p>
+<p>In the if(myView) block of your buttons event handler, add <code>myView = null;</code> after the remove(). That will signal the native layer that it can clean up the &quot;many views&quot; that myView contains.</p>
+<p>Instruments takes a few moments to catch up with reality. Have you waited a bit to see if the objects are actually removed? Perhaps you&#39;re just running the test too frequently and the display can&#39;t keep up.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 20th 2014, 11:38:07 am">August 20th 2014</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/177118/strange-memory-issue#answer-281798" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

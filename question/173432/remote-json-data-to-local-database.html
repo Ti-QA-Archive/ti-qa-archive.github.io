@@ -1,0 +1,277 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>remote json data to local database » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>remote json data to local database</h1>
+		</header>
+		<section>
+			<p>Application:Mobile,Titanium studio:3.2.1,Device:Emulator,OS:windows 7,Titanium SDK:3.2.1</p>
+<p>Not able to insert  data to the database and also retrieve.tried both ways using model and also using sql quires<br>1)using sql query:<br>controller file</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> members=Alloy.createCollection(<span class="hljs-string">'members'</span>);
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchData</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.open(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"url"</span>);
+    xhr.send();
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span>) {
+            <span class="hljs-keyword">var</span> db = Ti.Database.open(<span class="hljs-string">'mydb'</span>);
+            <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-comment">//creating members table</span>
+            <span class="hljs-keyword">if</span> (json.membersTable == <span class="hljs-literal">null</span>) {
+                <span class="hljs-comment">//DO NOTHING</span>
+            } <span class="hljs-keyword">else</span> {
+
+db.execute(<span class="hljs-string">'BEGIN'</span>); <span class="hljs-comment">// begin the transaction</span>
+db.execute(<span class="hljs-string">'DELETE FROM members'</span>);
+            db.execute(<span class="hljs-string">'CREATE TABLE if not exists members (id INTEGER, name text);'</span>);
+            <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; json.membersTable.length; i++) {
+                db.execute(
+                    <span class="hljs-string">'insert into members (id, name) values (?,?);'</span>,
+                    json.membersTable[i].id,
+                    json.membersTable[i].name);
+
+            }
+        }
+
+db.execute(<span class="hljs-string">'COMMIT'</span>);
+db.close();
+                }                
+    };
+    xhr.onerror=<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        alert(<span class="hljs-string">'check the connection'</span>);
+    };
+}
+</code></pre><p>model file</p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+            <span class="hljs-string">"columns"</span>:
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"string"</span>,
+            },
+            adapter: {
+            <span class="hljs-built_in">type</span>: <span class="hljs-string">"sql"</span>,
+            collection_name: <span class="hljs-string">"members"</span>,
+            db_file: <span class="hljs-string">"/dbs/mydb.sqlite"</span>,
+            db_name: <span class="hljs-string">"mydb"</span>,
+            idAttribute: <span class="hljs-string">"id"</span>,
+            remoteBackup: <span class="hljs-keyword">false</span>
+        }
+
+    },
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span></span> {
+        _.extend(Model.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+        });
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span></span> {
+        _.extend(Collection.prototype, {
+            details: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(args)</span></span>
+            {
+                Collection.prototype.fetch(
+                    {
+                                            }
+                );
+            }
+
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre><p>using model</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> members= Alloy.Collections.members;
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchData</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.open(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"url"</span>);
+    xhr.send();
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span>) {
+           <span class="hljs-keyword">var</span> db = Ti.Database.open(<span class="hljs-string">'mydb'</span>);
+            <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-comment">//creating members table</span>
+            <span class="hljs-keyword">if</span> (json.membersTable == <span class="hljs-literal">null</span>) {
+                <span class="hljs-comment">//DO NOTHING</span>
+            } <span class="hljs-keyword">else</span> {
+
+                    <span class="hljs-keyword">var</span> members = Alloy.createCollection(<span class="hljs-string">'members'</span>);
+
+                <span class="hljs-keyword">for</span> ( i = <span class="hljs-number">0</span>; i &lt; json.membersTable.length; i++) {
+                    <span class="hljs-keyword">var</span> model = Alloy.createModel(<span class="hljs-string">'members'</span>,{
+                            name : json.membersTable[i].name,
+                            id :  json.membersTable[i].id
+                        });
+                       members.add(model);
+                       model.save(); 
+                }
+
+            members.fetch({query:
+        <span class="hljs-string">"SELECT name,id from members order by name"</span>
+        });
+            Ti.API.info(<span class="hljs-string">'members.length--&gt;'</span>+members.length); 
+            }
+        }
+    };
+}
+</code></pre><p>the error I get is</p>
+<pre><code class="hljs">[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">TiExceptionHandler</span>: (main) [<span class="hljs-number">3</span>,<span class="hljs-number">4200</span>] - <span class="hljs-type">In</span> alloy/sync/sql.js:<span class="hljs-number">270</span>,<span class="hljs-number">15</span>
+[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">TiExceptionHandler</span>: (main) [<span class="hljs-number">26</span>,<span class="hljs-number">4226</span>] - <span class="hljs-type">Message</span>: <span class="hljs-type">Uncaught</span> <span class="hljs-type">TypeError</span>: <span class="hljs-type">Cannot</span> call <span class="hljs-keyword">method</span> 'isValidRow' <span class="hljs-keyword">of</span> null
+[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">TiExceptionHandler</span>: (main) [<span class="hljs-number">1</span>,<span class="hljs-number">4227</span>] - <span class="hljs-type">Source</span>:     <span class="hljs-keyword">while</span> (rs.isValidRow()) {
+[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">V8Exception</span>: <span class="hljs-type">Exception</span> occurred at alloy/sync/sql.js:<span class="hljs-number">270</span>: <span class="hljs-type">Uncaught</span> <span class="hljs-type">TypeError</span>: <span class="hljs-type">Cannot</span> call <span class="hljs-keyword">method</span> 'isValidRow' <span class="hljs-keyword">of</span> null
+</code></pre><p>the database is in assets&#x2F;dbs&#x2F;mydb.sqlite.</p>
+<p>pls help me.I am very confused.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 29th 2014, 12:58:14 pm">April 29th 2014</span>
+				by <span class='authorname'>Aparna M</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-278262">
+				
+						<section>
+							<p>Firstly, define the model at the top of the code like this:</p>
+<pre><code class="hljs">Alloy.Collections.<span class="hljs-built_in">members</span> = Alloy.createCollection(<span class="hljs-string">'members'</span>);
+var <span class="hljs-built_in">members</span> = Alloy.Collections.<span class="hljs-built_in">members</span>;
+</code></pre><p>Secondly, move the open and send calls after the onload definition:</p>
+<pre><code class="hljs">xhr.onload = function() {
+    ...
+    //var db = Ti.Database.open('mydb'); // remove this line
+    ...
+    //var members = Alloy.createCollection('members'); // remove this line
+    ...
+};
+xhr.open(<span class="hljs-string">"<span class="hljs-keyword">GET</span>"</span>, <span class="hljs-string">"url"</span>);
+xhr.send();
+</code></pre><p>Thirdly, what does the JSON retuned from the web service contain - can you post it here?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 30th 2014, 5:45:13 am">April 30th 2014</span>
+								by <span class='authorname'>Larrie Wilson</span><br>
+								<a class="icon-bg icon-link" href="question/173432/remote-json-data-to-local-database#answer-278262" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Larrie Wilson,</p>
+<p>Thanks for the reply.JSON returns me all the member details such as name,id etc.,</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 30th 2014, 5:52:24 am">April 30th 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That&#39;s helpful - NOT! So you have proved that the JSON is returning what you want and you are iterating around the loop correctly?</p>
+<pre><code class="hljs">    //members.<span class="hljs-built_in">add</span>(model); //<span class="hljs-built_in">remove</span> this <span class="hljs-built_in">line</span> <span class="hljs-keyword">as</span> well
+</code></pre><p>Have you read <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Alloy_Collection_and_Model_Objects">this</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 30th 2014, 6:04:38 am">April 30th 2014</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>ya but only sometimes.after that what happens I dont know it does not return anything but shows the members.length correctly.</p>
+<p>if I remove the line <code>var db=Ti.Database.open(&amp;#39;mydb&amp;#39;);</code> so I shouldnt keep db-name and db_file in the model file right?</p>
+<p>Is there anything wrong If I use sql query for inserting the data into table?</p>
+<p>Because If I use sql query I can join the tables and get the required data…Is there any way If i use models?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 30th 2014, 6:16:54 am">April 30th 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

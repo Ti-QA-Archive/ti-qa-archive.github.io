@@ -1,0 +1,573 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Building a Chat App with socket.io » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Building a Chat App with socket.io</h1>
+		</header>
+		<section>
+			<p>I am trying to make an simple Chat Applikation with socket.io and Titanium for IOS&#x2F;Android.</p>
+<p>I was able to get the example Skript from socket.io running on my local machine. I can send and receive messages over my browsers. But i cant connect with my IOS App i build in Titanium. I dont get the connect status in the console.</p>
+<p>Does someone knows what i am doing wrong. Or have i forgotten something?</p>
+<p>I have tried it with the Titanium.Network.Socket.TCP function:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> hostname = <span class="hljs-string">'127.0.0.1'</span>;
+
+    <span class="hljs-keyword">var</span> clientSocket = Ti.Network.Socket.createTCP({
+        host : hostname,
+        port : <span class="hljs-number">3000</span>,
+        connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">'Client socket connected!'</span>);
+            Ti.Stream.pump(e.socket, pumpCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+            e.socket.write(Ti.createBuffer({
+                value : <span class="hljs-string">'A message from a connecting socket.'</span>
+            }));
+        },
+        error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.error);
+        }
+    });
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">writeCallback</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Successfully wrote to socket.'</span>);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pumpCallback</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">// Has the remote socket closed its end?</span>
+        <span class="hljs-keyword">if</span> (e.bytesProcessed &lt; <span class="hljs-number">0</span>) {
+            Ti.API.info(<span class="hljs-string">"Closing client socket."</span>);
+            clientSocket.close();
+            <span class="hljs-keyword">return</span>;
+        }
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">if</span> (e.buffer) {
+                <span class="hljs-keyword">var</span> received = e.buffer.toString();
+                Ti.API.info(<span class="hljs-string">'Received: '</span> + received);
+            } <span class="hljs-keyword">else</span> {
+                Ti.API.error(<span class="hljs-string">'Error: read callback called with no buffer!'</span>);
+            }
+        } <span class="hljs-keyword">catch</span> (ex) {
+            Ti.API.error(ex);
+            }
+        }
+
+Ti.API.info(<span class="hljs-string">"Setting timer to connect."</span>);
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">"Calling connect on client socket."</span>);
+            clientSocket.connect();
+        }, <span class="hljs-number">500</span>);
+</code></pre><p>And the code from my server:</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> app = <span class="hljs-built_in">require</span>(<span class="hljs-string">'express'</span>)();
+<span class="hljs-keyword">var</span> http = <span class="hljs-built_in">require</span>(<span class="hljs-string">'http'</span>).Server(app);
+<span class="hljs-keyword">var</span> io = <span class="hljs-built_in">require</span>(<span class="hljs-string">'socket.io'</span>)(http);
+
+app.get(<span class="hljs-string">'/'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">req, res</span>)</span>{
+  res.sendfile(<span class="hljs-string">'index.html'</span>);
+});
+
+io.on(<span class="hljs-string">'connection'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">socket</span>)</span>{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'a user connected'</span>);
+  socket.on(<span class="hljs-string">'chat message'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">msg</span>)</span>{
+    io.emit(<span class="hljs-string">'chat message'</span>, msg);
+  });
+});
+
+http.listen(<span class="hljs-number">3000</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'listening on *:3000'</span>);
+});
+</code></pre><p>Output in Titanium:</p>
+<pre><code class="hljs">[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">Setting</span> <span class="hljs-atom">timer</span> <span class="hljs-atom">to</span> <span class="hljs-atom">connect</span>.
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">Calling</span> <span class="hljs-atom">connect</span> <span class="hljs-atom">on</span> <span class="hljs-atom">client</span> <span class="hljs-atom">socket</span>.
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">Client</span> <span class="hljs-atom">socket</span> <span class="hljs-atom">connected</span>!
+[<span class="hljs-name">INFO</span>] :   <span class="hljs-name">Closing</span> <span class="hljs-atom">client</span> <span class="hljs-atom">socket</span>.
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 6th 2014, 1:26:10 pm">July 6th 2014</span>
+				by <span class='authorname'>Tim Strakerjahn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>connection</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>node.js</span></li>
+					
+						<li><span class='tagname'>socket.io</span></li>
+					
+						<li><span class='tagname'>tcp</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-280409">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>For socket.io communiaction you can use the awesome module <a href="https:&#x2F;&#x2F;github.com&#x2F;iamyellow&#x2F;tiws">ti.ws</a>. It works with charme.</p>
+<p>Rainer</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 6th 2014, 2:09:23 pm">July 6th 2014</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/175796/building-a-chat-app-with-socketio#answer-280409" rel="permalink">permalink</a>
+							</div>
+
+							<h5>14 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>websockets != sockets</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 2:09:10 pm">July 6th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>okay thx for that tipp. but i always get the message &quot;websocket closed&quot; when i run this code.</p>
+<p>Do you have any experience with tiws?</p>
+<pre><code class="hljs">var websocket = <span class="hljs-built_in">require</span>(<span class="hljs-string">'net.iamyellow.tiws'</span>).createWS();
+
+        websocket.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span> {
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'websocket opened'</span>);
+        });
+
+        websocket.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(ev)</span></span> {
+            Ti.API.info(<span class="hljs-string">'websocket closed'</span>);
+        });
+
+        websocket.addEventListener(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(ev)</span></span> {
+            // ev.<span class="hljs-built_in">error</span> contains <span class="hljs-built_in">error</span> description, <span class="hljs-keyword">if</span> any
+            Ti.API.<span class="hljs-built_in">error</span>(ev.<span class="hljs-built_in">error</span>);
+        });
+
+        websocket.addEventListener(<span class="hljs-string">'message'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(ev)</span></span> {
+            // ev.data contains message data
+            Ti.API.log(ev.data);
+        });
+
+        websocket.open(<span class="hljs-string">'ws://localhost:3000'</span>);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 2:36:19 pm">July 6th 2014</span>
+											by <span class='authorname'>Tim Strakerjahn</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I use tiws in the socket.io modus.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 2:37:55 pm">July 6th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><pre><code class="hljs"><span class="hljs-keyword">var</span> uid = Ti.Utils.md5HexDigest(Ti.Platform.getMacaddress()).substring(<span class="hljs-number">0</span>, <span class="hljs-number">3</span>);
+<span class="hljs-keyword">var</span> username = Ti.App.Properties.getString(<span class="hljs-string">'CHATUSER'</span>, <span class="hljs-string">'@'</span> + Ti.Utils.md5HexDigest(Ti.Platform.getMacaddress()).substring(<span class="hljs-number">0</span>, <span class="hljs-number">3</span>));
+<span class="hljs-keyword">var</span> volume = (Ti.App.Properties.hasProperty(<span class="hljs-string">'VOLUME'</span>)) ? Ti.App.Properties.getString(<span class="hljs-string">'VOLUME'</span>) : <span class="hljs-number">1</span>;
+
+<span class="hljs-keyword">var</span> SocketIO = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.socket = <span class="hljs-built_in">require</span>(<span class="hljs-string">'vendor/socket.io'</span>).connect(Ti.App.Properties.getString(<span class="hljs-string">'chaturi'</span>));
+    <span class="hljs-keyword">this</span>.sound = Ti.Media.createAudioPlayer({
+        url : <span class="hljs-string">'/assets/click.mp3'</span>,
+        allowBackground : <span class="hljs-literal">true</span>,
+        volume : volume
+    });
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    <span class="hljs-keyword">this</span>.socket.on(<span class="hljs-string">'chatter_joined'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_payload</span>) </span>{
+        that.sound.release();
+        that.sound.volume = (Ti.App.Properties.hasProperty(<span class="hljs-string">'VOLUME'</span>)) ? Ti.App.Properties.getString(<span class="hljs-string">'VOLUME'</span>) : <span class="hljs-number">1</span>;
+        that.sound.play();
+        <span class="hljs-keyword">if</span> (that._handlers)
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> item <span class="hljs-keyword">in</span> that._handlers) {
+                <span class="hljs-keyword">var</span> message = (_payload.id == uid) ? <span class="hljs-string">'Du hast den Chat betreten.'</span> : ((_payload.username) ? _payload.username : _payload.id) + <span class="hljs-string">' hat den Chat betreten.'</span>;
+                <span class="hljs-keyword">var</span> photo = (_payload.id == uid) ? Ti.App.Apiomat.getChatImage() : _payload.photo;
+                that._handlers[item].call(that, {
+                    chattext : message,
+                    photo : photo,
+                    type : <span class="hljs-string">'join'</span>
+                });
+            }
+        ;
+        <span class="hljs-comment">//console.log(_payload);</span>
+    });
+    <span class="hljs-keyword">this</span>.socket.on(<span class="hljs-string">'chatter_already_joined'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_payload</span>) </span>{
+        <span class="hljs-keyword">if</span> (that._handlers) {
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> item <span class="hljs-keyword">in</span> that._handlers) {
+                that._handlers[item].call(that, {
+                    chatters : _payload,
+                    type : <span class="hljs-string">'chatters'</span>
+                });
+            }
+        }
+        <span class="hljs-built_in">console</span>.log(_payload);
+    });
+    <span class="hljs-keyword">this</span>.socket.on(<span class="hljs-string">'chatter_quit'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_payload</span>) </span>{
+        <span class="hljs-keyword">if</span> (that._handlers)
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> item <span class="hljs-keyword">in</span> that._handlers) {
+                that._handlers[item].call(that, {
+                    chattext : ((_payload.username) ? _payload.username : _payload.id) + <span class="hljs-string">' hat den Chat verlassen.'</span>,
+                    photo : _payload.photo,
+                    type : <span class="hljs-string">'join'</span>
+                });
+            }
+        ;
+    });
+    <span class="hljs-keyword">this</span>.socket.on(<span class="hljs-string">'chatter_said'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_payload</span>) </span>{
+        that.sound.release();
+        that.sound.volume = (Ti.App.Properties.hasProperty(<span class="hljs-string">'VOLUME'</span>)) ? Ti.App.Properties.getString(<span class="hljs-string">'VOLUME'</span>) : <span class="hljs-number">1</span>;
+        that.sound.play();
+        <span class="hljs-keyword">if</span> (that._handlers)
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> item <span class="hljs-keyword">in</span> that._handlers) {
+                that._handlers[item].call(that, {
+                    chattext : _payload.username + <span class="hljs-string">': '</span> + _payload.message,
+                    photo : _payload.photo
+                });
+            }
+        ;
+    });
+    <span class="hljs-keyword">this</span>._handlers = {};
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+};
+
+SocketIO.prototype = {
+    join : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_callback</span>) </span>{
+        <span class="hljs-keyword">var</span> payload = {
+            <span class="hljs-string">"id"</span> : uid,
+            <span class="hljs-string">"username"</span> : username,
+            <span class="hljs-string">"photo"</span> : Ti.App.Apiomat.getChatImage()
+        };
+        <span class="hljs-keyword">this</span>._handlers[payload.id] = _callback;
+        <span class="hljs-keyword">this</span>.socket.emit(<span class="hljs-string">'join'</span>, payload);
+    },
+    quit : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> payload = {
+            <span class="hljs-string">"id"</span> : uid,
+            <span class="hljs-string">"username"</span> : username,
+            <span class="hljs-string">"photo"</span> : Ti.App.Apiomat.getChatImage()
+        };
+        <span class="hljs-keyword">this</span>.socket.emit(<span class="hljs-string">'quit'</span>, payload);
+    },
+    speak : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_payload</span>) </span>{
+        <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+        _payload.username = username;
+        _payload.photo = Ti.App.Apiomat.getChatImage();
+
+        <span class="hljs-keyword">this</span>.socket.emit(<span class="hljs-string">'speak'</span>, _payload);
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> item <span class="hljs-keyword">in</span> that._handlers) {
+            that._handlers[item].call(that, {
+                self : <span class="hljs-literal">true</span>,
+                chattext : <span class="hljs-string">'Ich: '</span> + _payload.message,
+                photo : Ti.App.Apiomat.getChatImage()
+            });
+        }
+    }
+};
+
+<span class="hljs-built_in">module</span>.exports = SocketIO;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 2:39:35 pm">July 6th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Maybe this node.acs socket.io sample is also a good reading for you!? <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;cloud&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;node_samples_multichatroom">http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;cloud&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;node_samples_multichatroom</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 4:36:26 pm">July 6th 2014</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Maybe this US-version is a big problem for a german project.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 4:39:52 pm">July 6th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I finally got it working. (The first test Version :))</p>
+<p>Thanks to Rainer and his informations. </p>
+<p>So know i cant start learning more about socket.io.<br>Maybe i can get it working with version 1.0.</p>
+<p>Here is the simple Titanium code that listen to the server (code in my Question) and can send messages:</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> socket = <span class="hljs-built_in">require</span>(<span class="hljs-string">'socket.io'</span>).connect(<span class="hljs-string">"ws://localhost:3000"</span>);
+
+        socket.on(<span class="hljs-string">'connect'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            <span class="hljs-built_in">console</span>.debug(<span class="hljs-string">'websocket opened'</span>);
+
+            setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                socket.send(<span class="hljs-string">'Send from IOS'</span>);
+                Ti.API.info(<span class="hljs-string">'dddd'</span>);
+            }, <span class="hljs-number">500</span>);
+        });
+
+        socket.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+            <span class="hljs-built_in">console</span>.debug(ev);
+        });
+
+        socket.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+            <span class="hljs-built_in">console</span>.error(ev);
+        });
+
+        <span class="hljs-comment">//GET THE MESSAGE FROM SERVER</span>
+        socket.on(<span class="hljs-string">'chat message'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+            Ti.API.info(ev);
+            Ti.API.info(<span class="hljs-string">'ffff'</span>);
+            <span class="hljs-built_in">console</span>.debug(ev);
+        });
+</code></pre><p>IMPORTANT:<br>In this example you must use the socket.io version 0.9x and this <a href="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;iamyellow&#x2F;socket.io-client&#x2F;master&#x2F;dist&#x2F;socket.io.js">socket.io.js</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 6:53:34 pm">July 6th 2014</span>
+											by <span class='authorname'>Tim Strakerjahn</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I must say: on iOS the app crashes after connecting with server.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 6:56:09 pm">July 6th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Really. At the moment everything is working stable in my project. Or does the crash comes when you package the app for the store? Because i have read something like this</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 7:00:32 pm">July 6th 2014</span>
+											by <span class='authorname'>Tim Strakerjahn</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It crashes at simulator and on test device. I&#39;m using the server from Christian Brousseaus book.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2014, 7:06:14 pm">July 6th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>hi, can you post your server code? I&#39;m facing little problem to build my server up with socket.io 0.9x</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 20th 2014, 1:13:57 am">October 20th 2014</span>
+											by <span class='authorname'>Douglas Hennrich</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>my app are crashing too…</p>
+<p>I&#39;m using iOS 7.1 and Titanium 3.4.0GA</p>
+<p>this is my code for titanium:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> socket = <span class="hljs-built_in">require</span>(<span class="hljs-string">'socket.io'</span>).connect(<span class="hljs-string">"ws://localhost:3000"</span>);
+
+socket.on(<span class="hljs-string">'connect'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-built_in">console</span>.debug(<span class="hljs-string">'websocket opened'</span>);
+
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        socket.send(<span class="hljs-string">'msg'</span>);
+        Ti.API.info(<span class="hljs-string">'dddd'</span>);
+     }, <span class="hljs-number">500</span>);
+
+     socket.emit( <span class="hljs-string">'mensagem'</span>, <span class="hljs-string">"teste titanium"</span> );
+});
+
+socket.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+      <span class="hljs-built_in">console</span>.debug(ev);
+});
+
+socket.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+    <span class="hljs-built_in">console</span>.error( <span class="hljs-string">'error: '</span> + ev);
+});
+
+<span class="hljs-comment">//GET THE MESSAGE FROM SERVER</span>
+socket.on(<span class="hljs-string">'msgServidor'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">ev</span>) </span>{
+    Ti.API.info(ev);
+    Ti.API.info(<span class="hljs-string">'ffff'</span>);
+    <span class="hljs-built_in">console</span>.debug(ev);
+});
+</code></pre><p>and this is my code for my server:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> express = <span class="hljs-built_in">require</span>(<span class="hljs-string">'express'</span>);
+<span class="hljs-keyword">var</span> http = <span class="hljs-built_in">require</span>(<span class="hljs-string">'http'</span>);
+<span class="hljs-keyword">var</span> io = <span class="hljs-built_in">require</span>(<span class="hljs-string">'socket.io'</span>);
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-keyword">var</span> app = express();
+<span class="hljs-keyword">var</span> servidor = http.Server( app );
+io = io.listen( servidor );
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//</span>
+app.get( <span class="hljs-string">'/'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"> req, res </span>)</span>{
+
+  res.send( <span class="hljs-string">'&lt;h1&gt;Teste&lt;/h1&gt;'</span> );
+});
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//</span>
+io.on( <span class="hljs-string">'connection'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">socket</span>)</span>{
+
+  <span class="hljs-comment">// Avisa qnd um usuario conecta</span>
+  <span class="hljs-built_in">console</span>.log( <span class="hljs-string">'Novo Usuario'</span> );
+
+  <span class="hljs-comment">// Avisa qnd um usuario desconecta</span>
+  socket.on( <span class="hljs-string">'disconnect'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+      <span class="hljs-built_in">console</span>.log( <span class="hljs-string">'Usuario Disconectou'</span> );
+  });
+
+  <span class="hljs-comment">// Recebe msg do usuario pelo evento "mensagem"</span>
+  socket.on( <span class="hljs-string">'mensagem'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+
+      <span class="hljs-comment">// Mostra msg recebida</span>
+      <span class="hljs-built_in">console</span>.log( <span class="hljs-string">"Mensagem: "</span> + data );
+
+      <span class="hljs-comment">// Envia msg recebi de volta para o usuario atraves do evento "msgServidor"</span>
+      io.emit( <span class="hljs-string">'msgServidor'</span>, data );
+  });
+});
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//</span>
+servidor.listen( <span class="hljs-number">3000</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+  <span class="hljs-built_in">console</span>.log( <span class="hljs-string">'Servidor Up'</span> );
+});
+</code></pre><p>I&#39;m using express 4 and socket 0.9.6 same that socket.io.js are using on titanium&#39;s side</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 21st 2014, 4:28:06 pm">October 21st 2014</span>
+											by <span class='authorname'>Douglas Hennrich</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>So i&#39;ve imported the module to my modules folder, but when i try to require the socket.io, ir says that the module cannot be found. </p>
+<p>Hows the organization on modules to let me require it?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 30th 2015, 12:38:13 pm">August 30th 2015</span>
+											by <span class='authorname'>João Lucas</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You don&#39;t import to your project folder. You can copy to ~&#x2F;Library&#x2F;Application Support&#x2F;Titanium&#x2F;modules</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 30th 2015, 2:53:56 pm">August 30th 2015</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-283135">
+				
+						<section>
+							<p>I use Ti.Ws but i always get the message &quot;websocket closed&quot; when i run this code.<br>Do you have any experience with tiws? HELP!!!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2014, 9:33:13 pm">October 15th 2014</span>
+								by <span class='authorname'>Yamil Díaz Aguirre</span><br>
+								<a class="icon-bg icon-link" href="question/175796/building-a-chat-app-with-socketio#answer-283135" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

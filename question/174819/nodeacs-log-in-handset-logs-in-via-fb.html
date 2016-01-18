@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Node.ACS Log in? Handset logs in via FB » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Node.ACS Log in? Handset logs in via FB</h1>
+		</header>
+		<section>
+			<p>Hi all,</p>
+<p>I log into cloud services from the phone using the external login via facebook</p>
+<pre><code class="hljs">Ti<span class="hljs-class">.Cloud</span><span class="hljs-class">.SocialIntegrations</span><span class="hljs-class">.externalAccountLogin</span>()
+</code></pre><p>The handset does almost all the communication with ACS</p>
+<p>I am using Node.ACS and wish to communicate with the ACS objects…</p>
+<p>All the code seems to be in place but I get the error:</p>
+<pre><code class="hljs">{"<span class="hljs-attribute">success</span>":<span class="hljs-value"><span class="hljs-literal">false</span></span>,"<span class="hljs-attribute">error</span>":<span class="hljs-value"><span class="hljs-literal">true</span></span>,"<span class="hljs-attribute">code</span>":<span class="hljs-value"><span class="hljs-number">404</span></span>,"<span class="hljs-attribute">message</span>":<span class="hljs-value"><span class="hljs-string">"Failed to authenticate user"</span></span>}
+</code></pre><p>I&#39;m guessing I need to actively log in via node somehow but I have no idea how or what I&#39;m supposed to use for a username or password etc.</p>
+<p>Please, for the love of god don&#39;t just direct me to the Appcelerator documentation which I have read many times - it is of its usual &#39;high&#39; standard (ie great once you already know what you&#39;re doing and just need to jog your memory but utterly useless for someone who doesn&#39;t already know how it all works! :(  )</p>
+<p>Many thanks in advance,</p>
+<p>Robin</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 3rd 2014, 11:56:50 am">June 3rd 2014</span>
+				by <span class='authorname'>Robin Williams</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>cloud</span></li>
+					
+						<li><span class='tagname'>login</span></li>
+					
+						<li><span class='tagname'>node</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Ok…. I&#39;ve created a new username and login specifically for my node app and it logs in successfully however, when I call <code>ACS.Objects.update</code> I still get the 404, Failed to authenticate user message.</p>
+<p>In case it was a &#39;scope thing&#39;, I&#39;ve tried placing the login both in app.js when the server runs and in socketcontroller.js with the websocket code and I get the same outcome each time.</p>
+<p>Can anyone offer some advice please?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 4th 2014, 10:36:16 am">June 4th 2014</span>
+								by <span class='authorname'>Robin Williams</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-279890">
+				
+						<section>
+							<p>I figured this out a few weeks ago, so I thought I ought to share my solution in case anyone else has the same problem.</p>
+<p>The answer was to create (just once) the new user and then log in as that user every time the server is initialised.<br>In the confirmation data returned from the ACS log in you get sent a Session ID - store that to the <code>global</code> variable which can be used across every part of your Node service and use that in every call you make.</p>
+<p>All my objects &#x2F; data are using an Access Control List that sets everything to public read and public write so I don&#39;t know if this would still work if any of it is private (Perhaps make the user that you log in as, an Administrator account - I guess that would resolve it? I know I&#39;ve seen the instructions on how to do that somewhere in the Appcelerator docs)</p>
+<p>Some code snippets:</p>
+<p>app.js</p>
+<pre><code class="hljs">// initialize app
+
+global.ACS = require(<span class="hljs-string">'acs-node'</span>);
+global.ACS.init(<span class="hljs-string">'* * * insert your acs-api-key-development (or production) key here * * *'</span>);
+
+// run this commented out code just ONCE EVER <span class="hljs-keyword">to</span> create the user account you wish <span class="hljs-keyword">to</span> log <span class="hljs-keyword">in</span> <span class="hljs-keyword">as</span>
+
+/*global.ACS.Users.create({
+    email: <span class="hljs-string">'any_old@nonsense.com'</span>,
+    first_name: <span class="hljs-string">'any'</span>,
+    last_name: <span class="hljs-string">'name'</span>,
+    password: <span class="hljs-string">'anyPassword'</span>,
+    password_confirmation: <span class="hljs-string">'anyPassword'</span>
+}, <span class="hljs-keyword">function</span>(e){
+console.log(<span class="hljs-string">"User Creation:\n\n"</span> + JSON.stringify(e) + <span class="hljs-string">"\n\n"</span>);
+});
+*/
+
+global.ACS.Users.login({
+    login: <span class="hljs-string">'any_old@nonsense.com'</span>,
+    password: <span class="hljs-string">'anyPassword'</span>
+}, <span class="hljs-keyword">function</span>(e){
+    if (e.success) {
+        console.log(<span class="hljs-string">"Logged in."</span>);
+        global.session_id = e.meta.session_id;
+    } else {
+        console.log(<span class="hljs-string">"Login failed\n\n"</span> + JSON.stringify(e) + <span class="hljs-string">"\n\n"</span>);
+    };
+});
+</code></pre><p>My config.json (I&#39;m using exclusively websockets for this project)</p>
+<pre><code class="hljs">{
+  "<span class="hljs-attribute">routes</span>":
+  <span class="hljs-value">[
+    { "<span class="hljs-attribute">path</span>": <span class="hljs-value"><span class="hljs-string">"/"</span></span>, "<span class="hljs-attribute">callback</span>": <span class="hljs-value"><span class="hljs-string">"application#index"</span> </span>}
+  ]</span>,
+  "<span class="hljs-attribute">filters</span>":
+  <span class="hljs-value">[
+       { "<span class="hljs-attribute">path</span>": <span class="hljs-value"><span class="hljs-string">"/"</span></span>, "<span class="hljs-attribute">callback</span>": <span class="hljs-value"><span class="hljs-string">""</span> </span>}
+  ]</span>,
+  "<span class="hljs-attribute">websockets</span>":
+  <span class="hljs-value">[
+      { "<span class="hljs-attribute">event</span>": <span class="hljs-value"><span class="hljs-string">"register"</span></span>, "<span class="hljs-attribute">callback</span>": <span class="hljs-value"><span class="hljs-string">"socketcontroller#register"</span> </span>},
+      { "<span class="hljs-attribute">event</span>": <span class="hljs-value"><span class="hljs-string">"message"</span></span>, "<span class="hljs-attribute">callback</span>": <span class="hljs-value"><span class="hljs-string">"socketcontroller#message"</span> </span>},
+      { "<span class="hljs-attribute">event</span>": <span class="hljs-value"><span class="hljs-string">"disconnect"</span></span>, "<span class="hljs-attribute">callback</span>": <span class="hljs-value"><span class="hljs-string">"socketcontroller#disconnect"</span> </span>}
+  ]
+</span>}
+</code></pre><p>and for me, I use the stored session_id in socketcontroller.js</p>
+<pre><code class="hljs">global.ACS.Objects.update({
+
+            classname: // <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> Your Object Class Name <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> ,
+            id: //<span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> The object ID you wish to manipulate <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span>,
+            session_id: global.session_id,\\THIS IS WHERE YOU USE THE STORED ID
+            response_json_depth: 1,
+            fields: {<span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> JSON stuff I send <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span> <span class="hljs-keyword">*</span>}
+
+        }, function(f){
+
+            if (f.success){
+                console.log(<span class="hljs-string">"Success!"</span>);
+            } else {
+                console.log(<span class="hljs-string">"Error.\n\n"</span> + JSON.stringify(f));
+            };
+
+        });  //  End Cloud Objects Update
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 18th 2014, 8:33:08 am">June 18th 2014</span>
+								by <span class='authorname'>Robin Williams</span><br>
+								<a class="icon-bg icon-link" href="question/174819/nodeacs-log-in-handset-logs-in-via-fb#answer-279890" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>How to give a user account administrative privileges:</p>
+<p><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;cloud&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;admin_access">http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;cloud&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;admin_access</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2014, 8:38:20 am">June 22nd 2014</span>
+											by <span class='authorname'>Robin Williams</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

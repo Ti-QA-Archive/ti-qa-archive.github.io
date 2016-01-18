@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Click events on nav buttons affected by module scoping » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Click events on nav buttons affected by module scoping</h1>
+		</header>
+		<section>
+			<p>I&#39;ve spent about 5 hours on this problem, so I thought I&#39;d share it with the community.  If you can point to something that I&#39;m doing wrong, I&#39;d love to know what it is.  Otherwise, maybe this post will save somebody else the agony I just went through to figure this out.</p>
+<p>Problem: my nav bar buttons&#39; click event listeners were not firing.  Actually, they were sometimes firing, but eventually, they would stop firing.</p>
+<p>All my code is highly modularized in CommonJS modules, per best practice.  Now you might argue that my parasitic inheritance pattern is not best practice, but I&#39;ve had much success with it, and I like it, so I&#39;m sticking with it.</p>
+<p>Another app I built used nav bar buttons created inside of a CommonJS module, and had no problems with them.  But this new app was not behaving.  Naturally, I started pulling the apps apart to see what the difference was between the apps.</p>
+<p>The culprit turned out to be something so ridiculously subtle that it took me 5 hours to isolate it.</p>
+<p>See my sample code below.  FooWin would normally be in a separate module, but for simplicity, I put it inline.</p>
+<p>The main application code calls the FooWin() constructor two different ways – once with an object literal passed in as the first argument, and once with an object variable passed in.</p>
+<p>If I pass an object literal, the events stop firing (try clicking the nav buttons – you&#39;ll get console output for a couple of clicks, but then nothing).  If I pass a variable, the events work as expected.</p>
+<p>If you look inside the module, you can see that I&#39;m adding the rightNavButtons property to the params array.  So if I&#39;m calling it with a variable, a side effect of the constructor is that there is now a reference to my nav buttons in the app.js scope.  If I pass an object literal, there is no reference to those buttons in the app.js scope.  I suspect this has something to do with the bad behavior; perhaps my event listeners are getting garbage collected?  </p>
+<p>But the thing I don&#39;t get is that button b3 doesn&#39;t suffer from this – there&#39;s no reference to b3 in the app.js scope, and it works perfectly.   Proper module behavior would mandate that the references to variables, controls, and eventListeners be maintained, even if they are completely contained within the scope of the module.</p>
+<p>So I suspect this is a bug in the Titanium core.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">FooWin</span> (<span class="hljs-params">params</span>)
+</span>{
+    <span class="hljs-keyword">var</span> _self;
+
+    <span class="hljs-keyword">var</span> b1 = Ti.UI.createButton ({
+        title: <span class="hljs-string">"1"</span>
+    });
+    b1.addEventListener (<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        Ti.API.info (<span class="hljs-string">"1 clicked"</span>);
+    });
+    <span class="hljs-keyword">var</span> b2 = Ti.UI.createButton ({
+        title: <span class="hljs-string">"2"</span>
+    });
+    b2.addEventListener (<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        Ti.API.info (<span class="hljs-string">"2 clicked"</span>);
+    });
+    params.rightNavButtons = [b1, b2];
+
+    _self = Ti.UI.createWindow(params);
+
+    <span class="hljs-keyword">var</span> b3 = Ti.UI.createButton ({
+        title: <span class="hljs-string">"3"</span>
+    });
+    b3.addEventListener (<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        Ti.API.info (<span class="hljs-string">"3 clicked"</span>);
+    });
+
+    _self.add (b3);
+
+    <span class="hljs-keyword">return</span> _self;
+}
+
+<span class="hljs-keyword">var</span> main_win = Ti.UI.createWindow ({
+    title: <span class="hljs-string">"test"</span>,
+    backgroundColor: <span class="hljs-string">'#ddd'</span>
+});
+
+<span class="hljs-keyword">var</span> navwin = Ti.UI.iOS.createNavigationWindow ({
+    statusBarStyle: Ti.UI.iPhone.StatusBar.LIGHT_CONTENT,
+    <span class="hljs-built_in">window</span> : main_win
+});
+
+<span class="hljs-comment">// instantiate a FooWin, passing an object literal; nav buttons may respond</span>
+<span class="hljs-comment">// to a few clicks, but will stop at some point</span>
+
+<span class="hljs-keyword">var</span> foowin1 = <span class="hljs-keyword">new</span> FooWin ({
+    title: <span class="hljs-string">"foo"</span>,
+    backgroundColor: <span class="hljs-string">'#fff'</span>
+});
+
+<span class="hljs-keyword">var</span> button1 = Ti.UI.createButton ({
+    top: <span class="hljs-number">100</span>,
+    title: <span class="hljs-string">'Foo - object literal'</span>
+});
+
+button1.addEventListener (<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    navwin.openWindow (foowin1);
+});
+
+<span class="hljs-comment">// instantiate a FooWin, passing an object variable; nav buttons work as expected</span>
+
+<span class="hljs-keyword">var</span> params = {
+    title: <span class="hljs-string">"foo"</span>,
+    backgroundColor: <span class="hljs-string">'#fff'</span>
+};
+
+<span class="hljs-keyword">var</span> foowin2 = <span class="hljs-keyword">new</span> FooWin (params);
+
+<span class="hljs-keyword">var</span> button2 = Ti.UI.createButton({
+    top: <span class="hljs-number">200</span>,
+    title: <span class="hljs-string">'Foo - object variable'</span>
+});
+button2.addEventListener (<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    navwin.openWindow (foowin2);
+});
+
+
+main_win.add (button1);
+main_win.add (button2);
+
+navwin.open ();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 22nd 2014, 12:40:00 pm">August 22nd 2014</span>
+				by <span class='authorname'>Jason Priebe</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>click</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>events</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>navbar</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I should add that this problem gets much more significant when the complexity of the app grows.  When the window with the nav buttons gets constructed from code in another module, it doesn&#39;t seem to matter whether you use an object variable or an object literal.  The only workaround I&#39;ve found is to store a global reference to those buttons.  Of course, I&#39;ll have to manage those references so that I don&#39;t keep a reference to every nav bar button my app creates.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 22nd 2014, 12:51:48 pm">August 22nd 2014</span>
+								by <span class='authorname'>Jason Priebe</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

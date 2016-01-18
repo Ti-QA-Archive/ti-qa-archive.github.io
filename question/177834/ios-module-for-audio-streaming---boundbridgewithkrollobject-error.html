@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS Module for Audio Streaming - boundBridge:withKrollObject error » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS Module for Audio Streaming - boundBridge:withKrollObject error</h1>
+		</header>
+		<section>
+			<p>i am trying to build an simple Titanium module for ios to play external audio streams. I am using the AudioStreamer Class from this Github project https:&#x2F;&#x2F;github.com&#x2F;mattgallagher&#x2F;AudioStreamer</p>
+<p>I get the stream starting and i can paused the stream.</p>
+<p>But when i call the function [streamer stop] my App crashed with this error:</p>
+<pre><code class="hljs"><span class="hljs-attr_selector">[ERROR]</span> <span class="hljs-value">:  Script Error {
+[ERROR] :      backtrace = <span class="hljs-string">"#0 () at :0"</span>;</span>
+<span class="hljs-attr_selector">[ERROR]</span> <span class="hljs-value">:      line = <span class="hljs-number">59</span>;</span>
+<span class="hljs-attr_selector">[ERROR]</span> <span class="hljs-value">:      message = <span class="hljs-string">"-[AudioStreamer boundBridge:withKrollObject:]: unrecognized selector sent to instance 0x808b7e00"</span>;</span>
+<span class="hljs-attr_selector">[ERROR]</span> <span class="hljs-value">:      sourceId = <span class="hljs-number">298469728</span>;</span>
+</code></pre><p>I could break the problem down to this code line in the Xcode Project:</p>
+<pre><code class="hljs"><span class="hljs-literal">self</span>.<span class="hljs-keyword">state</span> = AS_STOPPING;
+</code></pre><p>When i have this line in my code the App crashed every time when i call stop streaming. But this is the original Code from the working Class i use?</p>
+<p>Here the whole stop function:</p>
+<pre><code class="hljs">- (void)stop
+{
+    @synchronized(<span class="hljs-literal">self</span>)
+    {
+        if (audioQueue &amp;&amp;
+            (<span class="hljs-keyword">state</span> == AS_PLAYING || <span class="hljs-keyword">state</span> == AS_PAUSED ||
+                <span class="hljs-keyword">state</span> == AS_BUFFERING || <span class="hljs-keyword">state</span> == AS_WAITING_FOR_QUEUE_TO_START))
+        {
+            err = AudioQueueStop(audioQueue, true);
+            if (err)
+            {
+                [<span class="hljs-literal">self</span> failWithErrorCode:AS_AUDIO_QUEUE_STOP_FAILED];
+                return;
+            }
+            <span class="hljs-literal">self</span>.laststate = <span class="hljs-keyword">state</span>;
+            <span class="hljs-literal">self</span>.<span class="hljs-keyword">state</span> = AS_STOPPING;
+            stopReason = AS_STOPPING_USER_ACTION;
+        }
+        else if (<span class="hljs-keyword">state</span> != AS_INITIALIZED)
+        {
+            <span class="hljs-literal">self</span>.<span class="hljs-keyword">state</span> = AS_STOPPED;
+            stopReason = AS_STOPPING_USER_ACTION;
+        }
+        seekWasRequested = NO;
+    }
+
+    while (<span class="hljs-keyword">state</span> != AS_INITIALIZED)
+    {
+        [NSThread sleepForTimeInterval:<span class="hljs-number">0.1</span>];
+    }
+}
+</code></pre><p>Does someone know why this is happening?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 20th 2014, 12:41:19 pm">September 20th 2014</span>
+				by <span class='authorname'>Tim Strakerjahn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>audio</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>streaming</span></li>
+					
+						<li><span class='tagname'>xcode</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>After further investigation, i found out that the problem happens when the stream ist stopped and inside the <strong>- (void)startInternal</strong>  function, the method cleanup is running.<br>In the cleanup there is the line:</p>
+<pre><code class="hljs"><span class="hljs-literal">self</span>.<span class="hljs-keyword">state</span> = AS_INITIALIZED;
+</code></pre><p>When i delete this line the app doesn&#39;t crashed but i cant  then start a new stream.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 20th 2014, 8:24:51 pm">September 20th 2014</span>
+								by <span class='authorname'>Tim Strakerjahn</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

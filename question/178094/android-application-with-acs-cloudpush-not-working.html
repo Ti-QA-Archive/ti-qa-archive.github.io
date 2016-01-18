@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android application with ACS CloudPush not working » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android application with ACS CloudPush not working</h1>
+		</header>
+		<section>
+			<p>Hello,</p>
+<p>I am running into an issue with Titanium Cloudpush.<br>I&#39;m sending private messages to Android users based on their settings.<br>I think the code is exactly as documented but it&#39;s still not working properly.</p>
+<p>Issue: The messages come in without an issue when the app is in the background, but when focussed, the notification doesn&#39;t show and is somehow queued. It appears only when I close the app and restart it.</p>
+<p>I&#39;m using Android 4.2.2 with Titanium Studio 3.3.0 SDK 3.3.0.GA and Alloy.<br>ti.cloud is version 3.2.3 and ti.cloudpush 3.3.0.</p>
+<p>This is my code:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloudpush'</span>);
+    CloudPush.retrieveDeviceToken({
+        success: pushAndroidLogin,
+        error: pushAndroidLogin
+    });
+
+    CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, pushAndroidReceive); 
+    CloudPush.addEventListener(<span class="hljs-string">'trayClickLaunchedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{ });
+    CloudPush.addEventListener(<span class="hljs-string">'trayClickFocusedApp'</span>,  <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{ });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushAndroidLogin</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+    <span class="hljs-keyword">var</span> pushToken = e.deviceToken;
+    Cloud.Users.login({
+        login: Ti.Platform.id,
+        password: <span class="hljs-string">'blahblah'</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            pushAndroidSubscribe(Cloud, pushToken, e.users[<span class="hljs-number">0</span>].id);
+            } <span class="hljs-keyword">else</span> {
+                    pushAndroidCreateUser(Cloud, pushToken);
+            }
+        });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushAndroidCreateUser</span>(<span class="hljs-params">Cloud, pushToken</span>) </span>{
+    Cloud.Users.create({
+        username: Ti.Platform.id,
+        password: <span class="hljs-string">'blahblah'</span>,
+        password_confirmation: <span class="hljs-string">'blahblah'</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            pushAndroidSubscribe(Cloud, pushToken, e.users[<span class="hljs-number">0</span>].id);                    
+        } <span class="hljs-keyword">else</span> {
+            pushAndroidSubscribe(Cloud, pushToken, <span class="hljs-string">''</span>);
+            alert(<span class="hljs-string">"Could not register for your device to receive alerts."</span>);
+        }
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushAndroidSubscribe</span>(<span class="hljs-params">Cloud, pushToken, userId</span>) </span>{
+    Cloud.PushNotifications.subscribe({
+            device_token: pushToken,
+            channel: <span class="hljs-string">'alerts'</span>,
+            type: <span class="hljs-string">'android'</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            registerDevice({ deviceToken : userId }); 
+            } <span class="hljs-keyword">else</span> {
+                    registerDevice({ deviceToken : userId });
+            }
+        });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushAndroidReceive</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (e != <span class="hljs-literal">undefined</span> &amp;&amp; e.payload != <span class="hljs-literal">undefined</span>) {
+        <span class="hljs-keyword">var</span> payload = <span class="hljs-built_in">JSON</span>.parse(e.payload);
+        <span class="hljs-keyword">if</span> (payload != <span class="hljs-literal">undefined</span> &amp;&amp; payload.android != <span class="hljs-literal">undefined</span> &amp;&amp; payload.android.alert != <span class="hljs-literal">undefined</span>) {
+            <span class="hljs-keyword">var</span> alertNotification = Titanium.UI.createAlertDialog({
+                title : <span class="hljs-string">'Alert'</span>,
+                message : payload.android.alert,
+                cancel : <span class="hljs-number">1</span>,
+                buttonNames : [<span class="hljs-string">'OK'</span>]
+            });
+                alertNotification.show();
+
+            <span class="hljs-keyword">var</span> player = Ti.Media.createSound({url:<span class="hljs-string">"sound/alert.m4a"</span>});
+            player.play();
+            <span class="hljs-comment">//setTimeout("player.destroy();",3000);  // This seems to crash the app</span>
+        }
+    }
+}
+</code></pre><p>I hope anyone can shed some light on this issue. What am I doing wrong here?</p>
+<p>Thanks!!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 1st 2014, 7:17:34 am">October 1st 2014</span>
+				by <span class='authorname'>Bo Brooklyn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>cloudpush</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-282830">
+				
+						<section>
+							<p>Hello,</p>
+<p>From my testing it appears that this is a bug. I have file a jira on your behalf<br>https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-17815</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 1st 2014, 9:13:45 pm">October 1st 2014</span>
+								by <span class='authorname'>Seth Toda</span><br>
+								<a class="icon-bg icon-link" href="question/178094/android-application-with-acs-cloudpush-not-working#answer-282830" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-282836">
+				
+						<section>
+							<p>Thanks Seth, but my issue is actually another one. Sorry if that wasn&#39;t clear.</p>
+<p>When the app is open, focussed and the push notification is sent, the callback event does not fire.<br>Only when I then close the app and reopen it, the callback event is fired.</p>
+<p>Also, I&#39;m just curious if this is the best&#x2F;easiest way to use push notifications in Android. It seems such a difficult process compared to IOS push notifications. Isn&#39;t there an easier way to send a simple notification to an Android device? Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 2nd 2014, 5:18:06 am">October 2nd 2014</span>
+								by <span class='authorname'>Bo Brooklyn</span><br>
+								<a class="icon-bg icon-link" href="question/178094/android-application-with-acs-cloudpush-not-working#answer-282836" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hmm I would try explicitely setting showTrayNotificationsWhenFocused. Have you tried building with 3.4.0 instead?</p>
+<p>http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.CloudPush-property-showTrayNotificationsWhenFocused</p>
+<p>There is a pretty nice example in ~&#x2F;Library&#x2F;Application\ Support&#x2F;Titanium&#x2F;modules&#x2F;android&#x2F;ti.cloudpush&#x2F;3.3.0&#x2F;example&#x2F;app.js</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 2nd 2014, 3:23:48 pm">October 2nd 2014</span>
+											by <span class='authorname'>Seth Toda</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-282893">
+				
+						<section>
+							<p>I now added<br>CloudPush.showTrayNotificationsWhenFocused = true;<br>But now I get the following error:</p>
+<pre><code class="hljs">[WARN] :   W/System<span class="hljs-class">.err</span>: java<span class="hljs-class">.lang</span><span class="hljs-class">.IllegalStateException</span>: APSCloudPush has not been enabled. Call APSCloud.<span class="hljs-function"><span class="hljs-title">enable</span><span class="hljs-params">(context, key)</span></span> to enable.
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at com<span class="hljs-class">.appcelerator</span><span class="hljs-class">.cloudpush</span><span class="hljs-class">.APSCloudPush</span><span class="hljs-class">.throwUnlessEnabled</span>(APSCloudPush<span class="hljs-class">.java</span>:<span class="hljs-number">1083</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at com<span class="hljs-class">.appcelerator</span><span class="hljs-class">.cloudpush</span><span class="hljs-class">.APSCloudPush</span><span class="hljs-class">.retrieveDeviceToken</span>(APSCloudPush<span class="hljs-class">.java</span>:<span class="hljs-number">912</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at ti<span class="hljs-class">.cloudpush</span><span class="hljs-class">.CloudpushModuleGeneric</span><span class="hljs-class">.retrieveDeviceToken</span>(CloudpushModuleGeneric<span class="hljs-class">.java</span>:<span class="hljs-number">270</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.nativeCallProperty</span>(Native Method)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.callProperty</span>(V8Object<span class="hljs-class">.java</span>:<span class="hljs-number">73</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollProxy</span><span class="hljs-class">.handleMessage</span>(KrollProxy<span class="hljs-class">.java</span>:<span class="hljs-number">1121</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Handler</span><span class="hljs-class">.dispatchMessage</span>(Handler<span class="hljs-class">.java</span>:<span class="hljs-number">95</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Looper</span><span class="hljs-class">.loop</span>(Looper<span class="hljs-class">.java</span>:<span class="hljs-number">137</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollRuntime</span><span class="hljs-variable">$KrollRuntimeThread</span>.<span class="hljs-function"><span class="hljs-title">run</span><span class="hljs-params">(KrollRuntime.java:<span class="hljs-number">112</span>)</span></span>
+[ERROR] :  V8Exception: Exception occurred at app<span class="hljs-class">.js</span>:<span class="hljs-number">123</span>: Uncaught Error: APSCloudPush has not been enabled. Call APSCloud.<span class="hljs-function"><span class="hljs-title">enable</span><span class="hljs-params">(context, key)</span></span> to enable.
+</code></pre><p>CloudPush.enable() doesn&#39;t seem to be a valid function.<br>Cloud.enable() also doesn&#39;t exist and I can find nothing at all about this error nor about this function.</p>
+<p>Any ideas?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 6th 2014, 6:54:52 am">October 6th 2014</span>
+								by <span class='authorname'>Bo Brooklyn</span><br>
+								<a class="icon-bg icon-link" href="question/178094/android-application-with-acs-cloudpush-not-working#answer-282893" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hello,</p>
+<p>Can you try &quot;CloudPush.enabled = true;&quot;<br>Enabled is actually a constant. </p>
+<p>Thank you,<br>Seth</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2014, 3:19:08 pm">October 6th 2014</span>
+											by <span class='authorname'>Seth Toda</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I tried that just now, doesn&#39;t make much of a difference.<br>This is what&#39;s returned:</p>
+<pre><code class="hljs">[WARN] :   TiVerify: (Timer-<span class="hljs-number">0</span>) [<span class="hljs-number">5008</span>,<span class="hljs-number">5008</span>] Verifying module licenses...
+[WARN] :   W/System<span class="hljs-class">.err</span>: java<span class="hljs-class">.lang</span><span class="hljs-class">.IllegalStateException</span>: APSCloudPush has not been enabled. Call APSCloud.<span class="hljs-function"><span class="hljs-title">enable</span><span class="hljs-params">(context, key)</span></span> to enable.
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at com<span class="hljs-class">.appcelerator</span><span class="hljs-class">.cloudpush</span><span class="hljs-class">.APSCloudPush</span><span class="hljs-class">.throwUnlessEnabled</span>(APSCloudPush<span class="hljs-class">.java</span>:<span class="hljs-number">1083</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at com<span class="hljs-class">.appcelerator</span><span class="hljs-class">.cloudpush</span><span class="hljs-class">.APSCloudPush</span><span class="hljs-class">.setShowTrayNotificationsWhenFocused</span>(APSCloudPush<span class="hljs-class">.java</span>:<span class="hljs-number">1015</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at ti<span class="hljs-class">.cloudpush</span><span class="hljs-class">.CloudpushModuleGeneric</span><span class="hljs-class">.setShowTrayNotificationsWhenFocused</span>(CloudpushModuleGeneric<span class="hljs-class">.java</span>:<span class="hljs-number">316</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.nativeCallProperty</span>(Native Method)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.callProperty</span>(V8Object<span class="hljs-class">.java</span>:<span class="hljs-number">73</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollProxy</span><span class="hljs-class">.handleMessage</span>(KrollProxy<span class="hljs-class">.java</span>:<span class="hljs-number">1121</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Handler</span><span class="hljs-class">.dispatchMessage</span>(Handler<span class="hljs-class">.java</span>:<span class="hljs-number">95</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Looper</span><span class="hljs-class">.loop</span>(Looper<span class="hljs-class">.java</span>:<span class="hljs-number">137</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollRuntime</span><span class="hljs-variable">$KrollRuntimeThread</span>.<span class="hljs-function"><span class="hljs-title">run</span><span class="hljs-params">(KrollRuntime.java:<span class="hljs-number">112</span>)</span></span>
+[ERROR] :  V8Exception: Exception occurred at app<span class="hljs-class">.js</span>:<span class="hljs-number">124</span>: Uncaught Error: APSCloudPush has not been enabled. Call APSCloud.<span class="hljs-function"><span class="hljs-title">enable</span><span class="hljs-params">(context, key)</span></span> to enable.
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2014, 4:00:31 pm">October 6th 2014</span>
+											by <span class='authorname'>Bo Brooklyn</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

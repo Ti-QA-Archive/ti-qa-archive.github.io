@@ -1,0 +1,331 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Multiple setInterval() in tableViewRow » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Multiple setInterval() in tableViewRow</h1>
+		</header>
+		<section>
+			<p>Hi Community</p>
+<p>I have this problem, which is probably really simple… So here goes.</p>
+<p>Im having a tableview dynamically populated with rows from my DB. Each row has a button that should start and stop a timer (setInterval()) for that specific row&#x2F;button. My problem is that I&#39;m running into problems with separate timers being started and stopped (clearIntetval(mySetIntervalHandle)). So my timers will eventually overwrite each other and mess things up. I save and retrieve the time from the DB on button start&#x2F;stop.</p>
+<p>I&#39;ve tried to populate tableview, both with isValidRow and just a simple for loop, in case i could use&#39;i&#39; in dynamically naming the buttons and eventlisteners. I have added custom properties (id, isFalse, timeren) to my buttons, to be able to identify them individually. That all seems to populate alright from the database, and the isFalse is switching correctly on button click start&#x2F;stop (changes color from green to red and back). I have outputted all this to the console, and it works nicely. I have removed all my logs and comments, to make it an easier read to everybody…</p>
+<p>Below comes the portion of my code, where these things are executed…</p>
+<pre><code class="hljs">function updateTableView() {
+    data = [];
+    <span class="hljs-keyword">var</span> db = <span class="hljs-type">Ti</span>.<span class="hljs-type">Database</span>.open('db');
+    <span class="hljs-keyword">var</span> <span class="hljs-literal">result</span> = db.execute('<span class="hljs-type">SELECT</span> * <span class="hljs-type">FROM</span> projects');
+
+    <span class="hljs-keyword">while</span>(<span class="hljs-literal">result</span>.isValidRow()) {
+        <span class="hljs-keyword">var</span> newRow = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createTableViewRow({
+            //id: <span class="hljs-literal">result</span>.fieldByName('id'),
+            //title: <span class="hljs-literal">result</span>.fieldByName('name'),
+            //time: <span class="hljs-literal">result</span>.fieldByName('time')
+        });
+
+        <span class="hljs-keyword">var</span> labelTitle = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createLabel({
+            top: '<span class="hljs-number">5</span>dp',
+            left: '<span class="hljs-number">45</span>dp',
+            backgroundColor: 'gray',
+            text: <span class="hljs-literal">result</span>.fieldByName('name')
+        });
+
+        rowTimerButton = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createButton({
+            width: <span class="hljs-number">40</span>,
+            height: <span class="hljs-number">40</span>,
+            top: <span class="hljs-number">2</span>,
+            left: <span class="hljs-number">2</span>,
+            borderRadius: <span class="hljs-number">20</span>,
+            backgroundColor: <span class="hljs-string">"green"</span>,
+            timerButtonId: <span class="hljs-literal">result</span>.fieldByName('id'),
+            isActive: <span class="hljs-literal">false</span>,
+            bubbleParent: <span class="hljs-literal">false</span>,
+            timeren: <span class="hljs-literal">result</span>.fieldByName('name')
+        });
+
+        newRow.add(labelTitle);
+        newRow.add(rowTimerButton);
+
+        rowTimerButton.addEventListener('click', function(e) {
+            <span class="hljs-keyword">if</span>(!e.source.isActive) {
+
+                <span class="hljs-keyword">var</span> db = <span class="hljs-type">Ti</span>.<span class="hljs-type">Database</span>.open('db');
+                <span class="hljs-keyword">var</span> <span class="hljs-literal">result</span> = db.execute('<span class="hljs-type">SELECT</span> * <span class="hljs-type">FROM</span> projects where id=' + e.source.timerButtonId);
+                time = <span class="hljs-literal">result</span>.fieldByName('time');
+
+                db.close();
+                e.source.backgroundColor = 'red';
+                e.source.isActive = <span class="hljs-literal">true</span>;
+
+                rowTimerButton.timeren = setInterval(function() {
+                    <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.info(time);
+                    time++;
+                }, <span class="hljs-number">1000</span>);
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">var</span> db = <span class="hljs-type">Ti</span>.<span class="hljs-type">Database</span>.open('db');
+                db.execute('<span class="hljs-type">UPDATE</span> projects <span class="hljs-type">SET</span> time='+time+' where id='+ e.source.timerButtonId);
+                db.close();
+
+                e.source.isActive = <span class="hljs-literal">false</span>;
+                clearInterval(rowTimerButton.timeren);
+                e.source.backgroundColor = 'green';
+            }
+        });
+
+        data.push(newRow);
+        <span class="hljs-literal">result</span>.next();
+    }
+    db.close();
+
+    tableView.setData(data);
+}
+</code></pre><p>I believe it must be something within my loop and creating my buttons, eventListeners and in particular my setInterval()&#39;s. But please educate me…</p>
+<p>Hoping for a pointer in the right direction as always, when asking in the community.</p>
+<p>PS. Im working on an iOS app, Titanium SDK version 3.3.0.GA, testing in iOS Simulator, Building using iOS SDK: 7.1, Minimum iOS version: 6.0. Anything else you need… Let me know.</p>
+<p>Thanks in advance</p>
+<p>Best regards<br>Søren Thorup</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 11th 2014, 1:17:36 pm">September 11th 2014</span>
+				by <span class='authorname'>Soren Thorup</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>button</span></li>
+					
+						<li><span class='tagname'>setinterval</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>tableviewrow</span></li>
+					
+						<li><span class='tagname'>timer</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-282302">
+				
+						<section>
+							<p>Soren,</p>
+<p>How about just getting the time from the device and storing it in a variable, now you have start time. Then when you click again, get the time from the device and store it in another variable, now you have end time. Now a little date math, you can get the difference and use that to update your database. No need for the timer event…</p>
+<p>Ray</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 11th 2014, 1:52:34 pm">September 11th 2014</span>
+								by <span class='authorname'>Ray Belisle</span><br>
+								<a class="icon-bg icon-link" href="question/177617/multiple-setinterval-in-tableviewrow#answer-282302" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks a lot for your answer Ray!!</p>
+<p>Well… That sounds a lot easier than what I&#39;m trying to do here!! :-)<br>I&#39;m deffinitely gonna give that a spin…</p>
+<p>But will I then be able to know which &quot;timer&quot; i started and stopped? And will I be able to have more than &quot;timer&quot; &quot;running&quot; at the same time?</p>
+<p>Thanks in advance</p>
+<p>Søren</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 11th 2014, 6:17:07 pm">September 11th 2014</span>
+											by <span class='authorname'>Soren Thorup</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>So, you can add custom properties to each row like this:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> newRow</span> = Ti.UI.createTableViewRow({
+    startTime: <span class="hljs-literal">null</span>,
+    endTime : <span class="hljs-literal">null</span>    
+        });
+</code></pre><p>Then in your click event listener, you can store your start and end times per row. This way you can use the same syntax you already have:</p>
+<pre><code class="hljs">e<span class="hljs-class">.source</span><span class="hljs-class">.startTime</span>
+e<span class="hljs-class">.source</span><span class="hljs-class">.endTime</span>
+</code></pre><p>Set them on &#39;Start&#39; and &#39;End&#39; clicks (you&#39;re using isActive for that already). Now you just need to do the math between the times. You can look at the moment.js library for some easy functions you can use to do that.</p>
+<p>Ray</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 11th 2014, 6:25:21 pm">September 11th 2014</span>
+											by <span class='authorname'>Ray Belisle</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>There are too many points in this code that will end up hurting you and creating memory leaks.  I do not offer this as an answer - Ray has you covered there.  I have reworked the code to show a few better principles </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> addRow = function (obj) {
+    <span class="hljs-keyword">var</span> newRow = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createTableViewRow({});
+    <span class="hljs-keyword">var</span> labelTitle = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createLabel({
+        top: '<span class="hljs-number">5</span>dp',
+        left: '<span class="hljs-number">45</span>dp',
+        backgroundColor: 'gray',
+        text: obj.name || '<span class="hljs-type">Not</span> <span class="hljs-type">Set</span>'
+    });
+    <span class="hljs-keyword">var</span> rowTimerButton = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createButton({
+        <span class="hljs-keyword">type</span>: 'btn',
+        data: {
+            active: <span class="hljs-literal">false</span>,
+            id: obj.id || <span class="hljs-number">0</span>,
+            name: obj.name || '',
+            time: <span class="hljs-number">0</span>
+        },
+        width: <span class="hljs-number">40</span>,
+        height: <span class="hljs-number">40</span>,
+        top: <span class="hljs-number">2</span>,
+        left: <span class="hljs-number">2</span>,
+        borderRadius: <span class="hljs-number">20</span>,
+        backgroundColor: <span class="hljs-string">"green"</span>,
+        bubbleParent: <span class="hljs-literal">false</span>
+    });
+    newRow.add(labelTitle);
+    newRow.add(rowTimerButton);
+
+    <span class="hljs-keyword">return</span> newRow;
+};
+function updateTableView() {
+    data = [];
+    <span class="hljs-keyword">var</span> db = <span class="hljs-type">Ti</span>.<span class="hljs-type">Database</span>.open('db');
+    <span class="hljs-keyword">var</span> <span class="hljs-literal">result</span> = db.execute('<span class="hljs-type">SELECT</span> * <span class="hljs-type">FROM</span> projects');
+
+    <span class="hljs-keyword">while</span> (<span class="hljs-literal">result</span>.isValidRow()) {
+        data.push(addRow({
+            id: <span class="hljs-literal">result</span>.fieldByName('id'),
+            name: <span class="hljs-literal">result</span>.fieldByName('name')
+        }));
+        <span class="hljs-literal">result</span>.next(); 
+    }
+    db.close();
+
+    tableView.addEventListener('click', function(e) {
+        <span class="hljs-keyword">if</span> (e.source.<span class="hljs-keyword">type</span> === 'btn') {
+            <span class="hljs-keyword">var</span> db = <span class="hljs-type">Ti</span>.<span class="hljs-type">Database</span>.open('db');
+            <span class="hljs-keyword">if</span> (!e.source.data.active) {
+                <span class="hljs-keyword">var</span> <span class="hljs-literal">result</span> = db.execute('<span class="hljs-type">SELECT</span> * <span class="hljs-type">FROM</span> projects where id=?;', e.source.data.id);
+                time = <span class="hljs-literal">result</span>.fieldByName('time');
+
+                e.source.backgroundColor = 'red';
+                e.source.data.active = <span class="hljs-literal">true</span>;
+
+                e.source.data.timer = setInterval(function() {
+                    <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.info(time);
+                    time++;
+                }, <span class="hljs-number">1000</span>);
+            } <span class="hljs-keyword">else</span> {
+                db.execute('<span class="hljs-type">UPDATE</span> projects <span class="hljs-type">SET</span> time=? where id=?;', time, e.source.data.id);
+
+                e.source.data.active = <span class="hljs-literal">false</span>;
+                clearInterval(e.source.data.timer);
+                e.source.backgroundColor = 'green';
+            }
+            db.close();
+        }
+    });
+    tableView.setData(data);
+}
+</code></pre><ul>
+<li>Moves the creation of each row into a distinct function that returns only returns a single row each time.  This helps keep the code clean.</li>
+<li>The only point of interaction is the button, I have added a data parcel there to keep al the data you use to manage the process in one place, Ray was explaining this and you have touched on it yourself.  However keeping it in one node helps keep the object clean and avoid any potential name space issues yuo not be aware of.</li>
+<li>I have marked the button with a type for use later on</li>
+<li>You have an event listener for every button - one per row - way too many, you can and should do this from a single even on the table instead - you can still access everything you expected to access though</li>
+<li>I have moved some duplicated code around so you only need each once</li>
+<li>I have made your sqlite queries safer, easier to read and maintain </li>
+<li>I have set your time variable into the button for each row - this way they are self stored and away from each other</li>
+</ul>
+<p>This will reduce the number of memory leaks you would be getting.  However the use of setInterval is also going to cause memory leaks as there is no guarantee the interval will have been closed by the user.  You (not me) will need to come up with a solution for this.</p>
+<p>I have quickly played with the code - I have not tested it - but it should work as is, there could be a typo - I did not spot one.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 12th 2014, 4:21:14 pm">September 12th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Malcolm should get credit for the answer.  You have a scoping problem.  </p>
+<p>In Soren&#39;s code, he might have 20 rows with 20 buttons, each with an event listener, but they&#39;re all referring to the same <code>rowTimerButton</code> variable.  That will really create havoc.</p>
+<p>Malcolm&#39;s solution corrects that scoping problem by breaking it out into a function.</p>
+<p>This isn&#39;t so much a Titanium issue as it is a Javascript issue.  It does take some getting used to.  There are some really good texts that would cover this sort of thing.  A very thorough one is David Flanagan&#39;s Javascript: The Definitive Guide (O&#39;Reilly).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2014, 12:34:39 am">September 13th 2014</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

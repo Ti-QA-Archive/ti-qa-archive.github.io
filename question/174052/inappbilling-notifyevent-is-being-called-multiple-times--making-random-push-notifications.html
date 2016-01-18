@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>inappbilling NOTIFY_EVENT is being called multiple times &amp; making random push notifications » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>inappbilling NOTIFY_EVENT is being called multiple times &amp; making random push notifications</h1>
+		</header>
+		<section>
+			<p>Android - inappbilling mobile 2.2.1 - Titanium Studio, build: 3.2.3.201404181442</p>
+<p>I tested this on both an HTC ONE M7 Android 4.4.2 &amp; a Samsung Galaxy S4 Active 4.2.2</p>
+<p>I&#39;m having a bit of trouble when using NOTIFY_EVENT. My in-app purchasing is fairly simple - after purchase, the app goes to my remote server and downloads a .JSON file to load into a database. That part all works (I put the code into the if (checkBillingResponse.responseCode == InAppBilling.RESULT_OK){) code and as soon as the Google Play window popped up, the file is downloaded. That was just to test, it&#39;s out of there now :) </p>
+<p>It seems as though NOTIFY_EVENT is being called multiple times, sometimes 10-12 times. I&#39;ve read that using NOTIFY_EVENT is the only way to get PURCHASE_STATE_CHANGED_EVENT to fire… Is this correct? I couldn&#39;t get it to work until I used NOTIFY_EVENT.</p>
+<p>Anyway, here&#39;s my code for the in-app purchasing part:</p>
+<pre><code class="hljs">Buybutton.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+</span>{ 
+
+<span class="hljs-keyword">var</span> synchronousResponse = InAppBilling.requestPurchase({
+        productId: storeID,
+        productType: InAppBilling.ITEM_TYPE_INAPP,
+    });
+});
+
+InAppBilling.addEventListener(InAppBilling.NOTIFY_EVENT, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> synchronousResponse = InAppBilling.getPurchaseInformation({
+        notificationIds: [e.notifyId]
+    });
+    a=<span class="hljs-built_in">JSON</span>.stringify(e.notifyId);
+   alert(a); <span class="hljs-comment">//THIS makes 10-12 pop up windows with different responses</span>
+});
+
+InAppBilling.addEventListener(InAppBilling.PURCHASE_STATE_CHANGED_EVENT, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+
+        download(fileName);
+        <span class="hljs-comment">//UPDATE DATABASE CODE IS HERE</span>
+        winDialog.show();
+        db.close();
+
+});
+</code></pre><p>Also I usually get a &#39;Purchase Failed&#39; Push Notification when this fires (only 1) and it says the purchase failed, BUT it always for a product I DIDN&#39;T purchase at that time. I only ever get 1 of those notifications per button click, but 10-12 of those alerts. </p>
+<p>The PURCHASE_STATE_CHANGED_EVENT is being called AND it&#39;s working correctly in that aspect, but the app will sometimes freeze with all the alerts going on (even if I comment that line out, the app will hang and crash, but when I open the app again, what I wanted to buy is purchased). </p>
+<p>There is only 1 instance of these eventlisteners in my app. I don&#39;t have them in any other .JS files. </p>
+<p>Let me know if you need to see any other code. Thanks for looking!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 9th 2014, 5:07:12 pm">May 9th 2014</span>
+				by <span class='authorname'>Nathan Follmer</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>error</span></li>
+					
+						<li><span class='tagname'>in app billing</span></li>
+					
+						<li><span class='tagname'>inappbilling</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-278619">
+				
+						<section>
+							<p>Well I sort-of fixed it… Apparently the multiple &#39;purchase confirmations&#39; is just how it works (it returns the history of ALL purchases, must like restoreTransactions does). </p>
+<p>I killed the off ball Notification by calling <code>Ti.Android.NotificationManager.cancelAll();</code> right after <code>InAppBilling.addEventListener(InAppBilling.NOTIFY_EVENT, function(e)</code> not the way I&#39;d like to do it, but it&#39;s &#39;working&#39; for now.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 11th 2014, 10:55:53 pm">May 11th 2014</span>
+								by <span class='authorname'>Nathan Follmer</span><br>
+								<a class="icon-bg icon-link" href="question/174052/inappbilling-notifyevent-is-being-called-multiple-times--making-random-push-notifications#answer-278619" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

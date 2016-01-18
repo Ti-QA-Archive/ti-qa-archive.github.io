@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Getting response headers from a WebView » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Getting response headers from a WebView</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>there&#39;s a way to get the response headers from a WebView (NOT the from HttpClient)?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 5th 2014, 8:52:35 am">August 5th 2014</span>
+				by <span class='authorname'>Gianluca Arcidiacono</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>response headers</span></li>
+					
+						<li><span class='tagname'>webview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-281438">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi Gianluca, </p>
+<p>As Malcolm already stated, this is currently not possible with the current Titanium SDK, but Titanium fortunately is OSS, so you can modify the SDK or build your own native module to extend its functionality.</p>
+<p>If you are targeting iOS the Http Headers of the WebView can be exposed with one line of code, you only have to pass the  &quot;allHTTPHeaderFields&quot; property from the NSURLRequest to the event payload. </p>
+<p><a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;blob&#x2F;master&#x2F;iphone&#x2F;Classes&#x2F;TiUIWebView.m#L661-L665">TiUIWebView.m</a> L661-L665<br>change this line (Ti 3.3.0 L663) in the shouldStartLoadWithRequest method</p>
+<pre><code class="hljs"><span class="hljs-built_in">NSDictionary</span> *event = newUrl == <span class="hljs-literal">nil</span> ? <span class="hljs-literal">nil</span> : [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:[newUrl absoluteString], <span class="hljs-string">@"url"</span>, NUMINT(navigationType), <span class="hljs-string">@"navigationType"</span>, <span class="hljs-literal">nil</span>];
+</code></pre><p>to </p>
+<pre><code class="hljs"><span class="hljs-built_in">NSDictionary</span> *event = newUrl == <span class="hljs-literal">nil</span> ? <span class="hljs-literal">nil</span> : [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:[newUrl absoluteString], <span class="hljs-string">@"url"</span>, NUMINT(navigationType), <span class="hljs-string">@"navigationType"</span>, request<span class="hljs-variable">.allHTTPHeaderFields</span>, <span class="hljs-string">@"header"</span>, <span class="hljs-literal">nil</span>];
+</code></pre><p>then on the js side</p>
+<pre><code class="hljs">webView.addEventListener(<span class="hljs-string">'beforeload'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">var</span> header = e.header;
+
+});
+</code></pre><p>For the sake of maintainability i would wrap that code change in a module. Simply subclass TiUIWebView and put the modified UIWebView delegate method</p>
+<pre><code class="hljs"><span class="hljs-pp">- <span class="hljs-params">(<span class="hljs-variable">BOOL</span>)</span>webView:<span class="hljs-params">(<span class="hljs-variable">UIWebView</span> *)</span>webView shouldStartLoadWithRequest:<span class="hljs-params">(<span class="hljs-variable">NSURLRequest</span> *)</span>request navigationType:<span class="hljs-params">(<span class="hljs-variable">UIWebViewNavigationType</span>)</span>navigationType</span>
+</code></pre><p>in the m file to override the current SDK.</p>
+<p>on the android side it is more complicated, you have to heavily subclass  <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;blob&#x2F;c6ccbe9c3d987778e69b91c4596b030ad9514232&#x2F;android&#x2F;modules&#x2F;ui&#x2F;src&#x2F;java&#x2F;ti&#x2F;modules&#x2F;titanium&#x2F;ui&#x2F;widget&#x2F;webview&#x2F;TiWebViewClient.java">TiWebViewClient</a>. The solution would be to handle the url request manually like provided in this <a href="http:&#x2F;&#x2F;stackoverflow.com&#x2F;a&#x2F;3134609">stackoverflow answer</a>. </p>
+<p>Hope this helps you a bit</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 5th 2014, 11:27:15 am">August 5th 2014</span>
+								by <span class='authorname'>Moritz Knecht</span><br>
+								<a class="icon-bg icon-link" href="question/176763/getting-response-headers-from-a-webview#answer-281438" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>@Moritz thanks for joining.  Whilst the above is not ideal - I think the users case means it is worthwhile.  Excellent answer. +1</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 11:37:09 am">August 5th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Well this is a bit machinery, but it can do the job. However it&#39;s not the first time that a customer ask me to build a mobile interface for an existing web application that use authentication mechanisms like CAS, OAuth etc.. and a more powerful webview can be very useful (in past I have done it by building a web mobile application, but I prefer the native way by far). Expecially getting tokens&#x2F;tickets is quite a problem actually and reading response headers is very important. I hope Titanium will support this natively in future. Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 11:47:36 am">August 5th 2014</span>
+											by <span class='authorname'>Gianluca Arcidiacono</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Best thing now is to put in a feature request - or they will not know this is something you and potentially other wants;</p>
+<ul>
+<li><a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;">jira.appcelerator.org</a> - ticket system</li>
+</ul>
+<p>Post the link back here and I will also watch the ticket - helps show interest.  I imagine Moritz will do the same.</p>
+<p>Outline your needs (use case) and why and explain a solution for Android and iOS is required.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 11:56:15 am">August 5th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok, this is another question, but in my case, I see that the login page redirect (I see from Chrome that the status is 302 Moved Temporarily) to a temporary one and from this to the protected page. Actually the &#39;load&#39; event detects only the login page and the protected page (not the temporary one). This temporary page contains the CASTGC cookie I need. Is there anyway to catch also that page?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 1:39:45 pm">August 5th 2014</span>
+											by <span class='authorname'>Gianluca Arcidiacono</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>so you need the header information on the &quot;load&quot; event, ok here you go</p>
+<p>change <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;blob&#x2F;master&#x2F;iphone&#x2F;Classes&#x2F;TiUIWebView.m#L725">TiUIWebView.m</a> L725<br>from</p>
+<pre><code class="hljs"><span class="hljs-built_in">NSDictionary</span> *event = url == <span class="hljs-literal">nil</span> ? <span class="hljs-literal">nil</span> : [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObject:[<span class="hljs-keyword">self</span> url] forKey:<span class="hljs-string">@"url"</span>];
+</code></pre><p>to</p>
+<pre><code class="hljs"><span class="hljs-built_in">NSDictionary</span> *event = url == <span class="hljs-literal">nil</span> ? <span class="hljs-literal">nil</span> : [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:[<span class="hljs-keyword">self</span> url], <span class="hljs-string">@"url"</span>, [webview request]<span class="hljs-variable">.allHTTPHeaderFields</span>, <span class="hljs-string">@"header"</span>, <span class="hljs-literal">nil</span>];
+</code></pre><p>@Malcolm: thx for the +1, good idea with feature request</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 2:47:08 pm">August 5th 2014</span>
+											by <span class='authorname'>Moritz Knecht</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Moritz, actually I can solve my problem if web view can fire a &#39;load&#39; event when the response is redirection (302 Moved Temporarily). But looks like that it cannot be done…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 4:34:29 pm">August 5th 2014</span>
+											by <span class='authorname'>Gianluca Arcidiacono</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-281434">
+				
+						<section>
+							<p>Hi</p>
+<p>Short answer; no</p>
+<p>Longer answer;</p>
+<p>As you have noted there is something for that, the webView, which is a presentation of the OS web browser does not pass that information back.  HttpClient is the tool for that job.</p>
+<p>Technically speaking (have never tried in Titanium) you would call the url in httpClient and then instead of saying POST or GET you would instead say HEAD.  This returns only the head portion.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 5th 2014, 9:59:43 am">August 5th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/176763/getting-response-headers-from-a-webview#answer-281434" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi, my problem is that I have to use a WebView to show a login page (that use CAS). After the login, I need to catch some cookie (the CASTGT) that isn&#39;t present in the system cookie, but instead you can read it from the response headers. So the HttpClient cannot be used here.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 10:11:10 am">August 5th 2014</span>
+											by <span class='authorname'>Gianluca Arcidiacono</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That is unfortunate - I do understand the problem more clearly now.  However it does not change the answer.</p>
+<p>I have reviewed all the docs unless anything has changed and there appear be no properties or event listeners that provide that information.</p>
+<p>Sorry.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2014, 11:02:50 am">August 5th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

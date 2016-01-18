@@ -1,0 +1,333 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>manipulating a view from setInterval() callback crashes app » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>manipulating a view from setInterval() callback crashes app</h1>
+		</header>
+		<section>
+			<p>I&#39;m trying to implement a progress bar for a video player.  I have a callback function that I call every 250ms via <code>setInterval()</code> to get the current playback position of the video and calculate the new width of the progress bar.</p>
+<p>The problem is that on android, when the user hits &quot;back&quot; to close the window (and in this case, exit the app), I get a nasty NullPointerException:</p>
+<pre><code class="hljs"><span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">51717</span>,<span class="hljs-number">51717</span>] Sending event: exception on thread: main msg:java.lang.NullPointerException<span class="hljs-comment">; Titanium 3.3.0,2014/07/11 12:36,787cd39</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication: java.lang.NullPointerException
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at org.appcelerator.titanium.proxy.TiViewProxy.handleMessage<span class="hljs-list">(<span class="hljs-keyword">TiViewProxy.java:289</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at android.os.Handler.dispatchMessage<span class="hljs-list">(<span class="hljs-keyword">Handler.java:98</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at android.os.Looper.loop<span class="hljs-list">(<span class="hljs-keyword">Looper.java:157</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at android.app.ActivityThread.main<span class="hljs-list">(<span class="hljs-keyword">ActivityThread.java:5356</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at java.lang.reflect.Method.invokeNative<span class="hljs-list">(<span class="hljs-keyword">Native</span> Method)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at java.lang.reflect.Method.invoke<span class="hljs-list">(<span class="hljs-keyword">Method.java:515</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run<span class="hljs-list">(<span class="hljs-keyword">ZygoteInit.java:1265</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at com.android.internal.os.ZygoteInit.main<span class="hljs-list">(<span class="hljs-keyword">ZygoteInit.java:1081</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiApplication:     at dalvik.system.NativeStart.main<span class="hljs-list">(<span class="hljs-keyword">Native</span> Method)</span></span></span></span></span></span></span></span></span></span></span></span></span>
+</code></pre><p>I&#39;ve tried to listen for the <code>close</code> event and call <code>clearInterval()</code>, but I never seem to get to the close event.  It seems that the window and its views are being torn down before the close event is fired, so the last call to my <code>setInterval()</code> callback throws this nasty error.  The end user gets an &quot;Unfortunately, the app has stopped&quot; popup.  Ugly.</p>
+<p>I&#39;ve narrowed this down to my use of <code>View.size</code> in my callback.</p>
+<p>I&#39;ve found two workarounds: one is to intercept the androidback event and clear the interval before the window is closed.  That feels like a total hack, though.</p>
+<p>A slightly better workaround is to query for the width of the view in question and store that width; in this way, my callback doesn&#39;t have to access <code>View.size</code>.  I thought that using <code>postlayout</code> would be ideal, except that each time I change the size of the progress indicator, <code>postlayout</code> is fired on the progress bar that contains it, so it was constantly firing, and in fact, it would fire during the window teardown as well, throwing the NullPointerException </p>
+<p>Am I missing something obvious?  Is there a better workaround?</p>
+<p>Simplified code below.  I ripped out the video stuff, and all this code does is run a progress bar across the screen for 60 seconds.  Launch it on android, and exit while the bar is moving, and you&#39;ll see the problem.</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({
+    title : <span class="hljs-string">'Test'</span>,
+    backgroundColor : <span class="hljs-string">'#fff'</span>
+});
+
+<span class="hljs-keyword">var</span> v_progress_bar = Ti.UI.createView ({
+    left: <span class="hljs-number">10</span>,
+    right: <span class="hljs-number">10</span>,
+    height: <span class="hljs-number">10</span>,
+    backgroundColor: <span class="hljs-string">'#333'</span>
+});
+
+<span class="hljs-keyword">var</span> v_progress_indicator = Ti.UI.createView ({
+    left: <span class="hljs-number">0</span>,
+    width: <span class="hljs-number">0</span>,
+    top: <span class="hljs-number">0</span>,
+    bottom: <span class="hljs-number">0</span>,
+    backgroundColor: <span class="hljs-string">'#2F7CC1'</span>
+});
+
+v_progress_bar.add (v_progress_indicator);
+win.add (v_progress_bar);
+
+<span class="hljs-keyword">var</span> current_fill_width = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> duration = <span class="hljs-number">60000</span>;
+<span class="hljs-keyword">var</span> start_time = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime ();
+
+<span class="hljs-keyword">var</span> progress_bar_width = <span class="hljs-number">0</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">update_position</span> (<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">var</span> now = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime ();
+    <span class="hljs-keyword">var</span> elapsed = now - start_time;
+    <span class="hljs-keyword">if</span> (elapsed &gt; duration) {
+        elapsed = duration;
+    }
+
+    <span class="hljs-comment">// don't try to access size from within setInterval(); when the window is closed</span>
+    <span class="hljs-comment">// on android, you'll get a nasty NullPointerException, even if you try to remove</span>
+    <span class="hljs-comment">// the event listener on window close</span>
+    <span class="hljs-keyword">var</span> fill_width = <span class="hljs-built_in">parseInt</span> (elapsed / duration * progress_bar_width);
+    <span class="hljs-keyword">if</span> (fill_width != current_fill_width)
+    {
+        Ti.API.info (<span class="hljs-string">"setting progress_bar_width..."</span>);
+        v_progress_indicator.setWidth (fill_width);
+        current_fill_width = fill_width;
+    }
+}
+
+<span class="hljs-comment">// get the size once at startup, and get it any time the orientation changes...</span>
+<span class="hljs-comment">// if we didn't remove the event listener, it would get triggered every time</span>
+<span class="hljs-comment">// we resized the progress indicator, which would mean we'd get triggered</span>
+<span class="hljs-comment">// during the window close; accessing the size property of a view during</span>
+<span class="hljs-comment">// the window close will cause a NullPointer Exception.</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">on_new_size</span> (<span class="hljs-params">e</span>)
+</span>{
+    Ti.API.info (<span class="hljs-string">"checking progress_bar_width..."</span>);
+    progress_bar_width = v_progress_bar.size.width;
+    Ti.API.info (<span class="hljs-string">"progress bar width: "</span> + progress_bar_width);
+    win.removeEventListener (<span class="hljs-string">'postlayout'</span>, on_new_size);    
+}
+
+win.addEventListener (<span class="hljs-string">'postlayout'</span>, on_new_size);
+
+Ti.Gesture.addEventListener(<span class="hljs-string">'orientationchange'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    win.addEventListener (<span class="hljs-string">'postlayout'</span>, on_new_size);
+});
+
+<span class="hljs-keyword">var</span> up_int = setInterval (update_position, <span class="hljs-number">250</span>);
+
+win.addEventListener (<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    Ti.API.info (<span class="hljs-string">'win closed.'</span>);
+    clearInterval (up_int); 
+});
+
+win.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 18th 2014, 6:48:34 pm">August 18th 2014</span>
+				by <span class='authorname'>Jason Priebe</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>close</span></li>
+					
+						<li><span class='tagname'>nullpointerexception</span></li>
+					
+						<li><span class='tagname'>setinterval</span></li>
+					
+						<li><span class='tagname'>view.size</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello Jason! </p>
+<p>Can you please provide more info? I tested this:</p>
+<p>Mobile SDK 3.3.0.GA<br>Moto X - 4.4.2</p>
+<p>and It&#39;s working just fine. Please check this: </p>
+<pre><code class="hljs"><span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">17.773</span>: I/TiAPI(<span class="hljs-number">14332</span>):  setting progress_bar_width...
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.024</span>: I/TiAPI(<span class="hljs-number">14332</span>):  setting progress_bar_width...
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.275</span>: I/TiAPI(<span class="hljs-number">14332</span>):  setting progress_bar_width...
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.395</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: E msg.what=<span class="hljs-number">151572</span>
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.395</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.396</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: L2ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.399</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: X
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.442</span>: I/ActivityManager(<span class="hljs-number">935</span>): Killing <span class="hljs-number">3749</span>:com.motorola.ccc.sso/u0a0 (adj <span class="hljs-number">15</span>): empty <span class="hljs-preprocessor">#<span class="hljs-number">29</span></span>
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.448</span>: W/ContextImpl(<span class="hljs-number">1295</span>): Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:<span class="hljs-number">1244</span> android.content.ContextWrapper.sendBroadcast:<span class="hljs-number">365</span> com.motorola.motocare.util.TriggerHelper$TriggerBuilder.send:<span class="hljs-number">76</span> com.motorola.motocare.internal.frameworkevents.ProcessKillTrigger.sendTrigger:<span class="hljs-number">147</span> com.motorola.motocare.internal.frameworkevents.ProcessKillTrigger.handleFrameworkEvent:<span class="hljs-number">164</span> 
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.463</span>: I/TiAPI(<span class="hljs-number">14332</span>):  win closed.
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.495</span>: D/Window(<span class="hljs-number">14332</span>): Window is closed normally.
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">18.944</span>: W/qdhwcomposer(<span class="hljs-number">298</span>): Excessive delay reading vsync: took <span class="hljs-number">196</span> ms
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">19.108</span>: I/SFPerfTracer(<span class="hljs-number">298</span>):      triggers: (rate: <span class="hljs-number">62</span>:<span class="hljs-number">2952</span>) (compose: <span class="hljs-number">0</span>:<span class="hljs-number">37</span>) (post: <span class="hljs-number">0</span>:<span class="hljs-number">203</span>) (render: <span class="hljs-number">0</span>:<span class="hljs-number">164</span>) (<span class="hljs-number">0</span>:<span class="hljs-number">73858</span> frames) (<span class="hljs-number">1</span>:<span class="hljs-number">246227</span>)
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">19.109</span>: D/SFPerfTracer(<span class="hljs-number">298</span>):        layers: (<span class="hljs-number">3</span>:<span class="hljs-number">11</span>) (DimLayer: <span class="hljs-number">0</span>:<span class="hljs-number">32</span>)* (FocusedStackFrame: <span class="hljs-number">0</span>:<span class="hljs-number">2138</span>)* (StatusBar: <span class="hljs-number">0</span>:<span class="hljs-number">21950</span>) (NavigationBar: <span class="hljs-number">0</span>:<span class="hljs-number">13378</span>) (com.android.systemui.ImageWallpaper: <span class="hljs-number">0</span>:<span class="hljs-number">1588</span>)* (DimLayer: <span class="hljs-number">0</span>:<span class="hljs-number">547</span>)* (DimLayer: <span class="hljs-number">0</span>:<span class="hljs-number">947</span>)* (Starting com.negoapps.setintervalkill: <span class="hljs-number">0</span>:<span class="hljs-number">36</span>)* (com.negoapps.setintervalkill/org.appcelerator.titanium.TiActivity: <span class="hljs-number">0</span>:<span class="hljs-number">60</span>)* (com.tul.aviate/com.tul.aviator.ui.TabbedHomeActivity: <span class="hljs-number">1</span>:<span class="hljs-number">21</span>) 
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">19.396</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: E msg.what=<span class="hljs-number">151572</span>
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">19.396</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">19.396</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: L2ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">19.405</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: X
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">19.860</span>: I/SFPerfTracer(<span class="hljs-number">298</span>):      triggers: (rate: <span class="hljs-number">0</span>:<span class="hljs-number">0</span>) (<span class="hljs-number">367533</span> sw vsyncs) (<span class="hljs-number">0</span> skipped) (<span class="hljs-number">141</span>:<span class="hljs-number">363449</span> vsyncs) (<span class="hljs-number">143</span>:<span class="hljs-number">780369</span>)
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.192</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: E msg.what=<span class="hljs-number">131155</span>
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.192</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.193</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: L2ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.200</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: X
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.397</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: E msg.what=<span class="hljs-number">151572</span>
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.397</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.397</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): processMsg: L2ConnectedState
+<span class="hljs-number">08</span>-<span class="hljs-number">18</span> <span class="hljs-number">17</span>:<span class="hljs-number">11</span>:<span class="hljs-number">20.407</span>: D/WifiStateMachine(<span class="hljs-number">935</span>): handleMessage: X
+</code></pre><p>Let me know your environment. </p>
+<p>Best Regards,<br>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 18th 2014, 8:15:23 pm">August 18th 2014</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Sorry – as I was writing the post, I was trying different things to isolate the issue, and I was editing my code and the text of my post.  Unfortunately, the text and code got out of sync.  The code I posted includes the workaround, so you won&#39;t see the problem with that code.</p>
+<p>Below is the code that will crash the app when you exit on Android.  Note that in the callback, it references v_progress_bar.size, which is the offending line.</p>
+<p>I&#39;m running 3.3.0GA and testing on a Galaxy S4, android 4.4.2</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({
+    title : <span class="hljs-string">'Test'</span>,
+    backgroundColor : <span class="hljs-string">'#fff'</span>
+});
+
+<span class="hljs-keyword">var</span> v_progress_bar = Ti.UI.createView ({
+    left: <span class="hljs-number">10</span>,
+    right: <span class="hljs-number">10</span>,
+    height: <span class="hljs-number">10</span>,
+    backgroundColor: <span class="hljs-string">'#333'</span>
+});
+
+<span class="hljs-keyword">var</span> v_progress_indicator = Ti.UI.createView ({
+    left: <span class="hljs-number">0</span>,
+    width: <span class="hljs-number">0</span>,
+    top: <span class="hljs-number">0</span>,
+    bottom: <span class="hljs-number">0</span>,
+    backgroundColor: <span class="hljs-string">'#2F7CC1'</span>
+});
+
+v_progress_bar.add (v_progress_indicator);
+win.add (v_progress_bar);
+
+<span class="hljs-keyword">var</span> current_fill_width = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> duration = <span class="hljs-number">60000</span>;
+<span class="hljs-keyword">var</span> start_time = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime ();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">update_position</span> (<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">var</span> now = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime ();
+    <span class="hljs-keyword">var</span> elapsed = now - start_time;
+    <span class="hljs-keyword">if</span> (elapsed &gt; duration) {
+        elapsed = duration;
+    }
+
+    <span class="hljs-comment">// this should cause a crash after the window is closed...</span>
+    <span class="hljs-keyword">var</span> fill_width = <span class="hljs-built_in">parseInt</span> (elapsed / duration * v_progress_bar.size.width);
+    <span class="hljs-keyword">if</span> (fill_width != current_fill_width)
+    {
+        Ti.API.info (<span class="hljs-string">"setting progress_bar_width..."</span>);
+        v_progress_indicator.setWidth (fill_width);
+        current_fill_width = fill_width;
+    }
+}
+
+<span class="hljs-keyword">var</span> up_int = setInterval (update_position, <span class="hljs-number">250</span>);
+
+win.addEventListener (<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    Ti.API.info (<span class="hljs-string">'win closed.'</span>);
+    clearInterval (up_int); 
+});
+
+win.open();
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="August 19th 2014, 12:04:13 am">August 19th 2014</span>
+								by <span class='authorname'>Jason Priebe</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hello!</p>
+<p>Perfect, your testcase works like a charm! We added a bug relatd to this: </p>
+<p><a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-17536">https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-17536</a></p>
+<p>Please go to the bug and click on &quot;Watch&quot;, so you will get updates. </p>
+<p>Best Regards,<br>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 20th 2014, 8:56:09 pm">August 20th 2014</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-281817">
+				
+						<section>
+							<p>Thanks, Mauro!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 20th 2014, 11:36:48 pm">August 20th 2014</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/177097/manipulating-a-view-from-setinterval-callback-crashes-app#answer-281817" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
