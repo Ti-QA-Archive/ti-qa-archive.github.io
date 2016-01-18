@@ -1,0 +1,745 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Javascript inheritance with Mobile API objects » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Javascript inheritance with Mobile API objects</h1>
+		</header>
+		<section>
+			<p>We are running into issues when trying to extend Titanium objects using any of the typical techniques one uses for &quot;structured&quot; Javascript.</p>
+<p>In the examples below, we&#39;re using <a href="http:&#x2F;&#x2F;javascript.crockford.com&#x2F;inheritance.html">Parasitic Inheritance a la Douglas Crockford</a>, but these issues seem to apply to other typical methods used to achieve composition in Javascript.</p>
+<p>Just to set some context, let&#39;s take a non-Titanium example to illustrate what I am talking about. One can use the following code to create an object (function, in this case) called <code>MyChild</code> which inherits from an object <code>MyParent</code>, and augments one of the methods of <code>MyParent</code>.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createMyParent</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> that = {};
+    that.MyMethod = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(arg)</span> </span>{ <span class="hljs-keyword">return</span> <span class="hljs-string">"Hello, "</span> + arg; };
+    <span class="hljs-keyword">return</span> that;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createMyChild</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> that = createMyParent();
+    <span class="hljs-keyword">var</span> parentMethod = that.MyMethod;
+    that.MyMethod = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(arg)</span> </span>{ <span class="hljs-keyword">return</span> parentMethod(arg) + <span class="hljs-string">" - how are you?"</span>; };
+    <span class="hljs-keyword">return</span> that;
+}
+
+<span class="hljs-keyword">var</span> child = createMyChild();
+alert(child.MyMethod(<span class="hljs-string">"User"</span>));
+</code></pre><p>The output from running this is &quot;Hello User - how are you?&quot;. You can do similar things using the Javascript <code>prototype</code> object.</p>
+<p>So far, so good - this is a trivial example. The difficulty arises when trying to extend objects from the Titanium Mobile API to do specialized things. Let&#39;s take an example.</p>
+<p>Say we want to make a view whose children are horizontally evenly spaced within the view. So, if our view contains three Labels, for example, those three labels will automatically expand to fill the available horizontal space, with each taking one third of the horizontal width of our view. If the view is resized (say by a change in orientation), we want the view to automatically resize its children accordingly.</p>
+<p>The way to do this using Parasitic Inheritance would be to make a new object which adds additional functionality to <code>Ti.API.View</code>. We could do it like this, for example:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createHorizontalFillView</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> that = Ti.API.createView();
+    <span class="hljs-keyword">var</span> originalAddMethod = that.add;
+    that.add = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(childObject)</span>
+    </span>{
+        originalAddMethod(childObject);  <span class="hljs-comment">// have the underlying view add the child to itself</span>
+        layout();    <span class="hljs-comment">// call a method to layout our view</span>
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">layout</span><span class="hljs-params">()</span>
+    </span>{
+        <span class="hljs-comment">// do our layout logic, calculating the width of children etc.</span>
+    }
+
+    <span class="hljs-keyword">return</span> that;
+}
+</code></pre><p>Note that this is only an example - I don&#39;t particularly care about the functionality of the classes themselves here, more about the underlying mechanisms and how they work (or don&#39;t work).</p>
+<p>In this case, they don&#39;t work. The reason they don&#39;t work is that the <code>add</code> method of <code>Ti.API.View</code> does not appear to be a first class Javascript Object, so it can&#39;t be assigned to a local variable or overwritten by another function, like we are trying to do above.</p>
+<p>There are other ways to augment objects in Javascript - we can access the <code>prototype</code> object of our original object, or enumerate its properties and methods, copying them into our new object. These ways don&#39;t work either: <code>Ti.API.View</code> does not have a <code>prototype</code> object, nor can we enumerate its properties and methods.</p>
+<p>Note that we <em>can</em> add new methods to the object. So this is valid:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createHorizontalFillView</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> that = Ti.API.createView();
+    that.addWithLayout = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(childObject)</span>
+    </span>{
+        <span class="hljs-keyword">this</span>.add(childObject);  <span class="hljs-comment">// have the underlying view add the child to itself</span>
+        layout();    <span class="hljs-comment">// call a method to layout our view</span>
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">layout</span><span class="hljs-params">()</span>
+    </span>{
+        <span class="hljs-comment">// do our layout logic, calculating the width of children etc.</span>
+    }
+
+    <span class="hljs-keyword">return</span> that;
+}
+</code></pre><p>The problem with this is that we have introduced a non-standard method called <code>addWithLayout</code> into our users&#39; API. When they make one of our specialized views using createHorizontalFillView, they get back an object which they have to remember to call <code>addWithLayout()</code> on instead of <code>add()</code>. In addition, the original <code>add()</code> method is still available to them, and users could potentially call that and be confused when it doesn&#39;t do what they expect given the name of our object.</p>
+<p>In fact, there are several potential ways around our particular problem, but they all either don&#39;t work or are trade-offs:</p>
+<ol>
+<li>We could hook into the <code>childadded</code> (or similar) event of the <code>Ti.API.View</code> object, but it doesn&#39;t appear to exist. Even if it did, this is not a panacea for inheritance-related issues.</li>
+<li>We could make a new method for our functionality, like we outlined above. This is a trade-off.</li>
+<li>We could make our <code>layout()</code> method a public one of our object, and force our users to call it manually when they want the view laid out. This will work, but the view will be &#39;broken&#39; until the user calls that method.</li>
+<li>We could make a new object which contains the underlying <code>Ti.API.View</code>, instead of trying to augment it. Our new object would have to manually proxy every single one of the underlying view&#39;s properties and methods, though, since there is no way to enumerate them or inspect them.</li>
+</ol>
+<p>To me, this seems like a real issue if you are writing a serious app and need some real code structure. For smaller apps, it&#39;s probably not so much of an issue.</p>
+<p>What are folks writing serious mobile apps in Titanium doing to implement inheritance-like behavior?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 15th 2011, 3:34:18 am">February 15th 2011</span>
+				by <span class='authorname'>smaccona smaccona</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>code</span></li>
+					
+						<li><span class='tagname'>inheritance</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>structure</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Did you ever get anywhere with this?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 24th 2011, 2:20:41 am">May 24th 2011</span>
+								by <span class='authorname'>Get Glue</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Not really. We ended up using the workaround I described above (#2 in my list). There seemed to be little interest in my posting, so I can only conclude that most folks are using Titanium for fairly simple apps or are content to use workarounds like I describe above. It&#39;s a pity, because Javascript has some very powerful capabilities and it&#39;s a bit hobbled in this case. </p>
+<p>Because the Titanium objects are actually proxies for ObjectiveC or Java classes (I&#39;m guessing), there may have been no way around the issue. It would have been nice to get a comment from the Appcelerator team, though.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 24th 2011, 3:06:21 am">May 24th 2011</span>
+								by <span class='authorname'>smaccona smaccona</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Yeah the fact that they are proxies to the underlying kroll objects is likely what causes these sorts of issues. I believe non of the properties or methods actually exist on the object until they are called. I am planning on embarking on a large scale refactor of my app and features like this would definitely be quite useful. I will take this up with premium support and see if they have any ideas.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 24th 2011, 8:39:21 pm">May 24th 2011</span>
+								by <span class='authorname'>Get Glue</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Great. Let me know what you find out. We have premium support also, but I don&#39;t know what the policy is on linking to premium support tickets from the community Q&amp;A.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 24th 2011, 9:04:08 pm">May 24th 2011</span>
+								by <span class='authorname'>smaccona smaccona</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>8</span> Votes</div>
+			<div class="answers"><span>7</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>7 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-208453">
+				
+						<section>
+							<p>Hi guys,<br>Just read through this thread, couple things:</p>
+<ol>
+<li><p><em>Sometimes</em> it&#39;s possible to add to the Ti namespace but it almost always means the additions are not writable (mutable).</p>
+</li>
+<li><p>You cannot extend Ti objects as the functionality you are wanting to modify is in fact native code.  That&#39;s why the prototype cannot be utilized for Ti objects.  You can, of course, use any JS patterns to javascript objects (prototype, maybe different styles of inheritance out there, etc.) but no to the Ti objects</p>
+</li>
+<li><p>If you&#39;re wanting to add functionality to native Cocoa UI objects you&#39;ll need to build your own module to do that.</p>
+</li>
+</ol>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 24th 2011, 9:32:11 pm">May 24th 2011</span>
+								by <span class='authorname'>Rick Blalock</span><br>
+								<a class="icon-bg icon-link" href="question/112471/javascript-inheritance-with-mobile-api-objects#answer-208453" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Would you be able to point me to some documentation&#x2F;code I can use to better understand how the mapping of native objects is done to the javascript context. I understand how to (and have written) modules, but would like a better working understanding on how the bindings actually work internally, so that I can better understand why things behave the way they do.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 24th 2011, 10:45:35 pm">May 24th 2011</span>
+											by <span class='authorname'>Get Glue</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I second that.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 24th 2011, 11:04:50 pm">May 24th 2011</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Additionally: you&#39;ve confirmed for us WHY this happens - as we suspected, it&#39;s down to the fact that we&#39;re not dealing with &quot;real&quot; Javascript objects. The next question is: what are the recommendations for building a well-structured codebase given these restrictions? Is there a pattern you guys use or recommend instead of the common inheritance mechanisms usually used in Javascript?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 24th 2011, 11:08:57 pm">May 24th 2011</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Dominick - There is no current documentation on how things are bound together.  For iOS you can look at the Kroll files to see how a lot of the things get handled.</p>
+<p>@Smaccona - You can still use any type of inheritance mechanism you want for your app - you just can&#39;t apply those to the Ti namespace.  I don&#39;t see this as a &#39;restriction&#39; or &#39;limitation&#39; really since any desire to extend native Cocoa Touch or Java classes would have to be done in that language itself.  </p>
+<p>As for recommended patterns - we are working on providing more guidance on this.  Right now the Pro Service department uses a lot of Module &#x2F; Factory patterns for customer apps.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 2nd 2011, 1:25:44 pm">June 2nd 2011</span>
+											by <span class='authorname'>Rick Blalock</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-218104">
+				
+						<section>
+							<p>Here is an addition to this (old) thread that solves this kind of problems. I use containers - map in this particular case. These are just JS objects that have additional functionality like add, get, remove. From that containers, I made wrappers around Titanium objects - and they are called components.</p>
+<p>So I have View component that is wrapper around Titanium.UI.View. Every that kind of component has special property - Element.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">View</span><span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">this</span>.add(<span class="hljs-string">'Element'</span>, Ti.UI.createView(options));
+    <span class="hljs-comment">//this.Element is Ti.UI.View</span>
+}
+View.prototype = <span class="hljs-keyword">new</span> Container(); <span class="hljs-comment">//container is {} with "add", "get", "remove"</span>
+
+...
+
+<span class="hljs-keyword">var</span> myView = <span class="hljs-keyword">new</span> View();
+
+<span class="hljs-keyword">var</span> win = <span class="hljs-keyword">new</span> Window();
+
+win.add(myView); <span class="hljs-comment">//in the background, this is actually:</span>
+win.Element.add(myView.Element);
+</code></pre><p>Now you can use any kind of inheritance in JS because you deal with native JS objects and not directly with Titanium objects.</p>
+<p>This is very simple example and it is very limited, but you can get idea how to solve inheritance problem in Titanium.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 3rd 2011, 5:13:31 pm">September 3rd 2011</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/112471/javascript-inheritance-with-mobile-api-objects#answer-218104" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-220665">
+				
+						<section>
+							<p>Ivan - you answer is not quite clear</p>
+<p>Where does &#39;Window&#39; come from? it&#39;s gotta be a custom object of course</p>
+<p>What happens inside Container.add ?</p>
+<p>I&#39;d love hear more?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 10th 2011, 4:51:16 pm">October 10th 2011</span>
+								by <span class='authorname'>Esben Maaløe</span><br>
+								<a class="icon-bg icon-link" href="question/112471/javascript-inheritance-with-mobile-api-objects#answer-220665" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>&quot;Window&quot; is similar as &quot;View&quot;, for example:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Window</span><span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">this</span>.add(<span class="hljs-string">'Element'</span>, Ti.UI.createWindow(options));
+}
+
+Window.prototype = <span class="hljs-keyword">new</span> Container();
+</code></pre><p>So basically, you need to create wrappers around every Titanium component.</p>
+<p>&quot;Container&quot; on the other hand is implementation of generic container <a href="http:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Associative_container">Map</a> in this case. It&#39;s just basic JS object with some functionality.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Container</span><span class="hljs-params">()</span> </span>{
+
+}
+
+Container.prototype.add = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(name, item)</span> </span>{
+    <span class="hljs-keyword">this</span>[name] = item;
+};
+
+Container.prototype.<span class="hljs-keyword">get</span> = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(name)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>[name];
+};
+
+Container.prototype.remove = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(name)</span> </span>{
+    <span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>[name];
+};
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 11th 2011, 6:05:52 am">October 11th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-220997">
+				
+						<section>
+							<p>Ah - but that&#39;s another way of doing the same as the original poster. In effect creating a proxy object. It works, I&#39;m doing it :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 14th 2011, 8:02:15 pm">October 14th 2011</span>
+								by <span class='authorname'>Esben Maaløe</span><br>
+								<a class="icon-bg icon-link" href="question/112471/javascript-inheritance-with-mobile-api-objects#answer-220997" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Is your answer a comment to my comment about &quot;missing method&quot; functionality in Javascript? If so, I know you can proxy everything (I am the original poster), but you have to do it manually: if you make a specialized View object that wraps one of the Ti classes, you have to manually expose all the methods and properties of the underlying Ti class that you want to expose in the proxy. If Javascript had &quot;missing method&quot; functionality like Ruby, however, you wouldn&#39;t have to do this. You could instead just make methods&#x2F;functions on your proxy object for behaviors that were different, and use missing method to attempt to delegate any other method&#x2F;function calls to the underlying Ti class (because you know about) <strong>automatically</strong> - you wouldn&#39;t have to manually proxy those other methods for which the functionality remained identical at all.</p>
+<p>In any case, it&#39;s an academic discussion since you can&#39;t do that in Javascript.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 14th 2011, 9:07:26 pm">October 14th 2011</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Maybe I&#39;m not being clear. Perhaps an example would help.</p>
+<p>With something like Ruby&#39;s missing method, you could do things like this:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createMySpecializedView</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> view = {};
+    view._underlyingTiView = Ti.UI.createView();
+
+    view.add = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">child</span>) </span>{
+        _underlyingTiView.add(child);
+        <span class="hljs-comment">// do some other funky stuff that's</span>
+        <span class="hljs-comment">// specific to our specialized view</span>
+    };
+
+    view._missingmethod_ = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        view._underlyingTiView.apply(<span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span>);
+    };
+
+    <span class="hljs-keyword">return</span> view;
+}
+
+<span class="hljs-keyword">var</span> myView = createMySpecializedView();
+myView.add(someChild);
+myView.animate(someAnimation);
+</code></pre><p>(This is not real code, but you can get the idea).</p>
+<p>What happens here is that when we call <code>myView.add()</code> our view&#39;s <code>add()</code> method gets called. It in turn can call the underlying Ti object&#39;s <code>add</code> method plus do whatever else it wants to.</p>
+<p>When we call <code>myView.animate()</code>, however, something different happens. Our <code>createMySpecializedView</code> object doesn&#39;t have an <code>animate()</code> member, so instead our <code>_missingmethod_()</code> member would get called (if Javascript had such a concept). Then in <code>_missingmethod_()</code> we can handle any attempted calls to methods that don&#39;t really exist on our object. In this call, we simply try to delegate the call to our underlying Ti object. This means that with our proxy object, we can make any calls to methods we define and also any calls that will work on the underlying Ti object. This is not only a huge time-saver, saving you having to write proxy code for every single method you want to expose on the underlying Ti object, but also means that when the Titanium SDK is updated, we get the new functionality <em>automatically</em>, without having to add methods to our proxy &quot;class&quot; to expose the new functionality.</p>
+<p>Sadly, Javascript doesn&#39;t have anything like &quot;missing method&quot; and I&#39;ve never found a good way to fake it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 14th 2011, 9:31:24 pm">October 14th 2011</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It wasn&#39;t in response to you, it was in response to Ivan :)</p>
+<p>I do appreciate the idea of the missing method, but quite honestly my &quot;<em>proxy code for every single method</em>&quot; looks like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">// Proxy the client</span>
+this<span class="hljs-class">.send</span> = this<span class="hljs-class">.client</span><span class="hljs-class">.send</span>
+this<span class="hljs-class">.abort</span> = this<span class="hljs-class">.client</span><span class="hljs-class">.abort</span>
+this<span class="hljs-class">.getResponseHeader</span> = this<span class="hljs-class">.client</span><span class="hljs-class">.getResponseHeader</span>
+this<span class="hljs-class">.setResponseHeader</span> = this<span class="hljs-class">.client</span><span class="hljs-class">.setRequestHeader</span>
+this<span class="hljs-class">.setTimeout</span> = this<span class="hljs-class">.client</span><span class="hljs-class">.setTimeout</span>
+this<span class="hljs-class">.open</span> = this<span class="hljs-class">.client</span><span class="hljs-class">.open</span>
+return this
+</code></pre><p>not that cumbersome :) </p>
+<p>Except you have to watch out for API changes or expansions</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 14th 2011, 10:37:11 pm">October 14th 2011</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You&#39;re right, for a handful of methods it&#39;s not that bad at all.</p>
+<p>What do you do for properties?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 14th 2011, 10:44:40 pm">October 14th 2011</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Esben, no, it is not similar thing, in original post, Titanium object is returned from function constructor. In my function constructor, native JS object is returned. The thing is that you can use native JS objects for prototypal inheritance, while Titanium object you can&#39;t. And actually it&#39;s not real proxy, it&#39;s a container (I don&#39;t proxy Titanium object&#39;s methods, I proxy Titanium object it self via &quot;Element&quot; property). I have reasons why I do that (some of them are mentioned below), which I will describe when and if I will have time (I plan to release some kind of library for this, open source maybe … and there will be some blog posts about that, so be around if you&#39;re interested).<br>The thing is that &quot;Container&quot;&#39;s add method is more complex that I mentioned above.</p>
+<p>In my real application I use something similar to what smaccona describe 3 posts about, but now I want to rewrite my application so it uses paradigm I mentioned above because that approach is more memory efficient and probably faster (I didn&#39;t played with it much, but hopefully will). (@smaccona - see ECMA 5, in it there are some feature you&#39;ll find very interesting and they&#39;ll hopefully come to Titanium with V8 JS engine)</p>
+<p>I use generic containers because:</p>
+<ul>
+<li>I can manually remove Ti objects when window closes</li>
+<li>I can manually remove event listeners for that objects</li>
+</ul>
+<p>I found that Titanium doesn&#39;t handle this well (newer SDK versions are getting better but they are not good enough yet). When I did this things in my application:</p>
+<ul>
+<li>memory usage become almost constant</li>
+<li>I wasn&#39;t getting any errors - &quot;Sending event on dead thread&quot; - anymore</li>
+</ul>
+<p>That&#39;s why I think this is very good approach. Just for a record, my application (it will not be public, it&#39;s in house app) has about 850 files at the moment (every file is one component) and it will rise even more, so it is not small application. Because of that I need good, fast and memory efficient OOP approach (and, the most important thing - OOP has to be Titanium specific). :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 5:58:44 am">October 15th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221020">
+				
+						<section>
+							<p>Ah yeah - two set of parens are one too many! Typo-error, I meant what you wrote.</p>
+<p>calling before declaring is no problem in Javascript since declarations are hoisted to the top of the current scope. Read all about it here: http:&#x2F;&#x2F;www.adequatelygood.com&#x2F;2010&#x2F;2&#x2F;JavaScript-Scoping-and-Hoisting</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2011, 10:52:42 am">October 15th 2011</span>
+								by <span class='authorname'>Esben Maaløe</span><br>
+								<a class="icon-bg icon-link" href="question/112471/javascript-inheritance-with-mobile-api-objects#answer-221020" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>PLEASE DELETE THE ABOVE ANSWER - IT WAS MEANT TO BE A COMMENT</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 12:08:04 pm">October 15th 2011</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-210966">
+				
+						<section>
+							<p>@smaccona: We are trying to create a similar structured approach to our app since we will not be one of those simple apps. We would like to create new widgets that inherit from existing widgets or that represent a predetermined layout of the core widgets. This seems like very hard to do in Titanium since it doesn&#39;t seem to support the prototype on the object.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 22nd 2011, 6:03:32 am">June 22nd 2011</span>
+								by <span class='authorname'>Satheesh Subramanian</span><br>
+								<a class="icon-bg icon-link" href="question/112471/javascript-inheritance-with-mobile-api-objects#answer-210966" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>You can still use prototype in titanium, just not to extend proxied objects (Like any of the TiView subclasses) … I am likely going to handle this by creating wrapper classes that have a .view property, which holds a reference to the actual titanium view. Not ideal, but probably the best option.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2011, 1:42:31 pm">June 22nd 2011</span>
+											by <span class='authorname'>Get Glue</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I will probably be taking the same approach - writing wrapper classes. It&#39;s definitely a bit painful, but also seems more flexible and the best of the 4 options listed above - IMO.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 3rd 2011, 3:49:28 pm">September 3rd 2011</span>
+											by <span class='authorname'>Brad Peabody</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It&#39;s a pity Javascript doesn&#39;t have anything like Ruby&#39;s &quot;missing method&quot; functionality. That would make it easier to do this type of thing without having to manually proxy every method in the underlying view. You could just augment with your own &quot;methods&quot; as needed and use the missing method functionality to call the method on the underlying Ti view if you hadn&#39;t coded the method yourself.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 14th 2011, 4:52:17 pm">October 14th 2011</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221018">
+				
+						<section>
+							<p>Smaccona: I&#39;m brand new to Ti, so I haven&#39;t yet had any reasons for setting properties, only for getting. So I can use the same this.property = this.client.property.</p>
+<p>Ivan: Ok - so the big difference is that you are not doing it on constructed objects, but rather in the prototype? Which of course saves memory?</p>
+<p>I&#39;m doing an app that will also serve as &#39;pattern&#39; for future apps, and I really want to hear more about your findings. I&#39;d be happy if you emailed me when you write something about it: acebone at gmail dot com</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2011, 8:17:10 am">October 15th 2011</span>
+								by <span class='authorname'>Esben Maaløe</span><br>
+								<a class="icon-bg icon-link" href="question/112471/javascript-inheritance-with-mobile-api-objects#answer-221018" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Ah - this should&#39;ve been a comment - sorry</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 8:17:56 am">October 15th 2011</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m not sure I understand you. If by &quot;constructed objects&quot; you mean native JS objects, then answer is yes. In a nutshell, it&#39;s classical prototypal inheritance.</p>
+<p>Sure, I&#39;ll let you know as soon as I start the work. Unfortunately, I can&#39;t tell you when this will be possible since I need to finish my current work before I can start with work on next version.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 8:54:25 am">October 15th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m sorry - I don&#39;t get it.</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> Wrap1 = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+   <span class="hljs-keyword">this</span>.myTiObject = Ti.xx.createObject()
+
+}
+</code></pre><p>Must be very similar to:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> Wrap2 = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">this</span>.add(<span class="hljs-string">'myTiObject'</span>, Ti.xx.createObject())
+
+    <span class="hljs-keyword">this</span>.add = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, element)</span><span class="hljs-params">()</span></span>{
+         <span class="hljs-keyword">this</span>[name] = element        
+     }
+
+}
+</code></pre><p>Which is similar to</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Wrap3 = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">this</span>.add(<span class="hljs-string">'myTiObject'</span>, Ti.xx.createObject()) 
+
+}
+
+Wrap3.prototype.add= <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, element)</span><span class="hljs-params">()</span></span>{
+         <span class="hljs-keyword">this</span>[name] = element        
+     }
+</code></pre><p>Wrap3 being slightly more effective than Wrap2 - because the method add is not created for each object you instantiate, but only once in the prototype.</p>
+<p>This is my understanding so far - is this correct?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 10:27:38 am">October 15th 2011</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes. </p>
+<p>You have small error:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, element)</span><span class="hljs-params">()</span></span>{
+<span class="hljs-comment">//should be:</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, element)</span></span>{
+</code></pre><p>Also, I think Wrap2 wouldn&#39;t work because you use &quot;add&quot; function before you define it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 10:41:11 am">October 15th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Dang! - keep adding answers rather than comments. Hope someone will delete the answer - here is the comment:</p>
+<p>Ah yeah - two set of parens are one too many! Typo-error, I meant what you wrote.</p>
+<p>calling before declaring is no problem in Javascript since declarations are hoisted to the top of the current scope. Read all about it here: http:&#x2F;&#x2F;www.adequatelygood.com&#x2F;2010&#x2F;2&#x2F;JavaScript-Scoping-and-Hoisting</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 10:54:01 am">October 15th 2011</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Declaration yes, definition no!</p>
+<p>So …</p>
+<pre><code class="hljs">
+alert<span class="hljs-comment">(typeof myVar)</span>; <span class="hljs-comment">//undefined</span>
+alert<span class="hljs-comment">(myVar)</span>; <span class="hljs-comment">//won't throw reference error because of hoisting</span>
+var myVar = <span class="hljs-number">2</span>;
+alert<span class="hljs-comment">(typeof myVar)</span>; <span class="hljs-comment">//number</span>
+alert<span class="hljs-comment">(myVar)</span>; <span class="hljs-comment">//2</span>
+
+
+<span class="hljs-comment">//on the other hand</span>
+alert<span class="hljs-comment">(myVar2)</span>; <span class="hljs-comment">//reference error</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 11:15:47 am">October 15th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>myVar2 doesn&#39;t exist. If you don&#39;t declare it, it will never be hoisted and it will always give a ref error :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 3:01:35 pm">October 15th 2011</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Under all circumstances</p>
+<p><code>thing = client.thing</code></p>
+<p>doesn&#39;t seem to work on android for me. The interpreter throws a fit :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2011, 6:44:55 pm">October 15th 2011</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

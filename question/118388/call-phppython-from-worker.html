@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Call PHP/Python from Worker » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Call PHP/Python from Worker</h1>
+		</header>
+		<section>
+			<p>Hi there,</p>
+<p>I am evaluating Titanium Desktop for a multiplatform app.<br>I am trying to figure out if I can call PHP or Python code scripts from a Worker execution code (in the onMessage function inside the js file specified in the createWorker method).</p>
+<p>Does anybody know if I can invoke this kind of scripts and how?</p>
+<p>Thanks a million </p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 11th 2011, 8:39:44 pm">April 11th 2011</span>
+				by <span class='authorname'>Fabrizio Fortino</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>desktop</span></li>
+					
+						<li><span class='tagname'>php</span></li>
+					
+						<li><span class='tagname'>python</span></li>
+					
+						<li><span class='tagname'>worker</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-206188">
+				
+						<section>
+							<p>Well … it seems to be impossible to call php or python scripts from a worker because a worker runs in a separate context. I have solved my problem with a workaround: I have substituted the Worker with a python thread invocation (<code>thread.start_new_thread</code>). From the function executed in the new thread I have the complete visibility of all the other functions.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 13th 2011, 7:37:55 pm">April 13th 2011</span>
+								by <span class='authorname'>Fabrizio Fortino</span><br>
+								<a class="icon-bg icon-link" href="question/118388/call-phppython-from-worker#answer-206188" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Could you provide an example? I have exactly the same problem. Thanks in advance.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 5th 2011, 9:39:07 am">May 5th 2011</span>
+											by <span class='authorname'>Susana Ferreira</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Susana,</p>
+<p>Below you can find the code I have used to sort my problem out.<br>As you can see, there are 2 python calls in the javascript code:</p>
+<ul>
+<li><code>openSocket</code> creates an UDP socket. This is a blocking call executed in the main thread.</li>
+<li><code>listen</code> starts a new thread and invokes the python function receiveFromSocket. It reads the data and shows a notification alert. Please notice the use of the function <code>Titanium.API.runOnMainThreadAsync</code> to execute methods from the python thread to the main javascript thread.</li>
+</ul>
+<p>Hope it helps.</p>
+<p>Cheers,<br>Fabrizio</p>
+<pre><code class="hljs">&lt;script <span class="hljs-class"><span class="hljs-keyword">type</span>=</span><span class="hljs-string">"text/javascript"</span>&gt;
+    openSocket();
+    listen();
+&lt;/script&gt;
+
+&lt;script <span class="hljs-class"><span class="hljs-keyword">type</span>=</span><span class="hljs-string">"text/python"</span>&gt;
+from socket <span class="hljs-keyword">import</span> *
+<span class="hljs-keyword">import</span> thread
+<span class="hljs-keyword">import</span> threading
+
+buf = <span class="hljs-number">1024</span>
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">openSocket</span>(</span>):
+    host = <span class="hljs-string">"127.0.0.1"</span>
+    port = <span class="hljs-number">8599</span>
+    global addr
+    addr = (host,port)
+    global <span class="hljs-type">UDPSock</span>
+    <span class="hljs-type">UDPSock</span> = socket(<span class="hljs-type">AF_INET</span>,<span class="hljs-type">SOCK_DGRAM</span>)
+    <span class="hljs-type">UDPSock</span>.bind(addr)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">listen</span>(</span>):
+    thread.start_new_thread(receiveFromSocket, ())
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">receiveFromSocket</span>(</span>):
+    <span class="hljs-keyword">while</span> <span class="hljs-type">True</span>:
+        data,addr = <span class="hljs-type">UDPSock</span>.recvfrom(buf)
+        <span class="hljs-type">Titanium</span>.<span class="hljs-type">API</span>.runOnMainThreadAsync(showNotification, data)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">showNotification</span>(</span>data):
+    notif = <span class="hljs-type">Titanium</span>.<span class="hljs-type">Notification</span>.createNotification()
+    notif.setMessage(data)
+    notif.show()
+&lt;/script&gt;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="May 5th 2011, 10:23:37 am">May 5th 2011</span>
+											by <span class='authorname'>Fabrizio Fortino</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Works like a charm! :) Thank you so much Fabrizio!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 2nd 2011, 11:54:07 am">June 2nd 2011</span>
+											by <span class='authorname'>Susana Ferreira</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello! I tried this code snippet on SDK 1.2RC4! but it crashed when call thread.start_new_thread. would anyone please give me some tips?!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 22nd 2012, 10:57:55 am">February 22nd 2012</span>
+											by <span class='authorname'>Titan, Jer-ming Lin</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

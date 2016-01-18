@@ -1,0 +1,337 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTPClient on Timer Crashing » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTPClient on Timer Crashing</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been fighting with a problem for a few weeks.  I&#39;m using the suds.js framework to call a SOAP service and the individual calls work perfectly.  The effect I&#39;m looking for is for the httpclient to be called every 3 seconds to refresh a tableview, but when a textbox receives the focus, stop the timer, allow a new value to be entered, send&#x2F;save that value, re-start the timer and continue refreshing every 3 seconds.</p>
+<p>When it is launched the timer makes the call every 3 seconds fairly consistently. Every so often there will be a delay and several batches will come back at the same  time, but that&#39;s not my biggest problem. (although I need to deal with later)</p>
+<p>Upon giving focus to the text box, stopping the timer, data entry happening and saving (through an httpclient call),  when my button click event calls the GET after saving it works fine when doing one GET but if I put the GET inside a new timer, it crashes.  My reference to a crash is app shutting down in the emulator with only the message &quot;Application has exited from Simulator&quot;, giving me no clue as to what is going wrong. </p>
+<p>Main Timer &#x2F; Httpclient GET:</p>
+<pre><code class="hljs">var timerInterval<span class="hljs-comment">;</span>
+<span class="hljs-literal">t</span> = setTimeout<span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> 
+{
+  timerInterval = setInterval<span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> 
+  {
+      if <span class="hljs-list">(<span class="hljs-keyword">GetMoves</span><span class="hljs-list">()</span>)</span>
+      {
+         tableview.data = data<span class="hljs-comment">;</span>
+        win.add<span class="hljs-list">(<span class="hljs-keyword">tableview</span>)</span><span class="hljs-comment">;  </span>
+      }
+   },<span class="hljs-number">3000</span>)</span><span class="hljs-comment">;</span>
+},<span class="hljs-number">3000</span>)</span><span class="hljs-comment">;</span>
+</code></pre><p>GetMoves()</p>
+<pre><code class="hljs">function GetMoves()
+{
+var url = <span class="hljs-string">"http://www......."</span>;
+var callparams = {
+    groupID: <span class="hljs-number">1</span>
+    };
+
+var suds = <span class="hljs-keyword">new</span> SudsClient({
+    endpoint: url,
+    targetNamespace: <span class="hljs-string">'http://ssi.org/'</span>
+});
+
+<span class="hljs-keyword">try</span> {
+    suds.invoke(<span class="hljs-string">'GetLatestMovessByGroup'</span>, callparams, function(xmlDoc) 
+    {
+        DeleteAllTableviewRows();
+
+        footer.<span class="hljs-built_in">add</span>(button);
+        footer.<span class="hljs-built_in">add</span>(textfield);
+
+        var section = Ti.UI.createTableViewSection();
+        section.footerView = footer;
+
+        data[<span class="hljs-number">0</span>] = section;
+        var labelString = <span class="hljs-string">''</span>;
+
+        var moves = xmlDoc.documentElement.getElementsByTagName(<span class="hljs-string">'mv'</span>);
+        var userIDs = xmlDoc.documentElement.getElementsByTagName(<span class="hljs-string">'id'</span>);
+        var datesSent = xmlDoc.documentElement.getElementsByTagName(<span class="hljs-string">'dt'</span>);
+
+        <span class="hljs-keyword">for</span> (var i = <span class="hljs-number">0</span>; i &lt; moves.length; i++) 
+        {
+            var userId = userIDs.item(i).<span class="hljs-built_in">text</span>;
+            var nextMove = moves.item(i).<span class="hljs-built_in">text</span>;
+            var dateSent = datesSent.item(i).<span class="hljs-built_in">text</span>;
+
+            var row = Titanium.UI.createTableViewRow({backgroundColor:<span class="hljs-string">'black'</span>, <span class="hljs-variable">height</span>:<span class="hljs-number">30</span>, hasChild:<span class="hljs-keyword">false</span>, selectionStyle: <span class="hljs-string">'Titanium.UI.iPhone.TableViewCellSelectionStyle.NONE'</span>});
+
+            var lblDate = Ti.UI.createLabel({
+                <span class="hljs-built_in">color</span>: <span class="hljs-string">'white'</span>,
+                left: <span class="hljs-number">10</span>,
+                <span class="hljs-variable">width</span>: <span class="hljs-string">'auto'</span>,
+                <span class="hljs-variable">height</span>: <span class="hljs-string">'auto'</span>,
+                <span class="hljs-built_in">text</span>: dateSent,
+                <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'left'</span>,
+                font:{fontWeight:<span class="hljs-string">'normal'</span>, fontSize: <span class="hljs-number">12</span>} 
+                });
+            var lblUser = Ti.UI.createLabel({
+                <span class="hljs-built_in">color</span>: <span class="hljs-string">'white'</span>,
+                left: <span class="hljs-number">135</span>,
+                <span class="hljs-variable">width</span>: <span class="hljs-string">'auto'</span>,
+                <span class="hljs-variable">height</span>: <span class="hljs-string">'auto'</span>,
+                <span class="hljs-built_in">text</span>: userId,
+                <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'left'</span>,
+                font:{fontWeight:<span class="hljs-string">'normal'</span>, fontSize: <span class="hljs-number">12</span>} 
+                });
+            var lblMove = Ti.UI.createLabel({
+                left: <span class="hljs-number">195</span>,
+                <span class="hljs-variable">width</span>: <span class="hljs-string">'auto'</span>,
+                <span class="hljs-variable">height</span>: <span class="hljs-string">'auto'</span>,
+                <span class="hljs-built_in">text</span>: nextMove,
+                <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'left'</span>,
+                <span class="hljs-built_in">color</span>: <span class="hljs-string">'white'</span>,
+                font:{fontWeight:<span class="hljs-string">'bold'</span>}  
+                });
+
+            row.<span class="hljs-built_in">add</span>(lblDate);
+            row.<span class="hljs-built_in">add</span>(lblUser);
+            row.<span class="hljs-built_in">add</span>(lblMove);
+            tableview.appendRow(row);          
+       }
+
+       <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+
+    });
+} 
+ <span class="hljs-keyword">catch</span>(e) 
+ {
+    Ti.API.error(<span class="hljs-string">'Error: '</span> + e); 
+ }
+
+}
+</code></pre><p>Stop the timer when textbox receives focus:</p>
+<pre><code class="hljs">textfield.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+</span>{
+    clearInterval(timerInterval);
+});
+</code></pre><p>Button Click event where SAVE and GETs are done.</p>
+<pre><code class="hljs"><span class="hljs-transposed_variable">button.</span>addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>
+{
+    var callparams_NewMove = {
+        groupID: <span class="hljs-number">1</span>,
+        userID: <span class="hljs-number">1</span>,
+        newMove: trimmedMove
+    };
+    <span class="hljs-keyword">try</span> 
+    {
+        <span class="hljs-transposed_variable">suds.</span>invoke(<span class="hljs-string">'SaveMove'</span>, callparams_NewMove, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(xmlDoc)</span> </span>
+       {
+            <span class="hljs-comment">//CRASHes When GetMoves() run in timer here</span>
+            <span class="hljs-comment">// but perfect outside of timer.</span>
+            timerInterval = setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>
+            {
+                GetMoves();
+            }, <span class="hljs-number">3000</span>);
+       });
+    } 
+ <span class="hljs-keyword">catch</span>(<span class="hljs-built_in">exp</span>) 
+ {
+    <span class="hljs-transposed_variable">Ti.</span><span class="hljs-transposed_variable">API.</span>error(<span class="hljs-string">'Error: '</span> + <span class="hljs-built_in">exp</span>); 
+ }
+
+ });
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 15th 2011, 3:27:09 pm">May 15th 2011</span>
+				by <span class='authorname'>Software Services</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>1.6.2</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>soap</span></li>
+					
+						<li><span class='tagname'>timer</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-207825">
+				
+						<section>
+							<p>I would suggest you use the callback to put setTimeout and call the function again, rather than use an interval, that will solve your batch responses, and might even solve your crashing problems.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> performRefresh = <span class="hljs-literal">true</span>;
+doCommand();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doCommand</span><span class="hljs-params">()</span> </span>{
+   getSoap(<span class="hljs-string">'someSoap'</span>, args, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(response)</span> </span>{
+      .......
+      .......
+      .......
+      <span class="hljs-keyword">if</span> (performRefresh)
+         setTimeout(doCommand, <span class="hljs-number">3000</span>);
+   });
+}
+</code></pre><p>and when focusing the text:</p>
+<p>performRefresh = false;</p>
+<p>that will finish the current call and will not continue.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 16th 2011, 5:29:09 am">May 16th 2011</span>
+								by <span class='authorname'>Yaniv Nagar</span><br>
+								<a class="icon-bg icon-link" href="question/119696/httpclient-on-timer-crashing#answer-207825" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank You …  That definitely helped my first problem, but the crash continues to happen.   The only info I get back from Titanium is &quot;Session did end with error(null)&quot;.  Wish I could get some clues back from TI as to why it&#39;s crashing.     </p>
+<p>The problem begins after I send the new info, set performRefresh to true again (after setting to false on  textfield.focus), and run doCommand again.  I do this in the callback from the Save. </p>
+<p> I&#39;m starting to think that maybe I have residual SOAP calls still running.  Wish I could gain access to them and get rid of any that exist before saving, setting performRefresh to true and running doCommand again.</p>
+<p>Thanks again.  I&#39;m getting very frustrated with this problem …</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 16th 2011, 11:29:08 pm">May 16th 2011</span>
+											by <span class='authorname'>Software Services</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You could try, just for test of course, create a new SudsClient every run of your interval, so see if the problem is really trying to send data when another request is running. That would at least let you pinpoint the problem.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 18th 2011, 4:17:39 am">May 18th 2011</span>
+											by <span class='authorname'>Yaniv Nagar</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-207953">
+				
+						<section>
+							<p>I&#39;ve cleaned up my code and now have the timer better-controlled, but the app is still crashing after I do a Save and the callback when that finishes sets my performRefresh flag to true, and the first GET is in progress afterward.  I no longer suspect any residual SOAP calls.</p>
+<p>I&#39;m very desperate for info on why Ti is just shutting down without any clues as to what went wrong.   When app starts, the following message is issued after a few cycles of running GETs:<br>Reachability Flag Status Change: -R —–l- networkStatusForFlags</p>
+<p>When the app shuts down, the message &#39;Session did end with error (null)&#39; displays.  Otherwise, no hint as what&#39;s going wrong.   I&#39;ve added some logging as to where the logic is when the app stops and it&#39;s always in my SOAP get function controlled by the timer, but at all different places in the function when it stops.</p>
+<p>Any other debugging approaches available in Titianium?  I&#39;m getting to the point where I may start looking for a different product.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2011, 10:45:05 pm">May 17th 2011</span>
+								by <span class='authorname'>Software Services</span><br>
+								<a class="icon-bg icon-link" href="question/119696/httpclient-on-timer-crashing#answer-207953" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-208251">
+				
+						<section>
+							<p>This problem was solved with the help of Robb Shecter.  Thank you Robb …</p>
+<p>The problem goes away when running under IOS 4.3.  I was using 4.2 beforehand.  So, it appears as though this was a bug fixed by Apple.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 21st 2011, 7:57:17 pm">May 21st 2011</span>
+								by <span class='authorname'>Software Services</span><br>
+								<a class="icon-bg icon-link" href="question/119696/httpclient-on-timer-crashing#answer-208251" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

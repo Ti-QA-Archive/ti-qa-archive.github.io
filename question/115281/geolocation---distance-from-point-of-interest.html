@@ -1,0 +1,658 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Geolocation - distance from point of interest » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Geolocation - distance from point of interest</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>i&#39;m trying to code a tableview containing a list with points of interest with indication of the distance from the user (sorted from near to far). I have an sqldatabase with my poi&#39;s but can&#39;t sort out the &#39;distance from user&#39;-thing. </p>
+<p>Does any of you have any helpful piece of example code they want to share?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 22nd 2011, 5:15:18 pm">February 22nd 2011</span>
+				by <span class='authorname'>Benoit Willaert</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>distance</span></li>
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+						<li><span class='tagname'>sql</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-201771">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Here is my code for my app that works.  You can take out what isn&#39;t needed, but basically it reads my database and refreshes a tableview to constantly calculate the distance from the current location to one of the saved POI&#39;s.  I use it in my app, PlotMe, in the iTunes store.</p>
+<p>FYI, this calculates based on the lat&#x2F;lon, not driving directions distance.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Titanium.UI.currentWindow;
+<span class="hljs-keyword">var</span> currentNote = <span class="hljs-string">''</span>;
+<span class="hljs-keyword">var</span> db = Titanium.Database.install(<span class="hljs-string">'plotme.sqlite'</span>,<span class="hljs-string">'plotme.sqlite'</span>);
+Ti.Geolocation.purpose = <span class="hljs-string">"Receive User Location to find closest saved address"</span>;
+<span class="hljs-keyword">var</span> mylatitude=<span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> mylongitude=<span class="hljs-literal">null</span>;
+
+
+<span class="hljs-comment">//var markers=[];</span>
+<span class="hljs-comment">//var latarray=[];</span>
+<span class="hljs-comment">//var lonarray=[];</span>
+<span class="hljs-comment">//var titlearray=[];</span>
+<span class="hljs-comment">//var subtitlearray=[];</span>
+<span class="hljs-keyword">var</span> i=<span class="hljs-literal">null</span>;
+<span class="hljs-comment">/*** GPS STUFF**/</span>
+<span class="hljs-keyword">if</span>(Titanium.Geolocation.locationServicesEnabled==<span class="hljs-literal">false</span>)
+{
+                <span class="hljs-keyword">var</span> locationDialog = Titanium.UI.createAlertDialog({
+                title: <span class="hljs-string">'Error'</span>,
+                message: <span class="hljs-string">'Location Services needs to be enabled for this application'</span>,
+                buttonNames: [<span class="hljs-string">'OK'</span>]
+            });
+            locationDialog.show();    
+
+}
+
+<span class="hljs-comment">/***GPS SECTION***/</span>
+
+    Titanium.Geolocation.preferredProvider = Titanium.Geolocation.PROVIDER_GPS;
+    Titanium.Geolocation.accuracy = Titanium.Geolocation.ACCURACY_BEST;
+
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">//  SET DISTANCE FILTER.  THIS DICTATES HOW OFTEN AN EVENT FIRES BASED ON THE DISTANCE THE DEVICE MOVES</span>
+    <span class="hljs-comment">//  THIS VALUE IS IN METERS</span>
+    <span class="hljs-comment">//</span>
+    Titanium.Geolocation.distanceFilter = <span class="hljs-number">1</span>;
+
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// GET CURRENT POSITION - THIS FIRES ONCE</span>
+    <span class="hljs-comment">//</span>
+    Titanium.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+    </span>{
+        <span class="hljs-keyword">if</span> (e.error)
+        {
+            <span class="hljs-keyword">var</span> currentLocation;
+            <span class="hljs-comment">/*
+            var alertDialog = Titanium.UI.createAlertDialog({
+                        title: 'Location Error',
+                        message: 'Your GPS or Location Services do not appear to be enabled.  Please enable them and try again',
+                        buttonNames: ['OK']
+                    });
+                    return;
+            alertDialog.show();
+
+
+                */</span>
+        }
+
+        mylongitude = e.coords.longitude;
+        mylatitude = e.coords.latitude;
+        <span class="hljs-keyword">var</span> altitude = e.coords.altitude;
+        <span class="hljs-keyword">var</span> heading = e.coords.heading;
+        <span class="hljs-keyword">var</span> accuracy = e.coords.accuracy;
+        <span class="hljs-keyword">var</span> speed = e.coords.speed;
+        <span class="hljs-keyword">var</span> timestamp = e.coords.timestamp;
+        <span class="hljs-keyword">var</span> altitudeAccuracy = e.coords.altitudeAccuracy;
+        <span class="hljs-comment">//Ti.API.info('speed ' + speed)</span>
+
+    });
+
+ <span class="hljs-comment">//END GPS FUNCTION</span>
+
+
+
+Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+    </span>{
+
+        mylongitude = e.coords.longitude;
+        mylatitude = e.coords.latitude;
+        <span class="hljs-keyword">var</span> altitude = e.coords.altitude;
+        <span class="hljs-keyword">var</span> heading = e.coords.heading;
+        <span class="hljs-keyword">var</span> accuracy = e.coords.accuracy;
+        <span class="hljs-keyword">var</span> speed = e.coords.speed;
+        <span class="hljs-keyword">var</span> timestamp = e.coords.timestamp;
+        <span class="hljs-keyword">var</span> altitudeAccuracy = e.coords.altitudeAccuracy;
+
+        <span class="hljs-comment">//Titanium.Geolocation.distanceFilter = 100; //changed after first location event </span>
+
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+        </span>{
+
+        },<span class="hljs-number">50</span>);
+});
+
+
+<span class="hljs-comment">/*********************/</span>
+
+
+
+
+
+<span class="hljs-comment">/****END GPS STUFF**/</span>
+<span class="hljs-comment">//This is the array we'll use to back the table view</span>
+
+
+<span class="hljs-comment">/***This is the calc function***/</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">distance</span>(<span class="hljs-params">lat1, lon1, lat2, lon2, unit</span>) </span>{
+    <span class="hljs-keyword">var</span> radlat1 = <span class="hljs-built_in">Math</span>.PI * lat1/<span class="hljs-number">180</span>;
+    <span class="hljs-keyword">var</span> radlat2 = <span class="hljs-built_in">Math</span>.PI * lat2/<span class="hljs-number">180</span>;
+    <span class="hljs-keyword">var</span> radlon1 = <span class="hljs-built_in">Math</span>.PI * lon1/<span class="hljs-number">180</span>;
+    <span class="hljs-keyword">var</span> radlon2 = <span class="hljs-built_in">Math</span>.PI * lon2/<span class="hljs-number">180</span>;
+    <span class="hljs-keyword">var</span> theta = lon1-lon2;
+    <span class="hljs-keyword">var</span> radtheta = <span class="hljs-built_in">Math</span>.PI * theta/<span class="hljs-number">180</span>;
+    <span class="hljs-keyword">var</span> dist = <span class="hljs-built_in">Math</span>.sin(radlat1) * <span class="hljs-built_in">Math</span>.sin(radlat2) + <span class="hljs-built_in">Math</span>.cos(radlat1) * <span class="hljs-built_in">Math</span>.cos(radlat2) * <span class="hljs-built_in">Math</span>.cos(radtheta);
+    dist = <span class="hljs-built_in">Math</span>.acos(dist);
+    dist = dist * <span class="hljs-number">180</span>/<span class="hljs-built_in">Math</span>.PI;
+    dist = dist * <span class="hljs-number">60</span> * <span class="hljs-number">1.1515</span>;
+    <span class="hljs-keyword">if</span> (unit==<span class="hljs-string">"K"</span>) {
+         dist = dist * <span class="hljs-number">1.609344</span>;
+
+      }
+    <span class="hljs-keyword">if</span> (unit==<span class="hljs-string">"N"</span>) {
+         dist = dist * <span class="hljs-number">0.8684</span>;
+
+      }
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">Math</span>.round(dist);
+}  
+<span class="hljs-comment">/********************************/</span>
+
+<span class="hljs-keyword">var</span> data = [];
+
+<span class="hljs-comment">//Get data for tableview</span>
+<span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT * FROM locations order by distance asc'</span>);
+<span class="hljs-keyword">while</span> (rows.isValidRow()) {
+  data.push({
+                      id: rows.fieldByName(<span class="hljs-string">'id'</span>),
+                      lat: rows.fieldByName(<span class="hljs-string">'lat'</span>),
+                    lon: rows.fieldByName(<span class="hljs-string">'lon'</span>),
+                    title: rows.fieldByName(<span class="hljs-string">'caption'</span>),
+                    info: rows.fieldByName(<span class="hljs-string">'info'</span>),
+                    hasChild: <span class="hljs-literal">true</span>
+  });
+    rows.next();
+}
+rows.close();
+
+
+<span class="hljs-comment">/**description of page***/</span>
+
+
+<span class="hljs-keyword">var</span> header=Titanium.UI.createLabel({
+    top:<span class="hljs-number">0</span>,
+    backgroundColor:<span class="hljs-string">'#ffffff'</span>,
+   <span class="hljs-comment">//borderColor:'#000',</span>
+    color:<span class="hljs-string">'#000000'</span>,
+    height:<span class="hljs-number">70</span>,
+    width:<span class="hljs-string">'90%'</span>,
+    textAlign:<span class="hljs-string">'left'</span>,
+
+    font:{fontSize:<span class="hljs-number">22</span>,fontFamily:<span class="hljs-string">'Arial'</span>},
+    text:<span class="hljs-string">'Locations are approximate, and do not \naccount for driving.  Check the help section for more details.'</span>
+});
+win.add(header);
+<span class="hljs-comment">// create table view</span>
+<span class="hljs-keyword">var</span> tableview = Titanium.UI.createTableView({
+    data:data,
+    editable:<span class="hljs-literal">true</span>,
+    <span class="hljs-comment">//borderColor:'#000',</span>
+    backgroundColor:<span class="hljs-string">'#ffffff'</span>,
+    <span class="hljs-comment">//headerTitle:'The distance calculated is approximate',</span>
+    top:<span class="hljs-number">75</span>
+});
+
+<span class="hljs-keyword">var</span> norecs=Titanium.UI.createLabel({
+    top:<span class="hljs-number">0</span>,
+    <span class="hljs-comment">//left:7,</span>
+    <span class="hljs-comment">//right:7,</span>
+    color:<span class="hljs-string">'#000000'</span>,
+    height:<span class="hljs-number">380</span>,
+    width:<span class="hljs-number">240</span>,
+    textAlign:<span class="hljs-string">'center'</span>,
+    zIndex:<span class="hljs-number">100</span>,
+    visible:<span class="hljs-literal">false</span>,
+    font:{fontSize:<span class="hljs-number">32</span>,fontFamily:<span class="hljs-string">'Arial'</span>},
+    text:<span class="hljs-string">'No locations found'</span>
+});
+
+win.add(norecs);
+
+<span class="hljs-comment">//Button goes here</span>
+<span class="hljs-keyword">var</span> AddSavedButton = Titanium.UI.createButton({
+    title:<span class="hljs-string">'Add Location'</span>,
+    borderRadius:<span class="hljs-number">10</span>,
+    font:{fontSize:<span class="hljs-number">16</span>},
+    height:<span class="hljs-number">60</span>,
+    width:<span class="hljs-number">150</span>,
+    zIndex:<span class="hljs-number">100</span>,
+    top:<span class="hljs-number">330</span>
+
+
+});
+
+
+<span class="hljs-keyword">var</span> AddSavedButtoniPhone = Titanium.UI.createButton({
+
+    <span class="hljs-comment">//title:'Add Location',</span>
+
+
+    borderRadius:<span class="hljs-number">20</span>,
+    image:<span class="hljs-string">'location_pin.png'</span>,
+    font:{fontSize:<span class="hljs-number">20</span>},
+    height:<span class="hljs-number">150</span>,
+    width:<span class="hljs-number">150</span>
+    <span class="hljs-comment">//top:120</span>
+
+});
+
+
+<span class="hljs-comment">/*
+
+AddSavedButtoniPhone.addEventListener('click',function(e)
+ { 
+
+
+     var w = Titanium.UI.createWindow({
+
+
+        //backgroundImage:'stripes.png',
+        title:'Add Location',
+        backgroundColor:'#000000',
+        opacity:1,
+        barColor:'#000000',
+        url:'addlocation.js'
+    });
+
+    Titanium.UI.currentTab.open(w,{animated:true});
+
+});
+
+
+//END button
+
+*/</span>
+setInterval (refreshData, <span class="hljs-number">2500</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">refreshData</span>(<span class="hljs-params"></span>)
+    </span>{
+
+
+    <span class="hljs-keyword">var</span> data = [];
+
+    <span class="hljs-keyword">var</span> x=<span class="hljs-number">0</span>;
+    <span class="hljs-comment">//Get data for tableview</span>
+                <span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT * FROM locations order by distance asc'</span>);
+                <span class="hljs-keyword">var</span> myAnnotations = [];
+                x=rows.rowCount;
+                        <span class="hljs-keyword">if</span>(x&lt;=<span class="hljs-number">0</span>)
+                        {
+                            norecs.show();
+                        }
+                        <span class="hljs-keyword">else</span>
+                        {
+                        norecs.hide();
+                        }
+                        i=<span class="hljs-number">0</span>;
+                <span class="hljs-keyword">while</span> (rows.isValidRow()) {
+                    <span class="hljs-keyword">var</span> d=<span class="hljs-string">''</span>;
+                    d=distance(mylatitude,mylongitude,rows.fieldByName(<span class="hljs-string">'lat'</span>),rows.fieldByName(<span class="hljs-string">'lon'</span>),<span class="hljs-string">"N"</span>);
+
+
+
+
+                  data.push({
+                    id: rows.fieldByName(<span class="hljs-string">'id'</span>),
+                      lat: rows.fieldByName(<span class="hljs-string">'lat'</span>),
+                    lon: rows.fieldByName(<span class="hljs-string">'lon'</span>),
+                    title: rows.fieldByName(<span class="hljs-string">'caption'</span>) + <span class="hljs-string">" :  "</span> + d + <span class="hljs-string">" miles"</span>,
+
+                    info: rows.fieldByName(<span class="hljs-string">'info'</span>),
+                    hasChild: <span class="hljs-literal">true</span>
+
+
+                });
+
+
+                i++;
+                d=<span class="hljs-string">''</span>;
+                    rows.next();
+                }
+                rows.close();
+    tableview.setData(data);
+
+    }
+
+
+
+<span class="hljs-comment">// create table view event listener</span>
+<span class="hljs-comment">/*
+
+*/</span>
+<span class="hljs-comment">// add delete event listener</span>
+tableview.addEventListener(<span class="hljs-string">'delete'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+  db.execute(<span class="hljs-string">"DELETE FROM locations WHERE id = ?"</span>, e.rowData.id);
+});
+
+<span class="hljs-comment">// add table view to the window</span>
+Titanium.UI.currentWindow.add(tableview);
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//  create edit/cancel buttons for nav bar</span>
+<span class="hljs-comment">//</span>
+
+
+<span class="hljs-comment">/*
+var plotall = Titanium.UI.createButton({
+    title:'Plot All'
+});
+
+plotall.addEventListener('click', function(e)
+{
+    var map=Titanium.UI.createWindow({
+    mylatitude:mylatitude,
+    mylongitude:mylongitude,
+    url:'map_view.js',
+    //lat:latarray,
+    //lon:lonarray,
+    //titles:titlearray,
+    count:i,
+    //subtitle:subtitlearray
+    });
+    Titanium.UI.currentTab.open(map,{animated:true});
+
+
+});
+*/</span>
+<span class="hljs-comment">// create table view event listener</span>
+tableview.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+</span>{
+
+
+
+            windetails = Titanium.UI.createWindow({
+                url:<span class="hljs-string">'details.js'</span>,
+                title:e.rowData.title,
+                backgroundImage:<span class="hljs-string">'stripes.png'</span>,
+                barColor:<span class="hljs-string">'#32680d'</span>,
+                opacity:<span class="hljs-number">1</span>,
+                pk:e.rowData.id,
+                lat:e.rowData.lat,
+                lon:e.rowData.lon,
+                caption:e.rowData.title,
+                info:e.rowData.info
+
+
+            });                
+
+
+
+        <span class="hljs-comment">//windetails.open({modal:true,animated:true,transition:Ti.UI.iPhone.AnimationStyle.FLIP_FROM_LEFT});</span>
+        <span class="hljs-comment">//Titanium.UI.currentTab.open(windetails,{animated:true});</span>
+        windetails.open({
+    modal:<span class="hljs-literal">true</span>,
+    modalTransitionStyle: Ti.UI.iPhone.MODAL_TRANSITION_STYLE_FLIP_HORIZONTAL,
+    modalStyle: Ti.UI.iPhone.MODAL_PRESENTATION_FORMSHEET
+        });    
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 22nd 2011, 6:09:59 pm">February 22nd 2011</span>
+								by <span class='authorname'>Josh Lewis</span><br>
+								<a class="icon-bg icon-link" href="question/115281/geolocation---distance-from-point-of-interest#answer-201771" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Could you please provide the Code Example again. I have exactly the same problem.</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 19th 2011, 9:14:30 am">July 19th 2011</span>
+											by <span class='authorname'>Peter Muster</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-213616">
+				
+						<section>
+							<p>Could you please provide the Code Example again. I have exactly the same problem.</p>
+<p>Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 19th 2011, 9:14:41 am">July 19th 2011</span>
+								by <span class='authorname'>Peter Muster</span><br>
+								<a class="icon-bg icon-link" href="question/115281/geolocation---distance-from-point-of-interest#answer-213616" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>i provided a link to the code;</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2011, 10:35:49 am">July 30th 2011</span>
+											by <span class='authorname'>Benoit Willaert</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-214950">
+				
+						<section>
+							<p>This was the code that Josh sent me: </p>
+<p>http:&#x2F;&#x2F;pastie.org&#x2F;2294305</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 30th 2011, 10:35:11 am">July 30th 2011</span>
+								by <span class='authorname'>Benoit Willaert</span><br>
+								<a class="icon-bg icon-link" href="question/115281/geolocation---distance-from-point-of-interest#answer-214950" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-229104">
+				
+						<section>
+							<p>This code works well calculating the distance from certain long&#x2F;lat co-ordinates but errors when trying to run the<br>&quot;order by distance asc&quot; part of the sql query. &quot;distance&quot; not being a SQL command.<br>Whats needed there?<br>thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 1st 2012, 10:25:51 am">February 1st 2012</span>
+								by <span class='authorname'>Jason Sugar</span><br>
+								<a class="icon-bg icon-link" href="question/115281/geolocation---distance-from-point-of-interest#answer-229104" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I think in the example &quot;distance&quot; has been added as a column to the table and is populated after calculating them. So, &quot;order by&quot; is referring to a table column and not a SQL function.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 1st 2012, 10:53:17 am">February 1st 2012</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Does the code add data to the distance column anywhere then? I cant track that bit down anywhere.<br>Thanks for your help.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 1st 2012, 10:56:09 am">February 1st 2012</span>
+											by <span class='authorname'>Jason Sugar</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-236142">
+				
+						<section>
+							<p>this is a good place to start. <a href="http:&#x2F;&#x2F;www.scribd.com&#x2F;doc&#x2F;2569355&#x2F;Geo-Distance-Search-with-MySQL">my sql presentation</a> here is how I translated it into php</p>
+<pre><code class="hljs">public <span class="hljs-keyword">function</span> places_near_me(<span class="hljs-variable">$mylat</span>,<span class="hljs-variable">$mylng</span>,<span class="hljs-variable">$distance</span>)
+        {
+
+
+                <span class="hljs-variable">$lng1</span> = <span class="hljs-variable">$mylng</span> - <span class="hljs-variable">$distance</span>/abs(cos(deg2rad(<span class="hljs-variable">$mylat</span>))*<span class="hljs-number">69</span>); 
+                <span class="hljs-variable">$lng2</span> = <span class="hljs-variable">$mylng</span> + <span class="hljs-variable">$distance</span>/abs(cos(deg2rad(<span class="hljs-variable">$mylat</span>))*<span class="hljs-number">69</span>); 
+
+                //lat
+                <span class="hljs-variable">$lat1</span> = <span class="hljs-variable">$mylat</span> -(<span class="hljs-variable">$distance</span> / <span class="hljs-number">69</span>);
+                <span class="hljs-variable">$lat2</span> = <span class="hljs-variable">$mylat</span> +(<span class="hljs-variable">$distance</span> / <span class="hljs-number">69</span>);
+
+                <span class="hljs-variable">$sql</span> =<span class="hljs-string">"SELECT place.*, 3956 * 2 * ASIN(SQRT(POWER(SIN(($mylat - place.lat) * pi()/180 / 2), 2) +
+                        COS($mylat * pi()/180) *COS(place.lat * pi()/180) *
+                        POWER(SIN(($mylng - place.lng) * pi()/180 / 2), 2)))as
+                        distance FROM place WHERE place.lng between $lng1 and $lng2
+                        and place.lat
+                        between $lat1 and $lat2"</span>;
+
+
+                <span class="hljs-variable">$result</span> = <span class="hljs-variable">$this-</span>&gt;db-&gt;query(<span class="hljs-variable">$sql</span>);
+return <span class="hljs-variable">$result-</span>&gt;result();
+
+        }
+</code></pre><p>I also use this to find if people are within 20 meters so they can &quot;legally&quot; check in.</p>
+<p>The presentation points out that this procedure would execute much faster in stored procedure.</p>
+<p>Matt</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 15th 2012, 10:15:41 am">April 15th 2012</span>
+								by <span class='authorname'>matt s</span><br>
+								<a class="icon-bg icon-link" href="question/115281/geolocation---distance-from-point-of-interest#answer-236142" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

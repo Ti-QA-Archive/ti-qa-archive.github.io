@@ -1,0 +1,432 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Multiple click on row will fire event multiple times » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Multiple click on row will fire event multiple times</h1>
+		</header>
+		<section>
+			<p>We&#39;ve a application that uses a list with items(rows). On every row&#x2F;item there&#39;s a click event listener. When the row&#x2F;item is clicked than an window is created and opened in the current tab (Titanium.UI.currentTab.open(window)).</p>
+<p>The problem is when clicking on the row&#x2F;item multiple times(very fast) before the new window is opened in the current tab. The new window is created multiple times an added to the current tab multiple times, this causes the &#39;back&#39; feature of the tabgroup be available multiple times.</p>
+<p>We&#39;ve tried to prevent firing of this event by adding a timeout on the function or setting a boolean value to prevent execution of the function that opens the window. This without any luck.</p>
+<pre><code class="hljs">row.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+<span class="hljs-comment">// Event binding for showing details</span>
+Ti.API.info(<span class="hljs-string">'click : before showing details'</span> + e.row.id);
+showDetails(e.row.id);
+Ti.API.info(<span class="hljs-string">'click : after showing details'</span>);
+});`
+</code></pre><pre><code class="hljs">function showDetails(id) {
+// Function <span class="hljs-keyword">for</span> <span class="hljs-keyword">open</span> details screen
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'entering showdetails with id : '</span> + id);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'before creating window details.js'</span>);
+
+detail = Titanium.UI.createWindow({
+title:<span class="hljs-string">'Details'</span>,
+url:<span class="hljs-string">'details.js'</span>,
+barColor:<span class="hljs-string">'#0968ae'</span>
+});
+
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'after creating window details.js'</span>);
+Titanium.UI.currentTab.<span class="hljs-keyword">open</span>(detail);
+showdetails = false;
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'leaving showDetails for id '</span> + id);
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 21st 2011, 12:33:44 pm">March 21st 2011</span>
+				by <span class='authorname'>Hylke Stapersma</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>event</span></li>
+					
+						<li><span class='tagname'>fires</span></li>
+					
+						<li><span class='tagname'>multiple</span></li>
+					
+						<li><span class='tagname'>times</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-207105">
+				
+						<section>
+							<p>This problem isn&#39;t just with TableViews.  Buttons and Labels, when fast clicked, can result in multiple executions of the event listener running before the source window is dismissed or covered by another window.</p>
+<p>If your event is used to update a database, display or hide a window, push or pop a new view into a tab or nav group - things get ugly fast.</p>
+<p>This is a really &#39;good&#39; way to cause the navigation controller to become unstable, creating extra layers of windows or updating it before the initial animation is complete.   </p>
+<p>If I had to guess I&#39;d say this issue makes a significant contribution to the general instability of some Titanium apps.  While users might not intentionally fast tap on an app, it happens and can trigger difficult-to-find problems.  One example is a database lock condition that only surfaces due to an occasional twitchy finger.</p>
+<p>The best solution I&#39;ve got is to simply make sure that events are spaced far enough apart in time, throwing away everything that comes in too fast.  One second seems to do the trick.  The timestamp for each valid event is stored in the object itself.   Unlike methods that set and clear flags - this resets itself.</p>
+<p>This code can be placed at the top of your troublesome events:</p>
+<pre><code class="hljs">
+myButton.clickTime = <span class="hljs-literal">null</span>;
+
+myButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+
+    <span class="hljs-comment">// double click prevention</span>
+    <span class="hljs-keyword">var</span> currentTime = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+    <span class="hljs-keyword">if</span> (currentTime - myButton.clickTime &lt; <span class="hljs-number">1000</span>) {
+        <span class="hljs-keyword">return</span>;
+    };
+    unitOptionReadyButton.clickTime = currentTime;
+
+    <span class="hljs-comment">// event code here</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 1st 2011, 10:22:22 pm">May 1st 2011</span>
+								by <span class='authorname'>David Wilson</span><br>
+								<a class="icon-bg icon-link" href="question/117541/multiple-click-on-row-will-fire-event-multiple-times#answer-207105" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This works great for me.  Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 24th 2012, 11:24:12 pm">July 24th 2012</span>
+											by <span class='authorname'>Daniel Ziemba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>debounce of underscore.js is meant just for that<br><a href="http:&#x2F;&#x2F;smorgasbork.com&#x2F;index.php?option=com_content&amp;view=article&amp;id=134">read here</a><br>and <a href="http:&#x2F;&#x2F;underscorejs.org&#x2F;">here</a><br>_.debounce(fn, 300, true);<br>fn is called on first click; following clicks have to wait for at least 300ms</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 15th 2013, 12:29:14 pm">March 15th 2013</span>
+											by <span class='authorname'>Chen Rabiner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve been unable to use debounce for this purpose. Can you post a code sample?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 30th 2013, 8:09:14 am">April 30th 2013</span>
+											by <span class='authorname'>Joris</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Joris</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testMe = _.debounce(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'test me!'</span>);
+}, <span class="hljs-number">300</span>, <span class="hljs-literal">true</span>);
+</code></pre><p>Where testMe is a onClick event in an alloy xml view. Note there is currently a possible <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-2259">bug</a> with on android</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 8th 2013, 9:20:40 am">May 8th 2013</span>
+											by <span class='authorname'>rowan smith</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi, I know this is an old post but… isn&#39;t your code wrong? Aside from the undeclared unitOptionReadyButton, but shouldn&#39;t currentTime value be new Date().getTime() instead?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 17th 2013, 8:51:04 am">June 17th 2013</span>
+											by <span class='authorname'>Kiwi Blas</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This _.debounce function does not work on android so i implemented my own debounce function </p>
+<p>function debounce(func, threshold, execAsap) {</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> timeout;
+
+<span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">debounced</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> obj = <span class="hljs-keyword">this</span>, args = <span class="hljs-built_in">arguments</span>;
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">delayed</span> (<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (!execAsap)
+            func.apply(obj, args);
+        timeout = <span class="hljs-literal">null</span>; 
+    };
+
+    <span class="hljs-keyword">if</span> (timeout)
+        clearTimeout(timeout);
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (execAsap)
+        func.apply(obj, args);
+
+    timeout = setTimeout(delayed, threshold || <span class="hljs-number">100</span>); 
+};
+</code></pre><p>}</p>
+<p>in alloy.js and called eg. </p>
+<p>$.btn.addEventListener(&#39;click&#39;,debounce(function(e){</p>
+<pre><code class="hljs">code <span class="hljs-attribute">...</span><span class="hljs-attribute">...</span><span class="hljs-attribute">...</span>
+</code></pre><p>},500));</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 17th 2013, 6:12:46 am">December 17th 2013</span>
+											by <span class='authorname'>naren ko</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-204805">
+				
+						<section>
+							<p>I&#39;ve been having a similar problem that I resolved setting the <code>touchEnabled</code> property of the tableview to <code>false</code> in the <code>click</code> eventListener:</p>
+<pre><code class="hljs">row.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    tableView.touchEnabled = <span class="hljs-literal">false</span>;
+    showDetails(e.row.id);
+});
+</code></pre><p>I also add an eventListener for the <code>focus</code> event on the current window, so when the user returns back from the details window the tableview gets enabled again:</p>
+<pre><code class="hljs">win.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    tableView.touchEnabled = <span class="hljs-literal">true</span>;
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 22nd 2011, 7:39:55 am">March 22nd 2011</span>
+								by <span class='authorname'>Olivier Morandi</span><br>
+								<a class="icon-bg icon-link" href="question/117541/multiple-click-on-row-will-fire-event-multiple-times#answer-204805" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>this worked perfectly.. thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2011, 11:45:53 am">June 9th 2011</span>
+											by <span class='authorname'>Chris Cagle</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>4</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-204755">
+				
+						<section>
+							<p>I had a similar problem, for multiple reasons:<br>1- I had the listener set on the row itself instead of on the object in the row.  Somehow it made Titanium confused.</p>
+<p>2- I added the listener multiple times, listeners just &quot;pile up&quot; in the system and you will get the handler multiple times.  Now if I know that I may have to reset my table data, I remove my listeners before adding them again, just in case as a hygienic habit.</p>
+<p>– You can test if your window already exists before adding it </p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showDetails</span><span class="hljs-params">(id)</span> </span>{
+<span class="hljs-keyword">if</span>(!detail)
+{
+  <span class="hljs-comment">// Function for open details screen</span>
+  Ti.API.info(<span class="hljs-string">'entering showdetails with id : '</span> + id);
+   Ti.API.info(<span class="hljs-string">'before creating window details.js'</span>);
+
+  detail = Titanium.UI.createWindow({
+  title:<span class="hljs-string">'Details'</span>,
+  url:<span class="hljs-string">'details.js'</span>,
+  barColor:<span class="hljs-string">'#0968ae'</span>
+  });
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 21st 2011, 3:45:35 pm">March 21st 2011</span>
+								by <span class='authorname'>Luc Martin</span><br>
+								<a class="icon-bg icon-link" href="question/117541/multiple-click-on-row-will-fire-event-multiple-times#answer-204755" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-204759">
+				
+						<section>
+							<p>Will setting a variable work? Such as:</p>
+<pre><code class="hljs"><span class="hljs-comment">// wherever you add the row to the table</span>
+row.detailsShowing = <span class="hljs-literal">false</span>;
+yourTable.appendRow(row);
+</code></pre><pre><code class="hljs">row.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+<span class="hljs-comment">// Event binding for showing details</span>
+Ti.API.info(<span class="hljs-string">'click : before showing details'</span> + e.row.id);
+<span class="hljs-keyword">if</span> (e.row.detailsShowing===<span class="hljs-literal">false</span>) {
+    showDetails(e.row);
+}
+Ti.API.info(<span class="hljs-string">'click : after showing details'</span>);
+});
+</code></pre><pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showDetails</span><span class="hljs-params">(e)</span> </span>{
+e.detailsShowing = <span class="hljs-literal">true</span>;
+<span class="hljs-comment">// Function for open details screen</span>
+Ti.API.info(<span class="hljs-string">'entering showdetails with id : '</span> + e.id);
+Ti.API.info(<span class="hljs-string">'before creating window details.js'</span>);
+
+detail = Titanium.UI.createWindow({
+title:<span class="hljs-string">'Details'</span>,
+url:<span class="hljs-string">'details.js'</span>,
+barColor:<span class="hljs-string">'#0968ae'</span>
+});
+
+Ti.API.info(<span class="hljs-string">'after creating window details.js'</span>);
+Titanium.UI.currentTab.open(detail);
+showdetails = <span class="hljs-literal">false</span>;
+Ti.API.info(<span class="hljs-string">'leaving showDetails for id '</span> + id);
+
+detail.addEventListener(<span class="hljs-string">'close'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    e.detailsShowing = <span class="hljs-literal">false</span>;
+});
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 21st 2011, 4:00:12 pm">March 21st 2011</span>
+								by <span class='authorname'>Joe iEntry</span><br>
+								<a class="icon-bg icon-link" href="question/117541/multiple-click-on-row-will-fire-event-multiple-times#answer-204759" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-207137">
+				
+						<section>
+							<p>I had the same issues. The most simple solution I&#39;ve found, at least for events that open windows, is to use navigation views, and if you are using a tab group, the tab group will serve as a navigation view as such:</p>
+<pre><code class="hljs"><span class="hljs-tag">tabGroup</span><span class="hljs-class">.open</span>(<span class="hljs-tag">winYouWantToGoTo</span>);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 2nd 2011, 12:16:12 pm">May 2nd 2011</span>
+								by <span class='authorname'>Joe iEntry</span><br>
+								<a class="icon-bg icon-link" href="question/117541/multiple-click-on-row-will-fire-event-multiple-times#answer-207137" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-207108">
+				
+						<section>
+							<p>Maybe try removing the event listener on click?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 2nd 2011, 1:09:09 am">May 2nd 2011</span>
+								by <span class='authorname'>Kelly Redd</span><br>
+								<a class="icon-bg icon-link" href="question/117541/multiple-click-on-row-will-fire-event-multiple-times#answer-207108" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>FYI: Twitter login oauth » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>FYI: Twitter login oauth</h1>
+		</header>
+		<section>
+			<p>Hello </p>
+<p>Since twitter&#39;s authentication screen has changed a few apps have crashed. I have worked a bit on fixing the oauth adaptor to get it working. </p>
+<p>I thought to help some people out I would post my working code:</p>
+<p>I used <a href="https:&#x2F;&#x2F;github.com&#x2F;tautologistics&#x2F;node-htmlparser">htmlparser.js</a> which can be found <a href="https:&#x2F;&#x2F;github.com&#x2F;tautologistics&#x2F;node-htmlparser">here</a>:</p>
+<p>add the following line on top of the &#39;htmlparser.js&#39;</p>
+<pre><code class="hljs"><span class="hljs-component"><span class="hljs-keyword">exports</span> = {}</span>;
+</code></pre><p>and at the bottom:</p>
+<pre><code class="hljs">htmlparser = <span class="hljs-keyword">exports</span>;
+</code></pre><p>I also used a second file named <a href="https:&#x2F;&#x2F;github.com&#x2F;harryf&#x2F;node-soupselect">soupselect.js</a> which can be found <a href="https:&#x2F;&#x2F;github.com&#x2F;harryf&#x2F;node-soupselect">here</a>:</p>
+<p>Comment out the following line in soupselect</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> domUtils = <span class="hljs-built_in">require</span>(<span class="hljs-string">"htmlparser"</span>).DomUtils;
+</code></pre><pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> domUtils</span> = htmlparser.DomUtils;
+</code></pre><p>and I have also removed the following line:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> sys = <span class="hljs-built_in">require</span>(<span class="hljs-string">'sys'</span>);
+</code></pre><p>Include these in your &#39;oauthadaptor.js&#39;.</p>
+<p>Once you&#39;ve done that you should change the authorizeUICallback into the follwing:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> authorizeUICallback = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">var</span> select = exports.select;
+        <span class="hljs-keyword">var</span> body = e.source.html;
+
+        <span class="hljs-keyword">var</span> handler = <span class="hljs-keyword">new</span> htmlparser.DefaultHandler(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(err, dom)</span></span>{
+            <span class="hljs-keyword">if</span> (err) {
+                alert(<span class="hljs-string">'Error: '</span> + err);
+            }
+            <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">var</span> div = select(dom, <span class="hljs-string">'div'</span>);
+                div.<span class="hljs-keyword">forEach</span>(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(div2)</span></span>{
+                    <span class="hljs-keyword">if</span> (div2.attribs.id == <span class="hljs-string">'oauth_pin'</span>) {
+                        <span class="hljs-keyword">var</span> codeDiv = select(dom, <span class="hljs-string">'code'</span>);
+                        codeDiv.<span class="hljs-keyword">forEach</span>(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(code)</span></span>{
+                            code.children.<span class="hljs-keyword">forEach</span>(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(codeData)</span></span>{
+                                pin = codeData.data;
+                                <span class="hljs-keyword">if</span> (receivePinCallback) 
+                                    setTimeout(receivePinCallback, <span class="hljs-number">100</span>);
+                                id = <span class="hljs-keyword">null</span>;
+                                div = <span class="hljs-keyword">null</span>;
+                                destroyAuthorizeUI();
+                            });
+                        });
+                    };
+                                    });
+            }
+        });
+
+        <span class="hljs-keyword">var</span> parser = <span class="hljs-keyword">new</span> htmlparser.Parser(handler);
+        parser.parseComplete(body);
+)};
+</code></pre><p>The method might be a bit messy if you look at it, but it works just fine for me!</p>
+<p>I hope this is helpful to someone, since it was a pain in the ass for me :)<br>If there&#39;s something wrong with this code just let me know!</p>
+<p>Greats<br>Tjeu</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 29th 2011, 12:53:35 pm">April 29th 2011</span>
+				by <span class='authorname'>Tjeu Vdw</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>authentication</span></li>
+					
+						<li><span class='tagname'>fyi</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>oauth</span></li>
+					
+						<li><span class='tagname'>twitter</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Any chance you can get it on a dummy project as an actual running example and make it available to download? that would kick ass!! :P</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 16th 2011, 11:37:44 pm">May 16th 2011</span>
+								by <span class='authorname'>Rafael Cardoso</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Never mind! :P Got it working!!! It is a little messy but the importnt thing is that IT WORKS!!! you r0ck! :P</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 16th 2011, 11:46:54 pm">May 16th 2011</span>
+								by <span class='authorname'>Rafael Cardoso</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-207536">
+				
+						<section>
+							<p>Here is a shorter version:</p>
+<pre><code class="hljs">var authorizeUICallback = <span class="hljs-keyword">function</span>(e){
+   var <span class="hljs-operator">matches</span> = e.source.html.match(/\&lt;code\&gt;(\d{<span class="hljs-number">1</span>,})\&lt;\/code\&gt;/);
+   <span class="hljs-keyword">if</span>(<span class="hljs-operator">matches</span> &amp;&amp; <span class="hljs-operator">matches</span>[<span class="hljs-number">1</span>]){
+     Ti.API.debug(<span class="hljs-string">"Matches: "</span> + <span class="hljs-operator">matches</span>[<span class="hljs-number">1</span>]);
+     pin = <span class="hljs-operator">matches</span>[<span class="hljs-number">1</span>];
+     <span class="hljs-keyword">if</span> (receivePinCallback) setTimeout(receivePinCallback, <span class="hljs-number">100</span>);
+     destroyAuthorizeUI();
+   }
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 10th 2011, 10:50:17 am">May 10th 2011</span>
+								by <span class='authorname'>Carl Jahn</span><br>
+								<a class="icon-bg icon-link" href="question/119125/fyi-twitter-login-oauth#answer-207536" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank you for great job!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 15th 2011, 5:14:27 pm">May 15th 2011</span>
+											by <span class='authorname'>Seiji Nakaya</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>7</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-207265">
+				
+						<section>
+							<p>This  is amazing! Thank you! I was having the same problem, now it is fixed. The only bug I have is that when twitter shows the Authorize UI, my custom Nav-Bar label disappears. Not sure why…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 4th 2011, 5:43:22 pm">May 4th 2011</span>
+								by <span class='authorname'>Jack Eisenberg</span><br>
+								<a class="icon-bg icon-link" href="question/119125/fyi-twitter-login-oauth#answer-207265" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Can&#39;t really tell why that would be, I changed the pop up window into a modal window, so it&#39;s an entire new screen, and have 1 single close button in the nav bar. This was a better way for me since the close button wasn&#39;t so obvious in the new UI :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 5th 2011, 4:47:20 am">May 5th 2011</span>
+											by <span class='authorname'>Tjeu Vdw</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-207044">
+				
+						<section>
+							<p>I wondered about this yesterday, since reading that they had changed the design of the OAuth page - which I assume has broken some apps&#39; ability to parse out the &#39;pin&#39;, etc. </p>
+<p>I beg Twitter to grant access to xAuth for my apps, which works a treat.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 29th 2011, 2:42:06 pm">April 29th 2011</span>
+								by <span class='authorname'>Kosso</span><br>
+								<a class="icon-bg icon-link" href="question/119125/fyi-twitter-login-oauth#answer-207044" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey Guys,</p>
+<p>This piece of code works perfectly fine until the twitter opens up in the webview. But I am getting a &#39;not published&#39; alert message at the end!!</p>
+<p>any solution for this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 18th 2011, 9:22:59 pm">May 18th 2011</span>
+											by <span class='authorname'>Eric Hinman</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-210015">
+				
+						<section>
+							<p>Great solution here! Really helped my app so thanks :D</p>
+<p>The only problem I&#39;m having is when the &quot;authorize app&quot; button is pressed, it can hang for quite a while, which could confuse the user as they might not realise the button has been pressed. Is there anyway to detect this click and bring up a loading screen or alert perhaps?</p>
+<p>Also, following from this it then displays the page with the pin number and instructs them to make a note of it before disappearing, which obviously isn&#39;t needed as the device takes care of this itself. </p>
+<p>Any help making this a little more user friendly will be greatly appreciated, as I&#39;m on a tight deadline.</p>
+<p>Thanks all!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 13th 2011, 7:29:24 am">June 13th 2011</span>
+								by <span class='authorname'>Andy F</span><br>
+								<a class="icon-bg icon-link" href="question/119125/fyi-twitter-login-oauth#answer-210015" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

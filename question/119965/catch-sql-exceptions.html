@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Catch SQL exceptions » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Catch SQL exceptions</h1>
+		</header>
+		<section>
+			<p>Hi, </p>
+<p>I would like to know, is there a way to catch the possible exceptions triggered by using SQLlite operations (execute…)(causing the mobile application to crash)</p>
+<p>I&#39;m working for an iOS app, with Titanium Mobile SDK 1.6.2.</p>
+<p>Here is a simple example, you have an sqlite database file <strong>db</strong>.<br>You do the followings : </p>
+<pre><code class="hljs">var database = Ti.Database.open("db");
+database.execute('<span class="hljs-operator"><span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">TABLE</span> <span class="hljs-keyword">IF</span> <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">EXISTS</span> <span class="hljs-keyword">test</span>(<span class="hljs-keyword">id</span> <span class="hljs-built_in">INTEGER</span> PRIMARY <span class="hljs-keyword">KEY</span>, <span class="hljs-keyword">name</span> <span class="hljs-built_in">TEXT</span> <span class="hljs-keyword">NOT</span> <span class="hljs-literal">NULL</span>)<span class="hljs-string">');</span></span>
+</code></pre><p>This normally does not fails…but the following can launch serious exceptions :</p>
+<pre><code class="hljs">database.execute('<span class="hljs-operator"><span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> <span class="hljs-keyword">test</span>(<span class="hljs-keyword">id</span>,<span class="hljs-keyword">name</span>) <span class="hljs-keyword">VALUES</span> (?,?)<span class="hljs-string">', 12, "dump_name");</span></span>
+</code></pre><p>Since it will not work if:</p>
+<ul>
+<li>table name is wrong</li>
+<li>fields are wrong</li>
+<li>number of value passed compared to number of fields expected</li>
+<li>or simply because a record with same primary key already exists</li>
+</ul>
+<p>Therefore it triggers an <strong>PLSQliteException</strong>…which stops and kills the mobile application</p>
+<p>I tried the simple javascript TRY&#x2F;CATCH but it doesn&#39;t work…</p>
+<p>Did anyone find something for these problems ??<br>Any ideas ??</p>
+<p>Thanks for your help in advance ;) !</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 20th 2011, 1:43:31 pm">May 20th 2011</span>
+				by <span class='authorname'>abbdoul ab</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>error</span></li>
+					
+						<li><span class='tagname'>exception</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>sql</span></li>
+					
+						<li><span class='tagname'>try</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-208195">
+				
+						<section>
+							<p>I agree proper exception handling is lacking, and try&#x2F;catch will not trap many simple errors.  If you have a situation where you want to validate a table exists instead of including CREATE TABLE IF NOT EXISTS … commands, you can use a routine something like this:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">tableExists</span><span class="hljs-params">( dbObj, table)</span> </span>{
+    <span class="hljs-keyword">if</span> ( ! dbObj ) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">var</span> rs = dbObj.execute(<span class="hljs-string">"SELECT count(*) FROM sqlite_master WHERE type = 'table' and name = '"</span> + table + <span class="hljs-string">"'"</span>);
+    }
+    <span class="hljs-keyword">catch</span>(e2) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    } 
+    <span class="hljs-keyword">if</span> ( (! rs) || (! rs.isValidRow()) || ( rs.field(<span class="hljs-number">0</span>) == <span class="hljs-number">0</span> ) ) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+}
+</code></pre><p>It returns true when the specified table is found and false if any other error occurs.  Using your names it would be something like:</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> ( ! tableExists( database, <span class="hljs-symbol">'test'</span> ) ) {
+  alert( <span class="hljs-symbol">'Test</span> table does not exist' );
+}
+</code></pre><p>The routine relies on the fact that all SQLite databases have a hidden table called sqlite_master which contains a row for each object such as a table or index.  Since that table must always exist, it is safe to query and get back a count of 0 or 1.</p>
+<p>For the second problem, I use a routine where I can get either the total record count of a table or the count which matches a given WHERE clause.</p>
+<pre><code class="hljs"><span class="hljs-function">function <span class="hljs-title">recCount</span>(<span class="hljs-params"> dbObj, table, <span class="hljs-keyword">where</span></span>) </span>{
+    <span class="hljs-keyword">var</span> sql = <span class="hljs-string">'SELECT count(*) FROM '</span> + table;
+    <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">where</span> ) {
+        sql = sql + <span class="hljs-string">' WHERE '</span> + <span class="hljs-keyword">where</span>;
+    }
+    rs = dbObj.execute(sql);
+    <span class="hljs-keyword">if</span> ( rs &amp;&amp; rs.isValidRow() ) {
+        <span class="hljs-keyword">return</span> rs.field(<span class="hljs-number">0</span>);
+    }
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+    }
+}
+</code></pre><p>To obtain the total record count of a table, I use:</p>
+<p><code>var count = recCount( database, &amp;#39;test&amp;#39;, &amp;#39;&amp;#39; );</code></p>
+<p>To obtain the count matching some WHERE clause, I use:</p>
+<p><code>var count = recCount( database, &amp;#39;test&amp;#39;, &amp;#39;id = 12&amp;#39; );</code></p>
+<p>You have to make sure the WHERE clause is valid.  That is, the above syntax works for a numeric field but if you are testing against a text field make sure you properly quote any literals.  This routine can be used not only for pre-checking a primary key value, but any WHERE clause including complex expressions using AND etc.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 20th 2011, 4:42:18 pm">May 20th 2011</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/119965/catch-sql-exceptions#answer-208195" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-208184">
+				
+						<section>
+							<p>Ok, there is another simple way….(that I know, too but is not sufficient..)</p>
+<p>Check if records with same primary key exists, simply do a SELECT query…</p>
+<p>But how to do to check with a query if a table exists or not ?? or that the field names are wrong in INSERT query ? or the other cases ?</p>
+<p>Therefore we need a proper exception handling..</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 20th 2011, 1:54:40 pm">May 20th 2011</span>
+								by <span class='authorname'>abbdoul ab</span><br>
+								<a class="icon-bg icon-link" href="question/119965/catch-sql-exceptions#answer-208184" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

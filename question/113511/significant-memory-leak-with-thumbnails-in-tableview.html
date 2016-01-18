@@ -1,0 +1,408 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>significant memory leak with thumbnails in tableview » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>significant memory leak with thumbnails in tableview</h1>
+		</header>
+		<section>
+			<p>We are using Titanium 1.6RC1 with Developer 1.2.2 and think we have found a significant memory leak when displaying remote thumbnails in a tableview.  Below is the code to reproduce.</p>
+<p>Upon running the code, just attach to the process using XCode Instruments.  Then click the &quot;Photos&quot; button to bring up the grid of photos, then click back to close the window.  Continue to do this over and over again and you will see the living memory allocations continue to increase to extremely high levels.</p>
+<p>Why doesn&#39;t closing a window free up all it&#39;s memory usage?  I come from the Objective-C world and have created this same screen natively with no memory leaks.  Am I missing something in our javascript code?  This is a showstopper for us if we cannot find a solution.</p>
+<p>Thanks!</p>
+<p>Brian</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> tabGroup = Titanium.UI.createTabGroup({id:<span class="hljs-string">'tabGroup1'</span>});
+
+win = Titanium.UI.createWindow({id:<span class="hljs-string">'win1'</span>,backgroundColor:<span class="hljs-string">'#fff'</span>});
+<span class="hljs-keyword">var</span> button = Ti.UI.createButton({title:<span class="hljs-string">'Photos'</span>,width:<span class="hljs-number">100</span>, height:<span class="hljs-number">100</span>});
+
+button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> photosWindow = Titanium.UI.createWindow({fullscreen:<span class="hljs-keyword">false</span>});
+    <span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView({
+        separatorStyle:Ti.UI.iPhone.TableViewSeparatorStyle.NONE
+    });
+    photosWindow.add(tableView);
+
+    tab1.open(photosWindow, {animated:<span class="hljs-keyword">true</span>});
+
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">list</span> = JSON.parse(this.responseText).<span class="hljs-keyword">List</span>;
+        <span class="hljs-keyword">var</span> rowData = [];
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>,count = <span class="hljs-keyword">list</span>.length; i &lt; count; i += <span class="hljs-number">4</span>) {
+            <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+                height:<span class="hljs-string">'auto'</span>,
+                selectedBackgroundColor: <span class="hljs-string">'#fff'</span>,
+                backgroundSelectedColor: <span class="hljs-string">'#fff'</span>,
+                className:<span class="hljs-string">'tvRow'</span>
+            }),imgDimensions = <span class="hljs-number">80</span>;
+
+
+            <span class="hljs-keyword">var</span> offSet = <span class="hljs-number">0</span>;
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> j = <span class="hljs-number">0</span>; j &lt; <span class="hljs-number">4</span>; j++) {
+                <span class="hljs-keyword">var</span> photo = <span class="hljs-keyword">list</span>[i + j];
+                <span class="hljs-keyword">if</span> (photo) {
+                    <span class="hljs-keyword">var</span> photoView = Ti.UI.createImageView({
+                        top:<span class="hljs-number">0</span>,
+                        left:offSet,
+                        height:imgDimensions,
+                        width:imgDimensions,
+                        image:photo.ThumbnailUrl
+                    });
+                    row.add(photoView);
+                    offSet += imgDimensions;
+                }
+            }
+            rowData.push(row);
+        }
+        tableView.setData(rowData);
+    };
+    <span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://idancemobile.com/event/e2e530/api/2.0/images/0"</span>;
+    xhr.open(<span class="hljs-string">"GET"</span>, url);
+    xhr.send();
+});
+
+win.add(button);
+
+<span class="hljs-keyword">var</span> tab1 = Titanium.UI.createTab({
+    id:<span class="hljs-string">'tab1'</span>,
+    window:win
+});
+
+tabGroup.addTab(tab1);
+
+tabGroup.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 17th 2011, 7:51:03 pm">February 17th 2011</span>
+				by <span class='authorname'>Brian Knorr</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>leak</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I&#39;m facing exactly the same problem, I load a lot of images remotely into my application currently in development and on a retina device even bigger images are loaded. When closing a window containing a tableView with images in each row the memory is not released. Did you find a workaround?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 19th 2011, 6:18:11 pm">March 19th 2011</span>
+								by <span class='authorname'>Alexander van der Werff</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>They just fixed it for 1.7, I personally haven&#39;t tested it though.  Here is the ticket:</p>
+<p>https:&#x2F;&#x2F;appcelerator.lighthouseapp.com&#x2F;projects&#x2F;32238&#x2F;tickets&#x2F;3166-significant-memory-leak-with-thumbnails-in-tableview</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 19th 2011, 10:23:10 pm">March 19th 2011</span>
+								by <span class='authorname'>Brian Knorr</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-199701">
+				
+						<section>
+							<p>where are you closing the window? the navigation controller just manages a stack of views, you are just pushing new views everytime the user clicks &quot;Photos&quot;</p>
+<p>Add this event listener and you will see that after you close the window, the memory is freed up. I dont understand your whole app architecture, but you can see from this change that there is no memory leak.</p>
+<pre><code class="hljs">photosWindow.addEventListener(<span class="hljs-string">'blur'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> { 
+     photosWindow.close();
+     Ti.API.<span class="hljs-built_in">debug</span>(Ti.Platform.availableMemory);
+ });
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 18th 2011, 12:03:11 am">February 18th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/113511/significant-memory-leak-with-thumbnails-in-tableview#answer-199701" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>When you click the back button the &quot;close&quot; event is fired on the window…so how is it not being closed?  For example the code below is fired when clicking back.  Also I am not adding a view to the tab I am adding a window each time - the photoWindow which contains a tableview.</p>
+<pre><code class="hljs">photosWindow.addEventListener(<span class="hljs-string">'close'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> { 
+     Ti.API.<span class="hljs-built_in">debug</span>(Ti.Platform.availableMemory);
+ });
+</code></pre><p>So are you saying that for every back button click I am going to have to attach an event and call close on the window being closed?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2011, 1:47:10 am">February 18th 2011</span>
+											by <span class='authorname'>Brian Knorr</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>is the memory decreasing when you closed the windows?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2011, 1:54:28 am">February 18th 2011</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In the simulator the availableMemory goes up and down, but in the long run always downward.  Using XCode Instruments you see the memory usage always increasing, especially for TiUIImageView and TiUIImageViewProxy.</p>
+<p>Also I created another example that better displays the image memory issue in the tableview.  When running the code below just keep hitting refresh and you will see the &quot;available memory&quot; as the title.  Eventually it gets so low that it crashes.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({fullscreen:<span class="hljs-keyword">false</span>,backgroundColor:<span class="hljs-string">'#fff'</span>,title:Ti.Platform.availableMemory});
+<span class="hljs-keyword">var</span> button = Ti.UI.createButton({title:<span class="hljs-string">'Refresh'</span>,width:<span class="hljs-number">40</span>, height:<span class="hljs-number">30</span>});
+
+<span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView({
+    separatorStyle:Ti.UI.iPhone.TableViewSeparatorStyle.NONE
+});
+win.add(tableView);
+
+button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    load();
+});
+
+win.rightNavButton = button;
+
+<span class="hljs-keyword">var</span> navGroup = Ti.UI.iPhone.createNavigationGroup({
+    window:win
+});
+
+<span class="hljs-keyword">var</span> main = Ti.UI.createWindow();
+main.add(navGroup);
+main.open();
+
+load();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">load</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">list</span> = JSON.parse(this.responseText).<span class="hljs-keyword">List</span>;
+        <span class="hljs-keyword">var</span> rowData = [];
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>,count = <span class="hljs-keyword">list</span>.length; i &lt; count; i += <span class="hljs-number">4</span>) {
+            <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+                height:<span class="hljs-string">'auto'</span>,
+                selectedBackgroundColor: <span class="hljs-string">'#fff'</span>,
+                backgroundSelectedColor: <span class="hljs-string">'#fff'</span>,
+                className:<span class="hljs-string">'tvRow'</span>
+            }),imgDimensions = <span class="hljs-number">80</span>;
+
+
+            <span class="hljs-keyword">var</span> offSet = <span class="hljs-number">0</span>;
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> j = <span class="hljs-number">0</span>; j &lt; <span class="hljs-number">4</span>; j++) {
+                <span class="hljs-keyword">var</span> photo = <span class="hljs-keyword">list</span>[i + j];
+                <span class="hljs-keyword">if</span> (photo) {
+                    <span class="hljs-keyword">var</span> photoView = Ti.UI.createImageView({
+                        top:<span class="hljs-number">0</span>,
+                        left:offSet,
+                        height:imgDimensions,
+                        width:imgDimensions,
+                        image:photo.ThumbnailUrl
+                    });
+                    row.add(photoView);
+                    offSet += imgDimensions;
+                }
+            }
+            rowData.push(row);
+        }
+        tableView.setData(rowData);
+        win.title = Ti.Platform.availableMemory;
+    };
+    <span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://api.plixi.com/api/tpapi.svc/json/photos"</span>;
+    xhr.open(<span class="hljs-string">"GET"</span>, url);
+    xhr.send();
+}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2011, 2:10:37 am">February 18th 2011</span>
+											by <span class='authorname'>Brian Knorr</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>you need to close the window if you want to free your memory, Q&amp;A is full of posts like yours.. Titanium has indeed some crazy memory issue. Try this: create a single httpClient on top of your page. That saved my life once. I had a downloader that processed a queue of files, but I created it for every file, and that crashed the whole app. Only when I changed to just one for all, it worked again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2011, 5:33:04 am">February 18th 2011</span>
+											by <span class='authorname'>Alberto Marcone</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Okay I did as everyone suggested and came up with the example below that does call photosWindow.close on the close event and uses a singe HttpClient.  Unfortunately closing the window still leaks all it&#39;s memory.  When you test this on the real device by clicking &quot;Launch&quot; and then back over an over, it will eventually crash :(</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+
+<span class="hljs-keyword">var</span> launchWindow = Titanium.UI.createWindow({fullscreen:<span class="hljs-keyword">false</span>,backgroundColor:<span class="hljs-string">'#fff'</span>});
+launchWindow.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    launchWindow.title = Ti.Platform.availableMemory;
+});
+
+<span class="hljs-keyword">var</span> launchButton = Ti.UI.createButton({title:<span class="hljs-string">'Launch'</span>,width:<span class="hljs-number">100</span>, height:<span class="hljs-number">100</span>});
+launchWindow.add(launchButton);
+
+launchButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> photosWindow = Titanium.UI.createWindow({fullscreen:<span class="hljs-keyword">false</span>,backgroundColor:<span class="hljs-string">'#fff'</span>,title:Ti.Platform.availableMemory});
+    <span class="hljs-keyword">var</span> refreshButton = Ti.UI.createButton({title:<span class="hljs-string">'Refresh'</span>,width:<span class="hljs-number">40</span>, height:<span class="hljs-number">30</span>});
+
+    <span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView({
+        separatorStyle:Ti.UI.iPhone.TableViewSeparatorStyle.NONE
+    });
+    photosWindow.add(tableView);
+
+    refreshButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        load();
+    });
+
+    photosWindow.rightNavButton = refreshButton;
+
+    photosWindow.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        photosWindow.close();
+        launchWindow.title = Ti.Platform.availableMemory;
+    });
+
+    navGroup.open(photosWindow, {animate:<span class="hljs-keyword">true</span>});
+    load();
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">load</span><span class="hljs-params">()</span> </span>{
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">list</span> = JSON.parse(this.responseText).<span class="hljs-keyword">List</span>;
+            <span class="hljs-keyword">var</span> rowData = [];
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>,count = <span class="hljs-keyword">list</span>.length; i &lt; count; i += <span class="hljs-number">4</span>) {
+                <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+                    height:<span class="hljs-string">'auto'</span>,
+                    selectedBackgroundColor: <span class="hljs-string">'#fff'</span>,
+                    backgroundSelectedColor: <span class="hljs-string">'#fff'</span>,
+                    className:<span class="hljs-string">'tvRow'</span>
+                }),imgDimensions = <span class="hljs-number">80</span>;
+
+
+                <span class="hljs-keyword">var</span> offSet = <span class="hljs-number">0</span>;
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> j = <span class="hljs-number">0</span>; j &lt; <span class="hljs-number">4</span>; j++) {
+                    <span class="hljs-keyword">var</span> photo = <span class="hljs-keyword">list</span>[i + j];
+                    <span class="hljs-keyword">if</span> (photo) {
+                        <span class="hljs-keyword">var</span> photoView = Ti.UI.createImageView({
+                            top:<span class="hljs-number">0</span>,
+                            left:offSet,
+                            height:imgDimensions,
+                            width:imgDimensions,
+                            image:photo.ThumbnailUrl
+                        });
+                        row.add(photoView);
+                        offSet += imgDimensions;
+                    }
+                }
+                rowData.push(row);
+            }
+            tableView.setData(rowData);
+            photosWindow.title = Ti.Platform.availableMemory;
+        };
+        <span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://api.plixi.com/api/tpapi.svc/json/photos"</span>;
+        xhr.open(<span class="hljs-string">"GET"</span>, url);
+        xhr.send();
+    }
+});
+
+<span class="hljs-keyword">var</span> navGroup = Ti.UI.iPhone.createNavigationGroup({
+    window:launchWindow
+});
+
+<span class="hljs-keyword">var</span> main = Ti.UI.createWindow();
+main.add(navGroup);
+main.open();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2011, 3:09:50 pm">February 18th 2011</span>
+											by <span class='authorname'>Brian Knorr</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m having the exact same issue with a tableview. My image thumbnails are stored in the data directory. The link references in a local sqlite db. Rerfreshing the tableview using setData multiple times eventually utilises all the memory. This crashes on device iPhone 3G</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 28th 2011, 3:04:06 pm">February 28th 2011</span>
+											by <span class='authorname'>Neil Whitehead</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

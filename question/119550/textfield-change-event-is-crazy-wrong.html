@@ -1,0 +1,224 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>TextField change Event is crazy wrong » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>TextField change Event is crazy wrong</h1>
+		</header>
+		<section>
+			<p>We need to validate user input before writing it to the database.  Things like numbers-only fields,  character count limits, etc.</p>
+<p>The typical suggestion in Q&amp;A is to do something like this for a 4 digit year:</p>
+<pre><code class="hljs">yearInput.addEventListener('change', function(<span class="hljs-keyword">e</span>){
+        <span class="hljs-keyword">var</span> temp = <span class="hljs-keyword">e</span>.source.value;
+        temp = temp.<span class="hljs-keyword">replace</span>(/[^\<span class="hljs-keyword">d</span>]/, <span class="hljs-string">""</span>);
+        <span class="hljs-keyword">if</span> (temp.length &gt; 4) {
+            temp.value = temp.<span class="hljs-literal">substr</span>(0, 4);
+        }
+       <span class="hljs-keyword">e</span>.source.value = temp;
+});
+</code></pre><p>which does work, up to a point.   This field is very difficult to edit.  Type in 211, then move the text cursor to the spot between the 2 and 1.  Type a 0 and the result will be 2110 and not 2011 as expected.  All inserted characters get moved to the end of the field.</p>
+<p>Of course changing e.source.value in the eventlistener creates opportunities for recursion on the &#39;change&#39; event.  But the problem here is more basic.</p>
+<p>Create a TextField and then watch what happens in the &#39;change&#39; event by printing out some messages:</p>
+<pre><code class="hljs"> <span class="hljs-keyword">var</span> customerNumInput = Ti.UI.createTextField({
+        height: <span class="hljs-number">30</span>,   top: <span class="hljs-number">10</span>, left: <span class="hljs-number">110</span>, width: <span class="hljs-number">125</span>,
+        borderStyle: Ti.UI.INPUT_BORDERSTYLE_ROUNDED
+    });
+
+<span class="hljs-comment">// what textfield value does the event see? </span>
+customerNumInput.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(e.source.value);
+});
+</code></pre><p>Type &#39;1234&#39; in this field and see:</p>
+<p>[INFO] 1<br>[INFO] 12<br>[INFO] 123<br>[INFO] 1234</p>
+<p>Then move the insertion point between 2 and 3 and type &#39;a&#39;:</p>
+<p>[INFO] 1234a<br>[INFO] 12a34</p>
+<p>If we actually did work in the eventlistener and modified the textfield value it would result in new characters appearing at the end of the field - the 1234a value would be preserved more often than not.</p>
+<p>So, is there a better technique for validating text fields?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 11th 2011, 4:21:51 pm">May 11th 2011</span>
+				by <span class='authorname'>David Wilson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ipad</span></li>
+					
+						<li><span class='tagname'>textfield</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I have the same problem. Any solution?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 1st 2011, 1:47:00 pm">July 1st 2011</span>
+								by <span class='authorname'>Dan Frist</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-211989">
+				
+						<section>
+							<pre><code class="hljs"><span class="hljs-keyword">var</span> once = <span class="hljs-literal">false</span>;
+field.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    clearTimeout(once);
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    once = setTimeout( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        that.value = format_money(that.value);
+    },<span class="hljs-number">1</span>);
+});
+</code></pre><p>:)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 1st 2011, 3:16:45 pm">July 1st 2011</span>
+								by <span class='authorname'>Dan Frist</span><br>
+								<a class="icon-bg icon-link" href="question/119550/textfield-change-event-is-crazy-wrong#answer-211989" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>We don&#39;t have a solution yet but plan on rolling our own text field with validation built in. </p>
+<p>I was curious to see how your solution behaves in our project and gave it a try.  The first keystroke results in correct character placement but the insertion caret then jumps to the end and additional typing is at the end of the field rather than at the intended location.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 2nd 2011, 4:24:30 pm">July 2nd 2011</span>
+											by <span class='authorname'>David Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sounds like the only remedy for this annoying bug is to strip the illegal characters (or length as I use this technique for) at the point of submitting it to the database.. Or can you not validate on blur()?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 5th 2012, 8:12:38 am">September 5th 2012</span>
+											by <span class='authorname'>Mark Henderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I agree with Mark.Even I have used text field validation on blur event.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 5th 2012, 9:02:25 am">September 5th 2012</span>
+											by <span class='authorname'>Shalini Kushwaha</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-252279">
+				
+						<section>
+							<p>this is how I do it</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> textfield = Ti.UI.createTextField({
+    maxLength:<span class="hljs-number">4</span>
+});
+textfield.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">if</span> (e.value.match(<span class="hljs-regexp">/^\d{4}/</span>)) {
+        <span class="hljs-comment">// seems to be a year</span>
+    }<span class="hljs-keyword">else</span> {
+        <span class="hljs-comment">// no year</span>
+    }
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 6th 2012, 9:38:21 am">December 6th 2012</span>
+								by <span class='authorname'>Manuel Lehner</span><br>
+								<a class="icon-bg icon-link" href="question/119550/textfield-change-event-is-crazy-wrong#answer-252279" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

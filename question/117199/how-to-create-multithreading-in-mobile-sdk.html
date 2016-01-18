@@ -1,0 +1,416 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to create multithreading in mobile sdk » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to create multithreading in mobile sdk</h1>
+		</header>
+		<section>
+			<p>I need to run some network operations in multi-threaded environment, can anybody tell me how to do that in titanium mobile sdk </p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 14th 2011, 9:17:05 am">March 14th 2011</span>
+				by <span class='authorname'>Sandeep Manne</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>threading</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-257976">
+				
+						<section>
+							<p>This is a response to the recommendation to use the createWindow({url:some js}) method by Michael Peng (above).</p>
+<p>After a bit of research I&#39;ve determined that in Titanium (as of 3.0.2 anyhow) the createWindow({url:&quot;worker.js&quot;}); method is not actually multi-threaded.  In particular the Ti.App.fireEvent events will block while waiting for event handers in worker.js.  So if you have a background &quot;context&quot; which is inside of a app event listener the main &quot;context&quot; will not actually be able to fire any Ti.App events.  Which pretty much rules it out for useful multi-threading.</p>
+<p>For a while there was a ti.worker module which implemented &quot;real&quot; multithreading, sadly this module hasn&#39;t been updated and is completely borked as of iOS 6.</p>
+<p>If you want &quot;real&quot; multi-threading Titanium Mobile - where a background thread is running completely separate from any other threads, the most effective way to get in seems to be with <a href="https:&#x2F;&#x2F;developer.mozilla.org&#x2F;en-US&#x2F;docs&#x2F;DOM&#x2F;Using_web_workers">web workers</a> in a WebView.  The following code demonstrates the basics of doing this:</p>
+<p>(Assuming an demo single page alloy project)</p>
+<p>The view (app\views\index.xml) defines an invisible WebView which hosts the background worker thread.</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"container"</span>&gt;</span>
+        <span class="hljs-comment">&lt;!-- invisible web view hosts the background thread --&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">WebView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"webview"</span> <span class="hljs-attribute">url</span>=<span class="hljs-value">"/webworker.html"</span> <span class="hljs-attribute">height</span>=<span class="hljs-value">"0"</span> <span class="hljs-attribute">width</span>=<span class="hljs-value">"0"</span> <span class="hljs-attribute">visible</span>=<span class="hljs-value">"false"</span> <span class="hljs-attribute">focusable</span>=<span class="hljs-value">"false"</span> /&gt;</span>
+        <span class="hljs-comment">&lt;!-- button to test blocking/non-blocking nature of Ti.App events --&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Button</span> <span class="hljs-attribute">bottom</span>=<span class="hljs-value">"50"</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"test"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"doClick"</span>/&gt;</span>
+        <span class="hljs-comment">&lt;!-- label is updated in response to background worker events --&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"lbl"</span> <span class="hljs-attribute">bottom</span>=<span class="hljs-value">"0"</span>&gt;</span>waiting...<span class="hljs-tag">&lt;/<span class="hljs-title">Label</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>The controller (app\controllers\index.js) defines some events to demostrate  background worker -&gt; main thread controller interaction (and to allow testing of Ti.App event blocking)</p>
+<pre><code class="hljs"><span class="hljs-comment">// tests Ti.App event blocking</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doClick</span>(<span class="hljs-params">e</span>) </span>{  
+    Ti.App.fireEvent(<span class="hljs-string">"WORKER"</span>,{ fake:<span class="hljs-literal">true</span>, msg:<span class="hljs-string">"this is a fake event to test Ti.App event blocking"</span> } );
+}
+
+<span class="hljs-comment">// listens for background worker thread events</span>
+Ti.App.addEventListener(<span class="hljs-string">"WORKER"</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-comment">// convert the event into a string (for simplicity)</span>
+    <span class="hljs-keyword">var</span> msg = <span class="hljs-built_in">JSON</span>.stringify(e);
+    <span class="hljs-comment">// update the view label</span>
+    $.lbl.text = msg
+    <span class="hljs-comment">// and write to the log</span>
+    Ti.API.debug( <span class="hljs-string">"msg:"</span>+msg )
+})
+
+<span class="hljs-comment">// default code to open the view</span>
+$.index.open();
+</code></pre><p>The web page html (assets\webworker.html)  This web page is basically a shim which facilitates loading the worker.js script on the background worker thread.  It creates a web worker and hooks up the web worker events to Ti.App events.</p>
+<pre><code class="hljs"><span class="hljs-doctype">&lt;!DOCTYPE html&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">html</span>&gt;</span>
+ <span class="hljs-tag">&lt;<span class="hljs-title">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">title</span>&gt;</span>Worker example: One-core computation<span class="hljs-tag">&lt;/<span class="hljs-title">title</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-title">head</span>&gt;</span>
+ <span class="hljs-tag">&lt;<span class="hljs-title">body</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>highest prime: <span class="hljs-tag">&lt;<span class="hljs-title">output</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"result"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">output</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">script</span>&gt;</span><span class="javascript">
+    <span class="hljs-keyword">var</span> worker = <span class="hljs-keyword">new</span> Worker(<span class="hljs-string">'worker.js'</span>);
+    <span class="hljs-comment">// message event handler</span>
+    worker.onmessage = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">event</span>) </span>{
+        <span class="hljs-comment">// logging</span>
+        Ti.API.debug( <span class="hljs-string">'WebWorkerMessage:'</span>+ <span class="hljs-built_in">JSON</span>.stringify(event) );
+        <span class="hljs-comment">// update the html page - not actually needed, just for demostration should the WebView be visible</span>
+        <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'result'</span>).textContent = event.data;
+        <span class="hljs-comment">// fire a titanium app event</span>
+        Ti.App.fireEvent( <span class="hljs-string">"WORKER"</span>, { data: event.data } );
+    };
+    <span class="hljs-comment">// error event handler</span>
+    worker.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">event</span>)</span>{
+        Ti.API.error( <span class="hljs-string">'WebWorkerError:'</span>+ <span class="hljs-built_in">JSON</span>.stringify(event) );
+    };   
+  </span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">html</span>&gt;</span>
+</code></pre><p>The background worker javascript code (assets\worker.js)  Has a &quot;busy&quot; loops and some sample code which generates prime numbers.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">n</span> = 1;
+<span class="hljs-keyword">search</span>: <span class="hljs-keyword">while</span> (true) {
+    <span class="hljs-comment">// these loops are just a "busy work" loop, alternative to setTimeout to avoid sleeping</span>
+    <span class="hljs-keyword">var</span> t = 0;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> j=0;j&lt;1; j++){
+        <span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> i=0;i&lt;=999999999; i++ ){ 
+            t=i;
+        }
+    }
+  <span class="hljs-comment">// the following code calculates prime numbers</span>
+  <span class="hljs-keyword">n</span> += 1;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = 2; i &lt;= Math.<span class="hljs-literal">sqrt</span>(<span class="hljs-keyword">n</span>); i += 1)
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">n</span> % i == 0)
+      <span class="hljs-keyword">continue</span> <span class="hljs-keyword">search</span>;
+  <span class="hljs-comment">// found a prime!</span>
+  postMessage(<span class="hljs-keyword">n</span>);
+}
+</code></pre><p>Note: This prime number code is drawn from <a href="http:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Web_worker">the wikipedia article on web workers</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 4th 2013, 2:13:33 am">March 4th 2013</span>
+								by <span class='authorname'>simon giles</span><br>
+								<a class="icon-bg icon-link" href="question/117199/how-to-create-multithreading-in-mobile-sdk#answer-257976" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>note: it makes more sense to use async network methods where possible and avoid using background threads entirely.  I am posting this background worker thread example only because there seem to be a fair number of people asking how to do multi-threading.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 4th 2013, 3:07:03 am">March 4th 2013</span>
+											by <span class='authorname'>simon giles</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>any example before Alloy?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2013, 2:37:47 am">July 10th 2013</span>
+											by <span class='authorname'>Cristian Alexandru</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@simon Giles can this be done with a classic titanium project as opposed to alloy?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 6th 2013, 9:06:36 am">September 6th 2013</span>
+											by <span class='authorname'>user 4683</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes it should be easy to do exactly the same thing without Alloy.  </p>
+<p>It&#39;s been a while since I&#39;ve coded with the <code>Ti.UI.WebView</code> object, so someone please feel free to turn this rough sketch code into an actual example.  The code would go roughly as follows:</p>
+<p>Instead of the alloy index.xml file you would write Ti.UI code to create the webview using <code>Ti.UI.createWebView</code> and add it to a window.  There is nothing special about this code, we are just making an invisible, unfocasable webview.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> webview = Titanium.UI.createWebView({url:<span class="hljs-string">'/webworker.html'</span>, visible:<span class="hljs-keyword">false</span>, focusable:<span class="hljs-keyword">false</span>);
+    <span class="hljs-keyword">var</span> <span class="hljs-built_in">window</span> = Titanium.UI.createWindow();
+    <span class="hljs-built_in">window</span>.add(webview);
+    <span class="hljs-built_in">window</span>.open({modal:<span class="hljs-keyword">true</span>});
+</code></pre><p>I am skipping the button creation code as that is very straightforward.</p>
+<p>The event handling code in index.js would remain the same, as the <code>Ti.App.addEventListener</code> isn&#39;t Alloy specific.</p>
+<p>The event generation code in the webworker.js would also remain the same, as it too isn&#39;t alloy specific.</p>
+<p>And the worker.js code would also remain unchanged.</p>
+<p>So there is really not much code to rewrite.  Just the code which creates the webView</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 6th 2013, 6:07:19 pm">September 6th 2013</span>
+											by <span class='authorname'>simon giles</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>From worker.js, we cannot use titanium api. So in the sync data as my case, how can call ajax to get data from server and store server data to Ipad local storage?<br>My scenario is sync many data (person, agenda, task, pictures, …) from server to local storage. Web worker can help me on this case? If not, can you give me suggestion?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 28th 2013, 5:44:41 am">November 28th 2013</span>
+											by <span class='authorname'>Phan Vy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Phan you are better off not using web workers for AJAX, check out the Titanium.Network.HTTPClient api which supports making asynchronous ajax calls.  <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Network.HTTPClient">http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Network.HTTPClient</a></p>
+<p>However if you look at my example code (above) it uses the worker.onmessage event to transfer data from the web worker back into the calling thread, where regular Titanium api&#39;s can be invoked.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 28th 2013, 12:25:48 pm">November 28th 2013</span>
+											by <span class='authorname'>simon giles</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It seems that <code>new Worker(&amp;#39;worker.js&amp;#39;)</code> is not actually calling the code in worker.js to run. Have you run into this issue? If so, do you have any thoughts as to why that code would not be running when the Worker object is instantiated?</p>
+<p>Could it be because I am using a newer version of the SDK (3.4.0.v20140916181713) as well as iOS 8?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2014, 1:10:35 am">October 15th 2014</span>
+											by <span class='authorname'>Kiley Williams</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-250513">
+				
+						<section>
+							<p>Hi Network Operations in Titanium are already multithreaded… its async operation…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 4th 2012, 4:31:44 pm">November 4th 2012</span>
+								by <span class='authorname'>Ashish Nigam</span><br>
+								<a class="icon-bg icon-link" href="question/117199/how-to-create-multithreading-in-mobile-sdk#answer-250513" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Right, as well as many others. But you cannot execute <strong>your</strong> code asynchronously.<br>In each case the interpreter will first wait for the current context to clear and only then execute the callback.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 4th 2012, 6:18:25 pm">November 4th 2012</span>
+											by <span class='authorname'>Mikhail Yurasov</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes i agree, but there is no need to worry about network call for multithreaded environment.. as it is managed by native iOS and Android environment and in almost every case run on background thread.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 5th 2012, 4:22:15 am">November 5th 2012</span>
+											by <span class='authorname'>Ashish Nigam</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yeah, you&#39;re right.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 5th 2012, 4:27:32 am">November 5th 2012</span>
+											by <span class='authorname'>Mikhail Yurasov</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-204685">
+				
+						<section>
+							<p>Sandeep,</p>
+<p>You can do threading by creating a separate context. For instance:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> networkThread</span> = Ti.UI.createWindow
+({
+    url: <span class="hljs-string">"networkThreadStuff.js"</span>
+});
+networkThread.<span class="hljs-keyword">open</span>();
+</code></pre><p>This will allow you to run everything in &quot;networkThreadStuff.js&quot; in a separate context (&quot;thread&quot;). Remember to close the context once you are done to reclaim memory. Also, all communication between threads need to be JSON serializable (&quot;static&quot;).</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 21st 2011, 12:09:44 am">March 21st 2011</span>
+								by <span class='authorname'>Michael Peng</span><br>
+								<a class="icon-bg icon-link" href="question/117199/how-to-create-multithreading-in-mobile-sdk#answer-204685" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-250496">
+				
+						<section>
+							<p>The JS interpreter on iOS uses single thread, so it&#39;s not possible. There is no timer thread even.</p>
+<p>Opening a new window has no effect on multithreading, the code is executed after the current context is done. It&#39;s the same as doing <code>setTimeout(function () { -- your code -- }, 0)</code>.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 4th 2012, 4:21:54 am">November 4th 2012</span>
+								by <span class='authorname'>Mikhail Yurasov</span><br>
+								<a class="icon-bg icon-link" href="question/117199/how-to-create-multithreading-in-mobile-sdk#answer-250496" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>it is possible using web workers.  see my <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;117199&#x2F;how-to-create-multithreading-in-mobile-sdk#answer-257976">post above</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 4th 2013, 3:04:10 am">March 4th 2013</span>
+											by <span class='authorname'>simon giles</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-285854">
+				
+						<section>
+							<h1 id="update-refer-to-ti-worker-https-x2f-x2f-github-com-x2f-appcelerator-modules-x2f-ti-worker-module">Update: refer to <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator-modules&#x2F;ti.worker">Ti.Worker</a> module</h1>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 15th 2015, 5:59:36 pm">February 15th 2015</span>
+								by <span class='authorname'>TZ Martin</span><br>
+								<a class="icon-bg icon-link" href="question/117199/how-to-create-multithreading-in-mobile-sdk#answer-285854" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

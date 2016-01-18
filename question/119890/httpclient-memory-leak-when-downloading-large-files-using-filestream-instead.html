@@ -1,0 +1,304 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTPClient memory leak when downloading large files, using FileStream instead? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTPClient memory leak when downloading large files, using FileStream instead?</h1>
+		</header>
+		<section>
+			<p>Similar memory leak problem like in:</p>
+<p>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;81381&#x2F;httpclient-memory-leak</p>
+<p>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;28911&#x2F;httpclient-leaks-easily-or-can-we-have-a-close-method </p>
+<p>My mobile application downloads large PDF files and shows them to the user. However, HTTPClient causes memory leaks.</p>
+<p>Could it be possible to use the new FileStream with the HTTPClient to read and write 1k chunks to avoid memory problems?</p>
+<p>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2011&#x2F;05&#x2F;titanium-mobile-intro-series-streams.html</p>
+<p>EDIT: Solved! Using BlobStream did the trick since responseData is a TiBlob object.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 19th 2011, 8:11:08 am">May 19th 2011</span>
+				by <span class='authorname'>Timo Paananen</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>filestream</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>leak</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-208290">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>couple of things:</p>
+<p>when you use the &quot;onload&quot; event, you already have the entire date, so why not use Titanium.Filesystem.getFile and .write method to write the content to the file?</p>
+<p>Second, when using large data (and downloading in general), use the (undocumented) method setFile:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> c = Titanium.Network.createHTTPClient({timeout:<span class="hljs-number">10000</span>});
+
+<span class="hljs-keyword">var</span> filename = <span class="hljs-string">'test.pdf'</span>;
+<span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(Titanium.Filesystem.externalStorageDirectory, filename); 
+<span class="hljs-comment">// I use applicationDataDirectory on iOS instead</span>
+
+<span class="hljs-keyword">if</span> (!f.exists()) {
+
+    <span class="hljs-keyword">try</span> {
+
+        c.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+                showPDF(f);
+        };
+
+        c.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        };
+
+        c.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+            Ti.API.info(<span class="hljs-string">'XHR Error '</span> + e.error);
+        };
+
+        <span class="hljs-keyword">var</span> downloaduri = <span class="hljs-string">'http://www.domain.com/test.pdf'</span>;
+
+        <span class="hljs-comment">// open the client</span>
+        c.open(<span class="hljs-string">'GET'</span>, downloaduri);
+        c.setFile(Titanium.Filesystem.externalStorageDirectory + <span class="hljs-string">"/"</span> + filename);
+        <span class="hljs-comment">// send the data</span>
+        c.send();
+
+    } <span class="hljs-keyword">catch</span> (e) {
+        Ti.API.info(<span class="hljs-string">"Error"</span>, Titanium.API.error);
+    }
+}
+</code></pre><p>setFile should appear before send and after the open method. It will save the contents of the call to the file path you specified, without it saving the responseData in the object, leading to a HUGE memory save.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 23rd 2011, 4:39:23 am">May 23rd 2011</span>
+								by <span class='authorname'>Yaniv Nagar</span><br>
+								<a class="icon-bg icon-link" href="question/119890/httpclient-memory-leak-when-downloading-large-files-using-filestream-instead#answer-208290" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This is not working for me, I&#39;m getting an error in the console &quot;Failed to move file from &#39;X&#39; to &#39;Y&#39;&quot;</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 9th 2011, 7:43:41 pm">September 9th 2011</span>
+											by <span class='authorname'>Kevin Southworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>.setFile() is not supported on Android, documentation confirms it. I&#39;ve tested on the latest SDK 2.0.x and it&#39;s still not supported.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 16th 2012, 3:48:22 pm">April 16th 2012</span>
+											by <span class='authorname'>Jimmy Forrester-Fellowes</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-208237">
+				
+						<section>
+							<p>Could you give us a code example how you work with HTTPClient and BlobStream?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 21st 2011, 1:29:53 pm">May 21st 2011</span>
+								by <span class='authorname'>Benjamin Sommerfeld</span><br>
+								<a class="icon-bg icon-link" href="question/119890/httpclient-memory-leak-when-downloading-large-files-using-filestream-instead#answer-208237" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-208289">
+				
+						<section>
+							<p>OK, a simple example:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> c = Titanium.Network.createHTTPClient({timeout:<span class="hljs-number">10000</span>});
+
+<span class="hljs-keyword">var</span> filename = <span class="hljs-string">'test.pdf'</span>;
+<span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(Titanium.Filesystem.externalStorageDirectory, filename); 
+<span class="hljs-comment">// I use applicationDataDirectory on iOS instead</span>
+
+<span class="hljs-keyword">if</span> (!f.exists()) {
+
+    <span class="hljs-keyword">try</span> {
+
+        c.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+
+            <span class="hljs-keyword">if</span> (c.readyState == <span class="hljs-number">4</span>) {
+
+                <span class="hljs-keyword">var</span> instream = Titanium.Stream.createStream({
+                    mode: Titanium.Stream.MODE_READ,
+                    source: <span class="hljs-keyword">this</span>.responseData
+                });
+
+                <span class="hljs-keyword">var</span> outstream = f.open(Titanium.Filesystem.MODE_WRITE);
+
+                <span class="hljs-comment">// Create a buffer for chunking the data.</span>
+                <span class="hljs-keyword">var</span> buffer = Ti.createBuffer({length: <span class="hljs-number">1024</span>});
+
+                <span class="hljs-comment">// Read and write chunks.</span>
+                <span class="hljs-keyword">var</span> read_bytes = <span class="hljs-number">0</span>;
+                <span class="hljs-keyword">while</span> ((read_bytes = instream.read(buffer)) &gt; <span class="hljs-number">0</span>) {
+                    outstream.write(buffer, <span class="hljs-number">0</span>, read_bytes);
+                }
+
+                <span class="hljs-comment">// Cleanup.</span>
+                instream.close();
+                outstream.close();
+
+                showPDF(f);
+            }
+        };
+
+        c.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        };
+
+        c.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+            Ti.API.info(<span class="hljs-string">'XHR Error '</span> + e.error);
+        };
+
+        <span class="hljs-keyword">var</span> downloaduri = <span class="hljs-string">'http://www.domain.com/test.pdf'</span>;
+
+        <span class="hljs-comment">// open the client</span>
+        c.open(<span class="hljs-string">'GET'</span>, downloaduri);
+
+        <span class="hljs-comment">// send the data</span>
+        c.send();
+
+    } <span class="hljs-keyword">catch</span> (e) {
+        Ti.API.info(<span class="hljs-string">"Error"</span>, Titanium.API.error);
+    }
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 23rd 2011, 3:47:08 am">May 23rd 2011</span>
+								by <span class='authorname'>Timo Paananen</span><br>
+								<a class="icon-bg icon-link" href="question/119890/httpclient-memory-leak-when-downloading-large-files-using-filestream-instead#answer-208289" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Works perfect on Android with 3.4.0 ;)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2014, 5:54:17 pm">November 14th 2014</span>
+											by <span class='authorname'>Florian Krako</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

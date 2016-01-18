@@ -1,0 +1,343 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>DB.install from remote SQLite file » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>DB.install from remote SQLite file</h1>
+		</header>
+		<section>
+			<p>Hi all, I seem to have a problem:</p>
+<p>1) On the iPhone, I am not able to save downloaded remote files anywhere else than within the Ti.Filesystem.applicationDataDirectory for some sort of sandbox</p>
+<p>2) As a consequence, I cannot save a remote SQLite DB file &#39;db.sqlite3&#39; downloaded from a server location into the Ti.Filesystem.resourcesDirectory</p>
+<p>3) which means that I am not able to invoke:</p>
+<p>Ti.Database.install(&#39;db.sqlite3&#39;, &#39;dbname&#39;);</p>
+<p>from my &#39;db.js&#39; file located in the Ti.Filesystem.resourcesDirectory</p>
+<p>4) Bottom line, is there a way to install a DB from a remotely saved file located within the Ti.Filesystem.applicationDataDirectory?</p>
+<p>5) Needless to say, simulator works fine because there is no sandbox.</p>
+<p>Any help would be immensely appreciated.</p>
+<p>Ty</p>
+<p>m   </p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 8th 2011, 4:28:26 am">April 8th 2011</span>
+				by <span class='authorname'>Marco Donizelli</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>db</span></li>
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>remote</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-205888">
+				
+						<section>
+							<p>Hi all,</p>
+<p>after a lot of pain, here the &quot;right&quot; solution. Please note that the documentation provided here:</p>
+<p>http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Working+with+Local+Data#WorkingwithLocalData-Prepopulatingadatabase</p>
+<p>is wrong at least for the iPhone, in the sense that the &quot;databases&quot; directory is not called &quot;databases&quot; but &quot;database&quot;, and it is not here:</p>
+<p>Ti.Filesystem.applicationDataDirectory&#x2F;..&#x2F;databases&#x2F;</p>
+<p>but here:</p>
+<p>Ti.Filesystem.applicationDataDirectory&#x2F;..&#x2F;Library&#x2F;Application Support&#x2F;database&#x2F;</p>
+<p>Having established the above, here a solution for the remote DB case:</p>
+<p>1) Ship the App with a minimal DB file, located into the Resources directory when you develop the App</p>
+<p>2) at App boot, call:</p>
+<p>var db = Ti.Database.install(&#39;minimalDB.sql&#39;, &#39;mydb&#39;);</p>
+<p>from a JS file located as well in the Resources directory (if not there, remember to adjust the first parameter accordingly, which is the location of the minimal DB file relative to the JS file)</p>
+<p>3) run a check on the DB, for example its size, to decide whether a download of the full DB is required</p>
+<p>4) if required, download the remote DB and update the local one by doing:</p>
+<p>var xhr = Ti.Network.createHTTPClient();<br>xhr.onload = function()<br>{<br>   var f = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, &#39;..&#x2F;Library&#x2F;Application Support&#x2F;database&#x2F;mydb.sql&#39;);<br>   f.write(this.responseData);<br>   db = Ti.Database.install(&#39;minimalDB.sql&#39;, &#39;mydb&#39;);<br>};<br>xhr.open(&#39;GET&#39;, &#39;http:&#x2F;&#x2F;foo.com&#x2F;mydb_big.sql&#39;);<br>xhr.send(null);</p>
+<p>5) Again, if the previous code is not executed from within a JS file located into the Resources directory, remember to adjust the first argument of the Ti.Database.install method.</p>
+<p>Hope it helps</p>
+<p>m</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 8th 2011, 11:19:48 am">April 8th 2011</span>
+								by <span class='authorname'>Marco Donizelli</span><br>
+								<a class="icon-bg icon-link" href="question/118284/dbinstall-from-remote-sqlite-file#answer-205888" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>In case anyone had the same problem and Marco&#39;s update ins&#39;t still working I came up that you have to close the db before writing to it.So before the f.write(this.responseData); you should do a db.close(); (in case you already opened or installed the db prior to doing the xhr.send();</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 14th 2011, 9:09:10 am">May 14th 2011</span>
+											by <span class='authorname'>ginix sanz</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-205868">
+				
+						<section>
+							<p>Marco</p>
+<p>Once your application is packaged, you can not change the contents of the Resources directory <strong>in any way</strong>. The  <code>applicationDataDirectory</code> is the right place for new files.</p>
+<p>The subject you have outlined is explained in the <a href="http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Working+with+Local+Data#WorkingwithLocalData-Creatingadatabase">Creating a database</a> and <a href="http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Working+with+Local+Data#WorkingwithLocalData-Prepopulatingadatabase">Pre-populating a database</a> sections of the &quot;Working with Local Data&quot; guide.</p>
+<p>Hope it helps</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 8th 2011, 5:51:56 am">April 8th 2011</span>
+								by <span class='authorname'>Paul Dowsett</span><br>
+								<a class="icon-bg icon-link" href="question/118284/dbinstall-from-remote-sqlite-file#answer-205868" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Paul, thanks a million.</p>
+<p>Just to make sure:</p>
+<p>1) ship app with minimal DB in Resource dir<br>2) DB.install with the minimal DB in Resource dir at APP boot<br>3) if required (maybe checking DB size with simple query), download real DB remotely, replace DB file in &quot;Ti.Filesystem.applicationDataDirectory&#x2F;..&#x2F;databases&#x2F;&quot; with downloaded remote file, and re-invoke DB.install</p>
+<p>Unfortunately, I tried on the phone, and still same error, cannot save remote DB file into &quot;Ti.Filesystem.applicationDataDirectory&#x2F;..&#x2F;databases&#x2F;&quot;. Do I have to create this directory myself? I actually did so in order to be able to run my APP in the simulator.</p>
+<p>Am I missing something?</p>
+<p>m</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 8th 2011, 10:29:29 am">April 8th 2011</span>
+											by <span class='authorname'>Marco Donizelli</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-207775">
+				
+						<section>
+							<p>In case anyone had the same problem and Marco&#39;s update ins&#39;t still working I came up that you have to close the db before writing to it.So before the f.write(this.responseData); you should do a db.close(); (in case you already opened or installed the db prior to doing the xhr.send();</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 14th 2011, 9:12:11 am">May 14th 2011</span>
+								by <span class='authorname'>ginix sanz</span><br>
+								<a class="icon-bg icon-link" href="question/118284/dbinstall-from-remote-sqlite-file#answer-207775" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-224960">
+				
+						<section>
+							<p>Hi guys, please help me!<br>I&#39;m looking for download remote db in my apps (iphone &amp; android).<br>At app boot, I want download my myRemoteDb.db from remote and use it.<br>This is my script:</p>
+<pre><code class="hljs"><span class="hljs-comment">// --- api bug fix -----</span>
+<span class="hljs-keyword">var</span> db = Ti.Database.open(<span class="hljs-string">'ricetteToscane'</span>);
+db.remove();
+<span class="hljs-comment">// ---------------------</span>
+
+<span class="hljs-comment">// Minimal in App db stored in Resources</span>
+db = Ti.Database.install(<span class="hljs-string">'/mydb.db'</span>, <span class="hljs-string">'mydb'</span>);
+
+<span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient(); 
+xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ 
+    <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, <span class="hljs-string">'../Library/Application Support/database/mydb.db'</span>); 
+    db.close();
+    f.write(<span class="hljs-keyword">this</span>.responseData); 
+    db = Ti.Database.install(<span class="hljs-string">'/mydb.db'</span>, <span class="hljs-string">'mydb'</span>); 
+}; 
+xhr.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://www.example.com/myRemoteDb.db'</span>); 
+xhr.send(<span class="hljs-literal">null</span>);
+
+<span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT * FROM table'</span>);
+</code></pre><p>Is it right?<br>After that how can I use my new downloaded db ?</p>
+<p>In rows I find my minimal in App db and never find new download db.</p>
+<p>Thank you so much and sorry for my little english. I hope you can help me!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 6th 2011, 5:36:49 pm">December 6th 2011</span>
+								by <span class='authorname'>Lorenzo Piccinini</span><br>
+								<a class="icon-bg icon-link" href="question/118284/dbinstall-from-remote-sqlite-file#answer-224960" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Sorry, in second line code there is an error:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> db</span> = Ti.Database.<span class="hljs-keyword">open</span>('mydb');
+</code></pre><p>That&#39;s right for the example.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 6th 2011, 5:40:22 pm">December 6th 2011</span>
+											by <span class='authorname'>Lorenzo Piccinini</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m trying to understand what you&#39;ve done here. It looks like you&#39;re taking the following steps:</p>
+<ol>
+<li>Open <strong>mydb.db</strong> from the app data directory</li>
+<li>Write the remote database (myRemoveDb.db) over mydb.db</li>
+</ol>
+<p>But when you use:</p>
+<pre><code class="hljs"><span class="hljs-setting">db = <span class="hljs-value">Ti.Database.install(<span class="hljs-string">'/mydb.db'</span>, <span class="hljs-string">'mydb'</span>);</span></span>
+</code></pre><p>…isn&#39;t that just reinstalling the database that is in the Resources folder? </p>
+<p>In short, <strong>how are you opening the database that&#39;s inside the app data directory?</strong></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2012, 8:39:07 pm">March 23rd 2012</span>
+											by <span class='authorname'>Clifton Labrum</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-236154">
+				
+						<section>
+							<p>The best solution for iOS is here:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+    onload: function() {
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Ti.Database.install(<span class="hljs-string">"dummy.db"</span>, <span class="hljs-string">"db_name"</span>);
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span> = <span class="hljs-keyword">db</span>.getFile();
+        <span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+        <span class="hljs-keyword">file</span>.write(this.responseData);
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Ti.Database.install(<span class="hljs-string">"dummy.db"</span>, <span class="hljs-string">"db_name"</span>);
+        <span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+    },
+    onerror: function() {
+        <span class="hljs-comment">// handle the error here...</span>
+    },
+    timeout: 5000
+});
+
+xhr.<span class="hljs-keyword">open</span>(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"http://yourdomain.com/path/to/sqlite.db"</span>);
+xhr.send();
+</code></pre><p>Just create <code>dummy.db</code> sqlite3 file and put it in your resource folder. Then use is to install <code>db_name</code> which you want. Get the remote file and write it. Re-Install it again.</p>
+<p>It is the same idea of Marco Donizelli but we don&#39;t need to guess where is the database file. Just use <code>getFile()</code> method which only exists for iOS.</p>
+<p>Now you can <code>Ti.Database.open()</code> your <code>db_name</code> within your app.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 15th 2012, 4:45:39 pm">April 15th 2012</span>
+								by <span class='authorname'>Osama Abbas</span><br>
+								<a class="icon-bg icon-link" href="question/118284/dbinstall-from-remote-sqlite-file#answer-236154" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
