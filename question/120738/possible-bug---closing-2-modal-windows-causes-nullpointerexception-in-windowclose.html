@@ -1,0 +1,341 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Possible Bug - Closing 2 modal windows causes NullPointerException in window.close » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Possible Bug - Closing 2 modal windows causes NullPointerException in window.close</h1>
+		</header>
+		<section>
+			<p>In Android on the 1.7 branch, I&#39;m seeing a very strange issue where if I open modal window A, then open on top of it modal window B, then open on top of that modal window C, then when I close modal window C, it will correctly show modal window B, but then when I try to close modal window B, it will throw a NullPointerException.</p>
+<p>The strangest part is that it actually closes modal window B and shows modal window A when I call myWin.close() before throwing the NullPointerException. This leads me to believe that this is a bug, as the window is not null and the close is actually working before the exception is thrown. The worst part is that a try&#x2F;catch wrapped around the myWin.close does not actually capture the exception so the app crashes at this point.</p>
+<p>Here is the code, if anyone could provide a possible workaround or link to a jira issue it&#39;d be greatly appreciated.</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> isAndroid = Ti.Platform.name == <span class="hljs-string">"android"</span>;
+
+<span class="hljs-keyword">var</span> navigation = {
+
+    navGroup: <span class="hljs-literal">null</span>,
+
+    navigate: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">windowName, windowPath, windowData</span>) </span>{
+
+        info(<span class="hljs-string">"*********NAVIGATING TO - "</span> + windowName + <span class="hljs-string">" / "</span> + windowPath + <span class="hljs-string">"**********"</span>);
+
+        <span class="hljs-comment">//create window.</span>
+        <span class="hljs-keyword">var</span> myWin = <span class="hljs-keyword">new</span> Window({ title: windowName, url: windowPath, 
+            modal: <span class="hljs-literal">true</span><span class="hljs-comment">//, exitOnClose: (windowName == "Vehicles" || windowName == "Login") </span>
+        });
+
+        <span class="hljs-comment">//attach data.</span>
+        <span class="hljs-keyword">if</span>(windowData)
+            myWin.windowData = windowData;
+
+        <span class="hljs-comment">//open it.</span>
+        <span class="hljs-keyword">if</span> (isAndroid) {
+            myWin.open( { animated: <span class="hljs-literal">true</span> });
+         }
+        <span class="hljs-keyword">else</span> {
+            win.hideNavBar();
+            <span class="hljs-comment">//if navgroup doesn't exist then create it.</span>
+            <span class="hljs-keyword">if</span>(!navigation.navGroup) {
+                navigation.navGroup = Ti.UI.iPhone.createNavigationGroup({ <span class="hljs-built_in">window</span>: myWin });
+                <span class="hljs-keyword">var</span> layoutWindow = <span class="hljs-keyword">new</span> Window();
+                layoutWindow.add(app.navGroup);
+                layoutWindow.open({ transition: Ti.UI.iPhone.AnimationStyle.FLIP_FROM_LEFT });
+            }
+            <span class="hljs-keyword">else</span> {
+                navigation.navGroup.open(myWin, { animated: <span class="hljs-literal">true</span> });
+            }
+        }
+
+    },
+
+    navigateBack: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        info(<span class="hljs-string">"*********NAVIGATING BACK**********"</span>);
+
+        <span class="hljs-keyword">var</span> myWin = Ti.UI.currentWindow;
+        info(myWin == <span class="hljs-literal">null</span>);
+        <span class="hljs-comment">//close current window.</span>
+        <span class="hljs-keyword">if</span>(!isAndroid)
+               navigation.navGroup.close(myWin);
+           info(<span class="hljs-string">"closing window"</span>);
+           info(myWin.close == <span class="hljs-literal">null</span>);
+           myWin.close();
+          info(<span class="hljs-string">"closed window"</span>);
+          <span class="hljs-comment">//win = null;</span>
+
+    },
+
+    logout: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        <span class="hljs-keyword">var</span> win = Ti.UI.currentWindow;
+        <span class="hljs-keyword">if</span>(isAndroid) {
+              <span class="hljs-keyword">var</span> winHome = <span class="hljs-keyword">new</span> Window({ title: <span class="hljs-string">"Navtrak"</span>, url: <span class="hljs-string">"views/home.js"</span>, modal: <span class="hljs-literal">true</span>, exitOnClose: <span class="hljs-literal">true</span> });
+              win.close();
+             winHome.open();
+           }
+         <span class="hljs-keyword">else</span> {
+               navigation.navigateBack();
+        }
+
+    }
+
+};
+</code></pre><p>Here is the error:</p>
+<pre><code class="hljs">I/TiAPI   ( 2096): (kroll<span class="hljs-label">$1</span>: <span class="hljs-keyword">app</span>:<span class="hljs-comment">//app.js) [1419,642675] *********NAVIGATING BACK**********</span>
+I/TiAPI   ( 2096): (kroll<span class="hljs-label">$1</span>: <span class="hljs-keyword">app</span>:<span class="hljs-comment">//app.js) [2,642677] false</span>
+I/TiAPI   ( 2096): (kroll<span class="hljs-label">$1</span>: <span class="hljs-keyword">app</span>:<span class="hljs-comment">//app.js) [1,642678] closing window</span>
+I/TiAPI   ( 2096): (kroll<span class="hljs-label">$1</span>: <span class="hljs-keyword">app</span>:<span class="hljs-comment">//app.js) [3,642681] false</span>
+<span class="hljs-keyword">D</span>/AndroidRuntime( 2096): Shutting down VM
+W/dalvikvm( 2096): threadid=1: thread exiting with uncaught exception (group=0x4001d800)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096): (main) [45,642726] Sending event: exception <span class="hljs-keyword">on</span> thread: main msg:java.lang.NullPointerException; Titanium 1.7.0,2011/05/26 19:06,0a26b8...
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096): java.lang.NullPointerException
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at ti.modules.titanium.ui.WindowProxy.handleClose(WindowProxy.java:131)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at org.appcelerator.titanium.proxy.TiWindowProxy.handleMessage(TiWindowProxy.java:92)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at ti.modules.titanium.ui.WindowProxy.handleMessage(WindowProxy.java:86)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at android.os.Handler.dispatchMessage(Handler.java:95)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at android.os.Looper.loop(Looper.java:123)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at android.<span class="hljs-keyword">app</span>.ActivityThread.main(ActivityThread.java:4627)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at java.lang.reflect.Method.invokeNative(Native Method)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at java.lang.reflect.Method.invoke(Method.java:521)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at com.android.internal.os.ZygoteInit<span class="hljs-label">$MethodAndArgsCaller</span>.<span class="hljs-keyword">run</span>(ZygoteInit.java:868)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:626)
+<span class="hljs-keyword">E</span>/TiUncaughtHandler( 2096):     at dalvik.system.NativeStart.main(Native Method)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096): FATAL EXCEPTION: main
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096): java.lang.NullPointerException
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at ti.modules.titanium.ui.WindowProxy.handleClose(WindowProxy.java:131)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at org.appcelerator.titanium.proxy.TiWindowProxy.handleMessage(TiWindowProxy.java:92)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at ti.modules.titanium.ui.WindowProxy.handleMessage(WindowProxy.java:86)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at android.os.Handler.dispatchMessage(Handler.java:95)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at android.os.Looper.loop(Looper.java:123)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at android.<span class="hljs-keyword">app</span>.ActivityThread.main(ActivityThread.java:4627)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at java.lang.reflect.Method.invokeNative(Native Method)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at java.lang.reflect.Method.invoke(Method.java:521)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at com.android.internal.os.ZygoteInit<span class="hljs-label">$MethodAndArgsCaller</span>.<span class="hljs-keyword">run</span>(ZygoteInit.java:868)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:626)
+<span class="hljs-keyword">E</span>/AndroidRuntime( 2096):     at dalvik.system.NativeStart.main(Native Method)
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 8th 2011, 7:40:51 pm">June 8th 2011</span>
+				by <span class='authorname'>Justin Toth</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>modal</span></li>
+					
+						<li><span class='tagname'>modal window</span></li>
+					
+						<li><span class='tagname'>nullpointerexception</span></li>
+					
+						<li><span class='tagname'>window close</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hi Justin.</p>
+<p>Is this happening when you open windows for first time?</p>
+<p>(I had similar issue that manifested second time I opened windows)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 9th 2011, 5:04:16 am">June 9th 2011</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>@Ivan Skugor - Hey, it&#39;s actually throwing the error on window close, not window open. And yes, I only open each of the windows once. I load the app, which loads window A. I then click a table row to load window B, then click a table row to load window C, then press android:back (which calls navigation.navigateBack), then press android:back again (error).</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 9th 2011, 10:59:17 am">June 9th 2011</span>
+								by <span class='authorname'>Justin Toth</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-209727">
+				
+						<section>
+							<p>I was able to figure out the issue. It turns out that when you close a modal window, the window under it, which then becomes active, does not have Ti.UI.currentWindow set correctly to itself. My guess is it&#39;s still set to the window that was just closed, as it&#39;s not null. So when you call Ti.UI.currentWindow.close(); on window B after already closing window C, it throws the NullPointerException because it thinks Ti.UI.currentWindow is window C and has already been closed. </p>
+<p>If I store a reference to the the current window within the scope of each window then I can pass the correct window object to the navigateBack function and then the close function works correctly.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 9th 2011, 11:30:11 am">June 9th 2011</span>
+								by <span class='authorname'>Justin Toth</span><br>
+								<a class="icon-bg icon-link" href="question/120738/possible-bug---closing-2-modal-windows-causes-nullpointerexception-in-windowclose#answer-209727" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Justin</p>
+<p>Would you provide <a href="http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Contributing+to+Titanium#ContributingtoTitanium-CreatingGoodUsecases">a usecase</a> for this, so that I can replicate exactly your situation on my system?</p>
+<p>After this, if a bug is confirmed, we can progress it to the core dev team via a ticket.</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2011, 7:04:46 pm">June 9th 2011</span>
+											by <span class='authorname'>Paul Dowsett</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-209775">
+				
+						<section>
+							<p>@Paul Dowsett - Here is code to reproduce the issue. You will need to go from window A -&gt; window B -&gt; window C then press back button twice to see the issue.</p>
+<p>app.js:</p>
+<pre><code class="hljs">Ti.UI.setBackgroundColor(<span class="hljs-string">'#fff'</span>);
+var winA = Ti.UI.createWindow({ <span class="hljs-string">title:</span> <span class="hljs-string">'window a'</span>, <span class="hljs-string">url:</span> <span class="hljs-string">"wina.js"</span>, <span class="hljs-string">modal:</span> <span class="hljs-literal">true</span> });
+winA.open();
+</code></pre><p>wina.js:</p>
+<pre><code class="hljs">
+Ti.UI.setBackgroundColor(<span class="hljs-string">'#808080'</span>);
+
+var label = Ti.UI.createLabel({ <span class="hljs-string">top:</span> <span class="hljs-number">100</span>, <span class="hljs-string">width:</span> <span class="hljs-number">200</span>, <span class="hljs-string">text:</span> <span class="hljs-string">"window a"</span>, <span class="hljs-string">color:</span> <span class="hljs-string">"#000"</span> });
+Ti.UI.currentWindow.add(label);
+
+var button = Ti.UI.createButton({ <span class="hljs-string">top:</span> <span class="hljs-number">200</span>, <span class="hljs-string">width:</span> <span class="hljs-number">200</span>, <span class="hljs-string">title:</span> <span class="hljs-string">"open window b"</span>});
+button.addEventListener(<span class="hljs-string">"click"</span>, function() {
+    <span class="hljs-comment">//open window b.</span>
+    var winB = Ti.UI.createWindow({ <span class="hljs-string">title:</span> <span class="hljs-string">"window b"</span>, <span class="hljs-string">url:</span> <span class="hljs-string">"winb.js"</span>, <span class="hljs-string">modal:</span> <span class="hljs-literal">true</span> });
+    winB.open( { <span class="hljs-string">animated:</span> <span class="hljs-literal">true</span> });
+});
+Ti.UI.currentWindow.add(button);
+</code></pre><p>winb.js:</p>
+<pre><code class="hljs">Ti.UI.setBackgroundColor(<span class="hljs-string">'#800000'</span>);
+
+var win = Ti.UI.currentWindow;
+
+var label = Ti.UI.createLabel({ <span class="hljs-string">top:</span> <span class="hljs-number">100</span>, <span class="hljs-string">width:</span> <span class="hljs-number">200</span>, <span class="hljs-string">text:</span> <span class="hljs-string">"window b"</span>, <span class="hljs-string">color:</span> <span class="hljs-string">"#000"</span> });
+Ti.UI.currentWindow.add(label);
+
+var button = Ti.UI.createButton({ <span class="hljs-string">top:</span> <span class="hljs-number">200</span>, <span class="hljs-string">width:</span> <span class="hljs-number">200</span>, <span class="hljs-string">title:</span> <span class="hljs-string">"open window c"</span>});
+button.addEventListener(<span class="hljs-string">"click"</span>, function() {
+    <span class="hljs-comment">//open window c.</span>
+    var winC = Ti.UI.createWindow({ <span class="hljs-string">title:</span> <span class="hljs-string">"window c"</span>, <span class="hljs-string">url:</span> <span class="hljs-string">"winc.js"</span>, <span class="hljs-string">modal:</span> <span class="hljs-literal">true</span> });
+    winC.open( { <span class="hljs-string">animated:</span> <span class="hljs-literal">true</span> });
+});
+Ti.UI.currentWindow.add(button);
+
+Ti.UI.currentWindow.addEventListener(<span class="hljs-string">"android:back"</span>, function() { 
+    <span class="hljs-comment">//close window b.</span>
+    Ti.API.info(<span class="hljs-string">"closing window b"</span>);
+    Ti.UI.currentWindow.close();<span class="hljs-comment">//this doesn't work!!</span>
+    win.close();<span class="hljs-comment">//this works</span>
+    Ti.API.info(<span class="hljs-string">"closed window b"</span>);
+});
+</code></pre><p>winc.js:</p>
+<pre><code class="hljs">Ti.UI.setBackgroundColor(<span class="hljs-string">'#e3ece7'</span>);
+
+<span class="hljs-keyword">var</span> label = Ti.UI.createLabel({ top: <span class="hljs-number">100</span>, width: <span class="hljs-number">200</span>, text: <span class="hljs-string">"window c"</span>, color: <span class="hljs-string">"#000"</span> });
+Ti.UI.currentWindow.add(label);
+
+Ti.UI.currentWindow.addEventListener(<span class="hljs-string">"android:back"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ 
+    <span class="hljs-comment">//close window c.</span>
+    Ti.API.info(<span class="hljs-string">"closing window c"</span>);
+    Ti.UI.currentWindow.close();
+    Ti.API.info(<span class="hljs-string">"closed window c"</span>);
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 9th 2011, 7:18:10 pm">June 9th 2011</span>
+								by <span class='authorname'>Justin Toth</span><br>
+								<a class="icon-bg icon-link" href="question/120738/possible-bug---closing-2-modal-windows-causes-nullpointerexception-in-windowclose#answer-209775" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

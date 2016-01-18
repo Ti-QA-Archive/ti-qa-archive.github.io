@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Play/Pause patch? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Play/Pause patch?</h1>
+		</header>
+		<section>
+			<p>Hi, I&#39;m trying to create my own controls for a video player.  I have a play&#x2F;pause button that should pause the video then resume.  However, it will only pause once then never resume.</p>
+<p>Here&#39;s my code:</p>
+<pre><code class="hljs">    <span class="hljs-transposed_variable">play_pause_button.</span>addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> {</span>
+        <span class="hljs-keyword">if</span>(<span class="hljs-transposed_variable">player.</span>playbackState != <span class="hljs-number">1</span>) {
+            <span class="hljs-transposed_variable">player.</span>play();
+            <span class="hljs-transposed_variable">play_pause_button.</span>backgroundImage = <span class="hljs-string">"images/playercontrols/pause_btn.png"</span>;
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-transposed_variable">player.</span><span class="hljs-keyword">pause</span>();
+            <span class="hljs-transposed_variable">play_pause_button.</span>backgroundImage = <span class="hljs-string">"images/playercontrols/play_btn.png"</span>;
+        }
+    });
+</code></pre><p>I dug into the TiMediaVideoPlayerProxy.m and discovered that the playing will return if it&#39;s already playing and pause will not toggle the playing variable.</p>
+<pre><code class="hljs">-(<span class="hljs-keyword">void</span>)play:(<span class="hljs-keyword">id</span>)args
+{
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(play, args);
+
+    <span class="hljs-keyword">if</span> (playing) {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (url == <span class="hljs-literal">nil</span>)
+    {
+        [<span class="hljs-keyword">self</span> throwException:TiExceptionInvalidType
+                subreason:<span class="hljs-string">@"Tried to play movie player without a valid url, media, or contentURL property"</span>
+                location:CODELO<span class="hljs-built_in">CATION</span>];
+    }
+
+    <span class="hljs-keyword">if</span> (playing)
+    {
+        [<span class="hljs-keyword">self</span> stop:<span class="hljs-literal">nil</span>];
+    }
+
+    playing = <span class="hljs-literal">YES</span>;
+    [[<span class="hljs-keyword">self</span> player] play];
+}
+
+-(<span class="hljs-keyword">void</span>)pause:(<span class="hljs-keyword">id</span>)args
+{
+    E<span class="hljs-built_in">NSURE_UI_THREAD</span>(pause,args)    
+    <span class="hljs-keyword">if</span> (!playing) {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-comment">// For the purposes of cleanup, we're still playing, so don't toggle that.</span>
+    <span class="hljs-keyword">if</span> ([[<span class="hljs-keyword">self</span> player] respondsToSelector:<span class="hljs-keyword">@selector</span>(pause)])
+    {
+        [[<span class="hljs-keyword">self</span> player] performSelector:<span class="hljs-keyword">@selector</span>(pause)];
+    }
+}
+</code></pre><p>If I change it to this: </p>
+<pre><code class="hljs">    <span class="hljs-comment">// For the purposes of cleanup, we're still playing, so don't toggle that.</span>
+    <span class="hljs-keyword">if</span> ([[<span class="hljs-keyword">self</span> player] respondsToSelector:<span class="hljs-keyword">@selector</span>(pause)])
+    {
+        [[<span class="hljs-keyword">self</span> player] performSelector:<span class="hljs-keyword">@selector</span>(pause)];
+                playing = <span class="hljs-literal">NO</span>;
+    }
+}
+</code></pre><p>and delete the build folder, it works great.  My patch gets overridden each time i sync to the phone, however.</p>
+<p>My questions are:  Should i be doing this kind of patch?  Anybody have a better fix?  How do you get it from overwriting each build?</p>
+<p>Thanks!</p>
+<p>-Brian</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 26th 2011, 4:48:47 pm">May 26th 2011</span>
+				by <span class='authorname'>Brian Lonsdorf</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>controls</span></li>
+					
+						<li><span class='tagname'>pause</span></li>
+					
+						<li><span class='tagname'>play</span></li>
+					
+						<li><span class='tagname'>video</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-209725">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Resuming video playback has never worked. That&#39;s a nice patch though. To get it to stick for every build, put a copy of your patched TiMediaVideoPlayerProxy.m into the application&#39;s root folder.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 9th 2011, 11:04:36 am">June 9th 2011</span>
+								by <span class='authorname'>Luke Bidle</span><br>
+								<a class="icon-bg icon-link" href="question/120217/playpause-patch#answer-209725" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-210055">
+				
+						<section>
+							<p>I tried this and it works, thkx, but I don&#39;t understand how to get it to stick for every build: application&#39;s root folder means?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 13th 2011, 2:40:42 pm">June 13th 2011</span>
+								by <span class='authorname'>Assem Bayahi</span><br>
+								<a class="icon-bg icon-link" href="question/120217/playpause-patch#answer-210055" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

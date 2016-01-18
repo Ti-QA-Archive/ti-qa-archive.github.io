@@ -1,0 +1,650 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Custom URL Scheme - iPhone &amp; Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Custom URL Scheme - iPhone &amp; Android</h1>
+		</header>
+		<section>
+			<p>Hi, </p>
+<p>I am looking on how to implement the <strong>Custom URL Scheme</strong> feature (i.e launch the mobile app when clicking on a link in safari or e-mail) for both iPhone and Android.</p>
+<p>My goal is to send an e-mail with an HTML link </p>
+<pre><code class="hljs">&lt;<span class="hljs-tag">a</span> href=<span class="hljs-string">"myapp://"</span> /&gt;
+</code></pre><p>Such that when the user clicks on it, the device starts the app with url attributes (if they exist)</p>
+<p>But I couldn&#39;t find anything about it in the docs, neither in the Q&amp;A…</p>
+<p>Did anyone already do&#x2F;implement this ??</p>
+<p>How to do it ??<br>What file to complete or configure in order to do it ??<br>Hints, ideas ??</p>
+<p>Thanks in advance !!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 31st 2011, 1:25:06 pm">May 31st 2011</span>
+				by <span class='authorname'>abbdoul ab</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>click</span></li>
+					
+						<li><span class='tagname'>custom</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>launch</span></li>
+					
+						<li><span class='tagname'>link</span></li>
+					
+						<li><span class='tagname'>scheme</span></li>
+					
+						<li><span class='tagname'>url</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-208912">
+				
+						<section>
+							<p>For iOS, check the Info.plist file in the (project)&#x2F;build&#x2F;iphone folder and look for the CFBundleURLSchemes key.  The value it lists under the array element is the name assigned for the custom URL.  You can change that if necesary, but just knowing it may be sufficient for you.  I think the default is basically your project name in lowercase.</p>
+<p>Once you have that name, use it in a URL and add :&#x2F;&#x2F; followed by whatever you want:</p>
+<p>mybundleurlscheme:&#x2F;&#x2F;foobar?attribute=value&amp;another_attribute=value2</p>
+<p>In your app, use Ti.App.getArguments() to find out what was passed into the program.  The caveat here is detecting the difference between a launch and pause&#x2F;resume activity.</p>
+<p>Last I played with this, a pause&#x2F;resume would end up still leaving the same value in Ti.App.getArguments() making it harder to correctly detect a new launch vs resume activity.</p>
+<p>A couple of pointers here:</p>
+<ul>
+<li><p>Save a copy of Ti.App.getArgumets() for later comparison</p>
+</li>
+<li><p>Add a app listener for the &#39;resumed&#39; event (NOT the &#39;resume&#39; event) and check Ti.App.getArguments().  The value is not yet available during the &#39;resume&#39; event (when app is preparing to resume) but is during the &#39;resumed&#39; event (when app has resumed).</p>
+</li>
+<li><p>When &#39;resumed&#39; event has the same value you originally saved, either the user did a pause&#x2F;resume or the same custom URL was launched a second time.  In my scenario, I could get by treating both the same but YMMV.</p>
+</li>
+</ul>
+<p>Here is a code snippet from a project where I experimented with this.  It is from a few SDK versions back, so perhaps there is a better way now:</p>
+<pre><code class="hljs"><span class="hljs-comment">// Save initial launch command line arguments</span>
+Ti.App.launchURL = <span class="hljs-string">''</span>;
+Ti.App.pauseURL = <span class="hljs-string">''</span>;
+<span class="hljs-keyword">var</span> cmd = Ti.App.getArguments();
+<span class="hljs-keyword">if</span> ( (getTypeOf(cmd) == <span class="hljs-string">'object'</span>) &amp;&amp; cmd.hasOwnProperty(<span class="hljs-string">'url'</span>) ) {
+    Ti.App.launchURL = cmd.url;
+    Ti.API.info( <span class="hljs-string">'Launched with url = '</span> + Ti.App.launchURL );
+}
+
+<span class="hljs-comment">// Save launch URL at the time last paused</span>
+Ti.App.addEventListener( <span class="hljs-string">'pause'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    Ti.App.pauseURL = Ti.App.launchURL;
+});
+
+<span class="hljs-comment">// After app is fully resumed, recheck if launch arguments</span>
+<span class="hljs-comment">// have changed and ignore duplicate schemes.</span>
+Ti.App.addEventListener( <span class="hljs-string">'resumed'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    Ti.App.launchURL = <span class="hljs-string">''</span>;
+    cmd = Ti.App.getArguments();
+    <span class="hljs-keyword">if</span> ( (getTypeOf(cmd) == <span class="hljs-string">'object'</span>) &amp;&amp; cmd.hasOwnProperty(<span class="hljs-string">'url'</span>) ) {
+        <span class="hljs-keyword">if</span> ( cmd.url != Ti.App.pauseURL ) {
+            Ti.App.launchURL = cmd.url;
+            Ti.API.info( <span class="hljs-string">'Resumed with url = '</span> + Ti.App.launchURL );
+        }
+    }
+});
+</code></pre><p>At this point I can check Ti.App.launchURL and deal with it as I like.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 31st 2011, 1:54:45 pm">May 31st 2011</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/120393/custom-url-scheme---iphone--android#answer-208912" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi, thanks for your help.</p>
+<p>Your solution worked fine, but I would like to add a few improvemens:</p>
+<ul>
+<li><p>the name to use in your URL to call your application has to be in a special form….If the ID of your project in <em>tiapp.xml</em> is <strong>com.MyApp</strong>, the your URL has to be <strong>Myapp</strong> (first letter in uppercase, and all the others in lower case) other it won&#39;t work.</p>
+</li>
+<li><p>you have to copy and paste the <strong>Info.plist</strong> in your build&#x2F;iphone directory to the your application main directory.<br>Moreover here is what you have to write in <strong>Info.plist</strong> : </p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">key</span>&gt;</span> CFBundleURLTypes <span class="hljs-tag">&lt;/<span class="hljs-title">key</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">array</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">dict</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">key</span>&gt;</span> CFBundleURLName <span class="hljs-tag">&lt;/<span class="hljs-title">key</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">string</span>&gt;</span> com.MyApp <span class="hljs-tag">&lt;/<span class="hljs-title">string</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">key</span>&gt;</span> CFBundleURLSchemes <span class="hljs-tag">&lt;/<span class="hljs-title">key</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">array</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">string</span>&gt;</span> MyApp <span class="hljs-tag">&lt;/<span class="hljs-title">string</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">array</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">dict</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">array</span>&gt;</span>
+</code></pre></li>
+</ul>
+<p>and call your app using &lt; a href=&quot;Myapp:&#x2F;&#x2F;&quot; &gt; in any web page.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2011, 6:08:43 am">June 9th 2011</span>
+											by <span class='authorname'>abbdoul ab</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If anyone is interested in the solution for Android version (a little bit different), let me know…</p>
+<p>And by the way I think that this has to be added in next Kitchen Sink version (when updated with the 1.7.0 features)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 9th 2011, 6:10:15 am">June 9th 2011</span>
+											by <span class='authorname'>abbdoul ab</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi,</p>
+<p>I would be interested in how we can use custom URL scheme on Android.</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 21st 2011, 10:17:46 am">June 21st 2011</span>
+											by <span class='authorname'>Gerome Bovet</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK, so here is the recipe for URL scheme on Android…</p>
+<p>But if you prefer, post a proper &amp; different question, so that I answer to it rather than with these small comments (who doesn&#39;t support lists…), but as you wish…</p>
+<p>The first thing you have to do is to create a &quot;custom&quot; AndroidManifest.xml file.<br>in order to do it<br>create a folder in your application project folder (&lt;MyMobileApp&gt;) name <code>platform</code>, and inside it another folder named &#39;android&#39;, and inside this create a folder named <code>android</code>(<code>platform&amp;#x2F;android</code>) copy the <code>AndroidManifest.xml</code> that you can find in your build&#x2F;android&#x2F;.</p>
+<p>If we resume simply with unix commands : </p>
+<pre><code class="hljs"><span class="hljs-keyword">cd</span> MyAppHome
+mkdir <span class="hljs-keyword">platform</span>
+mkdir <span class="hljs-keyword">platform</span>/android
+cp build/android/AndroidManifest.xml <span class="hljs-keyword">platform</span>/android/
+</code></pre><p>such that you get the following project structure</p>
+<pre><code class="hljs">&lt;MyAppHome&gt;
+ -<span class="ruby"> <span class="hljs-constant">Resources</span>/
+</span> -<span class="ruby"> ...
+</span> -<span class="ruby"> platform/
+</span>    -<span class="ruby"> android/
+</span>       -<span class="ruby"> <span class="hljs-constant">AndroidManifest</span>.xml</span>
+</code></pre><p>Then the next step is to edit the AndroidManifest.xml.<br>Open it, and go to the lines between the &lt;!– TI_MANIFEST –&gt; and &lt;!– TI_APPLICATION –&gt; .</p>
+<p>There you should find a the main &lt;activity&gt; of your mobile app.</p>
+<p>There you should add lines such that you have (some lines can already be there, so just add the lines you do not already have)</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">application</span>
+        <span class="hljs-attribute">android:icon</span>=<span class="hljs-value">"@drawable/appicon"</span>
+          <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"MobileApp"</span>
+          <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"MobileappApplication"</span>
+          <span class="hljs-attribute">android:debuggable</span>=<span class="hljs-value">"false"</span>
+    &gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">activity</span>
+            <span class="hljs-attribute">android:name</span>=<span class="hljs-value">".MobileappActivity"</span>
+            <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"MobileApp"</span>
+            <span class="hljs-attribute">android:theme</span>=<span class="hljs-value">"@style/Theme.Titanium"</span>
+            <span class="hljs-attribute">android:configChanges</span>=<span class="hljs-value">"keyboardHidden|orientation"</span>
+        &gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.VIEW"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.DEFAULT"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.BROWSABLE"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">data</span>  <span class="hljs-attribute">android:scheme</span>=<span class="hljs-value">"Mobileapp"</span> /&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+
+             <span class="hljs-comment">&lt;!-- TI_APPLICATION --&gt;</span>
+</code></pre><p>And to call your app from an URL, use <code>Mobileapp:&amp;#x2F;&amp;#x2F;</code></p>
+<p>Be careful with UPPERCASE and LOWERCASE letters in AndroidManifest.xml….I banged my head to walls for 1-2 days because of this….</p>
+<p>Wherever you see &#39;Mobileapp&#39; instead of &#39;MobileApp&#39;, it is not a mistake…..Android cannot handle the uppercase letters except for the first one…</p>
+<p>This is also the case with the URL, if you use &#39;MobileApp:&#x2F;&#x2F;&#39; nothing will happen, but it will work with &#39;Mobileapp:&#x2F;&#x2F;&#39; .</p>
+<p>(At least, when I first did the URL schemes, I was with SDK 1.6.2, so I had to be careful with letter cases…I don&#39;t know if it is still relevant with 1.7.0, but all I know is that my URL schemes still continue to work :) :) )</p>
+<p>Hope that this will help you.</p>
+<p>Tell me if it is ok for you.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 24th 2011, 5:55:34 am">June 24th 2011</span>
+											by <span class='authorname'>abbdoul ab</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>When I am implementing above for iOS version I am getting error &quot;Can&#39;t find variable: getTypeOf&quot;;</p>
+<p>Can you help me, how are resolve this ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 21st 2013, 3:56:25 am">November 21st 2013</span>
+											by <span class='authorname'>mahesh pet</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>21</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-212192">
+				
+						<section>
+							<p>OK, so here is the recipe for URL scheme on Android…</p>
+<p>But if you prefer, post a proper &amp; different question, so that I answer to it rather than with these small comments (who doesn&#39;t support lists…), but as you wish…</p>
+<p>The first thing you have to do is to create a &quot;custom&quot; AndroidManifest.xml file. in order to do it create a folder in your application project folder () name <code>platform</code>, and inside it another folder named <code>android</code>, and inside this create a folder named android (  <code>platform&amp;#x2F;android</code>  ) copy the <code>AndroidManifest.xml</code> that you can find in your <code>build&amp;#x2F;android&amp;#x2F;</code>.</p>
+<p>If we resume simply with unix commands :</p>
+<pre><code class="hljs"><span class="hljs-keyword">cd</span> MyAppHome
+mkdir <span class="hljs-keyword">platform</span>
+mkdir <span class="hljs-keyword">platform</span>/android
+cp build/android/AndroidManifest.xml <span class="hljs-keyword">platform</span>/android/
+</code></pre><p>such that you get the following project structure</p>
+<pre><code class="hljs">&lt;MyAppHome&gt;
+ -<span class="ruby"> <span class="hljs-constant">Resources</span>/
+</span> -<span class="ruby"> ...
+</span> -<span class="ruby"> platform/
+</span>    -<span class="ruby"> android/
+</span>       -<span class="ruby"> <span class="hljs-constant">AndroidManifest</span>.xml</span>
+</code></pre><p>Then the next step is to edit the AndroidManifest.xml. Open it, and go to the lines between the and .</p>
+<p>There you should find a the main of your mobile app.</p>
+<p>There you should add lines such that you have (some lines can already be there, so just add the lines you do not already have)</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">application</span>
+        <span class="hljs-attribute">android:icon</span>=<span class="hljs-value">"@drawable/appicon"</span>
+        <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"MobileApp"</span>
+        <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"MobileappApplication"</span>
+        <span class="hljs-attribute">android:debuggable</span>=<span class="hljs-value">"false"</span>
+    &gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">activity</span>
+            <span class="hljs-attribute">android:name</span>=<span class="hljs-value">".MobileappActivity"</span>
+            <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"MobileApp"</span>
+            <span class="hljs-attribute">android:theme</span>=<span class="hljs-value">"@style/Theme.Titanium"</span>
+            <span class="hljs-attribute">android:configChanges</span>=<span class="hljs-value">"keyboardHidden|orientation"</span>
+        &gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.VIEW"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.DEFAULT"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.BROWSABLE"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">data</span>  <span class="hljs-attribute">android:scheme</span>=<span class="hljs-value">"Mobileapp"</span> /&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+
+             <span class="hljs-comment">&lt;!-- TI_APPLICATION --&gt;</span>
+</code></pre><p>And to call your app from an URL, use <code>Mobileapp:&amp;#x2F;&amp;#x2F;</code></p>
+<p>Be careful with UPPERCASE and LOWERCASE letters in AndroidManifest.xml….I banged my head to walls for 1-2 days because of this….</p>
+<p>Wherever you see &#39;Mobileapp&#39; instead of &#39;MobileApp&#39;, it is not a mistake…..Android cannot handle the uppercase letters except for the first one…</p>
+<p>This is also the case with the URL, if you use &#39;MobileApp:&#x2F;&#x2F;&#39; nothing will happen, but it will work with &#39;Mobileapp:&#x2F;&#x2F;&#39; .</p>
+<p>(At least, when I first did the URL schemes, I was with SDK 1.6.2, so I had to be careful with letter cases…I don&#39;t know if it is still relevant with 1.7.0, but all I know is that my URL schemes still continue to work :) :) )</p>
+<p>Hope that this will help you.</p>
+<p>Tell me if it is ok for you.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 5th 2011, 7:42:49 am">July 5th 2011</span>
+								by <span class='authorname'>abbdoul ab</span><br>
+								<a class="icon-bg icon-link" href="question/120393/custom-url-scheme---iphone--android#answer-212192" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>hi,</p>
+<p>i tried following the above steps for android and iphone.. works good in iphone but android is not working… couldn&#39;t form the email link using gmail app or default android mail app.. also couldnt open the app through the browser by just typing in Appname:&#x2F;&#x2F; </p>
+<p>Please give some inputs and if possible share your tiapp.xml, so that it could provide some insight…</p>
+<p>thanks</p>
+<p>asghar ali</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 1st 2011, 7:42:17 pm">September 1st 2011</span>
+											by <span class='authorname'>asghar ali</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><ul>
+<li><p>asghar ali you would need an html link element with the href attribute set to &quot;Appname:&#x2F;&#x2F;&quot;.</p>
+</li>
+<li><p>From my experience I am adding a bit of a correction to the posters code block, although I must thank him for showing how to use your own custom AndroidManifest.xml file.</p>
+</li>
+<li><p>You don&#39;t need the LAUNCHER category in the intent-filter that you want to use to be able to launch the app from an intent or web browser.</p>
+</li>
+<li><p>With that configuration you might not see the App show up in the App Launcher, so if you wan the user to be able to launch it normally you would need to include another intent filter as shown (which is the original intent filter from when you copy the file).</p>
+</li>
+</ul>
+<p>For more information on what you can do with the scheme see the <a href="http:&#x2F;&#x2F;developer.android.com&#x2F;guide&#x2F;topics&#x2F;manifest&#x2F;data-element.html">documentation</a></p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">application</span>
+        <span class="hljs-attribute">android:icon</span>=<span class="hljs-value">"@drawable/appicon"</span>
+        <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"MobileApp"</span>
+        <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"MobileappApplication"</span>
+        <span class="hljs-attribute">android:debuggable</span>=<span class="hljs-value">"false"</span>
+    &gt;</span>
+    <span class="hljs-comment">&lt;!-- TI_APPLICATION --&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">activity</span>
+            <span class="hljs-attribute">android:name</span>=<span class="hljs-value">".MobileappActivity"</span>
+            <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"MobileApp"</span>
+            <span class="hljs-attribute">android:theme</span>=<span class="hljs-value">"@style/Theme.Titanium"</span>
+            <span class="hljs-attribute">android:configChanges</span>=<span class="hljs-value">"keyboardHidden|orientation"</span>
+        &gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.VIEW"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.DEFAULT"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.BROWSABLE"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">data</span>  <span class="hljs-attribute">android:scheme</span>=<span class="hljs-value">"Mobileapp"</span> /&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+               <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.MAIN"</span> /&gt;</span>
+               <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span> /&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="January 8th 2013, 1:31:59 pm">January 8th 2013</span>
+											by <span class='authorname'>Matthew Orlando</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve been trying to so the same though the url should be example: <code>myapp:&amp;#x2F;&amp;#x2F;</code> all lowercase, would it be possible for the url to call the app all be in lowercase?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 17th 2013, 1:19:12 pm">February 17th 2013</span>
+											by <span class='authorname'>Joseph Sachs</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I need to get parameters from the url. </p>
+<p> I have the above working and I can get parameters when the app is initially launched from the url (accessed by data property of currentActivity.getIntent()) .  However, if the app is in the background and the url is clicked, the app receives focus, but the url is null. </p>
+<p>The scenario is that a user clicks an emailed link with a transactionId included as a query string parameter.  The app responds according to the transactionId.  However, if the app is already opened on the user&#39;s device and they click on the email link, I can&#39;t get the transactionId.  Any help would be greatly appreciated.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 7th 2014, 8:38:09 pm">May 7th 2014</span>
+											by <span class='authorname'>Rick White</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>5</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-256960">
+				
+						<section>
+							<p>In SDK 3.0, there is No need to create a Custom AndroidManifest.xml, but rather simply open your tiapp.xml and find your &lt;android&gt; &lt;application&gt; node, and make sure this is added in there:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">activity</span>
+            <span class="hljs-attribute">android:name</span>=<span class="hljs-value">".MobileappActivity"</span>
+            <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"MobileApp"</span>
+            <span class="hljs-attribute">android:theme</span>=<span class="hljs-value">"@style/Theme.Titanium"</span>
+            <span class="hljs-attribute">android:configChanges</span>=<span class="hljs-value">"keyboardHidden|orientation"</span>
+        &gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.VIEW"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.DEFAULT"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.BROWSABLE"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span> /&gt;</span>
+                     <span class="hljs-tag">&lt;<span class="hljs-title">data</span>  <span class="hljs-attribute">android:scheme</span>=<span class="hljs-value">"Mobileapp"</span> /&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 17th 2013, 1:29:10 pm">February 17th 2013</span>
+								by <span class='authorname'>Joseph Sachs</span><br>
+								<a class="icon-bg icon-link" href="question/120393/custom-url-scheme---iphone--android#answer-256960" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This is not working for me, Please see below my tiapp.xml</p>
+<p>Can you please correct me if i missed something</p>
+<pre><code class="hljs"><span class="hljs-pi">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">ti:app</span> <span class="hljs-attribute">xmlns:ti</span>=<span class="hljs-value">"http://ti.appcelerator.org"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">id</span>&gt;</span>com.samy.laumch<span class="hljs-tag">&lt;/<span class="hljs-title">id</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">name</span>&gt;</span>LaunchApp<span class="hljs-tag">&lt;/<span class="hljs-title">name</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">version</span>&gt;</span>1.0<span class="hljs-tag">&lt;/<span class="hljs-title">version</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">publisher</span>&gt;</span>a<span class="hljs-tag">&lt;/<span class="hljs-title">publisher</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">url</span>&gt;</span>http://<span class="hljs-tag">&lt;/<span class="hljs-title">url</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">description</span>&gt;</span>not specified<span class="hljs-tag">&lt;/<span class="hljs-title">description</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">copyright</span>&gt;</span>2013 by a<span class="hljs-tag">&lt;/<span class="hljs-title">copyright</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">icon</span>&gt;</span>appicon.png<span class="hljs-tag">&lt;/<span class="hljs-title">icon</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">persistent-wifi</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">persistent-wifi</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">prerendered-icon</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">prerendered-icon</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">statusbar-style</span>&gt;</span>default<span class="hljs-tag">&lt;/<span class="hljs-title">statusbar-style</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">statusbar-hidden</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">statusbar-hidden</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">fullscreen</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">fullscreen</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">navbar-hidden</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">navbar-hidden</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">analytics</span>&gt;</span>true<span class="hljs-tag">&lt;/<span class="hljs-title">analytics</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">guid</span>&gt;</span>cd762d49-ed16-4355-b0f7-7922255c0287<span class="hljs-tag">&lt;/<span class="hljs-title">guid</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-title">iphone</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">orientations</span> <span class="hljs-attribute">device</span>=<span class="hljs-value">"iphone"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">orientation</span>&gt;</span>Ti.UI.PORTRAIT<span class="hljs-tag">&lt;/<span class="hljs-title">orientation</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">orientations</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">orientations</span> <span class="hljs-attribute">device</span>=<span class="hljs-value">"ipad"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">orientation</span>&gt;</span>Ti.UI.PORTRAIT<span class="hljs-tag">&lt;/<span class="hljs-title">orientation</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">orientation</span>&gt;</span>Ti.UI.UPSIDE_PORTRAIT<span class="hljs-tag">&lt;/<span class="hljs-title">orientation</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">orientation</span>&gt;</span>Ti.UI.LANDSCAPE_LEFT<span class="hljs-tag">&lt;/<span class="hljs-title">orientation</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">orientation</span>&gt;</span>Ti.UI.LANDSCAPE_RIGHT<span class="hljs-tag">&lt;/<span class="hljs-title">orientation</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">orientations</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">iphone</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">android</span> <span class="hljs-attribute">xmlns:android</span>=<span class="hljs-value">"http://schemas.android.com/apk/res/android"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">activity</span>
+        <span class="hljs-attribute">android:name</span>=<span class="hljs-value">".LaunchApp"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.MAIN"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span> /&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.VIEW"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.DEFAULT"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.BROWSABLE"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span> /&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">data</span>  <span class="hljs-attribute">android:scheme</span>=<span class="hljs-value">"http"</span> <span class="hljs-attribute">android:host</span>=<span class="hljs-value">"com.samy.laumch"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">android</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">mobileweb</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">precache</span>/&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">splash</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">enabled</span>&gt;</span>true<span class="hljs-tag">&lt;/<span class="hljs-title">enabled</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">inline-css-images</span>&gt;</span>true<span class="hljs-tag">&lt;/<span class="hljs-title">inline-css-images</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">splash</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">theme</span>&gt;</span>default<span class="hljs-tag">&lt;/<span class="hljs-title">theme</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">mobileweb</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">modules</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">deployment-targets</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">target</span> <span class="hljs-attribute">device</span>=<span class="hljs-value">"iphone"</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">target</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">target</span> <span class="hljs-attribute">device</span>=<span class="hljs-value">"ipad"</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">target</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">target</span> <span class="hljs-attribute">device</span>=<span class="hljs-value">"blackberry"</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">target</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">target</span> <span class="hljs-attribute">device</span>=<span class="hljs-value">"android"</span>&gt;</span>true<span class="hljs-tag">&lt;/<span class="hljs-title">target</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">target</span> <span class="hljs-attribute">device</span>=<span class="hljs-value">"mobileweb"</span>&gt;</span>true<span class="hljs-tag">&lt;/<span class="hljs-title">target</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">deployment-targets</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">sdk-version</span>&gt;</span>3.0.2.v20130215134659<span class="hljs-tag">&lt;/<span class="hljs-title">sdk-version</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">ti:app</span>&gt;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 9:12:18 pm">March 6th 2013</span>
+											by <span class='authorname'>Saamy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>After i create xml in below location its working. But not from tiapp.xml</p>
+<pre><code class="hljs">&lt;MyAppHome&gt;
+ -<span class="ruby"> <span class="hljs-constant">Resources</span>/
+</span> -<span class="ruby"> ...
+</span> -<span class="ruby"> platform/
+</span>    -<span class="ruby"> android/
+</span>       -<span class="ruby"> <span class="hljs-constant">AndroidManifest</span>.xml</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 7th 2013, 5:44:39 pm">March 7th 2013</span>
+											by <span class='authorname'>Saamy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Saamy, I think (I haven&#39;t verified) you missed &lt;manifest&gt; and &lt;application&gt; tags in tiapp.xml.<br><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;tiapp.xml_and_timodule.xml_Reference-section-29004921_tiapp.xmlandtimodule.xmlReference-application">Please, refer this document.</a></p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">android</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">manifest</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">application</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">activity</span>&gt;</span>
+               ...
+            <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">manifest</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">android</span>&gt;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2014, 10:24:02 pm">February 13th 2014</span>
+											by <span class='authorname'>Kanji Furuhashi</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It doesn&#39;t work for me . When i hit my app name in browser it by default searches in google and open the web version of my app. Please help me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 13th 2014, 8:46:01 am">August 13th 2014</span>
+											by <span class='authorname'>ajit jati</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>5</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-281643">
+				
+						<section>
+							<p>It doesn&#39;t work for me . When i hit my app name in browser it by default searches in google and open the web version of my app. Please help me.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 13th 2014, 8:45:01 am">August 13th 2014</span>
+								by <span class='authorname'>ajit jati</span><br>
+								<a class="icon-bg icon-link" href="question/120393/custom-url-scheme---iphone--android#answer-281643" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-287136">
+				
+						<section>
+							<p>For open link in android you have to write following code:</p>
+<p>&lt;application android:icon=&quot;@drawable&#x2F;appicon&quot; android:label=&quot;Buddy Drinks&quot; android:name=&quot;BuddyDrinksApplication&quot;&gt;<br>               &lt;activity android:name=&quot;Application_Activity_Name&quot; android:label=&quot;@string&#x2F;app_name&quot; android:configChanges=&quot;keyboardHidden|orientation|screenSize&quot;&gt;<br>                    &lt;intent-filter&gt;<br>                        &lt;action android:name=&quot;android.intent.action.MAIN&quot;&#x2F;&gt;<br>                        &lt;action android:name=&quot;android.intent.action.VIEW&quot;&#x2F;&gt;<br>                    &lt;&#x2F;intent-filter&gt;<br>                &lt;&#x2F;activity&gt;<br>                &lt;activity android:name=&quot;Package _Name.Application_Activity_Name&quot; android:label=&quot;@string&#x2F;app_name&quot; android:configChanges=&quot;keyboardHidden|orientation|screenSize&quot;&gt;<br>                    &lt;intent-filter android:label=&quot;@string&#x2F;app_name&quot;&gt;<br>                       &lt;action android:name=&quot;android.intent.action.VIEW&quot; &#x2F;&gt;<br>                    &lt;category android:name=&quot;android.intent.category.DEFAULT&quot; &#x2F;&gt;<br>                    &lt;category android:name=&quot;android.intent.category.BROWSABLE&quot; &#x2F;&gt;<br>                    &lt;data android:scheme=&quot;Schema_name _As_you_want&quot; android:host=&quot;As_you_want&quot;&#x2F;&gt;<br>                &lt;&#x2F;intent-filter&gt;<br>            &lt;&#x2F;activity&gt;</p>
+<p>Now got to the terminal write command(Mac terminal command)<br>.&#x2F;adb shell am start -a android.intent.action.VIEW -d &quot;Schema_name:&#x2F;&#x2F;Host_Name&quot; Package_Name</p>
+<p>run this command your application will start<br> You can check this via create a link also.<br>For create the link follow this link<br>https:&#x2F;&#x2F;developers.google.com&#x2F;app-indexing&#x2F;webmasters&#x2F;test</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 23rd 2015, 10:38:58 am">April 23rd 2015</span>
+								by <span class='authorname'>Alok Gupta</span><br>
+								<a class="icon-bg icon-link" href="question/120393/custom-url-scheme---iphone--android#answer-287136" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

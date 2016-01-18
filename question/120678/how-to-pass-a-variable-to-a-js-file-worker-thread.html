@@ -1,0 +1,329 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to pass a variable to a .js file worker thread? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to pass a variable to a .js file worker thread?</h1>
+		</header>
+		<section>
+			<p>I&#39;m coding a desktop application and I need to be able to download and save files as well as update the user as to download progress. Here is the code of the main index file:</p>
+<pre><code class="hljs">&lt;html&gt;
+&lt;head&gt;
+
+    var BINARY_UNITS= [<span class="hljs-number">1024</span>, <span class="hljs-string">'Ki'</span>, <span class="hljs-string">'Mi'</span>, <span class="hljs-string">'Gi'</span>, <span class="hljs-string">'Ti'</span>, <span class="hljs-string">'Pi'</span>, <span class="hljs-string">'Ei'</span>, <span class="hljs-string">'Zi'</span>, <span class="hljs-string">'Yo'</span>];
+    var SI_UNITS= [<span class="hljs-number">1000</span>, <span class="hljs-string">'k'</span>, <span class="hljs-string">'M'</span>, <span class="hljs-string">'G'</span>, <span class="hljs-string">'T'</span>, <span class="hljs-string">'P'</span>, <span class="hljs-string">'E'</span>, <span class="hljs-string">'Z'</span>, <span class="hljs-string">'Y'</span>];
+
+    <span class="hljs-keyword">function</span> unitify(n, units) {
+        for (var i= units.length; i--&gt;<span class="hljs-number">1</span>;) {
+            var unit= Math.pow(units[<span class="hljs-number">0</span>], i);
+            if (n &gt;= unit) {
+        var result = n / unit; 
+        return result.toFixed(<span class="hljs-number">2</span>) + units[i];
+        }
+        }
+        return n;
+    }
+
+    // How many byte have been downloaded yet
+    var dlbytes = <span class="hljs-number">0</span>;
+
+    // Uses a Worker thread <span class="hljs-keyword">to</span> download everything <span class="hljs-keyword">in</span> the background
+    <span class="hljs-keyword">function</span> downloadFiles()
+    {
+        var <span class="hljs-variable">$worker</span> = Titanium.Worker.createWorker(<span class="hljs-string">'download.js'</span>);
+
+        <span class="hljs-variable">$worker</span>.onmessage = function(<span class="hljs-variable">$event</span>)
+        {
+            var newdl = parseInt(<span class="hljs-variable">$event</span>.message);
+            if(newdl == <span class="hljs-number">0</span>) {
+                dlbytes = <span class="hljs-number">0</span>;
+            } else if(newdl == -<span class="hljs-number">1</span>) {
+                alert(<span class="hljs-string">'Download failed'</span>);
+                dlbytes = <span class="hljs-number">0</span>;
+                <span class="hljs-variable">$worker</span>.terminate();
+            } else if(newdl == -<span class="hljs-number">2</span>) {                    
+                alert(<span class="hljs-string">'Download complete'</span>);
+                <span class="hljs-variable">$worker</span>.terminate();
+            } else {
+                dlbytes += newdl;
+            }
+            document.getElementById(<span class="hljs-string">'dlsize'</span>).innerText = unitify(dlbytes,BINARY_UNITS);
+        };
+
+        <span class="hljs-variable">$worker</span>.start();
+    }
+
+&lt;/head&gt;
+&lt;body style=<span class="hljs-string">"background-color:#1c1c1c;margin:0"</span> &gt;
+    &lt;div style=<span class="hljs-string">"border-top:1px solid #404040"</span>&gt;
+        &lt;div style=<span class="hljs-string">"color:#fff;;padding:10px"</span>&gt;
+            Welcome <span class="hljs-keyword">to</span> Titanium
+        &lt;/div&gt;
+
+        &lt;div style=<span class="hljs-string">"color:#ff0;padding:20px"</span>&gt;
+            Downloaded &lt;span id=<span class="hljs-string">"dlsize"</span>&gt;<span class="hljs-number">0</span> &lt;/span&gt;B
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p>here is the download.js file:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> url = <span class="hljs-string">'http://www.example.com/bigfile.zip'</span>;
+<span class="hljs-keyword">var</span> httpClient = Titanium.Network.createHTTPClient();
+httpClient.xxxWorker = <span class="hljs-keyword">this</span>;
+
+<span class="hljs-comment">//Check for d/l finished event</span>
+httpClient.onreadystatechange = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.readyState == <span class="hljs-number">4</span>) {
+        <span class="hljs-keyword">this</span>.xxxWorker.postMessage(-<span class="hljs-number">2</span>);
+    }
+};
+
+httpClient.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">this</span>.xxxWorker.postMessage(-<span class="hljs-number">1</span>);
+};
+
+<span class="hljs-keyword">if</span> (httpClient.open(<span class="hljs-string">'GET'</span>, url)) {
+    <span class="hljs-keyword">this</span>.postMessage(<span class="hljs-number">0</span>);
+    <span class="hljs-keyword">var</span> file = Titanium.Filesystem.createTempFile();
+    <span class="hljs-keyword">var</span> filePath =     Titanium.Filesystem.getDesktopDirectory().toString()+
+                Titanium.Filesystem.getSeparator()+
+                <span class="hljs-string">'bigfile.zip'</span>;
+    file.copy(filePath);
+
+    httpClient.xxxFile = filePath;
+
+    <span class="hljs-comment">// Handle the received data (Titanium.Filesystem.File can also be used as a handler)</span>
+    httpClient.receive(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+        <span class="hljs-keyword">var</span> file = Titanium.Filesystem.getFile(<span class="hljs-keyword">this</span>.xxxFile);
+        <span class="hljs-keyword">var</span> fileStream = file.open(Titanium.Filesystem.MODE_APPEND);
+        fileStream.write(data);
+        fileStream.close();
+        <span class="hljs-keyword">this</span>.xxxWorker.postMessage(data.length);
+    });
+} <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">this</span>.postMessage(-<span class="hljs-number">1</span>);
+}
+</code></pre><p>I would like to pass to the worker thread the URL to download, the filename to save to, and the directory to save to.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 7th 2011, 4:50:23 pm">June 7th 2011</span>
+				by <span class='authorname'>Tom Ashley</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>thread</span></li>
+					
+						<li><span class='tagname'>variable</span></li>
+					
+						<li><span class='tagname'>worker</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I see this <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;desktop&#x2F;latest&#x2F;Titanium.Worker.Worker.postMessage-method.html">http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;desktop&#x2F;latest&#x2F;Titanium.Worker.Worker.postMessage-method.html</a> but I am having trouble figuring out how to send data to the worker. I kind of see how some data is being sent back.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 7th 2011, 10:32:54 pm">June 7th 2011</span>
+								by <span class='authorname'>Tom Ashley</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-209640">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Like so:</p>
+<pre><code class="hljs">&lt;html&gt;
+&lt;head&gt;
+
+    var BINARY_UNITS= [<span class="hljs-number">1024</span>, <span class="hljs-string">'Ki'</span>, <span class="hljs-string">'Mi'</span>, <span class="hljs-string">'Gi'</span>, <span class="hljs-string">'Ti'</span>, <span class="hljs-string">'Pi'</span>, <span class="hljs-string">'Ei'</span>, <span class="hljs-string">'Zi'</span>, <span class="hljs-string">'Yo'</span>];
+    var SI_UNITS= [<span class="hljs-number">1000</span>, <span class="hljs-string">'k'</span>, <span class="hljs-string">'M'</span>, <span class="hljs-string">'G'</span>, <span class="hljs-string">'T'</span>, <span class="hljs-string">'P'</span>, <span class="hljs-string">'E'</span>, <span class="hljs-string">'Z'</span>, <span class="hljs-string">'Y'</span>];
+
+    <span class="hljs-keyword">function</span> unitify(n, units) {
+        for (var i= units.length; i--&gt;<span class="hljs-number">1</span>;) {
+            var unit= Math.pow(units[<span class="hljs-number">0</span>], i);
+            if (n &gt;= unit) {
+        var result = n / unit; 
+        return result.toFixed(<span class="hljs-number">2</span>) + units[i];
+        }
+        }
+        return n;
+    }
+
+    // How many byte have been downloaded yet
+    var dlbytes = <span class="hljs-number">0</span>;
+
+    // Uses a Worker thread <span class="hljs-keyword">to</span> download everything <span class="hljs-keyword">in</span> the background
+    <span class="hljs-keyword">function</span> downloadFiles()
+    {
+        var <span class="hljs-variable">$worker</span> = Titanium.Worker.createWorker(<span class="hljs-string">'download.js'</span>);
+
+         <span class="hljs-variable">$worker</span>.postMessage({
+             url:<span class="hljs-string">'http://dl.dropbox.com/u/5985296/mattapperson.zip'</span>, 
+             filename: <span class="hljs-string">'test.zip'</span>, 
+             dir: Titanium.Filesystem.getDesktopDirectory().toString()+Titanium.Filesystem.getSeparator()
+         });
+
+        <span class="hljs-variable">$worker</span>.onmessage = function(<span class="hljs-variable">$event</span>)
+        {
+            var newdl = parseInt(<span class="hljs-variable">$event</span>.message);
+            if(newdl == <span class="hljs-number">0</span>) {
+                dlbytes = <span class="hljs-number">0</span>;
+            } else if(newdl == -<span class="hljs-number">1</span>) {
+                alert(<span class="hljs-string">'Download failed'</span>);
+                dlbytes = <span class="hljs-number">0</span>;
+                <span class="hljs-variable">$worker</span>.terminate();
+            } else if(newdl == -<span class="hljs-number">2</span>) {                    
+                alert(<span class="hljs-string">'Download complete'</span>);
+                <span class="hljs-variable">$worker</span>.terminate();
+            } else {
+                dlbytes += newdl;
+            }
+            document.getElementById(<span class="hljs-string">'dlsize'</span>).innerText = unitify(dlbytes,BINARY_UNITS);
+        };
+
+        <span class="hljs-variable">$worker</span>.start();
+    }
+
+&lt;/head&gt;
+&lt;body style=<span class="hljs-string">"background-color:#1c1c1c;margin:0"</span> &gt;
+    &lt;div style=<span class="hljs-string">"border-top:1px solid #404040"</span>&gt;
+        &lt;div style=<span class="hljs-string">"color:#fff;;padding:10px"</span>&gt;
+            Welcome <span class="hljs-keyword">to</span> Titanium
+        &lt;/div&gt;
+
+        &lt;div style=<span class="hljs-string">"color:#ff0;padding:20px"</span>&gt;
+            Downloaded &lt;span id=<span class="hljs-string">"dlsize"</span>&gt;<span class="hljs-number">0</span> &lt;/span&gt;B
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p>Then the worker:</p>
+<pre><code class="hljs"><span class="hljs-keyword">this</span>.onmessage = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">($event)</span>
+</span>{
+    url = $event.message.url;
+
+    <span class="hljs-keyword">var</span> httpClient = Titanium.Network.createHTTPClient();
+    httpClient.xxxWorker = <span class="hljs-keyword">this</span>;
+
+    <span class="hljs-comment">//Check for d/l finished event</span>
+    httpClient.onreadystatechange = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">if</span> (e.readyState == <span class="hljs-number">4</span>) {
+            <span class="hljs-keyword">this</span>.xxxWorker.postMessage(-<span class="hljs-number">2</span>);
+        }
+    };
+
+    httpClient.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">this</span>.xxxWorker.postMessage(-<span class="hljs-number">1</span>);
+    };
+
+    <span class="hljs-keyword">if</span> (httpClient.open(<span class="hljs-string">'GET'</span>, url)) {
+        <span class="hljs-keyword">this</span>.postMessage(<span class="hljs-number">0</span>);
+        <span class="hljs-keyword">var</span> file = Titanium.Filesystem.createTempFile();
+        <span class="hljs-keyword">var</span> filePath =     $event.message.dir+$event.message.filename;
+        file.copy(filePath);
+
+        httpClient.xxxFile = filePath;
+
+        <span class="hljs-comment">// Handle the received data (Titanium.Filesystem.File can also be used as a handler)</span>
+        httpClient.receive(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+            <span class="hljs-keyword">var</span> file = Titanium.Filesystem.getFile(<span class="hljs-keyword">this</span>.xxxFile);
+            <span class="hljs-keyword">var</span> fileStream = file.open(Titanium.Filesystem.MODE_APPEND);
+            fileStream.write(data);
+            fileStream.close();
+            <span class="hljs-keyword">this</span>.xxxWorker.postMessage(data.length);
+        });
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">this</span>.postMessage(-<span class="hljs-number">1</span>);
+    }
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 8th 2011, 3:25:02 pm">June 8th 2011</span>
+								by <span class='authorname'>Matt Apperson</span><br>
+								<a class="icon-bg icon-link" href="question/120678/how-to-pass-a-variable-to-a-js-file-worker-thread#answer-209640" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

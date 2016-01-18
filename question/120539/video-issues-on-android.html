@@ -1,0 +1,298 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Video issues on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Video issues on Android</h1>
+		</header>
+		<section>
+			<p>Just a heads up for anyone else looking to implement streaming video on Android. Here are a few things that I learned through trial and error – this was using 1.7.0 RC (June 3, 2011):</p>
+<ol>
+<li><p>The videoplayer loads as a heavy window, so if you add it to a new window (the way you would in iOS), the user has to hit the back button twice to return to the previous window. So create and add it directly to your current window. Of course if you don&#39;t add it to a new window on iOS, you won&#39;t have any way to go &quot;back&quot; – so you&#39;ll need to have branching logic to work on both platforms.</p>
+</li>
+<li><p>The player on Android does not show a loader – so the user cannot tell if it is loading the video (iOS has an activity indicator). </p>
+</li>
+<li><p>The Ti.UI.ActivityIndicator() does not work properly until the video has started playing – it gets hidden behind the videoplayer. So you cannot use that for a &quot;Loading…&quot; indicator. You can, however, display a toast at any time by using Titanium.UI.createNotification(); </p>
+</li>
+<li><p>If you want to have a &quot;loading&quot; screen, you can create a view with some custom animation – or a label with &quot;loading&quot; on it  – and add it to the videoplayer itself. You can remove it once the &quot;load&quot; event fires. However, while &quot;add()&quot; works, &quot;remove()&quot; does not, so in order to hide your loader set its visible property to &quot;false&quot;.</p>
+</li>
+<li><p>The &quot;playing&quot; event does not fire – but &quot;load&quot; does. On iOS, &quot;load&quot; fires, but &quot;playing&quot; does not. </p>
+</li>
+<li><p>There is no event that fires to indicate that the video is buffering. The &quot;loadstate&quot; event does not fire on android, and on iOS it only fires when the loadstate changes from playing to buffering – but not from buffering to ready to play again. </p>
+</li>
+<li><p>The play&#x2F;pause controls don&#39;t change when it pauses to buffer (the button remains in the &quot;pause&quot; state) making it quite confusing to a user. Once the video is ready to play again the user has to press the &quot;play&#x2F;pause&quot; button – which will return it to the play state – and then press it again to restart playback. This is huge usability issue in the current videoplayer.</p>
+</li>
+<li><p>The videoplayer properties of &quot;playing&quot; and &quot;playbackstate&quot; both return undefined so you can&#39;t even check every few seconds to see if the player is in the &quot;playing&quot; state and if not manually call pause().</p>
+</li>
+<li><p>Even if you could check the playbackState, calling the pause() method doesn&#39;t seem to work either. </p>
+</li>
+</ol>
+<p>All in all the current videoplayer on Android – at least for streaming – is very buggy. Hopefully these issues can be addressed in the next release of the SDK.</p>
+<p>Here is a sample implementation with some notes in case it can help anyone else:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> activeMovie;
+<span class="hljs-keyword">var</span> loadingLabel;
+<span class="hljs-keyword">var</span> playingInterval;
+
+<span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({
+    backgroundColor: <span class="hljs-string">'#66cccc'</span>,
+});
+
+<span class="hljs-keyword">var</span> button = Titanium.UI.createButton({
+    title:<span class="hljs-string">"open video"</span>
+});
+
+button.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    showAlert(<span class="hljs-string">"Loading..."</span>);
+
+    loadingLabel = Titanium.UI.createLabel({
+        text:<span class="hljs-string">"Loading..."</span>,
+        color: <span class="hljs-string">"#ffffff"</span>,
+        width: <span class="hljs-string">"auto"</span>,
+        height: <span class="hljs-string">"auto"</span>
+    });
+
+    activeMovie = Titanium.Media.createVideoPlayer({
+        contentURL: <span class="hljs-string">"http://c0222252.cdn.cloudfiles.rackspacecloud.com/0032_MotoBlur.m4v"</span>,
+        movieControlMode:Titanium.Media.VIDEO_CONTROL_DEFAULT,
+        scalingMode:Titanium.Media.VIDEO_SCALING_ASPECT_FIT,
+        autoplay: <span class="hljs-literal">true</span>
+    });
+
+    <span class="hljs-comment">// fires on android  --  not on iOS</span>
+    activeMovie.addEventListener(<span class="hljs-string">'load'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        showAlert(<span class="hljs-string">"Load event fired..."</span>);
+        <span class="hljs-comment">// ---- remove does not work on android ------</span>
+        <span class="hljs-comment">//activeMovie.remove(loadingLabel);</span>
+        loadingLabel.visible = <span class="hljs-literal">false</span>;
+        playingInterval = setInterval(playingCheck, <span class="hljs-number">5000</span>);        
+    });
+
+    <span class="hljs-comment">// fires on iOS  -- not on android</span>
+    activeMovie.addEventListener(<span class="hljs-string">'playing'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        showAlert(<span class="hljs-string">"Playing event fired..."</span>);
+        playingInterval = setInterval(playingCheck, <span class="hljs-number">5000</span>);        
+    });
+
+    <span class="hljs-comment">// fires on iOS but not android</span>
+    activeMovie.addEventListener(<span class="hljs-string">'loadstate'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        showAlert(<span class="hljs-string">"loadstate event fired: "</span> + e.loadState);    
+    });
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">parseFloat</span>(Titanium.Platform.version) &gt;= <span class="hljs-number">3.2</span>){
+        win.add(activeMovie);
+    }
+
+    <span class="hljs-comment">// show the loading label on android only -- iOS has an activity indicator</span>
+    <span class="hljs-keyword">if</span>(Ti.Platform.name == <span class="hljs-string">'android'</span>){
+        activeMovie.add(loadingLabel);
+    }
+    activeMovie.play();
+
+
+});
+
+<span class="hljs-comment">// correctly gets the properties on iOS but not on android</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">playingCheck</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-keyword">var</span> msg = <span class="hljs-string">"&gt;&gt;"</span>;
+    <span class="hljs-comment">// returns undefined on android</span>
+    msg += <span class="hljs-string">"playing: "</span> + activeMovie.playing;
+    <span class="hljs-comment">// returns undefined on android</span>
+    msg += <span class="hljs-string">" | playbackState: "</span> + activeMovie.playbackState;
+    showAlert(msg);
+}
+
+
+
+win.add(button);
+win.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 3rd 2011, 6:32:29 pm">June 3rd 2011</span>
+				by <span class='authorname'>brian kurzius</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>video</span></li>
+					
+						<li><span class='tagname'>videoplayer</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Thank you for sharing all of this information, VERY much appreciated!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 3rd 2011, 7:00:30 pm">June 3rd 2011</span>
+								by <span class='authorname'>Peter janett</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Thks for such detailed infor, much appreciate. I find myself spending countless of hours working on Long list of Ti&#39;s bug as well. It&#39;s awfully frustrating!!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 5th 2011, 2:10:51 pm">June 5th 2011</span>
+								by <span class='authorname'>Daniel Lim</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>wonderfull code….Thank you so much</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 8th 2014, 3:56:55 am">March 8th 2014</span>
+								by <span class='authorname'>Sabari Mano</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-209164">
+				
+						<section>
+							<p>For those who want to create a custom loader animation, here is a possible solution. You could either create an array of image names – or name your images with a sequential number and use an index to load the correct one. Below is a sample of how to code it. Assume that you have 12 images and you number them loader1.png, loader2.png, etc:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> = Ti.UI.createWindow();
+
+<span class="hljs-comment">// create an imageview and set it to the width and height of your images</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> loaderImage</span> = Ti.UI.createImageView({
+  width:<span class="hljs-number">54</span>,
+  height:<span class="hljs-number">54</span>
+});
+
+<span class="hljs-comment">// add it to your window</span>
+win.add(loaderImage);
+
+<span class="hljs-comment">// set the length of the images you have in your sequence</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> loaderArrayLength</span>=<span class="hljs-number">12</span>;
+
+<span class="hljs-comment">// initialize the index to 1</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> loaderIndex</span>=<span class="hljs-number">1</span>;
+
+<span class="hljs-comment">// this function will be called by the setInterval</span>
+function loadingAnimation(){
+  <span class="hljs-comment">// set the image property of the imageview by constructing the path with the loaderIndex variable</span>
+  loaderImage.image = <span class="hljs-string">"images/loader-sequence/frame"</span> + loaderIndex + <span class="hljs-string">".png"</span>;
+  <span class="hljs-comment">//increment the index so that next time it loads the next image in the sequence</span>
+  loaderIndex++;
+  <span class="hljs-comment">// if you have reached the end of the sequence, reset it to 1</span>
+  <span class="hljs-keyword">if</span>(loaderIndex===<span class="hljs-number">13</span>)loaderIndex=<span class="hljs-number">1</span>;
+}
+
+<span class="hljs-comment">// start the setInverval -- adjust the time to make a smooth animation</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> loaderAnimate</span> = setInterval(loadingAnimation,<span class="hljs-number">80</span>);
+
+
+win.<span class="hljs-keyword">open</span>();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 3rd 2011, 7:54:23 pm">June 3rd 2011</span>
+								by <span class='authorname'>brian kurzius</span><br>
+								<a class="icon-bg icon-link" href="question/120539/video-issues-on-android#answer-209164" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-209156">
+				
+						<section>
+							<p>great - thanks for sharing!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 3rd 2011, 6:36:26 pm">June 3rd 2011</span>
+								by <span class='authorname'>Brian Dittmer</span><br>
+								<a class="icon-bg icon-link" href="question/120539/video-issues-on-android#answer-209156" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
