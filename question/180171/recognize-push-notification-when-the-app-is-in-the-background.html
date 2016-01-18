@@ -1,0 +1,331 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>recognize push notification when the app is in the background » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>recognize push notification when the app is in the background</h1>
+		</header>
+		<section>
+			<p>Hello guys,<br>my callback method is called, if click the user to push notification button.<br>i want in my app a list of all push notifications because i need a callback methode if a push notification comm in.<br>this is my current code for push notification:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> CloudPush;
+<span class="hljs-keyword">var</span> notificationModel = <span class="hljs-built_in">require</span>(<span class="hljs-string">"lib/notificationModel"</span>);
+
+<span class="hljs-keyword">if</span> (OS_ANDROID) {
+    CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloudpush'</span>);
+    CloudPush.debug = <span class="hljs-literal">true</span>;
+    CloudPush.enabled = <span class="hljs-literal">true</span>;
+    CloudPush.showTrayNotificationsWhenFocused = <span class="hljs-literal">true</span>;
+    CloudPush.focusAppOnPush = <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-keyword">var</span> deviceToken;
+<span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+Cloud.debug = <span class="hljs-literal">true</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loginDefault</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">//Create a Default User in Cloud Console, and login</span>
+    Cloud.Users.login({
+        login : <span class="hljs-string">'login'</span>,
+        password : <span class="hljs-string">'password'</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            defaultSubscribe();
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//alert("Login Fehlgeschlagen");</span>
+        }
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">defaultSubscribe</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> channelName;
+
+    <span class="hljs-keyword">if</span> (OS_IOS) {
+        channelName = <span class="hljs-string">"alertios"</span>;
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (OS_ANDROID) {
+        channelName = <span class="hljs-string">"alertandroid"</span>;
+    }
+
+    Cloud.PushNotifications.subscribe({
+        channel : channelName,
+        device_token : deviceToken,
+        type : (OS_IOS) ? <span class="hljs-string">"ios"</span> : <span class="hljs-string">"android"</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//alert(e);</span>
+        }
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openWebView</span>(<span class="hljs-params">pushurl</span>) </span>{
+    <span class="hljs-keyword">var</span> pushNewsWebview = Alloy.createController(<span class="hljs-string">"webView"</span>, {
+        url : pushurl
+    }).getView();
+
+    exports.tabGroup.activeTab.open(pushNewsWebview, {
+        animated : <span class="hljs-literal">true</span>
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushNotificationCallback</span>(<span class="hljs-params">evt</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'pushNotificationCallback '</span> + evt);
+
+    <span class="hljs-keyword">if</span> (OS_IOS) {
+
+        Ti.API.info(evt);
+
+        Alloy.Globals.pushAndSaveCurrentNotificationsCount(evt.data.badge);
+        Alloy.Globals.main.notificationTab.setBadge(Alloy.Globals.currentNotificationsCount);
+        <span class="hljs-keyword">var</span> notificationObjects = notificationModel.createNotificationObject(evt.data.alert, evt.data.badge);
+        Alloy.Global.addNotificationObjectToNotifications(notificationObjects);
+
+        <span class="hljs-keyword">var</span> dialog = Ti.UI.createAlertDialog({
+            cancel : <span class="hljs-number">0</span>
+        });
+
+        dialog.title = <span class="hljs-string">"Alert"</span>;
+        dialog.message = evt.data.alert;
+
+        <span class="hljs-keyword">if</span> (evt.data.pushurl) {
+            dialog.buttonNames = [<span class="hljs-string">'OK'</span>, <span class="hljs-string">"Öffnen"</span>];
+        } <span class="hljs-keyword">else</span> {
+            dialog.buttonNames = [<span class="hljs-string">"OK"</span>];
+        }
+
+        dialog.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.UI.iPhone.setAppBadge(Ti.UI.iPhone.getAppBadge() - evt.data.badge);
+            <span class="hljs-keyword">switch</span>(e.index) {
+            <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
+                openWebView(evt.data.pushurl);
+                <span class="hljs-keyword">break</span>;
+            }
+        });
+
+        dialog.show();
+
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (OS_ANDROID) {
+        <span class="hljs-keyword">var</span> payload = <span class="hljs-built_in">JSON</span>.parse(evt.payload);
+        <span class="hljs-keyword">var</span> dialog = Ti.UI.createAlertDialog({
+            cancel : <span class="hljs-number">0</span>
+        });
+
+        <span class="hljs-keyword">var</span> notificationObjects = notificationModel.createNotificationObject(payload.android.alert, <span class="hljs-number">1</span>);
+        Alloy.Global.addNotificationObjectToNotifications(notificationObjects);
+
+        dialog.title = payload.android.title;
+        dialog.message = payload.android.alert;
+
+        <span class="hljs-keyword">if</span> (payload.pushurl) {
+            dialog.buttonNames = [<span class="hljs-string">'OK'</span>, <span class="hljs-string">"Öffnen"</span>];
+        } <span class="hljs-keyword">else</span> {
+            dialog.buttonNames = [<span class="hljs-string">"OK"</span>];
+        }
+
+        dialog.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">switch</span>(e.index) {
+            <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
+                openWebView(payload.pushurl);
+                <span class="hljs-keyword">break</span>;
+            }
+        });
+
+        dialog.show();
+    }
+
+}
+
+<span class="hljs-keyword">if</span> (OS_ANDROID) {
+    CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        pushNotificationCallback(e);
+
+    });
+
+    CloudPush.addEventListener(<span class="hljs-string">'trayClickLaunchedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+    });
+
+    CloudPush.addEventListener(<span class="hljs-string">'trayClickFocusedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+    });
+
+}
+
+exports.tabGroup = <span class="hljs-literal">null</span>;
+exports.setup = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> (Ti.Network.online) {
+
+        <span class="hljs-keyword">if</span> (OS_ANDROID) {
+
+            <span class="hljs-keyword">if</span> (CloudPush.isGooglePlayServicesAvailable != CloudPush.SUCCESS) {
+                <span class="hljs-keyword">switch</span>(CloudPush.isGooglePlayServicesAvailable) {
+                <span class="hljs-keyword">case</span> CloudPush.SERVICE_DISABLED:
+                    alert(L(<span class="hljs-string">"cloudPushDisaple"</span>));
+                    <span class="hljs-keyword">break</span>;
+
+                <span class="hljs-keyword">case</span> CloudPush.SERVICE_INVALID :
+                    alert(L(<span class="hljs-string">"cloudPushInavlid"</span>));
+                    <span class="hljs-keyword">break</span>;
+
+                <span class="hljs-keyword">case</span> CloudPush.SERVICE_MISSING:
+                    alert(L(<span class="hljs-string">"cloudPushMissing"</span>));
+                    <span class="hljs-keyword">break</span>;
+
+                <span class="hljs-keyword">case</span> CloudPush.SERVICE_VERSION_UPDATE_REQUIRED:
+                    alert(L(<span class="hljs-string">"cloudPushUpdate"</span>));
+                    <span class="hljs-keyword">break</span>;
+
+                <span class="hljs-keyword">default</span>:
+                    alert(L(<span class="hljs-string">"cloudPushInavlid"</span>));
+                    <span class="hljs-keyword">break</span>;
+                }
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+            } <span class="hljs-keyword">else</span> {
+                CloudPush.retrieveDeviceToken({
+                    success : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                        deviceToken = e.deviceToken;
+                        loginDefault();
+                    },
+                    error : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                        <span class="hljs-comment">//alert(e.error);</span>
+                    }
+                });
+            }
+
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (OS_IOS) {
+
+            <span class="hljs-comment">// Check if the device is running iOS 8 or later</span>
+            <span class="hljs-keyword">if</span> (Ti.Platform.name == <span class="hljs-string">"iPhone OS"</span> &amp;&amp; <span class="hljs-built_in">parseInt</span>(Ti.Platform.version.split(<span class="hljs-string">"."</span>)[<span class="hljs-number">0</span>]) &gt;= <span class="hljs-number">8</span>) {
+                <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span>(<span class="hljs-params"></span>) </span>{
+                    Ti.Network.registerForPushNotifications({
+                        success : deviceTokenSuccess,
+                        error : deviceTokenError,
+                        callback : receivePush
+                    });
+                    <span class="hljs-comment">// Remove event listener once registered for push notifications</span>
+                    Ti.App.iOS.removeEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush);
+                };
+
+                <span class="hljs-comment">// Wait for user settings to be registered before registering for push notifications</span>
+                Ti.App.iOS.addEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush);
+
+                <span class="hljs-comment">// Register notification types to use</span>
+                Ti.App.iOS.registerUserNotificationSettings({
+                    types : [Ti.App.iOS.USER_NOTIFICATION_TYPE_ALERT, Ti.App.iOS.USER_NOTIFICATION_TYPE_SOUND, Ti.App.iOS.USER_NOTIFICATION_TYPE_BADGE]
+                });
+
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-comment">// For iOS 7 and earlier</span>
+                Ti.Network.registerForPushNotifications({
+                    <span class="hljs-comment">// Specifies which notifications to receive</span>
+                    types : [Ti.Network.NOTIFICATION_TYPE_BADGE, Ti.Network.NOTIFICATION_TYPE_ALERT, Ti.Network.NOTIFICATION_TYPE_SOUND],
+                    success : deviceTokenSuccess,
+                    error : deviceTokenError,
+                    callback : receivePush
+                });
+            }
+
+            <span class="hljs-comment">// Process incoming push notifications</span>
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">receivePush</span>(<span class="hljs-params">e</span>) </span>{
+                pushNotificationCallback(e);
+            }
+
+            <span class="hljs-comment">// Save the device token for subsequent API calls</span>
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span>(<span class="hljs-params">e</span>) </span>{
+                deviceToken = e.deviceToken;
+                loginDefault();
+            }
+
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span>(<span class="hljs-params">e</span>) </span>{
+                alert(<span class="hljs-string">'Failed to register for push notifications! '</span> + e.error);
+            }
+
+        }
+    }
+};
+</code></pre><p>Thank&#39;s for your help.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 12th 2015, 7:20:39 am">January 12th 2015</span>
+				by <span class='authorname'>Marius Hartig</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>push notification</span></li>
+					
+						<li><span class='tagname'>recognize</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p><a href="http:&#x2F;&#x2F;pastebin.com&#x2F;tFNL8JMi">here is my current code</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 12th 2015, 7:25:47 am">January 12th 2015</span>
+								by <span class='authorname'>Marius Hartig</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Improving heavy calculations in the code » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Improving heavy calculations in the code</h1>
+		</header>
+		<section>
+			<p>Hi.</p>
+<p>I&#39;m doing a word search game and now I have almost all job done, but I don&#39;t like the &quot;primitive&quot; system I have, because is inefficient.</p>
+<p>This is the summary:</p>
+<p>I draw a board of NxN labels and assign row and col to each one:</p>
+<pre><code class="hljs">    letterWidth = Math.<span class="hljs-built_in">floor</span>(<span class="hljs-number">320</span> / settings.gridSize);
+
+    <span class="hljs-keyword">for</span> (var row=<span class="hljs-number">0</span>; row&lt;settings.gridSize; row++) {
+        <span class="hljs-keyword">for</span> (var col=<span class="hljs-number">0</span>; col&lt;settings.gridSize; col++) {
+            var letter = Ti.UI.createLabel({
+                row: row,
+                col: col,
+                top: (row * letterWidth),
+                left: (col * letterWidth),
+                <span class="hljs-variable">height</span>: letterWidth,
+                <span class="hljs-variable">width</span>: letterWidth,
+                backgroundColor: <span class="hljs-string">'white'</span>,
+                <span class="hljs-built_in">textAlign</span>: <span class="hljs-string">'center'</span>,
+                <span class="hljs-built_in">text</span>: matrix[row][col].letter
+            });
+            letter.addEventListener(<span class="hljs-string">'touchstart'</span>, onTouchStart);
+            letter.addEventListener(<span class="hljs-string">'touchmove'</span>, onTouchMove);
+            letter.addEventListener(<span class="hljs-string">'touchend'</span>, onTouchEnd);
+
+            $.viewBoard.<span class="hljs-built_in">add</span>(letter);
+        }
+    }
+</code></pre><p>Then, when user taps over letters, I calculate the touch position on the $.viewBoard to calculate row&#x2F;col coordinates and highlight every touched letter.</p>
+<pre><code class="hljs"><span class="hljs-comment">// Returns the {row, col} at passed screen position in points</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getRowColByPos</span>(<span class="hljs-params">y, x</span>) </span>{
+    <span class="hljs-keyword">var</span> row = <span class="hljs-built_in">Math</span>.floor(y / letterWidth);
+    <span class="hljs-keyword">var</span> col = <span class="hljs-built_in">Math</span>.floor(x / letterWidth);
+
+    <span class="hljs-keyword">return</span> {row: row, col: col};
+}
+</code></pre><p>And here comes the problem: because I have no references to every label generated at runtime, I must always run over the complete $.viewBoard children to find the right label (by row and col) and get access:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">changeLetterColor</span><span class="hljs-params">(row, col, color)</span> {</span>
+    var <span class="hljs-built_in">children</span> = $.viewBoard.<span class="hljs-built_in">children</span>.slice(<span class="hljs-number">0</span>);
+
+    <span class="hljs-keyword">for</span> (var i=<span class="hljs-number">0</span>; i&lt;<span class="hljs-built_in">children</span>.length; ++i) {
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">children</span>[i].row == row &amp;&amp; <span class="hljs-built_in">children</span>[i].col == col) {
+            <span class="hljs-built_in">children</span>[i].backgroundColor = <span class="hljs-built_in">color</span>;
+            break;
+        }
+    }
+}
+</code></pre><p>It is so inefficient, but I don&#39;t know another way to retrieve the label, because I have no references to the labels.</p>
+<p>I&#39;m used to Alloy, where I always have a reference for items, but due to I need to configure the board with different sizes and resolutions, I need to do it in the classic way, that I&#39;m not used. </p>
+<p>Maybe are there some tricks I don&#39;t know to do this in a better way or to get access to the labels in a more straight way?</p>
+<p>Also, when executing changeLetterColor() inside a for loop (e.g.: I want to highlight 5 or 6 consecutive letters) on Android emulator I&#39;m having <code>E&amp;#x2F;dalvikvm(2545): JNI ERROR (app bug): local reference table overflow (max=512)</code>, but this is another question, because in real device it doesn&#39;t happens and works well.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 20th 2015, 7:26:46 pm">January 20th 2015</span>
+				by <span class='authorname'>Manuel Conde Vendrell</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-285310">
+				
+						<section>
+							<p>In the touchStart, touchMove, and touchEnd event handlers you should be able to access the source property which you can then use to set the color.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onTouchStart</span><span class="hljs-params">(evt)</span> </span>{
+    evt.source.backgroundColor = <span class="hljs-string">'#555'</span>;
+}
+</code></pre><p>With regards to the local reference table overflow, I had a similar problem and instead of iterating through the children using a for, I changed it to Alloy._.each and it got rid of the problem. If you implement the above code, you shouldn&#39;t need to iterate anyway.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 21st 2015, 8:00:23 am">January 21st 2015</span>
+								by <span class='authorname'>Larrie Wilson</span><br>
+								<a class="icon-bg icon-link" href="question/180350/improving-heavy-calculations-in-the-code#answer-285310" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Larrie. Thanks for the answer.</p>
+<p>Your solution will not work in my case (i know it), because, as you know, in word search the user will &quot;swipe&quot; his finger over the letters he want to highlight. This means that you cannot use the touchstart event for all the letters you want to highlight (will work only in the first letter).</p>
+<p>I do some calculations to get the parent position (Nilesh gave me the idea <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;180334&#x2F;highlight-some-labels-when-user-mouseover-it">here</a>) and I highlight every label in a different way.</p>
+<p>I will test the <code>each</code> command you talk about, thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2015, 8:08:21 am">January 21st 2015</span>
+											by <span class='authorname'>Manuel Conde Vendrell</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>evt.source should be available in all the event handlers, touchMove and touchEnd so try adding that line of code to all your handlers.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2015, 8:14:45 am">January 21st 2015</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Again, touchmove will affect &quot;only&quot; the owner of the move, in this case the first letter you touch and swipe, as explained in the link I post before about Nilesh.</p>
+<p>Yes, I can change the color of the first letter I touch with that method, but cannot change the color of the underlying letters when I pass over them, because the touchmove event is still owned by the first letter.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2015, 8:19:28 am">January 21st 2015</span>
+											by <span class='authorname'>Manuel Conde Vendrell</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

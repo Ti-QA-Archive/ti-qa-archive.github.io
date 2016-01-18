@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Notifications to multiple devices » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Notifications to multiple devices</h1>
+		</header>
+		<section>
+			<p>Hi I am working on an app that needs to send notifications to multiple devices at once. </p>
+<p>I have all keys set up and devices subscribed to a test channel. I have implemented notification before but did not send to multiple devices.</p>
+<p>Some code:</p>
+<p>PushFunc.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+<span class="hljs-keyword">var</span> badge_number;
+<span class="hljs-keyword">var</span> APIKEY = <span class="hljs-string">'correcttkey'</span>;
+
+exports.subscribeToChannel = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">devcieToken</span>(<span class="hljs-params"></span>)</span>{
+    Cloud.PushNotifications.subscribeToken({
+        channel: <span class="hljs-string">'test'</span>,
+        type: Ti.Platform.name == <span class="hljs-string">'android'</span> ? <span class="hljs-string">'android'</span> : <span class="hljs-string">'ios'</span>,
+        device_token: deviceToken
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            <span class="hljs-comment">//alert('Success : subscribed to test channel');</span>
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//alert('Error:' + ((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+        }
+    });
+};
+
+
+exports.uploadReport = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">deviceToken, incidentTitle, NAME</span>) </span>{
+    <span class="hljs-keyword">var</span> deviceTokenString = <span class="hljs-string">""</span>;
+
+    <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; deviceToken.length; i++){
+        <span class="hljs-keyword">if</span> (i == <span class="hljs-number">0</span>){
+            deviceTokenString = deviceToken[i].NotID;
+        }
+        <span class="hljs-keyword">else</span>{
+            deviceTokenString = deviceTokenString+<span class="hljs-string">","</span>+deviceToken[i].NotID;
+        }
+    }
+
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'deviceTokenString is '</span>+deviceTokenString+<span class="hljs-string">'.'</span>);
+
+    Cloud.PushNotifications.notifyTokens({
+        to_tokens: deviceTokenString,
+        channel: <span class="hljs-string">'test'</span>,
+        payload: {
+            <span class="hljs-string">"message"</span>:<span class="hljs-string">"message using defined params"</span>,
+            <span class="hljs-string">"alert"</span>:<span class="hljs-string">"message using defined params"</span>,
+            <span class="hljs-string">"type"</span>:<span class="hljs-string">"uploadReport"</span>,
+            <span class="hljs-string">"badge"</span>: <span class="hljs-string">"+1"</span>,
+            <span class="hljs-string">"icon"</span>:<span class="hljs-string">"appicon"</span>
+        }
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        <span class="hljs-keyword">if</span>(e.success) {
+            alert(<span class="hljs-string">'Push notification sent'</span>);
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Error:\n'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+        }
+    });
+};
+</code></pre><p>I first tried passing in an array to the &#39;to_tokens&#39; but that did not work, so i switched to a comma separated string. </p>
+<p>I am getting into e.success and getting the alert Push notification sent. I am also receiving the notifications on the correct test devices here. However, the app then crashes after that. </p>
+<p>I am sending the notification in an on success of another web service which posts info to a database (below).</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> (webserviceResponse==<span class="hljs-string">"OK"</span>){
+    alert(<span class="hljs-string">"Successfully posted"</span>);    
+
+    <span class="hljs-comment">//I create an array with ids returned from this web service and call it deviceTokenArray</span>
+    <span class="hljs-keyword">if</span> (deviceTokenArray.length &gt;<span class="hljs-number">0</span>){
+        <span class="hljs-keyword">var</span> myPushFunc = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/handheld/pushFunc'</span>);
+        myPushFunc.uploadReport(deviceTokenArray, definedVariable, definedVariable);
+    }
+    <span class="hljs-keyword">else</span>{
+        alert(<span class="hljs-string">'no matching tokens'</span>);
+    }                
+}
+</code></pre><p>I&#39;m at a loss for the reason of the crash…It is hardly a Titanium bug?</p>
+<p>Any help appreciated.</p>
+<p>Titanium Classic 3.4.1. Testing with iPhone6 (8.1) sending notifications and iPad and iPhone 4s receiving the notification. Most recent version of Ti.cloud</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 9th 2015, 1:39:28 pm">January 9th 2015</span>
+				by <span class='authorname'>user 4683</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>notifications</span></li>
+					
+						<li><span class='tagname'>ti.cloud</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

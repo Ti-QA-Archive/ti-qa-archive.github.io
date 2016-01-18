@@ -1,0 +1,275 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Implementing android in app purchase module issue » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Implementing android in app purchase module issue</h1>
+		</header>
+		<section>
+			<p>Im having a bit of trouble testing in app purchases on android using ti.inappbilling and was wondering if someone that has successfully implemented it can help me where Im going wrong. I was able to get apples stoker running and tested in one hour but I&#39;ve spent days looking through googles cryptic docs with no luck.</p>
+<p>Heres the steps I&#39;ve taken<br>1) added the module to the project<br>2) added the app to google play and created 7 consumable in app purchases<br>3) published and uploaded the app to google play beta<br>4) copied my rsa public key from the play store and assigned it to the public_key in the app<br>5) create a google group and assigned it to testers in google play<br>6) installed the app from titanium onto my device<br>7) attempted to do the in app purchase and returns &#39;IAB RESULT UNKNOWN ERROR&#39;<br>8) Tried to query the product and it returns RESULT_OK which means that it can see it<br>9) Scratch head and swear at google</p>
+<p>Heres how I&#39;m implementing it</p>
+<pre><code class="hljs">
+
+<span class="javascript">
+<span class="hljs-keyword">var</span> InAppBilling = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.inappbilling'</span>);
+
+<span class="hljs-comment">// Replace this public key with your app's public key.</span>
+<span class="hljs-comment">// Follow the "Add Your Application to the Developer Console" instructions:</span>
+<span class="hljs-comment">// http://developer.android.com/training/in-app-billing/preparing-iab-app.html#AddToDevConsole</span>
+<span class="hljs-keyword">var</span> PUBLIC_KEY = <span class="hljs-string">'mybiglongkey'</span>;
+<span class="hljs-comment">// Read more about the developer payload in the "Verify the Developer Payload"</span>
+<span class="hljs-comment">// section of the documentation. It is not necessary to change this to run the example.</span>
+<span class="hljs-keyword">var</span> DEVELOPER_PAYLOAD = myusertestid;
+<span class="hljs-keyword">var</span> toConsume = <span class="hljs-literal">null</span>; <span class="hljs-comment">// A place to hold a purchase that can be consumed</span>
+
+<span class="hljs-comment">///run setup first in order to do any in app purchases</span>
+runSetup()
+
+InAppBilling.addEventListener(<span class="hljs-string">'setupcomplete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    logInApp(<span class="hljs-string">'Setup response: '</span> + responseString(e.responseCode));
+    <span class="hljs-keyword">if</span> (e.success) {
+        logInApp(<span class="hljs-string">'Setup completed successfully!'</span>);
+    } <span class="hljs-keyword">else</span> {
+        logInApp(<span class="hljs-string">'Setup FAILED.'</span>);
+    }
+});
+
+InAppBilling.addEventListener(<span class="hljs-string">'queryinventorycomplete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    logInApp(<span class="hljs-string">'Query Inventory response: '</span> + responseString(e.responseCode));
+    <span class="hljs-keyword">var</span> inventory = e.inventory;
+    <span class="hljs-keyword">var</span> purchaseIds = [<span class="hljs-string">'Fun Pack 01'</span>];
+    <span class="hljs-keyword">var</span> purchase, details;
+    <span class="hljs-keyword">if</span> (e.success) {
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, j = purchaseIds.length; i &lt; j; i++) {
+            <span class="hljs-comment">// Check for details</span>
+            <span class="hljs-keyword">if</span> (inventory.hasDetails(purchaseIds[i])) {
+                logInApp(<span class="hljs-string">'Check log for Purchase '</span> + i + <span class="hljs-string">' details'</span>);
+                Ti.API.info(<span class="hljs-string">'Details: '</span> + <span class="hljs-built_in">JSON</span>.stringify(inventory.getDetails(purchaseIds[i])));
+            }
+            <span class="hljs-comment">// Check for purchase</span>
+            <span class="hljs-keyword">if</span> (inventory.hasPurchase(purchaseIds[i])) {
+                purchase = inventory.getPurchase(purchaseIds[i]);
+                <span class="hljs-comment">// Print details for each purchase</span>
+                logInApp(<span class="hljs-string">'Check log for Purchase '</span> + i + <span class="hljs-string">' properties'</span>);
+                Ti.API.info(purchaseProperties(purchase));
+
+                <span class="hljs-comment">// Queue 'fp01' up to be consumed if it is owned</span>
+                <span class="hljs-keyword">if</span> (purchase.productId === <span class="hljs-string">'fp01'</span> &amp;&amp; 
+                    purchase.purchaseState === InAppBilling.PURCHASE_STATE_PURCHASED) {
+                    toConsume = purchase;
+                    logInApp(<span class="hljs-string">'fp01 is queued to be consumed'</span>);
+                }
+            }
+        }
+    }
+});
+
+InAppBilling.addEventListener(<span class="hljs-string">'purchasecomplete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    logInApp(<span class="hljs-string">'Purchase response: '</span> + responseString(e.responseCode));
+    <span class="hljs-keyword">if</span> (e.success &amp;&amp; e.purchase) {
+        logInApp(purchaseProperties(e.purchase));
+        <span class="hljs-comment">// Prepare the purchase to be consumed</span>
+        <span class="hljs-keyword">if</span> (e.purchase.productId === <span class="hljs-string">'fp01'</span>) {
+            toConsume = e.purchase;
+            logInApp(<span class="hljs-string">'fp01 is queued to be consumed'</span>);
+        }
+        alert(<span class="hljs-string">'Purchase completed successfully'</span>);
+    }
+});
+
+InAppBilling.addEventListener(<span class="hljs-string">'consumecomplete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    logInApp(<span class="hljs-string">'Consume response: '</span> + responseString(e.responseCode));
+    <span class="hljs-keyword">if</span> (e.success) {
+        alert(<span class="hljs-string">'Consume completed successfully'</span>);
+    }
+});</span>
+</code></pre><p>…for some reason it wouldn&#39;t let me put it in one code block heres the rest</p>
+<pre><code class="hljs"><span class="hljs-comment">////////////////////////////////////////////////////////</span>
+<span class="hljs-comment">// Utils</span>
+<span class="hljs-comment">////////////////////////////////////////////////////////</span>
+
+function runSetup() {
+    logInApp(<span class="hljs-string">'Running startSetup...'</span>);
+    InAppBilling.startSetup({
+<span class="hljs-label">        publicKey:</span> PUBLIC_KEY
+    });
+    logInApp(<span class="hljs-string">'Wait for setup to complete successfully'</span>);
+}
+
+function responseString(responseCode) {
+    <span class="hljs-keyword">switch</span> (responseCode) {
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_OK:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'OK'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_USER_CANCELED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'USER CANCELED'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_BILLING_UNAVAILABLE:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'BILLING UNAVAILABLE'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_ITEM_UNAVAILABLE:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'ITEM UNAVAILABLE'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_DEVELOPER_ERROR:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'DEVELOPER ERROR'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_ERROR:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'RESULT ERROR'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_ITEM_ALREADY_OWNED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'RESULT ITEM ALREADY OWNED'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">RESULT_ITEM_NOT_OWNED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'RESULT ITEM NOT OWNED'</span>;
+
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_REMOTE_EXCEPTION:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT REMOTE EXCEPTION'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_BAD_RESPONSE:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT BAD RESPONSE'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_VERIFICATION_FAILED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT VERIFICATION FAILED'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_SEND_INTENT_FAILED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT SEND INTENT FAILED'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_UNKNOWN_PURCHASE_RESPONSE:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT UNKNOWN PURCHASE RESPONSE'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_MISSING_TOKEN:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT MISSING TOKEN'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_UNKNOWN_ERROR:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT UNKNOWN ERROR'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_SUBSCRIPTIONS_NOT_AVAILABLE:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT SUBSCRIPTIONS NOT AVAILABLE'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">IAB_RESULT_INVALID_CONSUMPTION:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'IAB RESULT INVALID CONSUMPTION'</span>;
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-string">''</span>;
+}
+
+function purchaseStateString(state) {
+    <span class="hljs-keyword">switch</span> (state) {
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">PURCHASE_STATE_PURCHASED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'PURCHASE STATE PURCHASED'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">PURCHASE_STATE_CANCELED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'PURCHASE STATE CANCELED'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">PURCHASE_STATE_REFUNDED:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'PURCHASE STATE REFUNDED'</span>;
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-string">''</span>;
+}
+
+function purchaseTypeString(state) {
+    <span class="hljs-keyword">switch</span> (state) {
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">ITEM_TYPE_INAPP:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'ITEM TYPE INAPP'</span>;
+        <span class="hljs-keyword">case</span> InAppBilling.<span class="hljs-string">ITEM_TYPE_SUBSCRIPTION:</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'ITEM TYPE SUBSCRIPTION'</span>;
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-string">''</span>;
+}
+
+function purchaseProperties(p) {
+    var str = <span class="hljs-string">'type: '</span> + purchaseTypeString(p.type) + 
+        <span class="hljs-string">'\norderId: '</span> + p.orderId +
+        <span class="hljs-string">'\npackageName: '</span> + p.packageName + 
+        <span class="hljs-string">'\nproductId: '</span> + p.productId +
+        <span class="hljs-string">'\npurchaseTime: '</span> + <span class="hljs-keyword">new</span> Date(p.purchaseTime) +
+        <span class="hljs-string">'\npurchaseState: '</span> + purchaseStateString(p.purchaseState) +
+        <span class="hljs-string">'\ndeveloperPayload: '</span> + p.developerPayload +
+        <span class="hljs-string">'\ntoken: '</span> + p.token;
+
+    <span class="hljs-keyword">return</span> str;
+}
+
+
+
+btnBuyfp01.addEventListener(<span class="hljs-string">'click'</span>, function(e){
+ InAppBilling.purchase({
+<span class="hljs-label">                productId:</span> <span class="hljs-string">'fp01'</span>,
+<span class="hljs-label">                type:</span> InAppBilling.ITEM_TYPE_INAPP,
+<span class="hljs-label">                developerPayload:</span> DEVELOPER_PAYLOAD
+            });
+});
+</code></pre><p>am I missing a step? Is there something else I need to do?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 22nd 2015, 2:34:29 pm">April 22nd 2015</span>
+				by <span class='authorname'>Anthony Catalano</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>google play</span></li>
+					
+						<li><span class='tagname'>in app purchase</span></li>
+					
+						<li><span class='tagname'>ti.inappbilling</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>posting a sample would be great if its a code issue!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 22nd 2015, 2:35:38 pm">April 22nd 2015</span>
+								by <span class='authorname'>Anthony Catalano</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

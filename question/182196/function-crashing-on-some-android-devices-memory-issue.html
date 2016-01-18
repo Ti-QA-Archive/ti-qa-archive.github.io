@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Function crashing on some Android devices, memory issue? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Function crashing on some Android devices, memory issue?</h1>
+		</header>
+		<section>
+			<p>Hi folks,</p>
+<p>Need some help optimising this function below for Android.</p>
+<p>I have an app which does some pre-loading and fetches a load of markers to use in several map views later on in the app.</p>
+<p>Once the load is finished, the main views are then loaded in.</p>
+<p>On the clients Android device (Xperia Z1) this crashes and they can never open the app. It works on pretty much every other device and simulator. But I can see a grow heap being logged in the log.</p>
+<p>Can anyone suggest a way of improving the below to stop this happening?</p>
+<p>This function sends the URL and FILENAME to the receiving function </p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getMapMarkers</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">// get the species list back</span>
+    <span class="hljs-keyword">var</span> db = Ti.Database.open(<span class="hljs-string">'myDB'</span>);
+    <span class="hljs-keyword">var</span> getSpeciesImages = db.execute(<span class="hljs-string">'SELECT speciesiconfilename, speciesmapiconurl FROM species where speciesiconfilename &lt;&gt; ""'</span>);
+
+    <span class="hljs-comment">// YOU ONLY NEED TO DO THIS ONCE SO DO IT OUTSIDE THE LOOP</span>
+    <span class="hljs-keyword">var</span> imgDir = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, <span class="hljs-string">'map_marker_icons'</span>);
+
+    <span class="hljs-comment">// if the directory doesn't exist, then we need to create it</span>
+    <span class="hljs-keyword">if</span> (!imgDir.exists()) {
+        <span class="hljs-comment">// If the directory doesn't exist, make it</span>
+        imgDir.createDirectory();
+    };
+
+    <span class="hljs-comment">// start the loop</span>
+    <span class="hljs-keyword">while</span> (getSpeciesImages.isValidRow()) {
+        <span class="hljs-keyword">var</span> filename = getSpeciesImages.fieldByName(<span class="hljs-string">'speciesiconfilename'</span>);
+        <span class="hljs-keyword">var</span> url = getSpeciesImages.fieldByName(<span class="hljs-string">'speciesmapiconurl'</span>);
+
+        getMarker(url, filename);
+
+        getSpeciesImages.next();
+
+    } <span class="hljs-comment">// end the loop</span>
+
+    getSpeciesImages.close();
+
+
+    <span class="hljs-comment">// close the database</span>
+    db.close();
+
+    <span class="hljs-comment">// get the exhibit markers next</span>
+    getExhibitMapMarkers();
+};
+</code></pre><p>This one does the downloading of the marker, resizing and saving to disk</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getMarker</span><span class="hljs-params">(url, filename)</span> </span>{
+
+    <span class="hljs-keyword">var</span> mapMarker = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, <span class="hljs-string">'map_marker_icons'</span>, filename);
+
+    <span class="hljs-comment">// now we need to download the map marker and save it into our device </span>
+
+    <span class="hljs-keyword">var</span> getMarker = Titanium.Network.createHTTPClient({
+        timeout: <span class="hljs-number">30000</span>
+    });
+
+    getMarker.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+
+        <span class="hljs-comment">// if the file loads, then write to the filesystem</span>
+        <span class="hljs-keyword">if</span> (getMarker.status == <span class="hljs-number">200</span>) {
+
+                <span class="hljs-keyword">var</span> image = <span class="hljs-keyword">this</span>.responseData;
+                <span class="hljs-keyword">var</span> resizedImage = image.imageAsResized(<span class="hljs-number">75</span>, <span class="hljs-number">75</span>);
+
+                <span class="hljs-comment">// download first and save to disk without resize</span>
+                <span class="hljs-comment">//mapMarker.write(this.responseData);</span>
+                mapMarker.write(resizedImage);
+
+                image = <span class="hljs-literal">null</span>;
+                resizedImage = <span class="hljs-literal">null</span>;
+
+
+            <span class="hljs-comment">//I ALWAYS NULL ANY PROXIES CREATED SO THAT IT CAN BE RELEASED</span>
+            mapMarker = <span class="hljs-literal">null</span>;
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.info(<span class="hljs-string">"Image not loaded"</span>);
+        }
+
+
+        getMarker = <span class="hljs-literal">null</span>;
+
+        <span class="hljs-comment">// load the tours in next</span>
+        loadNav();
+
+
+
+    };
+
+    getMarker.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'XHR Error '</span> + e.error);
+        <span class="hljs-comment">//alert('markers data error');</span>
+    };
+
+    getMarker.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">//Ti.API.info('Download progress: ' + e.progress);</span>
+    };
+
+    <span class="hljs-comment">// open the client</span>
+    getMarker.open(<span class="hljs-string">'GET'</span>, url);
+
+    <span class="hljs-comment">// change the loading message</span>
+    MainActInd.message = <span class="hljs-string">'Downloading Markers'</span>;
+    <span class="hljs-comment">// show the indicator</span>
+    MainActInd.show();
+
+    <span class="hljs-comment">// send the data</span>
+    getMarker.send();
+
+}
+</code></pre><p>Many thanks!</p>
+<p>Simon</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 28th 2015, 3:06:11 pm">April 28th 2015</span>
+				by <span class='authorname'>Simon Hume</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>function</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

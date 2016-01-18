@@ -1,0 +1,1525 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>new AudioTrack module in my app but &#34;syntax errors&#34; and don&#39;t find it » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>new AudioTrack module in my app but &#34;syntax errors&#34; and don&#39;t find it</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>i wish use module AudioTrack of Android SDK. This is AudioTrack.java:</p>
+<pre><code class="hljs"><span class="hljs-comment">/*
+ * Copyright (C) 2008 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */</span>
+
+<span class="hljs-keyword">package</span> com.mymodule.audiotrack;
+
+<span class="hljs-keyword">import</span> java.lang.ref.WeakReference;
+
+<span class="hljs-keyword">import</span> android.os.Handler;
+<span class="hljs-keyword">import</span> android.os.Looper;
+<span class="hljs-keyword">import</span> android.os.Message;
+<span class="hljs-keyword">import</span> android.util.Log;
+<span class="hljs-keyword">import</span> com.deisson.audiotrack.AudioSystem;
+
+
+<span class="hljs-comment">/**
+ * The AudioTrack class manages and plays a single audio resource for Java applications.
+ * It allows streaming of PCM audio buffers to the audio sink for playback. This is
+ * achieved by "pushing" the data to the AudioTrack object using one of the
+ *  {<span class="hljs-doctag">@link</span> #write(byte[], int, int)} and {<span class="hljs-doctag">@link</span> #write(short[], int, int)} methods.
+ *
+ * &lt;p&gt;An AudioTrack instance can operate under two modes: static or streaming.&lt;br&gt;
+ * In Streaming mode, the application writes a continuous stream of data to the AudioTrack, using
+ * one of the {<span class="hljs-doctag">@code</span> write()} methods. These are blocking and return when the data has been
+ * transferred from the Java layer to the native layer and queued for playback. The streaming
+ * mode is most useful when playing blocks of audio data that for instance are:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;too big to fit in memory because of the duration of the sound to play,&lt;/li&gt;
+ *   &lt;li&gt;too big to fit in memory because of the characteristics of the audio data
+ *         (high sampling rate, bits per sample ...)&lt;/li&gt;
+ *   &lt;li&gt;received or generated while previously queued audio is playing.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * The static mode should be chosen when dealing with short sounds that fit in memory and
+ * that need to be played with the smallest latency possible. The static mode will
+ * therefore be preferred for UI and game sounds that are played often, and with the
+ * smallest overhead possible.
+ *
+ * &lt;p&gt;Upon creation, an AudioTrack object initializes its associated audio buffer.
+ * The size of this buffer, specified during the construction, determines how long an AudioTrack
+ * can play before running out of data.&lt;br&gt;
+ * For an AudioTrack using the static mode, this size is the maximum size of the sound that can
+ * be played from it.&lt;br&gt;
+ * For the streaming mode, data will be written to the audio sink in chunks of
+ * sizes less than or equal to the total buffer size.
+ *
+ * AudioTrack is not final and thus permits subclasses, but such use is not recommended.
+ */</span>
+<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">AudioTrack</span>
+</span>{
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Constants</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/** Minimum value for a channel volume */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">float</span> VOLUME_MIN = <span class="hljs-number">0.0</span>f;
+    <span class="hljs-comment">/** Maximum value for a channel volume */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">float</span> VOLUME_MAX = <span class="hljs-number">1.0</span>f;
+
+    <span class="hljs-comment">/** Minimum value for sample rate */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> SAMPLE_RATE_HZ_MIN = <span class="hljs-number">4000</span>;
+    <span class="hljs-comment">/** Maximum value for sample rate */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> SAMPLE_RATE_HZ_MAX = <span class="hljs-number">48000</span>;
+
+    <span class="hljs-comment">/** indicates AudioTrack state is stopped */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> PLAYSTATE_STOPPED = <span class="hljs-number">1</span>;  <span class="hljs-comment">// matches SL_PLAYSTATE_STOPPED</span>
+    <span class="hljs-comment">/** indicates AudioTrack state is paused */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> PLAYSTATE_PAUSED  = <span class="hljs-number">2</span>;  <span class="hljs-comment">// matches SL_PLAYSTATE_PAUSED</span>
+    <span class="hljs-comment">/** indicates AudioTrack state is playing */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> PLAYSTATE_PLAYING = <span class="hljs-number">3</span>;  <span class="hljs-comment">// matches SL_PLAYSTATE_PLAYING</span>
+
+    <span class="hljs-comment">// keep these values in sync with android_media_AudioTrack.cpp</span>
+    <span class="hljs-comment">/**
+     * Creation mode where audio data is transferred from Java to the native layer
+     * only once before the audio starts playing.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> MODE_STATIC = <span class="hljs-number">0</span>;
+    <span class="hljs-comment">/**
+     * Creation mode where audio data is streamed from Java to the native layer
+     * as the audio is playing.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> MODE_STREAM = <span class="hljs-number">1</span>;
+
+    <span class="hljs-comment">/**
+     * State of an AudioTrack that was not successfully initialized upon creation.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> STATE_UNINITIALIZED = <span class="hljs-number">0</span>;
+    <span class="hljs-comment">/**
+     * State of an AudioTrack that is ready to be used.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> STATE_INITIALIZED   = <span class="hljs-number">1</span>;
+    <span class="hljs-comment">/**
+     * State of a successfully initialized AudioTrack that uses static data,
+     * but that hasn't received that data yet.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> STATE_NO_STATIC_DATA = <span class="hljs-number">2</span>;
+
+    <span class="hljs-comment">// Error codes:</span>
+    <span class="hljs-comment">// to keep in sync with frameworks/base/core/jni/android_media_AudioTrack.cpp</span>
+    <span class="hljs-comment">/**
+     * Denotes a successful operation.
+     */</span>
+    <span class="hljs-keyword">public</span>  <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> SUCCESS                               = <span class="hljs-number">0</span>;
+    <span class="hljs-comment">/**
+     * Denotes a generic operation failure.
+     */</span>
+    <span class="hljs-keyword">public</span>  <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR                                 = -<span class="hljs-number">1</span>;
+    <span class="hljs-comment">/**
+     * Denotes a failure due to the use of an invalid value.
+     */</span>
+    <span class="hljs-keyword">public</span>  <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR_BAD_VALUE                       = -<span class="hljs-number">2</span>;
+    <span class="hljs-comment">/**
+     * Denotes a failure due to the improper use of a method.
+     */</span>
+    <span class="hljs-keyword">public</span>  <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR_INVALID_OPERATION               = -<span class="hljs-number">3</span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR_NATIVESETUP_AUDIOSYSTEM         = -<span class="hljs-number">16</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR_NATIVESETUP_INVALIDCHANNELMASK  = -<span class="hljs-number">17</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR_NATIVESETUP_INVALIDFORMAT       = -<span class="hljs-number">18</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR_NATIVESETUP_INVALIDSTREAMTYPE   = -<span class="hljs-number">19</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> ERROR_NATIVESETUP_NATIVEINITFAILED    = -<span class="hljs-number">20</span>;
+
+    <span class="hljs-comment">// Events:</span>
+    <span class="hljs-comment">// to keep in sync with frameworks/av/include/media/AudioTrack.h</span>
+    <span class="hljs-comment">/**
+     * Event id denotes when playback head has reached a previously set marker.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> NATIVE_EVENT_MARKER  = <span class="hljs-number">3</span>;
+    <span class="hljs-comment">/**
+     * Event id denotes when previously set update period has elapsed during playback.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> NATIVE_EVENT_NEW_POS = <span class="hljs-number">4</span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">static</span> String TAG = <span class="hljs-string">"android.media.AudioTrack"</span>;
+
+
+    <span class="hljs-comment">//--------------------------------------------------------------------------</span>
+    <span class="hljs-comment">// Member variables</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Indicates the state of the AudioTrack instance.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mState = STATE_UNINITIALIZED;
+    <span class="hljs-comment">/**
+     * Indicates the play state of the AudioTrack instance.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mPlayState = PLAYSTATE_STOPPED;
+    <span class="hljs-comment">/**
+     * Lock to make sure mPlayState updates are reflecting the actual state of the object.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Object mPlayStateLock = <span class="hljs-keyword">new</span> Object();
+    <span class="hljs-comment">/**
+     * Sizes of the native audio buffer.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mNativeBufferSizeInBytes = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mNativeBufferSizeInFrames = <span class="hljs-number">0</span>;
+    <span class="hljs-comment">/**
+     * Handler for events coming from the native code.
+     */</span>
+    <span class="hljs-keyword">private</span> NativeEventHandlerDelegate mEventHandlerDelegate;
+    <span class="hljs-comment">/**
+     * Looper associated with the thread that creates the AudioTrack instance.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Looper mInitializationLooper;
+    <span class="hljs-comment">/**
+     * The audio data source sampling rate in Hz.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mSampleRate; <span class="hljs-comment">// initialized by all constructors</span>
+    <span class="hljs-comment">/**
+     * The number of audio output channels (1 is mono, 2 is stereo).
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mChannelCount = <span class="hljs-number">1</span>;
+    <span class="hljs-comment">/**
+     * The audio channel mask.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mChannels = AudioFormat.CHANNEL_OUT_MONO;
+
+    <span class="hljs-comment">/**
+     * The type of the audio stream to play. See
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_VOICE_CALL}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_SYSTEM},
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_RING}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_MUSIC},
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_ALARM}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_NOTIFICATION}, and
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_DTMF}.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mStreamType = AudioSystem.STREAM_MUSIC;
+    <span class="hljs-comment">/**
+     * The way audio is consumed by the audio sink, streaming or static.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mDataLoadMode = MODE_STREAM;
+    <span class="hljs-comment">/**
+     * The current audio channel configuration.
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mChannelConfiguration = AudioFormat.CHANNEL_OUT_MONO;
+    <span class="hljs-comment">/**
+     * The encoding of the audio samples.
+     * <span class="hljs-doctag">@see</span> AudioFormat#ENCODING_PCM_8BIT
+     * <span class="hljs-doctag">@see</span> AudioFormat#ENCODING_PCM_16BIT
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mAudioFormat = AudioFormat.ENCODING_PCM_16BIT;
+    <span class="hljs-comment">/**
+     * Audio session ID
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mSessionId = <span class="hljs-number">0</span>;
+
+
+    <span class="hljs-comment">//--------------------------------</span>
+    <span class="hljs-comment">// Used exclusively by native code</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Accessed by native methods: provides access to C++ AudioTrack object.
+     */</span>
+    <span class="hljs-annotation">@SuppressWarnings</span>(<span class="hljs-string">"unused"</span>)
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mNativeTrackInJavaObj;
+    <span class="hljs-comment">/**
+     * Accessed by native methods: provides access to the JNI data (i.e. resources used by
+     * the native AudioTrack object, but not stored in it).
+     */</span>
+    <span class="hljs-annotation">@SuppressWarnings</span>(<span class="hljs-string">"unused"</span>)
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> mJniData;
+
+
+    <span class="hljs-comment">//--------------------------------------------------------------------------</span>
+    <span class="hljs-comment">// Constructor, Finalize</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Class constructor.
+     * <span class="hljs-doctag">@param</span> streamType the type of the audio stream. See
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_VOICE_CALL}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_SYSTEM},
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_RING}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_MUSIC},
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_ALARM}, and {<span class="hljs-doctag">@link</span> AudioManager#STREAM_NOTIFICATION}.
+     * <span class="hljs-doctag">@param</span> sampleRateInHz the initial source sample rate expressed in Hz.
+     * <span class="hljs-doctag">@param</span> channelConfig describes the configuration of the audio channels.
+     *   See {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_MONO} and
+     *   {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_STEREO}
+     * <span class="hljs-doctag">@param</span> audioFormat the format in which the audio data is represented.
+     *   See {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_16BIT} and
+     *   {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_8BIT}
+     * <span class="hljs-doctag">@param</span> bufferSizeInBytes the total size (in bytes) of the internal buffer where audio data is
+     *   read from for playback.
+     *   If track's creation mode is {<span class="hljs-doctag">@link</span> #MODE_STREAM}, you can write data into
+     *   this buffer in chunks less than or equal to this size, and it is typical to use
+     *   chunks of 1/2 of the total size to permit double-buffering.
+     *   If the track's creation mode is {<span class="hljs-doctag">@link</span> #MODE_STATIC},
+     *   this is the maximum length sample, or audio clip, that can be played by this instance.
+     *   See {<span class="hljs-doctag">@link</span> #getMinBufferSize(int, int, int)} to determine the minimum required buffer size
+     *   for the successful creation of an AudioTrack instance in streaming mode. Using values
+     *   smaller than getMinBufferSize() will result in an initialization failure.
+     * <span class="hljs-doctag">@param</span> mode streaming or static buffer. See {<span class="hljs-doctag">@link</span> #MODE_STATIC} and {<span class="hljs-doctag">@link</span> #MODE_STREAM}
+     * <span class="hljs-doctag">@throws</span> java.lang.IllegalArgumentException
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">AudioTrack</span><span class="hljs-params">(<span class="hljs-keyword">int</span> streamType, <span class="hljs-keyword">int</span> sampleRateInHz, <span class="hljs-keyword">int</span> channelConfig, <span class="hljs-keyword">int</span> audioFormat,
+            <span class="hljs-keyword">int</span> bufferSizeInBytes, <span class="hljs-keyword">int</span> mode)</span>
+    <span class="hljs-keyword">throws</span> IllegalArgumentException </span>{
+        <span class="hljs-keyword">this</span>(streamType, sampleRateInHz, channelConfig, audioFormat,
+                bufferSizeInBytes, mode, <span class="hljs-number">0</span> <span class="hljs-comment">/*session*/</span>);
+    }
+
+    <span class="hljs-comment">/**
+     * Class constructor with audio session. Use this constructor when the AudioTrack must be
+     * attached to a particular audio session. The primary use of the audio session ID is to
+     * associate audio effects to a particular instance of AudioTrack: if an audio session ID
+     * is provided when creating an AudioEffect, this effect will be applied only to audio tracks
+     * and media players in the same session and not to the output mix.
+     * When an AudioTrack is created without specifying a session, it will create its own session
+     * which can be retrieved by calling the {<span class="hljs-doctag">@link</span> #getAudioSessionId()} method.
+     * If a non-zero session ID is provided, this AudioTrack will share effects attached to this
+     * session
+     * with all other media players or audio tracks in the same session, otherwise a new session
+     * will be created for this track if none is supplied.
+     * <span class="hljs-doctag">@param</span> streamType the type of the audio stream. See
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_VOICE_CALL}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_SYSTEM},
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_RING}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_MUSIC},
+     *   {<span class="hljs-doctag">@link</span> AudioManager#STREAM_ALARM}, and {<span class="hljs-doctag">@link</span> AudioManager#STREAM_NOTIFICATION}.
+     * <span class="hljs-doctag">@param</span> sampleRateInHz the initial source sample rate expressed in Hz.
+     * <span class="hljs-doctag">@param</span> channelConfig describes the configuration of the audio channels.
+     *   See {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_MONO} and
+     *   {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_STEREO}
+     * <span class="hljs-doctag">@param</span> audioFormat the format in which the audio data is represented.
+     *   See {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_16BIT} and
+     *   {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_8BIT}
+     * <span class="hljs-doctag">@param</span> bufferSizeInBytes the total size (in bytes) of the buffer where audio data is read
+     *   from for playback. If using the AudioTrack in streaming mode, you can write data into
+     *   this buffer in smaller chunks than this size. If using the AudioTrack in static mode,
+     *   this is the maximum size of the sound that will be played for this instance.
+     *   See {<span class="hljs-doctag">@link</span> #getMinBufferSize(int, int, int)} to determine the minimum required buffer size
+     *   for the successful creation of an AudioTrack instance in streaming mode. Using values
+     *   smaller than getMinBufferSize() will result in an initialization failure.
+     * <span class="hljs-doctag">@param</span> mode streaming or static buffer. See {<span class="hljs-doctag">@link</span> #MODE_STATIC} and {<span class="hljs-doctag">@link</span> #MODE_STREAM}
+     * <span class="hljs-doctag">@param</span> sessionId Id of audio session the AudioTrack must be attached to
+     * <span class="hljs-doctag">@throws</span> java.lang.IllegalArgumentException
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">AudioTrack</span><span class="hljs-params">(<span class="hljs-keyword">int</span> streamType, <span class="hljs-keyword">int</span> sampleRateInHz, <span class="hljs-keyword">int</span> channelConfig, <span class="hljs-keyword">int</span> audioFormat,
+            <span class="hljs-keyword">int</span> bufferSizeInBytes, <span class="hljs-keyword">int</span> mode, <span class="hljs-keyword">int</span> sessionId)</span>
+    <span class="hljs-keyword">throws</span> IllegalArgumentException </span>{
+        <span class="hljs-comment">// mState already == STATE_UNINITIALIZED</span>
+
+        <span class="hljs-comment">// remember which looper is associated with the AudioTrack instantiation</span>
+        Looper looper;
+        <span class="hljs-keyword">if</span> ((looper = Looper.myLooper()) == <span class="hljs-keyword">null</span>) {
+            looper = Looper.getMainLooper();
+        }
+        mInitializationLooper = looper;
+
+        audioParamCheck(streamType, sampleRateInHz, channelConfig, audioFormat, mode);
+
+        audioBuffSizeCheck(bufferSizeInBytes);
+
+        <span class="hljs-keyword">if</span> (sessionId &lt; <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Invalid audio session ID: "</span>+sessionId);
+        }
+
+        <span class="hljs-keyword">int</span>[] session = <span class="hljs-keyword">new</span> <span class="hljs-keyword">int</span>[<span class="hljs-number">1</span>];
+        session[<span class="hljs-number">0</span>] = sessionId;
+        <span class="hljs-comment">// native initialization</span>
+        <span class="hljs-keyword">int</span> initResult = native_setup(<span class="hljs-keyword">new</span> WeakReference&lt;AudioTrack&gt;(<span class="hljs-keyword">this</span>),
+                mStreamType, mSampleRate, mChannels, mAudioFormat,
+                mNativeBufferSizeInBytes, mDataLoadMode, session);
+        <span class="hljs-keyword">if</span> (initResult != SUCCESS) {
+            loge(<span class="hljs-string">"Error code "</span>+initResult+<span class="hljs-string">" when initializing AudioTrack."</span>);
+            <span class="hljs-keyword">return</span>; <span class="hljs-comment">// with mState == STATE_UNINITIALIZED</span>
+        }
+
+        mSessionId = session[<span class="hljs-number">0</span>];
+
+        <span class="hljs-keyword">if</span> (mDataLoadMode == MODE_STATIC) {
+            mState = STATE_NO_STATIC_DATA;
+        } <span class="hljs-keyword">else</span> {
+            mState = STATE_INITIALIZED;
+        }
+    }
+
+    <span class="hljs-comment">// mask of all the channels supported by this implementation</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> SUPPORTED_OUT_CHANNELS =
+            AudioFormat.CHANNEL_OUT_FRONT_LEFT |
+            AudioFormat.CHANNEL_OUT_FRONT_RIGHT |
+            AudioFormat.CHANNEL_OUT_FRONT_CENTER |
+            AudioFormat.CHANNEL_OUT_LOW_FREQUENCY |
+            AudioFormat.CHANNEL_OUT_BACK_LEFT |
+            AudioFormat.CHANNEL_OUT_BACK_RIGHT |
+            AudioFormat.CHANNEL_OUT_BACK_CENTER;
+
+    <span class="hljs-comment">// Convenience method for the constructor's parameter checks.</span>
+    <span class="hljs-comment">// This is where constructor IllegalArgumentException-s are thrown</span>
+    <span class="hljs-comment">// postconditions:</span>
+    <span class="hljs-comment">//    mStreamType is valid</span>
+    <span class="hljs-comment">//    mChannelCount is valid</span>
+    <span class="hljs-comment">//    mChannels is valid</span>
+    <span class="hljs-comment">//    mAudioFormat is valid</span>
+    <span class="hljs-comment">//    mSampleRate is valid</span>
+    <span class="hljs-comment">//    mDataLoadMode is valid</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">audioParamCheck</span><span class="hljs-params">(<span class="hljs-keyword">int</span> streamType, <span class="hljs-keyword">int</span> sampleRateInHz,
+                                 <span class="hljs-keyword">int</span> channelConfig, <span class="hljs-keyword">int</span> audioFormat, <span class="hljs-keyword">int</span> mode)</span> </span>{
+
+        <span class="hljs-comment">//--------------</span>
+        <span class="hljs-comment">// stream type</span>
+        <span class="hljs-keyword">if</span>( (streamType != AudioSystem.STREAM_ALARM) &amp;&amp; (streamType != AudioSystem.STREAM_MUSIC)
+           &amp;&amp; (streamType != AudioSystem.STREAM_RING) &amp;&amp; (streamType != AudioSystem.STREAM_SYSTEM)
+           &amp;&amp; (streamType != AudioSystem.STREAM_VOICE_CALL)
+           &amp;&amp; (streamType != AudioSystem.STREAM_NOTIFICATION)
+           &amp;&amp; (streamType != AudioSystem.STREAM_BLUETOOTH_SCO)
+           &amp;&amp; (streamType != AudioSystem.STREAM_DTMF)) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Invalid stream type."</span>);
+        }
+        mStreamType = streamType;
+
+        <span class="hljs-comment">//--------------</span>
+        <span class="hljs-comment">// sample rate, note these values are subject to change</span>
+        <span class="hljs-keyword">if</span> ( (sampleRateInHz &lt; <span class="hljs-number">4000</span>) || (sampleRateInHz &gt; <span class="hljs-number">48000</span>) ) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(sampleRateInHz
+                    + <span class="hljs-string">"Hz is not a supported sample rate."</span>);
+        }
+        mSampleRate = sampleRateInHz;
+
+        <span class="hljs-comment">//--------------</span>
+        <span class="hljs-comment">// channel config</span>
+        mChannelConfiguration = channelConfig;
+
+        <span class="hljs-keyword">switch</span> (channelConfig) {
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_OUT_DEFAULT: //AudioFormat.CHANNEL_CONFIGURATION_DEFAULT
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_OUT_MONO:
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_CONFIGURATION_MONO:
+            mChannelCount = 1;
+            mChannels = AudioFormat.CHANNEL_OUT_MONO;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_OUT_STEREO:
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_CONFIGURATION_STEREO:
+            mChannelCount = 2;
+            mChannels = AudioFormat.CHANNEL_OUT_STEREO;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">default</span>:
+            <span class="hljs-keyword">if</span> (!isMultichannelConfigSupported(channelConfig)) {
+                <span class="hljs-comment">// input channel configuration features unsupported channels</span>
+                <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Unsupported channel configuration."</span>);
+            }
+            mChannels = channelConfig;
+            mChannelCount = Integer.bitCount(channelConfig);
+        }
+
+        <span class="hljs-comment">//--------------</span>
+        <span class="hljs-comment">// audio format</span>
+        <span class="hljs-keyword">switch</span> (audioFormat) {
+        <span class="hljs-keyword">case</span> AudioFormat.ENCODING_DEFAULT:
+            mAudioFormat = AudioFormat.ENCODING_PCM_16BIT;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> AudioFormat.ENCODING_PCM_16BIT:
+        <span class="hljs-keyword">case</span> AudioFormat.ENCODING_PCM_8BIT:
+            mAudioFormat = audioFormat;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">default</span>:
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Unsupported sample encoding."</span>
+                + <span class="hljs-string">" Should be ENCODING_PCM_8BIT or ENCODING_PCM_16BIT."</span>);
+        }
+
+        <span class="hljs-comment">//--------------</span>
+        <span class="hljs-comment">// audio load mode</span>
+        <span class="hljs-keyword">if</span> ( (mode != MODE_STREAM) &amp;&amp; (mode != MODE_STATIC) ) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Invalid mode."</span>);
+        }
+        mDataLoadMode = mode;
+    }
+
+    <span class="hljs-comment">/**
+     * Convenience method to check that the channel configuration (a.k.a channel mask) is supported
+     * <span class="hljs-doctag">@param</span> channelConfig the mask to validate
+     * <span class="hljs-doctag">@return</span> false if the AudioTrack can't be used with such a mask
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">boolean</span> <span class="hljs-title">isMultichannelConfigSupported</span><span class="hljs-params">(<span class="hljs-keyword">int</span> channelConfig)</span> </span>{
+        <span class="hljs-comment">// check for unsupported channels</span>
+        <span class="hljs-keyword">if</span> ((channelConfig &amp; SUPPORTED_OUT_CHANNELS) != channelConfig) {
+            loge(<span class="hljs-string">"Channel configuration features unsupported channels"</span>);
+            <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+        }
+        <span class="hljs-comment">// check for unsupported multichannel combinations:</span>
+        <span class="hljs-comment">// - FL/FR must be present</span>
+        <span class="hljs-comment">// - L/R channels must be paired (e.g. no single L channel)</span>
+        <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> frontPair =
+                AudioFormat.CHANNEL_OUT_FRONT_LEFT | AudioFormat.CHANNEL_OUT_FRONT_RIGHT;
+        <span class="hljs-keyword">if</span> ((channelConfig &amp; frontPair) != frontPair) {
+                loge(<span class="hljs-string">"Front channels must be present in multichannel configurations"</span>);
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+        }
+        <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> backPair =
+                AudioFormat.CHANNEL_OUT_BACK_LEFT | AudioFormat.CHANNEL_OUT_BACK_RIGHT;
+        <span class="hljs-keyword">if</span> ((channelConfig &amp; backPair) != <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">if</span> ((channelConfig &amp; backPair) != backPair) {
+                loge(<span class="hljs-string">"Rear channels can't be used independently"</span>);
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+            }
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+    }
+
+
+    <span class="hljs-comment">// Convenience method for the constructor's audio buffer size check.</span>
+    <span class="hljs-comment">// preconditions:</span>
+    <span class="hljs-comment">//    mChannelCount is valid</span>
+    <span class="hljs-comment">//    mAudioFormat is valid</span>
+    <span class="hljs-comment">// postcondition:</span>
+    <span class="hljs-comment">//    mNativeBufferSizeInBytes is valid (multiple of frame size, positive)</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">audioBuffSizeCheck</span><span class="hljs-params">(<span class="hljs-keyword">int</span> audioBufferSize)</span> </span>{
+        <span class="hljs-comment">// NB: this section is only valid with PCM data.</span>
+        <span class="hljs-comment">//     To update when supporting compressed formats</span>
+        <span class="hljs-keyword">int</span> frameSizeInBytes = mChannelCount
+                * (mAudioFormat == AudioFormat.ENCODING_PCM_8BIT ? <span class="hljs-number">1</span> : 2);
+        <span class="hljs-keyword">if</span> ((audioBufferSize % frameSizeInBytes != <span class="hljs-number">0</span>) || (audioBufferSize &lt; <span class="hljs-number">1</span>)) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Invalid audio buffer size."</span>);
+        }
+
+        mNativeBufferSizeInBytes = audioBufferSize;
+        mNativeBufferSizeInFrames = audioBufferSize / frameSizeInBytes;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Releases the native AudioTrack resources.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">release</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-comment">// even though native_release() stops the native AudioTrack, we need to stop</span>
+        <span class="hljs-comment">// AudioTrack subclasses too.</span>
+        <span class="hljs-keyword">try</span> {
+            stop();
+        } <span class="hljs-keyword">catch</span>(IllegalStateException ise) {
+            <span class="hljs-comment">// don't raise an exception, we're releasing the resources.</span>
+        }
+        native_release();
+        mState = STATE_UNINITIALIZED;
+    }
+
+    <span class="hljs-annotation">@Override</span>
+    <span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">finalize</span><span class="hljs-params">()</span> </span>{
+        native_finalize();
+    }
+
+    <span class="hljs-comment">//--------------------------------------------------------------------------</span>
+    <span class="hljs-comment">// Getters</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Returns the minimum valid volume value. Volume values set under this one will
+     * be clamped at this value.
+     * <span class="hljs-doctag">@return</span> the minimum volume expressed as a linear attenuation.
+     */</span>
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">float</span> <span class="hljs-title">getMinVolume</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> VOLUME_MIN;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the maximum valid volume value. Volume values set above this one will
+     * be clamped at this value.
+     * <span class="hljs-doctag">@return</span> the maximum volume expressed as a linear attenuation.
+     */</span>
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">float</span> <span class="hljs-title">getMaxVolume</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> VOLUME_MAX;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the configured audio data sample rate in Hz
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getSampleRate</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> mSampleRate;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the current playback rate in Hz.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getPlaybackRate</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_get_playback_rate</span><span class="hljs-params">()</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the configured audio data format. See {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_16BIT}
+     * and {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_8BIT}.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getAudioFormat</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> mAudioFormat;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the type of audio stream this AudioTrack is configured for.
+     * Compare the result against {<span class="hljs-doctag">@link</span> AudioManager#STREAM_VOICE_CALL},
+     * {<span class="hljs-doctag">@link</span> AudioManager#STREAM_SYSTEM}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_RING},
+     * {<span class="hljs-doctag">@link</span> AudioManager#STREAM_MUSIC}, {<span class="hljs-doctag">@link</span> AudioManager#STREAM_ALARM},
+     * {<span class="hljs-doctag">@link</span> AudioManager#STREAM_NOTIFICATION}, or {<span class="hljs-doctag">@link</span> AudioManager#STREAM_DTMF}.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getStreamType</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> mStreamType;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the configured channel configuration.
+     * See {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_MONO}
+     * and {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_STEREO}.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getChannelConfiguration</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> mChannelConfiguration;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the configured number of channels.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getChannelCount</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> mChannelCount;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the state of the AudioTrack instance. This is useful after the
+     * AudioTrack instance has been created to check if it was initialized
+     * properly. This ensures that the appropriate resources have been acquired.
+     * <span class="hljs-doctag">@see</span> #STATE_INITIALIZED
+     * <span class="hljs-doctag">@see</span> #STATE_NO_STATIC_DATA
+     * <span class="hljs-doctag">@see</span> #STATE_UNINITIALIZED
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getState</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> mState;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the playback state of the AudioTrack instance.
+     * <span class="hljs-doctag">@see</span> #PLAYSTATE_STOPPED
+     * <span class="hljs-doctag">@see</span> #PLAYSTATE_PAUSED
+     * <span class="hljs-doctag">@see</span> #PLAYSTATE_PLAYING
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getPlayState</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">synchronized</span> (mPlayStateLock) {
+            <span class="hljs-keyword">return</span> mPlayState;
+        }
+    }
+
+    <span class="hljs-comment">/**
+     *  Returns the "native frame count", derived from the bufferSizeInBytes specified at
+     *  creation time and converted to frame units.
+     *  If track's creation mode is {<span class="hljs-doctag">@link</span> #MODE_STATIC},
+     *  it is equal to the specified bufferSizeInBytes converted to frame units.
+     *  If track's creation mode is {<span class="hljs-doctag">@link</span> #MODE_STREAM},
+     *  it is typically greater than or equal to the specified bufferSizeInBytes converted to frame
+     *  units; it may be rounded up to a larger value if needed by the target device implementation.
+     *  <span class="hljs-doctag">@deprecated</span> Only accessible by subclasses, which are not recommended for AudioTrack.
+     *  See {<span class="hljs-doctag">@link</span> AudioManager#getProperty(String)} for key
+     *  {<span class="hljs-doctag">@link</span> AudioManager#PROPERTY_OUTPUT_FRAMES_PER_BUFFER}.
+     */</span>
+    <span class="hljs-annotation">@Deprecated</span>
+    <span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getNativeFrameCount</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_get_native_frame_count</span><span class="hljs-params">()</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns marker position expressed in frames.
+     * <span class="hljs-doctag">@return</span> marker position in wrapping frame units similar to {<span class="hljs-doctag">@link</span> #getPlaybackHeadPosition},
+     * or zero if marker is disabled.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getNotificationMarkerPosition</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_get_marker_pos</span><span class="hljs-params">()</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the notification update period expressed in frames.
+     * Zero means that no position update notifications are being delivered.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getPositionNotificationPeriod</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_get_pos_update_period</span><span class="hljs-params">()</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the playback head position expressed in frames.
+     * Though the "int" type is signed 32-bits, the value should be reinterpreted as if it is
+     * unsigned 32-bits.  That is, the next position after 0x7FFFFFFF is (int) 0x80000000.
+     * This is a continuously advancing counter.  It will wrap (overflow) periodically,
+     * for example approximately once every 27:03:11 hours:minutes:seconds at 44.1 kHz.
+     * It is reset to zero by flush(), reload(), and stop().
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getPlaybackHeadPosition</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_get_position</span><span class="hljs-params">()</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns this track's estimated latency in milliseconds. This includes the latency due
+     * to AudioTrack buffer size, AudioMixer (if any) and audio hardware driver.
+     *
+     * DO NOT UNHIDE. The existing approach for doing A/V sync has too many problems. We need
+     * a better solution.
+     * <span class="hljs-doctag">@hide</span>
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getLatency</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_get_latency</span><span class="hljs-params">()</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     *  Returns the output sample rate in Hz for the specified stream type.
+     */</span>
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getNativeOutputSampleRate</span><span class="hljs-params">(<span class="hljs-keyword">int</span> streamType)</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_get_output_sample_rate</span><span class="hljs-params">(streamType)</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the minimum buffer size required for the successful creation of an AudioTrack
+     * object to be created in the {<span class="hljs-doctag">@link</span> #MODE_STREAM} mode. Note that this size doesn't
+     * guarantee a smooth playback under load, and higher values should be chosen according to
+     * the expected frequency at which the buffer will be refilled with additional data to play.
+     * For example, if you intend to dynamically set the source sample rate of an AudioTrack
+     * to a higher value than the initial source sample rate, be sure to configure the buffer size
+     * based on the highest planned sample rate.
+     * <span class="hljs-doctag">@param</span> sampleRateInHz the source sample rate expressed in Hz.
+     * <span class="hljs-doctag">@param</span> channelConfig describes the configuration of the audio channels.
+     *   See {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_MONO} and
+     *   {<span class="hljs-doctag">@link</span> AudioFormat#CHANNEL_OUT_STEREO}
+     * <span class="hljs-doctag">@param</span> audioFormat the format in which the audio data is represented.
+     *   See {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_16BIT} and
+     *   {<span class="hljs-doctag">@link</span> AudioFormat#ENCODING_PCM_8BIT}
+     * <span class="hljs-doctag">@return</span> {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE} if an invalid parameter was passed,
+     *   or {<span class="hljs-doctag">@link</span> #ERROR} if unable to query for output properties,
+     *   or the minimum buffer size expressed in bytes.
+     */</span>
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getMinBufferSize</span><span class="hljs-params">(<span class="hljs-keyword">int</span> sampleRateInHz, <span class="hljs-keyword">int</span> channelConfig, <span class="hljs-keyword">int</span> audioFormat)</span> </span>{
+        <span class="hljs-keyword">int</span> channelCount = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">switch</span>(channelConfig) {
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_OUT_MONO:
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_CONFIGURATION_MONO:
+            channelCount = 1;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_OUT_STEREO:
+        <span class="hljs-keyword">case</span> AudioFormat.CHANNEL_CONFIGURATION_STEREO:
+            channelCount = 2;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">default</span>:
+            <span class="hljs-keyword">if</span> ((channelConfig &amp; SUPPORTED_OUT_CHANNELS) != channelConfig) {
+                <span class="hljs-comment">// input channel configuration features unsupported channels</span>
+                loge(<span class="hljs-string">"getMinBufferSize(): Invalid channel configuration."</span>);
+                <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+            } <span class="hljs-keyword">else</span> {
+                channelCount = Integer.bitCount(channelConfig);
+            }
+        }
+
+        <span class="hljs-keyword">if</span> ((audioFormat != AudioFormat.ENCODING_PCM_16BIT)
+            &amp;&amp; (audioFormat != AudioFormat.ENCODING_PCM_8BIT)) {
+            loge(<span class="hljs-string">"getMinBufferSize(): Invalid audio format."</span>);
+            <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+        }
+
+        <span class="hljs-comment">// sample rate, note these values are subject to change</span>
+        <span class="hljs-keyword">if</span> ( (sampleRateInHz &lt; SAMPLE_RATE_HZ_MIN) || (sampleRateInHz &gt; SAMPLE_RATE_HZ_MAX) ) {
+            loge(<span class="hljs-string">"getMinBufferSize(): "</span> + sampleRateInHz + <span class="hljs-string">" Hz is not a supported sample rate."</span>);
+            <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+        }
+
+        <span class="hljs-keyword">int</span> size = native_get_min_buff_size(sampleRateInHz, channelCount, audioFormat);
+        <span class="hljs-keyword">if</span> (size &lt;= <span class="hljs-number">0</span>) {
+            loge(<span class="hljs-string">"getMinBufferSize(): error querying hardware"</span>);
+            <span class="hljs-keyword">return</span> ERROR;
+        }
+        <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">return</span> size;
+        }
+    }
+
+    <span class="hljs-comment">/**
+     * Returns the audio session ID.
+     *
+     * <span class="hljs-doctag">@return</span> the ID of the audio session this AudioTrack belongs to.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">getAudioSessionId</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> mSessionId;
+    }
+
+   <span class="hljs-comment">/**
+    * Poll for a timestamp on demand.
+    *
+    * Use if you need to get the most recent timestamp outside of the event callback handler.
+    * Calling this method too often may be inefficient;
+    * if you need a high-resolution mapping between frame position and presentation time,
+    * consider implementing that at application level, based on low-resolution timestamps.
+    * The audio data at the returned position may either already have been
+    * presented, or may have not yet been presented but is committed to be presented.
+    * It is not possible to request the time corresponding to a particular position,
+    * or to request the (fractional) position corresponding to a particular time.
+    * If you need such features, consider implementing them at application level.
+    *
+    * <span class="hljs-doctag">@param</span> timestamp a reference to a non-null AudioTimestamp instance allocated
+    *        and owned by caller.
+    * <span class="hljs-doctag">@return</span> true if a timestamp is available, or false if no timestamp is available.
+    *         If a timestamp if available,
+    *         the AudioTimestamp instance is filled in with a position in frame units, together
+    *         with the estimated time when that frame was presented or is committed to
+    *         be presented.
+    *         In the case that no timestamp is available, any supplied instance is left unaltered.
+    */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">boolean</span> <span class="hljs-title">getTimestamp</span><span class="hljs-params">(AudioTimestamp timestamp)</span>
+    </span>{
+        <span class="hljs-keyword">if</span> (timestamp == <span class="hljs-keyword">null</span>) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException();
+        }
+        <span class="hljs-comment">// It's unfortunate, but we have to either create garbage every time or use synchronized</span>
+        <span class="hljs-keyword">long</span>[] longArray = <span class="hljs-keyword">new</span> <span class="hljs-keyword">long</span>[<span class="hljs-number">2</span>];
+        <span class="hljs-keyword">int</span> ret = native_get_timestamp(longArray);
+        <span class="hljs-keyword">if</span> (ret != SUCCESS) {
+            <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+        }
+        timestamp.framePosition = longArray[<span class="hljs-number">0</span>];
+        timestamp.nanoTime = longArray[<span class="hljs-number">1</span>];
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+    }
+
+
+    <span class="hljs-comment">//--------------------------------------------------------------------------</span>
+    <span class="hljs-comment">// Initialization / configuration</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Sets the listener the AudioTrack notifies when a previously set marker is reached or
+     * for each periodic playback head position update.
+     * Notifications will be received in the same thread as the one in which the AudioTrack
+     * instance was created.
+     * <span class="hljs-doctag">@param</span> listener
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">setPlaybackPositionUpdateListener</span><span class="hljs-params">(OnPlaybackPositionUpdateListener listener)</span> </span>{
+        setPlaybackPositionUpdateListener(listener, <span class="hljs-keyword">null</span>);
+    }
+
+    <span class="hljs-comment">/**
+     * Sets the listener the AudioTrack notifies when a previously set marker is reached or
+     * for each periodic playback head position update.
+     * Use this method to receive AudioTrack events in the Handler associated with another
+     * thread than the one in which you created the AudioTrack instance.
+     * <span class="hljs-doctag">@param</span> listener
+     * <span class="hljs-doctag">@param</span> handler the Handler that will receive the event notification messages.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">setPlaybackPositionUpdateListener</span><span class="hljs-params">(OnPlaybackPositionUpdateListener listener,
+                                                    Handler <span class="hljs-keyword">handler</span>)</span> </span>{
+        <span class="hljs-keyword">if</span> (listener != <span class="hljs-keyword">null</span>) {
+            mEventHandlerDelegate = <span class="hljs-keyword">new</span> NativeEventHandlerDelegate(<span class="hljs-keyword">this</span>, listener, <span class="hljs-keyword">handler</span>);
+        } <span class="hljs-keyword">else</span> {
+            mEventHandlerDelegate = <span class="hljs-keyword">null</span>;
+        }
+    }
+
+
+
+     <span class="hljs-comment">/**
+     * Sets the specified left/right output volume values on the AudioTrack. Values are clamped
+     * to the ({<span class="hljs-doctag">@link</span> #getMinVolume()}, {<span class="hljs-doctag">@link</span> #getMaxVolume()}) interval if outside this range.
+     * <span class="hljs-doctag">@param</span> leftVolume output attenuation for the left channel. A value of 0.0f is silence,
+     *      a value of 1.0f is no attenuation.
+     * <span class="hljs-doctag">@param</span> rightVolume output attenuation for the right channel
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS},
+     *    {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setStereoVolume</span><span class="hljs-params">(<span class="hljs-keyword">float</span> leftVolume, <span class="hljs-keyword">float</span> rightVolume)</span> </span>{
+        <span class="hljs-keyword">if</span> (mState == STATE_UNINITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+
+        <span class="hljs-comment">// clamp the volumes</span>
+        <span class="hljs-keyword">if</span> (leftVolume &lt; getMinVolume()) {
+            leftVolume = getMinVolume();
+        }
+        <span class="hljs-keyword">if</span> (leftVolume &gt; getMaxVolume()) {
+            leftVolume = getMaxVolume();
+        }
+        <span class="hljs-keyword">if</span> (rightVolume &lt; getMinVolume()) {
+            rightVolume = getMinVolume();
+        }
+        <span class="hljs-keyword">if</span> (rightVolume &gt; getMaxVolume()) {
+            rightVolume = getMaxVolume();
+        }
+
+        native_setVolume(leftVolume, rightVolume);
+
+        <span class="hljs-keyword">return</span> SUCCESS;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Similar, except set volume of all channels to same value.
+     * <span class="hljs-doctag">@hide</span>
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setVolume</span><span class="hljs-params">(<span class="hljs-keyword">float</span> volume)</span> </span>{
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">setStereoVolume</span><span class="hljs-params">(volume, volume)</span></span>;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Sets the playback sample rate for this track. This sets the sampling rate at which
+     * the audio data will be consumed and played back
+     * (as set by the sampleRateInHz parameter in the
+     * {<span class="hljs-doctag">@link</span> #AudioTrack(int, int, int, int, int, int)} constructor),
+     * not the original sampling rate of the
+     * content. For example, setting it to half the sample rate of the content will cause the
+     * playback to last twice as long, but will also result in a pitch shift down by one octave.
+     * The valid sample rate range is from 1 Hz to twice the value returned by
+     * {<span class="hljs-doctag">@link</span> #getNativeOutputSampleRate(int)}.
+     * <span class="hljs-doctag">@param</span> sampleRateInHz the sample rate expressed in Hz
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS}, {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE},
+     *    {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setPlaybackRate</span><span class="hljs-params">(<span class="hljs-keyword">int</span> sampleRateInHz)</span> </span>{
+        <span class="hljs-keyword">if</span> (mState != STATE_INITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-keyword">if</span> (sampleRateInHz &lt;= <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+        }
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_set_playback_rate</span><span class="hljs-params">(sampleRateInHz)</span></span>;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Sets the position of the notification marker.  At most one marker can be active.
+     * <span class="hljs-doctag">@param</span> markerInFrames marker position in wrapping frame units similar to
+     * {<span class="hljs-doctag">@link</span> #getPlaybackHeadPosition}, or zero to disable the marker.
+     * To set a marker at a position which would appear as zero due to wraparound,
+     * a workaround is to use a non-zero position near zero, such as -1 or 1.
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS}, {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE},
+     *  {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setNotificationMarkerPosition</span><span class="hljs-params">(<span class="hljs-keyword">int</span> markerInFrames)</span> </span>{
+        <span class="hljs-keyword">if</span> (mState == STATE_UNINITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_set_marker_pos</span><span class="hljs-params">(markerInFrames)</span></span>;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Sets the period for the periodic notification event.
+     * <span class="hljs-doctag">@param</span> periodInFrames update period expressed in frames
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS}, {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setPositionNotificationPeriod</span><span class="hljs-params">(<span class="hljs-keyword">int</span> periodInFrames)</span> </span>{
+        <span class="hljs-keyword">if</span> (mState == STATE_UNINITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_set_pos_update_period</span><span class="hljs-params">(periodInFrames)</span></span>;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Sets the playback head position.
+     * The track must be stopped or paused for the position to be changed,
+     * and must use the {<span class="hljs-doctag">@link</span> #MODE_STATIC} mode.
+     * <span class="hljs-doctag">@param</span> positionInFrames playback head position expressed in frames
+     * Zero corresponds to start of buffer.
+     * The position must not be greater than the buffer size in frames, or negative.
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS}, {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE},
+     *    {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setPlaybackHeadPosition</span><span class="hljs-params">(<span class="hljs-keyword">int</span> positionInFrames)</span> </span>{
+        <span class="hljs-keyword">if</span> (mDataLoadMode == MODE_STREAM || mState != STATE_INITIALIZED ||
+                getPlayState() == PLAYSTATE_PLAYING) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-keyword">if</span> (!(<span class="hljs-number">0</span> &lt;= positionInFrames &amp;&amp; positionInFrames &lt;= mNativeBufferSizeInFrames)) {
+            <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+        }
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_set_position</span><span class="hljs-params">(positionInFrames)</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Sets the loop points and the loop count. The loop can be infinite.
+     * Similarly to setPlaybackHeadPosition,
+     * the track must be stopped or paused for the loop points to be changed,
+     * and must use the {<span class="hljs-doctag">@link</span> #MODE_STATIC} mode.
+     * <span class="hljs-doctag">@param</span> startInFrames loop start marker expressed in frames
+     * Zero corresponds to start of buffer.
+     * The start marker must not be greater than or equal to the buffer size in frames, or negative.
+     * <span class="hljs-doctag">@param</span> endInFrames loop end marker expressed in frames
+     * The total buffer size in frames corresponds to end of buffer.
+     * The end marker must not be greater than the buffer size in frames.
+     * For looping, the end marker must not be less than or equal to the start marker,
+     * but to disable looping
+     * it is permitted for start marker, end marker, and loop count to all be 0.
+     * <span class="hljs-doctag">@param</span> loopCount the number of times the loop is looped.
+     *    A value of -1 means infinite looping, and 0 disables looping.
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS}, {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE},
+     *    {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setLoopPoints</span><span class="hljs-params">(<span class="hljs-keyword">int</span> startInFrames, <span class="hljs-keyword">int</span> endInFrames, <span class="hljs-keyword">int</span> loopCount)</span> </span>{
+        <span class="hljs-keyword">if</span> (mDataLoadMode == MODE_STREAM || mState != STATE_INITIALIZED ||
+                getPlayState() == PLAYSTATE_PLAYING) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-keyword">if</span> (loopCount == <span class="hljs-number">0</span>) {
+            ;   <span class="hljs-comment">// explicitly allowed as an exception to the loop region range check</span>
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!(<span class="hljs-number">0</span> &lt;= startInFrames &amp;&amp; startInFrames &lt; mNativeBufferSizeInFrames &amp;&amp;
+                startInFrames &lt; endInFrames &amp;&amp; endInFrames &lt;= mNativeBufferSizeInFrames)) {
+            <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+        }
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_set_loop</span><span class="hljs-params">(startInFrames, endInFrames, loopCount)</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Sets the initialization state of the instance. This method was originally intended to be used
+     * in an AudioTrack subclass constructor to set a subclass-specific post-initialization state.
+     * However, subclasses of AudioTrack are no longer recommended, so this method is obsolete.
+     * <span class="hljs-doctag">@param</span> state the state of the AudioTrack instance
+     * <span class="hljs-doctag">@deprecated</span> Only accessible by subclasses, which are not recommended for AudioTrack.
+     */</span>
+    <span class="hljs-annotation">@Deprecated</span>
+    <span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">setState</span><span class="hljs-params">(<span class="hljs-keyword">int</span> state)</span> </span>{
+        mState = state;
+    }
+
+
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Transport control methods</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Starts playing an AudioTrack.
+     * If track's creation mode is {<span class="hljs-doctag">@link</span> #MODE_STATIC}, you must have called write() prior.
+     *
+     * <span class="hljs-doctag">@throws</span> IllegalStateException
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">play</span><span class="hljs-params">()</span>
+    <span class="hljs-keyword">throws</span> IllegalStateException </span>{
+        <span class="hljs-keyword">if</span> (mState != STATE_INITIALIZED) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(<span class="hljs-string">"play() called on uninitialized AudioTrack."</span>);
+        }
+
+        <span class="hljs-keyword">synchronized</span>(mPlayStateLock) {
+            native_start();
+            mPlayState = PLAYSTATE_PLAYING;
+        }
+    }
+
+    <span class="hljs-comment">/**
+     * Stops playing the audio data.
+     * When used on an instance created in {<span class="hljs-doctag">@link</span> #MODE_STREAM} mode, audio will stop playing
+     * after the last buffer that was written has been played. For an immediate stop, use
+     * {<span class="hljs-doctag">@link</span> #pause()}, followed by {<span class="hljs-doctag">@link</span> #flush()} to discard audio data that hasn't been played
+     * back yet.
+     * <span class="hljs-doctag">@throws</span> IllegalStateException
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">stop</span><span class="hljs-params">()</span>
+    <span class="hljs-keyword">throws</span> IllegalStateException </span>{
+        <span class="hljs-keyword">if</span> (mState != STATE_INITIALIZED) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(<span class="hljs-string">"stop() called on uninitialized AudioTrack."</span>);
+        }
+
+        <span class="hljs-comment">// stop playing</span>
+        <span class="hljs-keyword">synchronized</span>(mPlayStateLock) {
+            native_stop();
+            mPlayState = PLAYSTATE_STOPPED;
+        }
+    }
+
+    <span class="hljs-comment">/**
+     * Pauses the playback of the audio data. Data that has not been played
+     * back will not be discarded. Subsequent calls to {<span class="hljs-doctag">@link</span> #play} will play
+     * this data back. See {<span class="hljs-doctag">@link</span> #flush()} to discard this data.
+     *
+     * <span class="hljs-doctag">@throws</span> IllegalStateException
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">pause</span><span class="hljs-params">()</span>
+    <span class="hljs-keyword">throws</span> IllegalStateException </span>{
+        <span class="hljs-keyword">if</span> (mState != STATE_INITIALIZED) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(<span class="hljs-string">"pause() called on uninitialized AudioTrack."</span>);
+        }
+        <span class="hljs-comment">//logd("pause()");</span>
+
+        <span class="hljs-comment">// pause playback</span>
+        <span class="hljs-keyword">synchronized</span>(mPlayStateLock) {
+            native_pause();
+            mPlayState = PLAYSTATE_PAUSED;
+        }
+    }
+
+
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Audio data supply</span>
+    <span class="hljs-comment">//--------------------</span>
+
+    <span class="hljs-comment">/**
+     * Flushes the audio data currently queued for playback. Any data that has
+     * not been played back will be discarded.  No-op if not stopped or paused,
+     * or if the track's creation mode is not {<span class="hljs-doctag">@link</span> #MODE_STREAM}.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">flush</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">if</span> (mState == STATE_INITIALIZED) {
+            <span class="hljs-comment">// flush the data in native layer</span>
+            native_flush();
+        }
+
+    }
+
+    <span class="hljs-comment">/**
+     * Writes the audio data to the audio sink for playback (streaming mode),
+     * or copies audio data for later playback (static buffer mode).
+     * In streaming mode, will block until all data has been written to the audio sink.
+     * In static buffer mode, copies the data to the buffer starting at offset 0.
+     * Note that the actual playback of this data might occur after this function
+     * returns. This function is thread safe with respect to {<span class="hljs-doctag">@link</span> #stop} calls,
+     * in which case all of the specified data might not be written to the audio sink.
+     *
+     * <span class="hljs-doctag">@param</span> audioData the array that holds the data to play.
+     * <span class="hljs-doctag">@param</span> offsetInBytes the offset expressed in bytes in audioData where the data to play
+     *    starts.
+     * <span class="hljs-doctag">@param</span> sizeInBytes the number of bytes to read in audioData after the offset.
+     * <span class="hljs-doctag">@return</span> the number of bytes that were written or {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     *    if the object wasn't properly initialized, or {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE} if
+     *    the parameters don't resolve to valid data and indexes.
+     */</span>
+
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">write</span><span class="hljs-params">(<span class="hljs-keyword">byte</span>[] audioData, <span class="hljs-keyword">int</span> offsetInBytes, <span class="hljs-keyword">int</span> sizeInBytes)</span> </span>{
+
+        <span class="hljs-keyword">if</span> (mState == STATE_UNINITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+
+        <span class="hljs-keyword">if</span> ( (audioData == <span class="hljs-keyword">null</span>) || (offsetInBytes &lt; <span class="hljs-number">0</span> ) || (sizeInBytes &lt; <span class="hljs-number">0</span>)
+                || (offsetInBytes + sizeInBytes &lt; <span class="hljs-number">0</span>)    <span class="hljs-comment">// detect integer overflow</span>
+                || (offsetInBytes + sizeInBytes &gt; audioData.length)) {
+            <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+        }
+
+        <span class="hljs-keyword">int</span> ret = native_write_byte(audioData, offsetInBytes, sizeInBytes, mAudioFormat);
+
+        <span class="hljs-keyword">if</span> ((mDataLoadMode == MODE_STATIC)
+                &amp;&amp; (mState == STATE_NO_STATIC_DATA)
+                &amp;&amp; (ret &gt; <span class="hljs-number">0</span>)) {
+            <span class="hljs-comment">// benign race with respect to other APIs that read mState</span>
+            mState = STATE_INITIALIZED;
+        }
+
+        <span class="hljs-keyword">return</span> ret;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Writes the audio data to the audio sink for playback (streaming mode),
+     * or copies audio data for later playback (static buffer mode).
+     * In streaming mode, will block until all data has been written to the audio sink.
+     * In static buffer mode, copies the data to the buffer starting at offset 0.
+     * Note that the actual playback of this data might occur after this function
+     * returns. This function is thread safe with respect to {<span class="hljs-doctag">@link</span> #stop} calls,
+     * in which case all of the specified data might not be written to the audio sink.
+     *
+     * <span class="hljs-doctag">@param</span> audioData the array that holds the data to play.
+     * <span class="hljs-doctag">@param</span> offsetInShorts the offset expressed in shorts in audioData where the data to play
+     *     starts.
+     * <span class="hljs-doctag">@param</span> sizeInShorts the number of shorts to read in audioData after the offset.
+     * <span class="hljs-doctag">@return</span> the number of shorts that were written or {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+      *    if the object wasn't properly initialized, or {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE} if
+      *    the parameters don't resolve to valid data and indexes.
+     */</span>
+
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">write</span><span class="hljs-params">(<span class="hljs-keyword">short</span>[] audioData, <span class="hljs-keyword">int</span> offsetInShorts, <span class="hljs-keyword">int</span> sizeInShorts)</span> </span>{
+
+        <span class="hljs-keyword">if</span> (mState == STATE_UNINITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+
+        <span class="hljs-keyword">if</span> ( (audioData == <span class="hljs-keyword">null</span>) || (offsetInShorts &lt; <span class="hljs-number">0</span> ) || (sizeInShorts &lt; <span class="hljs-number">0</span>)
+                || (offsetInShorts + sizeInShorts &lt; <span class="hljs-number">0</span>)  <span class="hljs-comment">// detect integer overflow</span>
+                || (offsetInShorts + sizeInShorts &gt; audioData.length)) {
+            <span class="hljs-keyword">return</span> ERROR_BAD_VALUE;
+        }
+
+        <span class="hljs-keyword">int</span> ret = native_write_short(audioData, offsetInShorts, sizeInShorts, mAudioFormat);
+
+        <span class="hljs-keyword">if</span> ((mDataLoadMode == MODE_STATIC)
+                &amp;&amp; (mState == STATE_NO_STATIC_DATA)
+                &amp;&amp; (ret &gt; <span class="hljs-number">0</span>)) {
+            <span class="hljs-comment">// benign race with respect to other APIs that read mState</span>
+            mState = STATE_INITIALIZED;
+        }
+
+        <span class="hljs-keyword">return</span> ret;
+    }
+
+
+    <span class="hljs-comment">/**
+     * Notifies the native resource to reuse the audio data already loaded in the native
+     * layer, that is to rewind to start of buffer.
+     * The track's creation mode must be {<span class="hljs-doctag">@link</span> #MODE_STATIC}.
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS}, {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE},
+     *  {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">reloadStaticData</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">if</span> (mDataLoadMode == MODE_STREAM || mState != STATE_INITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_reload_static</span><span class="hljs-params">()</span></span>;
+    }
+
+    <span class="hljs-comment">//--------------------------------------------------------------------------</span>
+    <span class="hljs-comment">// Audio effects management</span>
+    <span class="hljs-comment">//--------------------</span>
+
+    <span class="hljs-comment">/**
+     * Attaches an auxiliary effect to the audio track. A typical auxiliary
+     * effect is a reverberation effect which can be applied on any sound source
+     * that directs a certain amount of its energy to this effect. This amount
+     * is defined by setAuxEffectSendLevel().
+     * {<span class="hljs-doctag">@see</span> #setAuxEffectSendLevel(float)}.
+     * &lt;p&gt;After creating an auxiliary effect (e.g.
+     * {<span class="hljs-doctag">@link</span> android.media.audiofx.EnvironmentalReverb}), retrieve its ID with
+     * {<span class="hljs-doctag">@link</span> android.media.audiofx.AudioEffect#getId()} and use it when calling
+     * this method to attach the audio track to the effect.
+     * &lt;p&gt;To detach the effect from the audio track, call this method with a
+     * null effect id.
+     *
+     * <span class="hljs-doctag">@param</span> effectId system wide unique id of the effect to attach
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS},
+     *    {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}, {<span class="hljs-doctag">@link</span> #ERROR_BAD_VALUE}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">attachAuxEffect</span><span class="hljs-params">(<span class="hljs-keyword">int</span> effectId)</span> </span>{
+        <span class="hljs-keyword">if</span> (mState == STATE_UNINITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-function"><span class="hljs-keyword">return</span> <span class="hljs-title">native_attachAuxEffect</span><span class="hljs-params">(effectId)</span></span>;
+    }
+
+    <span class="hljs-comment">/**
+     * Sets the send level of the audio track to the attached auxiliary effect
+     * {<span class="hljs-doctag">@link</span> #attachAuxEffect(int)}.  The level value range is 0.0f to 1.0f.
+     * Values are clamped to the (0.0f, 1.0f) interval if outside this range.
+     * &lt;p&gt;By default the send level is 0.0f, so even if an effect is attached to the player
+     * this method must be called for the effect to be applied.
+     * &lt;p&gt;Note that the passed level value is a raw scalar. UI controls should be scaled
+     * logarithmically: the gain applied by audio framework ranges from -72dB to 0dB,
+     * so an appropriate conversion from linear UI input x to level is:
+     * x == 0 -&gt; level = 0
+     * 0 &lt; x &lt;= R -&gt; level = 10^(72*(x-R)/20/R)
+     *
+     * <span class="hljs-doctag">@param</span> level send level scalar
+     * <span class="hljs-doctag">@return</span> error code or success, see {<span class="hljs-doctag">@link</span> #SUCCESS},
+     *    {<span class="hljs-doctag">@link</span> #ERROR_INVALID_OPERATION}
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">setAuxEffectSendLevel</span><span class="hljs-params">(<span class="hljs-keyword">float</span> level)</span> </span>{
+        <span class="hljs-keyword">if</span> (mState == STATE_UNINITIALIZED) {
+            <span class="hljs-keyword">return</span> ERROR_INVALID_OPERATION;
+        }
+        <span class="hljs-comment">// clamp the level</span>
+        <span class="hljs-keyword">if</span> (level &lt; getMinVolume()) {
+            level = getMinVolume();
+        }
+        <span class="hljs-keyword">if</span> (level &gt; getMaxVolume()) {
+            level = getMaxVolume();
+        }
+        native_setAuxEffectSendLevel(level);
+        <span class="hljs-keyword">return</span> SUCCESS;
+    }
+
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Interface definitions</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Interface definition for a callback to be invoked when the playback head position of
+     * an AudioTrack has reached a notification marker or has increased by a certain period.
+     */</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">OnPlaybackPositionUpdateListener</span>  </span>{
+        <span class="hljs-comment">/**
+         * Called on the listener to notify it that the previously set marker has been reached
+         * by the playback head.
+         */</span>
+        <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onMarkerReached</span><span class="hljs-params">(AudioTrack track)</span></span>;
+
+        <span class="hljs-comment">/**
+         * Called on the listener to periodically notify it that the playback head has reached
+         * a multiple of the notification period.
+         */</span>
+        <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onPeriodicNotification</span><span class="hljs-params">(AudioTrack track)</span></span>;
+    }
+
+
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Inner classes</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-comment">/**
+     * Helper class to handle the forwarding of native events to the appropriate listener
+     * (potentially) handled in a different thread
+     */</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NativeEventHandlerDelegate</span> </span>{
+        <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Handler mHandler;
+
+        NativeEventHandlerDelegate(<span class="hljs-keyword">final</span> AudioTrack track,
+                                   <span class="hljs-keyword">final</span> OnPlaybackPositionUpdateListener listener,
+                                   Handler <span class="hljs-keyword">handler</span>) {
+            <span class="hljs-comment">// find the looper for our new event handler</span>
+            Looper looper;
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">handler</span> != <span class="hljs-keyword">null</span>) {
+                looper = <span class="hljs-keyword">handler</span>.getLooper();
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-comment">// no given handler, use the looper the AudioTrack was created in</span>
+                looper = mInitializationLooper;
+            }
+
+            <span class="hljs-comment">// construct the event handler with this looper</span>
+            <span class="hljs-keyword">if</span> (looper != <span class="hljs-keyword">null</span>) {
+                <span class="hljs-comment">// implement the event handler delegate</span>
+                mHandler = <span class="hljs-keyword">new</span> Handler(looper) {
+                    <span class="hljs-annotation">@Override</span>
+                    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">handleMessage</span><span class="hljs-params">(Message msg)</span> </span>{
+                        <span class="hljs-keyword">if</span> (track == <span class="hljs-keyword">null</span>) {
+                            <span class="hljs-keyword">return</span>;
+                        }
+                        <span class="hljs-keyword">switch</span>(msg.what) {
+                        <span class="hljs-keyword">case</span> NATIVE_EVENT_MARKER:
+                            <span class="hljs-keyword">if</span> (listener != <span class="hljs-keyword">null</span>) {
+                                listener.onMarkerReached(track);
+                            }
+                            <span class="hljs-keyword">break</span>;
+                        <span class="hljs-keyword">case</span> NATIVE_EVENT_NEW_POS:
+                            <span class="hljs-keyword">if</span> (listener != <span class="hljs-keyword">null</span>) {
+                                listener.onPeriodicNotification(track);
+                            }
+                            <span class="hljs-keyword">break</span>;
+                        <span class="hljs-keyword">default</span>:
+                            loge(<span class="hljs-string">"Unknown native event type: "</span> + msg.what);
+                            <span class="hljs-keyword">break</span>;
+                        }
+                    }
+                };
+            } <span class="hljs-keyword">else</span> {
+                mHandler = <span class="hljs-keyword">null</span>;
+            }
+        }
+
+        <span class="hljs-function">Handler <span class="hljs-title">getHandler</span><span class="hljs-params">()</span> </span>{
+            <span class="hljs-keyword">return</span> mHandler;
+        }
+    }
+
+
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Java methods called from the native side</span>
+    <span class="hljs-comment">//--------------------</span>
+    <span class="hljs-annotation">@SuppressWarnings</span>(<span class="hljs-string">"unused"</span>)
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">postEventFromNative</span><span class="hljs-params">(Object audiotrack_ref,
+            <span class="hljs-keyword">int</span> what, <span class="hljs-keyword">int</span> arg1, <span class="hljs-keyword">int</span> arg2, Object obj)</span> </span>{
+        <span class="hljs-comment">//logd("Event posted from the native side: event="+ what + " args="+ arg1+" "+arg2);</span>
+        AudioTrack track = (AudioTrack)((WeakReference)audiotrack_ref).get();
+        <span class="hljs-keyword">if</span> (track == <span class="hljs-keyword">null</span>) {
+            <span class="hljs-keyword">return</span>;
+        }
+
+        NativeEventHandlerDelegate delegate = track.mEventHandlerDelegate;
+        <span class="hljs-keyword">if</span> (delegate != <span class="hljs-keyword">null</span>) {
+            Handler <span class="hljs-keyword">handler</span> = delegate.getHandler();
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">handler</span> != <span class="hljs-keyword">null</span>) {
+                Message m = <span class="hljs-keyword">handler</span>.obtainMessage(what, arg1, arg2, obj);
+                <span class="hljs-keyword">handler</span>.sendMessage(m);
+            }
+        }
+
+    }
+
+
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Native methods called from the Java side</span>
+    <span class="hljs-comment">//--------------------</span>
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_setup</span><span class="hljs-params">(Object audiotrack_this,
+            <span class="hljs-keyword">int</span> streamType, <span class="hljs-keyword">int</span> sampleRate, <span class="hljs-keyword">int</span> nbChannels, <span class="hljs-keyword">int</span> audioFormat,
+            <span class="hljs-keyword">int</span> buffSizeInBytes, <span class="hljs-keyword">int</span> mode, <span class="hljs-keyword">int</span>[] sessionId)</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_finalize</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_release</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_start</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_stop</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_pause</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_flush</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_write_byte</span><span class="hljs-params">(<span class="hljs-keyword">byte</span>[] audioData,
+                                               <span class="hljs-keyword">int</span> offsetInBytes, <span class="hljs-keyword">int</span> sizeInBytes, <span class="hljs-keyword">int</span> format)</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_write_short</span><span class="hljs-params">(<span class="hljs-keyword">short</span>[] audioData,
+                                                <span class="hljs-keyword">int</span> offsetInShorts, <span class="hljs-keyword">int</span> sizeInShorts, <span class="hljs-keyword">int</span> format)</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_reload_static</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_native_frame_count</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_setVolume</span><span class="hljs-params">(<span class="hljs-keyword">float</span> leftVolume, <span class="hljs-keyword">float</span> rightVolume)</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_set_playback_rate</span><span class="hljs-params">(<span class="hljs-keyword">int</span> sampleRateInHz)</span></span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_playback_rate</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_set_marker_pos</span><span class="hljs-params">(<span class="hljs-keyword">int</span> marker)</span></span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_marker_pos</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_set_pos_update_period</span><span class="hljs-params">(<span class="hljs-keyword">int</span> updatePeriod)</span></span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_pos_update_period</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_set_position</span><span class="hljs-params">(<span class="hljs-keyword">int</span> position)</span></span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_position</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_latency</span><span class="hljs-params">()</span></span>;
+
+    <span class="hljs-comment">// longArray must be a non-null array of length &gt;= 2</span>
+    <span class="hljs-comment">// [0] is assigned the frame position</span>
+    <span class="hljs-comment">// [1] is assigned the time in CLOCK_MONOTONIC nanoseconds</span>
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_timestamp</span><span class="hljs-params">(<span class="hljs-keyword">long</span>[] longArray)</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_set_loop</span><span class="hljs-params">(<span class="hljs-keyword">int</span> start, <span class="hljs-keyword">int</span> end, <span class="hljs-keyword">int</span> loopCount)</span></span>;
+
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_output_sample_rate</span><span class="hljs-params">(<span class="hljs-keyword">int</span> streamType)</span></span>;
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_get_min_buff_size</span><span class="hljs-params">(
+            <span class="hljs-keyword">int</span> sampleRateInHz, <span class="hljs-keyword">int</span> channelConfig, <span class="hljs-keyword">int</span> audioFormat)</span></span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">native_attachAuxEffect</span><span class="hljs-params">(<span class="hljs-keyword">int</span> effectId)</span></span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">final</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">native_setAuxEffectSendLevel</span><span class="hljs-params">(<span class="hljs-keyword">float</span> level)</span></span>;
+
+    <span class="hljs-comment">//---------------------------------------------------------</span>
+    <span class="hljs-comment">// Utility methods</span>
+    <span class="hljs-comment">//------------------</span>
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">logd</span><span class="hljs-params">(String msg)</span> </span>{
+        Log.d(TAG, msg);
+    }
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">loge</span><span class="hljs-params">(String msg)</span> </span>{
+        Log.e(TAG, msg);
+    }
+
+}
+</code></pre><p>I need create a new module with Titanium, then i use this link and create the module:</p>
+<p>http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;Creating_a_New_Titanium_Module</p>
+<p>Now I have the module create, then i need use in my titanium app. In Tiapp.xml i have </p>
+<pre><code class="hljs">        &lt;<span class="hljs-function"><span class="hljs-keyword">module</span> <span class="hljs-title">platform</span>=</span><span class="hljs-string">"android"</span>&gt;com.mymodule.audiotrack&lt;/<span class="hljs-function"><span class="hljs-keyword">module</span>&gt;</span>
+</code></pre><p>In my application.js now:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> AudioTrack = <span class="hljs-built_in">require</span>(<span class="hljs-string">'com.mymodule.audiotrack'</span>);
+<span class="hljs-keyword">var</span> AudioSystem = <span class="hljs-built_in">require</span>(<span class="hljs-string">'com.mymodule.audiotrack'</span>);
+<span class="hljs-keyword">var</span> AudioFormat = <span class="hljs-built_in">require</span>(<span class="hljs-string">'com.mymodule.audiotrack'</span>);
+
+....
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">playSound</span>(<span class="hljs-params"></span>)</span>{
+
+    <span class="hljs-keyword">var</span> miaudio =  AudioTrack({
+            <span class="hljs-number">3</span>,
+            sampleRate, AudioFormat.CHANNEL_CONFIGURATION_MONO,
+            AudioFormat.ENCODING_PCM_16BIT, numSamples,
+            AudioTrack.MODE_STATIC});
+
+    miaudio.write(generatedSnd, <span class="hljs-number">0</span>, generatedSnd.length);
+    miaudio.play();
+}
+</code></pre><p>but Titanium says me there are syntax errors in &quot;var miaudio=…..&quot;</p>
+<p>Where is the problem??</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 15th 2015, 9:03:55 am">January 15th 2015</span>
+				by <span class='authorname'>Carlos Garcia</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>audiotrack</span></li>
+					
+						<li><span class='tagname'>creating module</span></li>
+					
+						<li><span class='tagname'>java</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>i test my module:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> AudioTrack = <span class="hljs-built_in">require</span>(<span class="hljs-string">'com.mymodule.audiotrack'</span>);
+
+
+Ti.API.info(<span class="hljs-string">"module is =&gt; "</span> + AudioTrack);
+Ti.API.info(<span class="hljs-string">"module play() method returns =&gt; "</span> + AudioTrack.play());
+</code></pre><p>the result</p>
+<pre><code class="hljs"><span class="hljs-list">[<span class="hljs-keyword">INFO</span>] :   module is =&gt; <span class="hljs-list">[<span class="hljs-keyword">object</span> Object]
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">1705</span>,<span class="hljs-number">1705</span>] ----- Titanium Javascript Runtime Error -----
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">2</span>,<span class="hljs-number">1707</span>] - In alloy/controllers/index.js:167,<span class="hljs-number">65</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">15</span>,<span class="hljs-number">1722</span>] - Message: Uncaught TypeError: Object #&lt;Audiotrack&gt; has no method <span class="hljs-variable">'play</span>'
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  TiExceptionHandler: <span class="hljs-list">(<span class="hljs-keyword">main</span>)</span> <span class="hljs-list">[<span class="hljs-keyword">2</span>,<span class="hljs-number">1724</span>] - Source:     Ti.API.info<span class="hljs-list">(<span class="hljs-string">"module play() method returns =&gt; "</span> + AudioTrack.play<span class="hljs-list">()</span>)</span><span class="hljs-comment">;</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  V8Exception: Exception occurred at alloy/controllers/index.js:167: Uncaught TypeError: Object #&lt;Audiotrack&gt; has no method <span class="hljs-variable">'play</span>'</span></span></span></span></span></span></span></span></span></span></span>
+</code></pre><p>I think the problem is in the module, but is a module of the Android SDK. Which is the problem??</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 15th 2015, 10:32:18 am">January 15th 2015</span>
+								by <span class='authorname'>Carlos Garcia</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

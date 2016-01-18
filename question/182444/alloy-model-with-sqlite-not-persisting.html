@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy Model with SQLite not persisting » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy Model with SQLite not persisting</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I&#39;m currently building an Alloy application using Titanium Studio, build: 3.4.1.201410281727 and using SQLite for DB storage. I&#39;m having some trouble with saving the data through Alloy model. </p>
+<p>This is my model declaration</p>
+<pre><code class="hljs">exports<span class="hljs-built_in">.</span>definition = {
+    config: {
+
+        adapter: {
+            <span class="hljs-keyword">type</span>: <span class="hljs-string">"sql"</span>,
+            collection_name: <span class="hljs-string">"IntegrationUser"</span>,
+            db_file: <span class="hljs-string">"/db.sqlite"</span>,
+            db_name: <span class="hljs-string">"dbname"</span>,
+            idAttribute: <span class="hljs-string">"id"</span>,
+            remoteBackup: <span class="hljs-literal">false</span>
+        }
+    }
+};
+
+SQL Create Statement
+CREATE TABLE <span class="hljs-string">"IntegrationUser"</span> (
+    <span class="hljs-string">"id"</span> <span class="hljs-built_in">INTEGER</span> PRIMARY KEY ,
+    <span class="hljs-string">"accessTokenId"</span> TEXT DEFAULT (<span class="hljs-built_in">null</span>) ,
+    <span class="hljs-string">"tokenType"</span> TEXT,
+    <span class="hljs-string">"accessToken"</span> TEXT,
+    <span class="hljs-string">"instanceUrl"</span> TEXT,
+    <span class="hljs-string">"issuedAt"</span> TEXT)
+</code></pre><p>And I declare the collection in alloy.js</p>
+<pre><code class="hljs">Alloy.Collections.IntegrationUser = Alloy.createCollection(<span class="hljs-string">'IntegrationUser'</span>);
+</code></pre><p>I send a GET request to a remote server to retrieve the data and save the data to model. </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> httpClient = Titanium.Network.createHTTPClient({
+    timeout : <span class="hljs-number">1000000</span>,
+    onerror: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.error(<span class="hljs-string">'Bad Server =&gt;'</span>+e.error);
+    },
+    onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.status == <span class="hljs-string">'200'</span>){
+            Ti.API.info(<span class="hljs-string">'got my response, http status code '</span> + <span class="hljs-keyword">this</span>.status);
+
+                <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.readyState == <span class="hljs-number">4</span>){                  
+                      <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+
+                      <span class="hljs-keyword">var</span> intUserCollection = Alloy.Collections.User;
+                      <span class="hljs-keyword">var</span> userArgs = {
+                          <span class="hljs-string">"id"</span> : <span class="hljs-number">1</span>,
+                          <span class="hljs-string">"accessTokenId"</span> : response.id,
+                          <span class="hljs-string">"tokenType"</span> : response.token_type,
+                          <span class="hljs-string">"accessToken"</span> : response.access_token,
+                          <span class="hljs-string">"issuedAt"</span> : response.issued_at,
+                          <span class="hljs-string">"instanceUrl"</span> : response.instance_url
+                      };
+
+                      <span class="hljs-keyword">var</span> intUser = Alloy.createModel(<span class="hljs-string">"IntegrationUser"</span>, userArgs);
+                intUserCollection.add(intUser);
+                intUser.save();
+
+                } <span class="hljs-keyword">else</span> {
+                      Ti.API.error(<span class="hljs-string">'HTTP Ready State != 4'</span>);
+                }           
+        } <span class="hljs-keyword">else</span> {
+                Ti.API.error(<span class="hljs-string">'HTTP Error Response Status Code = '</span> + <span class="hljs-keyword">this</span>.status);
+                Ti.API.error(<span class="hljs-string">"Error =&gt;"</span> + <span class="hljs-keyword">this</span>.response);
+        }
+    }
+});
+</code></pre><p>The problem is the data does not save to the SQLite DB. After I restart the app, the data is not persisted and the db appears to be empty. </p>
+<p>Am I doing something wrong with the model?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 20th 2015, 1:20:42 am">May 20th 2015</span>
+				by <span class='authorname'>Pongtip Aroonvatanaporn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to keep location service running as Background service iOS » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to keep location service running as Background service iOS</h1>
+		</header>
+		<section>
+			<p>Hi, I am using SK 3.5.1GA, Appc 4.0 - testing on an iOS 7 device and iOS8 emulator</p>
+<p>I am trying to create a simple background sevice that runs the location service (at low power) and then simply update my local database with some info.  My problem is that it doesn&#39;t seem to run for long in the background. After backgrounding the app for 40 mins, I see only 1 record from the interval and only 1 record from the location service timestamped when the app resumes.  It looks like the sevice doesn&#39;t run for more than 2 mins.</p>
+<p>I am hoping someone can glance quickly at this and see what I am doing wrong.</p>
+<p>This is my setup</p>
+<pre><code class="hljs">//...
+//TIAPP.xml
+
+    <span class="hljs-tag">&lt;<span class="hljs-title">ios</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">plist</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">dict</span>&gt;</span>
+        ...
+                <span class="hljs-tag">&lt;<span class="hljs-title">key</span>&gt;</span>UIBackgroundModes<span class="hljs-tag">&lt;/<span class="hljs-title">key</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">array</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">string</span>&gt;</span>location<span class="hljs-tag">&lt;/<span class="hljs-title">string</span>&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-title">array</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">dict</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">plist</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">ios</span>&gt;</span>
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//...</span>
+<span class="hljs-comment">//APP.JS</span>
+
+        ...
+        <span class="hljs-keyword">var</span> bgService;
+        ...
+
+        Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+            ...
+            <span class="hljs-comment">//BG location stuff?</span>
+            <span class="hljs-keyword">if</span> (bgService != <span class="hljs-literal">null</span>){
+                    bgService.stop();
+                    bgService.unregister();
+                }
+        });
+        Ti.App.addEventListener(<span class="hljs-string">'pause'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+            ...
+            <span class="hljs-comment">//BG location stuff?</span>
+            bgService = Ti.App.iOS.registerBackgroundService({url:<span class="hljs-string">'/lib/bg.js'</span>});
+        });
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//  /lib/bg.js</span>
+
+<span class="hljs-comment">//This holds the process for the background service that wil run on iOS</span>
+
+<span class="hljs-keyword">var</span> timerDuration = 120000; 
+<span class="hljs-keyword">var</span> callbackDT;
+
+Ti.Geolocation.distanceFilter = 50;
+Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_LOW;
+
+<span class="hljs-comment">//This is the location callback that means Geo locating will be running in the background continuously</span>
+<span class="hljs-keyword">var</span> locationCallback = function(<span class="hljs-keyword">e</span>)
+{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.coords &amp;&amp; <span class="hljs-keyword">e</span>.success !== undefined) {
+        <span class="hljs-keyword">e</span> = <span class="hljs-keyword">e</span>.coords;
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">e</span> !== undefined){
+            callbackDT = new <span class="hljs-literal">Date</span>();
+            <span class="hljs-keyword">var</span> _db = Ti.Database.<span class="hljs-keyword">open</span>('lclVB');
+            _db.execute(<span class="hljs-string">"INSERT INTO tbl_GeoTest(created, msg, lat, lon, speed, acc) VALUES(?,?,?,?,?,?)"</span>,
+                callbackDT.<span class="hljs-keyword">toString</span>(),
+                'paused location callback',
+                <span class="hljs-keyword">e</span>.latitude,
+                <span class="hljs-keyword">e</span>.longitude,
+                <span class="hljs-keyword">e</span>.speed,
+                <span class="hljs-keyword">e</span>.accuracy
+            );
+            _db.<span class="hljs-keyword">close</span>();
+        }
+    }
+};
+
+Ti.Geolocation.addEventListener('location',locationCallback);
+
+
+<span class="hljs-comment">//This is a quick interval check to see how long the process stays up</span>
+setInterval(function(){
+    <span class="hljs-keyword">var</span> tmpCreated = new <span class="hljs-literal">Date</span>();
+    <span class="hljs-keyword">var</span> _db = Ti.Database.<span class="hljs-keyword">open</span>('lclVB');
+    _db.execute(<span class="hljs-string">"INSERT INTO tbl_GeoTest(created, msg, lat, lon, speed, acc) VALUES(?,?,?,?,?,?)"</span>,
+        tmpCreated.<span class="hljs-keyword">toString</span>(),
+        'paused interval check',
+        0,
+        0,
+        0,
+        0
+    );
+    _db.<span class="hljs-keyword">close</span>();
+},timerDuration);
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 15th 2015, 11:28:00 pm">June 15th 2015</span>
+				by <span class='authorname'>Brad White</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>location</span></li>
+					
+						<li><span class='tagname'>service</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Quick update - if I turn off background processing for my app in Settings-&gt;General-&gt;Background App Refresh-&gt;  I get the same behaviour.  I at least would have expected something different like no processing to occur.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 16th 2015, 10:18:53 pm">June 16th 2015</span>
+								by <span class='authorname'>Brad White</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

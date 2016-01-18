@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ti.Database.install/open opening new db and not existing one of model » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ti.Database.install/open opening new db and not existing one of model</h1>
+		</header>
+		<section>
+			<p>android 4.4.2 mobile device samsung galaxy s5<br>Titanium Command-Line Interface, CLI version 3.4.2, Titanium SDK version 3.5.1.GA</p>
+<p>I have an android alloy app that is using the sql adaptor in a model and a page that shows the data in the database. This works.</p>
+<p>However, I have added some code to delete all the rows in the only table in the db and this does not work. I use SQL instead of the model&#x2F;backbone method of delete. There is no error, but it seems that a new database is installed and is referenced by the delete and not the database used by the model.</p>
+<p>I have tried using the same code from the sync adapter and variations of the same, all to no avail. For debug purposes I have replaced the delete with select code and this returns 0 rows. The database used by the model does contain rows.</p>
+<p>The code is running in a service. The service also uses the model, so I am unsure as to whether it is relevant. I do not know if the model is keeping the database open and my open is failing silently and then creating a new database.</p>
+<p>This is from the sync adaptor:</p>
+<pre><code class="hljs"><span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.debug(<span class="hljs-symbol">'Installing</span> sql database <span class="hljs-string">"' + dbFile + '"</span> <span class="hljs-keyword">with</span> name <span class="hljs-string">"' + dbName + '"</span>');
+<span class="hljs-keyword">var</span> db = <span class="hljs-type">Ti</span>.<span class="hljs-type">Database</span>.install(dbFile, dbName);
+</code></pre><pre><code class="hljs">[DEBUG] Installing sql database <span class="hljs-string">"/trackit.sqlite"</span> <span class="hljs-keyword">with</span> <span class="hljs-property">name</span> <span class="hljs-string">"trackit"</span>
+</code></pre><p>So I tried:</p>
+<pre><code class="hljs">        Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'DELETING RECORDS'</span>);
+        var db = Ti.Database.install(<span class="hljs-string">"/trackit.sqlite"</span>, <span class="hljs-string">"trackit"</span>);
+        // var db = Ti.Database.open(<span class="hljs-string">'trackit'</span>);
+        var rs;
+        rs = db.execute(<span class="hljs-string">'SELECT * FROM geo LIMIT 2;'</span>);
+        Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'ROW COUNT: '</span> + rs.rowCount);
+        <span class="hljs-keyword">while</span> ( rs.isValidRow() ) {
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'COOKIE: '</span> + rs.fieldByName(<span class="hljs-string">'id'</span>));
+            rs.<span class="hljs-built_in">next</span>();
+        }
+        rs.close();
+        db.close();
+</code></pre><p>Which results in:</p>
+<pre><code class="hljs"><span class="hljs-string">[DEBUG]</span> COLLECTION SIZE: <span class="hljs-number">0</span>
+<span class="hljs-string">[DEBUG]</span> DELETING RECORDS
+<span class="hljs-string">[DEBUG]</span> ROW COUNT: <span class="hljs-number">0</span>
+</code></pre><p>This is the model:</p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+        columns  : {
+            <span class="hljs-string">"id"</span>    : <span class="hljs-string">'INTEGER PRIMARY KEY AUTOINCREMENT'</span>,
+            <span class="hljs-string">"lon"</span>   : <span class="hljs-string">'TEXT'</span>,
+            <span class="hljs-string">"lat"</span>   : <span class="hljs-string">'TEXT'</span>,
+            <span class="hljs-string">"time_"</span> : <span class="hljs-string">'TEXT'</span>,
+            <span class="hljs-string">"now_"</span>  : <span class="hljs-string">'TEXT'</span>,
+            <span class="hljs-string">"sent"</span>  : <span class="hljs-string">'BOOL'</span>
+        },
+        defaults : {
+            <span class="hljs-string">"sent"</span> : <span class="hljs-number">0</span>
+        },
+        adapter  : {
+            <span class="hljs-string">"db_file"</span>         : <span class="hljs-string">'/trackit.sqlite'</span>,
+            <span class="hljs-string">"type"</span>            : <span class="hljs-string">'sql'</span>,
+            <span class="hljs-string">"collection_name"</span> : <span class="hljs-string">'geos'</span>,
+            <span class="hljs-string">"idAttribute"</span>     : <span class="hljs-string">'id'</span>
+        }
+    } // config
+
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 2nd 2015, 8:23:30 pm">June 2nd 2015</span>
+				by <span class='authorname'>John Smith</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>open</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-287573">
+				
+						<section>
+							<p>After some hacking, it turns out that the collection_name should be the table name in the DB.<br>If db_file is used, installing the database creates the table &quot;collection_name&quot;<br>with column names and types from sqlite_master. ie not using the column_names<br>in the config of the model at all.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 2nd 2015, 11:30:47 pm">June 2nd 2015</span>
+								by <span class='authorname'>John Smith</span><br>
+								<a class="icon-bg icon-link" href="question/182586/tidatabaseinstallopen-opening-new-db-and-not-existing-one-of-model#answer-287573" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

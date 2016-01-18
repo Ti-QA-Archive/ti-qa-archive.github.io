@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Get notified when app goes in background on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Get notified when app goes in background on Android</h1>
+		</header>
+		<section>
+			<p>Is there any event on for android like &quot;resume&quot; or &quot;pause&quot;(in IOS) that fires when app goes in foreground and background resp?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 18th 2015, 11:38:49 am">May 18th 2015</span>
+				by <span class='authorname'>Abhishek Upadhyay</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>background</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-287415">
+				
+						<section>
+							<p>There&#39;s nothing built-in to Titanium for getting these events on android.  Try the module I&#39;ve pasted below.  Save it into Context.js, then whenever you open a window, do this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Context = <span class="hljs-built_in">require</span> (<span class="hljs-string">'/Context.js'</span>);
+Context.track (win);
+</code></pre><p>It will fire &#39;paused&#39; and &#39;resumed&#39; app events as appropriate.  Note: I borrowed the concept from Timan Rebel&#39;s <a href="https:&#x2F;&#x2F;github.com&#x2F;timanrebel&#x2F;AndroidContext">Context library</a>.  If you&#39;re using Alloy, you&#39;ll probably want to use his library.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> _active_activity = <span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> _activity_count = <span class="hljs-number">0</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">generate_name</span> (<span class="hljs-params"></span>)
+</span>{
+    _activity_count++;
+
+    <span class="hljs-keyword">return</span> <span class="hljs-string">"activity-"</span> + _activity_count;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">on_open</span> (<span class="hljs-params">w</span>)
+</span>{
+    <span class="hljs-keyword">var</span> name = w.context_id;
+    <span class="hljs-keyword">var</span> activity = w.activity;
+
+    activity.onStart = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (_active_activity == name) {
+            Ti.App.fireEvent(<span class="hljs-string">'resumed'</span>);
+        }
+
+        _active_activity = name;
+    };
+
+    activity.onStop = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (_active_activity == name) {
+            Ti.App.fireEvent(<span class="hljs-string">'paused'</span>);
+        }
+    };
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">on_close</span> (<span class="hljs-params">w</span>)
+</span>{
+    <span class="hljs-keyword">var</span> activity = w.activity;
+
+    activity.onStart = <span class="hljs-literal">null</span>;
+    activity.onStop = <span class="hljs-literal">null</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Context</span> (<span class="hljs-params"></span>)
+</span>{
+}
+
+Context.track = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">win</span>) </span>{
+    <span class="hljs-keyword">if</span> (Ti.Platform.name !== <span class="hljs-string">'android'</span>)
+    {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    win.context_id = generate_name ();
+    win.addEventListener (<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{ on_open (win); });
+    win.addEventListener (<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{ on_close (win); });
+};
+
+<span class="hljs-built_in">module</span>.exports = Context;
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 18th 2015, 2:55:11 pm">May 18th 2015</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/182425/get-notified-when-app-goes-in-background-on-android#answer-287415" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

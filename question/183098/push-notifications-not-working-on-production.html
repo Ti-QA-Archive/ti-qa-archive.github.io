@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Push notifications not working on production » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Push notifications not working on production</h1>
+		</header>
+		<section>
+			<p>Hi guys,</p>
+<p>I&#39;ve been trying to solve this problem for several days and I have not figured it out yet. The problem lies in the fact that when I send a notification out on my acs dashboard, I only get one api call on my backend. Now, I have a few people using this app (colleagues) and they should be sending these api calls when I send them a notification. That doesn&#39;t happen. I&#39;ve tested this on two phones and only one responds with the api call when I send out a silent push notification. Every morning I have a scheduled silent push, yet only one phone fires at a time from a pool of about 6 phones. Anybody experience this?</p>
+<p>Now here is my code for monitoring silent push notifications</p>
+<pre><code class="hljs">    <span class="hljs-comment">// Monitor silent push notifications</span>
+    Ti.<span class="hljs-keyword">App</span>.iOS.addEventListener('silentpush', function(<span class="hljs-keyword">e</span>) {
+        Ti.API.info(<span class="hljs-string">"silentpush: "</span> + JSON.stringify(<span class="hljs-keyword">e</span>));
+
+        notificationModel.processPush(<span class="hljs-keyword">e</span>);
+
+        Ti.<span class="hljs-keyword">App</span>.iOS.endBackgroundHandler(<span class="hljs-keyword">e</span>.handlerId);
+    });
+</code></pre><p>Here is my code for processing that push</p>
+<pre><code class="hljs">    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span> </span>{        
+        _.extend(Model.prototype, {
+
+            processPush: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(payload)</span> </span>{
+                Ti.API.info(<span class="hljs-string">"&lt;/\&gt; Processing Push &lt;/\&gt;"</span>);
+
+                <span class="hljs-keyword">if</span>(OS_ANDROID) {
+
+                    payload = JSON.parse(payload.payload);
+
+                    <span class="hljs-keyword">if</span> (payload.<span class="hljs-keyword">exit</span> == <span class="hljs-string">"1"</span>) {
+                        <span class="hljs-keyword">var</span> user = Alloy.createModel(<span class="hljs-string">'user_model'</span>);
+                        user.exitGeofences();
+                    }
+
+                    <span class="hljs-keyword">if</span> (payload.update == <span class="hljs-string">"1"</span>) {
+                        <span class="hljs-keyword">var</span> approvedcallback = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                            <span class="hljs-keyword">var</span> geofenceModel = Alloy.createModel(<span class="hljs-string">'geofence_model'</span>);
+                            geofenceModel.updateGeofences();
+                        };
+                        <span class="hljs-keyword">var</span> noschedulecallback = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                            <span class="hljs-comment">// TODO Determine what actions to take if a user no longer has a set schedule.</span>
+                        };
+                        Ti.API.info(<span class="hljs-string">"&lt;/\&gt; Push says to update &lt;/\&gt;"</span>);
+
+                        <span class="hljs-keyword">var</span> schedule = Alloy.createModel(<span class="hljs-string">'schedule_model'</span>);
+                        schedule.getSchedule(<span class="hljs-keyword">null</span>, approvedcallback, noschedulecallback);
+                    }    
+                } <span class="hljs-keyword">else</span> {
+                    <span class="hljs-comment">//var data = JSON.parse(payload);</span>
+
+                    <span class="hljs-keyword">if</span> (payload.<span class="hljs-keyword">exit</span> == <span class="hljs-string">"1"</span>) {
+                        <span class="hljs-keyword">var</span> user = Alloy.createModel(<span class="hljs-string">'user_model'</span>);
+                        user.exitGeofences();
+                    }
+
+                    <span class="hljs-keyword">if</span> (payload.update == <span class="hljs-string">"1"</span>) {
+                        <span class="hljs-keyword">var</span> approvedcallback = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                            <span class="hljs-keyword">var</span> geofenceModel = Alloy.createModel(<span class="hljs-string">'geofence_model'</span>);
+                            geofenceModel.updateGeofences();
+                        };
+
+                        Ti.API.info(<span class="hljs-string">"&lt;/\&gt; Push says to update &lt;/\&gt;"</span>);
+
+                        <span class="hljs-keyword">var</span> schedule = Alloy.createModel(<span class="hljs-string">'schedule_model'</span>);
+                        schedule.getSchedule(<span class="hljs-keyword">null</span>, approvedcallback, noschedulecallback);
+                    }
+                }
+            },
+</code></pre><p>When I fire my exitGeofences function above I do this code.</p>
+<pre><code class="hljs">                <span class="hljs-keyword">var</span> client = Titanium.Network.createHTTPClient({
+                    onload : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+                        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.status == <span class="hljs-number">200</span>)
+                        {
+                            <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+                            Ti.API.info(<span class="hljs-built_in">JSON</span>.stringify(<span class="hljs-keyword">this</span>.responseText));
+
+                            success();
+                        }
+                        <span class="hljs-keyword">else</span> {
+                            Ti.API.info(<span class="hljs-string">'status: '</span> + <span class="hljs-keyword">this</span>.status + <span class="hljs-string">' error: '</span> + e.error);
+                        }
+                    },
+                    onerror : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+                    </span>{
+                        Ti.API.info(<span class="hljs-string">'error: '</span> + e.error);
+                        error();
+                    },
+                    timeout : Alloy.Globals.networkTimeout,
+                    validatesSecureCertificate: <span class="hljs-literal">false</span>
+                });
+
+                client.open(<span class="hljs-string">"POST"</span>, Alloy.CFG.apiBaseUrl + <span class="hljs-string">"user/exitGeofences"</span>);
+                Ti.API.info(<span class="hljs-string">"POST:"</span> + Alloy.CFG.apiBaseUrl + <span class="hljs-string">"user/exitGeofences"</span>);
+                client.setRequestHeader(<span class="hljs-string">'X-API-KEY'</span>, Titanium.App.Properties.getString(<span class="hljs-string">'prop_apikey'</span>));
+                client.send();
+</code></pre><p>I have the backend setup to handle that api call. It just doesn&#39;t fire more then once when I call it on a silent notification push from the ACS dashboard. I am at my wits end with this and help would be appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 3rd 2015, 8:06:00 pm">September 3rd 2015</span>
+				by <span class='authorname'>Matt Wohlstadter</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>appcelerator</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

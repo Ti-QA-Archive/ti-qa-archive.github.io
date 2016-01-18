@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Push Notification Callback not firing when app is opened. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Push Notification Callback not firing when app is opened.</h1>
+		</header>
+		<section>
+			<ul>
+<li>OS X 10.10.3</li>
+<li>Appcelerator Studio 4.0.1.201506022004</li>
+<li>iOS 8.3</li>
+<li>Ti SDK 4.0.0RC2</li>
+</ul>
+<p>I am trying to display push notifications when the app is opened but nothing is happening. I do receive push notifications when the app is closed and in the background.</p>
+<p>I have setup the below push notification register code on my login screen. When the user registers and opt&#39;s in for communication this flags that they might want to receive push notifications. When they login for the 1st time after registering then they are prompted to allow push notifications.</p>
+<p>You can see that the receivePush function is included.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> deviceToken = <span class="hljs-literal">null</span>;
+
+<span class="hljs-comment">// Check if the device is running iOS 8 or later</span>
+<span class="hljs-keyword">if</span> (Ti.Platform.name == <span class="hljs-string">"iPhone OS"</span> &amp;&amp; parseInt(Ti.Platform.version.split(<span class="hljs-string">"."</span>)[<span class="hljs-number">0</span>]) &gt;= <span class="hljs-number">8</span>) {
+
+     <span class="hljs-comment">// Wait for user settings to be registered before registering for push notifications</span>
+    Ti.App.iOS.addEventListener(<span class="hljs-string">'usernotificationsettings'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span><span class="hljs-params">()</span> </span>{
+
+         <span class="hljs-comment">// Remove event listener once registered for push notifications</span>
+        Ti.App.iOS.removeEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush); 
+
+        Ti.Network.registerForPushNotifications({
+            success: deviceTokenSuccess,
+            error: deviceTokenError,
+            <span class="hljs-keyword">callback</span>: receivePush
+        });
+    });
+
+     <span class="hljs-comment">// Register notification types to use</span>
+    Ti.App.iOS.registerUserNotificationSettings({
+        types: [
+            Ti.App.iOS.USER_NOTIFICATION_TYPE_ALERT,
+            Ti.App.iOS.USER_NOTIFICATION_TYPE_SOUND,
+            Ti.App.iOS.USER_NOTIFICATION_TYPE_BADGE
+        ]
+    });
+}
+
+<span class="hljs-comment">// For iOS 7 and earlier</span>
+<span class="hljs-keyword">else</span> {
+    Ti.Network.registerForPushNotifications({
+         <span class="hljs-comment">// Specifies which notifications to receive</span>
+        types: [
+            Ti.Network.NOTIFICATION_TYPE_BADGE,
+            Ti.Network.NOTIFICATION_TYPE_ALERT,
+            Ti.Network.NOTIFICATION_TYPE_SOUND
+        ],
+        success: deviceTokenSuccess,
+        error: deviceTokenError,
+        <span class="hljs-keyword">callback</span>: receivePush
+    });
+}
+
+<span class="hljs-comment">// Process incoming push notifications</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">receivePush</span><span class="hljs-params">(e)</span> </span>{
+    alert(<span class="hljs-string">'Received push: '</span> + JSON.stringify(e));
+}
+
+<span class="hljs-comment">// Enable push notifications for this device</span>
+<span class="hljs-comment">// Save the device token for subsequent API calls</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span><span class="hljs-params">(e)</span> </span>{
+    alert(<span class="hljs-string">'Got Device Token : '</span>+e.deviceToken);
+    deviceToken = e.deviceToken;
+    Ti.App.Properties.setString(<span class="hljs-string">'dev_token'</span>, deviceToken);
+    Ti.App.Properties.setString(<span class="hljs-string">'pushNotificationsList'</span>, <span class="hljs-string">'1'</span>);
+    subscribeToChannel();
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span><span class="hljs-params">(e)</span> </span>{
+    alert(<span class="hljs-string">'Failed to register for push notifications! '</span> + e.error);
+}
+</code></pre><p>I&#39;ve also added the receivePush function shown below to my app.js file to catch incoming pushes when the app is open. I placed similar code here in my android app and this worked. I added <code>receivePush();</code> as this called the function because nothing was happening before I added this. Now when the app starts it displays this alert <code>alert(&amp;#39;Received push: &amp;#39; + JSON.stringify(e));</code> stating its undefined but nothing happens when I send a push.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> json;
+
+<span class="hljs-comment">// Process incoming push notifications</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">receivePush</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-comment">//alert('Received push: ' + JSON.stringify(e)); </span>
+    json = <span class="hljs-built_in">JSON</span>.stringify(e);
+    <span class="hljs-keyword">if</span> (json != <span class="hljs-literal">undefined</span>) {
+        Titanium.Media.vibrate([<span class="hljs-number">0</span>, <span class="hljs-number">1000</span>]);
+        <span class="hljs-keyword">var</span> sound = Titanium.Media.createSound();
+        sound.url = <span class="hljs-string">'Horn.mp3'</span>;
+        sound.play();      
+        <span class="hljs-keyword">var</span> push_msg = Ti.UI.createAlertDialog({
+            title: json.aps.title,
+            message:json.aps.alert,
+            buttonNames: [<span class="hljs-string">'OK'</span>]
+        });
+        push_msg.show();
+        Ti.API.info(<span class="hljs-string">'Push Function Read'</span>);                
+    }
+    Ti.API.info(<span class="hljs-string">'Push Function Not Read'</span>);        
+}
+receivePush();
+</code></pre><p>Anybody got any ideas why I am not receiving them while the app is open?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 10th 2015, 9:47:18 am">June 10th 2015</span>
+				by <span class='authorname'>Paul Flood</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>callback</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+						<li><span class='tagname'>register for push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

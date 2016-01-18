@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS 8 Push Notifications not working via ACS » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS 8 Push Notifications not working via ACS</h1>
+		</header>
+		<section>
+			<p>Mac OS X 10.10.3<br>Titanium SDK 3.5.1<br>iOS 8.3</p>
+<p>Spent the last few days trying to get this working so any help with this would hugely appreciated, sorry about the essay but wanted to be as detailed as possible.</p>
+<p>I&#39;m migrating push notifications from Urban Airship to ACS and I have run into issues on iOS. I have successfully setup the push notifications for Android so ACS is sending push notifications but I&#39;ve been unable to receive any push notifications on at least 2 iOS device both running iOS 8. I haven&#39;t got an iOS 7 device to test unfortunately so unsure if this works.</p>
+<p>Before using ACS for push notifications on our live apps I have been attempting to set up the push notification functionality on our beta apps. Were using the Apple Ad Hoc feature for this and have the APN Certs setup as production certs which have been added to ACS console in the production environment. We haven&#39;t moved to the new ACS platform yet, I was attempting to get this working on https:&#x2F;&#x2F;cloud.appcelerator.com&#x2F; first before I migrated everything before the June deadline.</p>
+<p>I tried to use my existing Distribution Certs, Provisioning Profiles and APN Cert which was used on Urband Airshup but these didn&#39;t work so I created a new Distribution Certificate, APN Cert and Provisioning Profile hoping to sort the issue but this didn&#39;t work either</p>
+<p>I have used the code found <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;Subscribing_to_push_notifications-section-37551717_Subscribingtopushnotifications-SubscribingtoPushNotificationswithDeviceTokens">here</a> to register a user account and get the device token.</p>
+<p>I can successfully receive a device token and this shows up in the web console in the push section stating &#39;You currently have 2 iOS clients subscribed to push notifications&#39; so the device is being registered.</p>
+<p>I&#39;ve tried to get it working in the app I am migrating and a test app found <a href="https:&#x2F;&#x2F;github.com&#x2F;railskarthi&#x2F;acs_ios_push">here</a> there is a <a href="http:&#x2F;&#x2F;www.titaniumtutorial.com&#x2F;2012&#x2F;07&#x2F;appcelerator-cloud-push-notification-in.html">tutorial with it</a>. I amended the code in this slight as shown below to add in the code for iOS8 but still nothing.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getDeviceToken</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">if</span> (Ti.Platform.name == <span class="hljs-string">"iPhone OS"</span> &amp;&amp; parseInt(Ti.Platform.version.split(<span class="hljs-string">"."</span>)[<span class="hljs-number">0</span>]) &gt;= <span class="hljs-number">8</span>) {
+
+         <span class="hljs-comment">// Wait for user settings to be registered before registering for push notifications</span>
+        Ti.App.iOS.addEventListener(<span class="hljs-string">'usernotificationsettings'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span><span class="hljs-params">()</span> </span>{
+
+             <span class="hljs-comment">// Remove event listener once registered for push notifications</span>
+            Ti.App.iOS.removeEventListener(<span class="hljs-string">'usernotificationsettings'</span>, registerForPush); 
+
+            Ti.Network.registerForPushNotifications({
+                success: deviceTokenSuccess,
+                error: deviceTokenError,
+                <span class="hljs-keyword">callback</span>: receivePush
+            });
+        });
+
+         <span class="hljs-comment">// Register notification types to use</span>
+        Ti.App.iOS.registerUserNotificationSettings({
+            types: [
+                Ti.App.iOS.USER_NOTIFICATION_TYPE_ALERT,
+                Ti.App.iOS.USER_NOTIFICATION_TYPE_SOUND,
+                Ti.App.iOS.USER_NOTIFICATION_TYPE_BADGE
+            ]
+        });    
+    }     
+    <span class="hljs-comment">// For iOS 7 and earlier</span>
+    <span class="hljs-keyword">else</span> 
+    {
+        Titanium.Network.registerForPushNotifications({
+            types: [
+                Titanium.Network.NOTIFICATION_TYPE_BADGE,
+                Titanium.Network.NOTIFICATION_TYPE_ALERT,
+                Titanium.Network.NOTIFICATION_TYPE_SOUND
+            ],
+            success: deviceTokenSuccess,
+            error: deviceTokenError,
+            <span class="hljs-keyword">callback</span>: receivePush                        
+        });
+    }
+
+    <span class="hljs-comment">// Process incoming push notifications</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">receivePush</span><span class="hljs-params">(e)</span> </span>{
+        alert(<span class="hljs-string">'Received push: '</span> + JSON.stringify(e));
+    }
+    <span class="hljs-comment">// Enable push notifications for this device</span>
+    <span class="hljs-comment">// Save the device token for subsequent API calls</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span><span class="hljs-params">(e)</span> </span>{
+        deviceToken = e.deviceToken;
+        alert(<span class="hljs-string">"deviceToken = "</span>+deviceToken);
+        subscribeForPush();
+    }
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span><span class="hljs-params">(e)</span> </span>{
+        alert(<span class="hljs-string">'Failed to register for push notifications! '</span> + e.error);
+    }
+
+}
+</code></pre><p>The push notification doesn&#39;t appear inside or outside the app.</p>
+<p>I do receive push notifications from other apps so I am doubtful the phone is the issue and I have checked the settings to make sure push notifications are turned on for both the apps I have tested.</p>
+<p>At a loss at the moment.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 26th 2015, 5:08:04 pm">May 26th 2015</span>
+				by <span class='authorname'>Paul Flood</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>ios8</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+						<li><span class='tagname'>push notification</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I managed to check iOS 7 as well so its an iOS problem not just iOS 8.</p>
+<p>Nobody has any suggestions on this?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 29th 2015, 7:16:38 am">May 29th 2015</span>
+								by <span class='authorname'>Park Via</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

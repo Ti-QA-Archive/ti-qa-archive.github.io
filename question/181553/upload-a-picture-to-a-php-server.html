@@ -1,0 +1,434 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Upload a picture to a PHP server » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Upload a picture to a PHP server</h1>
+		</header>
+		<section>
+			<p>Hi!</p>
+<p>I have read a lot of post on the topic of uploading a picture using Titanium but I&#39;m completly stuck on it since 3 days so I eventually try to get my chance here! :)</p>
+<p>I have to upload several text data and a picture which I want to save on my server before to save the file name in MySql database.</p>
+<p>Text data is correctly received and proceeded on the server but the picture is not. When I look into my log file (see the code below) I notice the server just does <strong>not</strong> get any &quot;picture&quot; field. When I tried to replace the content of this variable by some text, the field suddenly reappears. </p>
+<p>So the problem is I think to properly send the picture from my mobile app so that server can handle it.</p>
+<p><strong>Code for Titanium App:</strong></p>
+<pre><code class="hljs">    public <span class="hljs-keyword">function</span> add() {
+        //log in a file the request received
+        <span class="hljs-variable">$txt</span> = print_r(<span class="hljs-variable">$this-</span>&gt;request-&gt;data, true);
+        <span class="hljs-variable">$myfile</span> = fopen(WWW_ROOT.<span class="hljs-string">'img/uploads/issues/log.txt'</span>, <span class="hljs-string">'w'</span>) ;
+        fwrite(<span class="hljs-variable">$myfile</span>, <span class="hljs-variable">$txt</span>);
+        fclose(<span class="hljs-variable">$myfile</span>);
+
+        //check request if sent via Ajax
+        if (<span class="hljs-variable">$this-</span>&gt;request-&gt;is(array(<span class="hljs-string">'post'</span>, <span class="hljs-string">'ajax'</span>))) {
+
+            //Check if an image has been uploaded
+            if((<span class="hljs-variable">$this-</span>&gt;request-&gt;data[<span class="hljs-string">'Issue'</span>][<span class="hljs-string">'picture'</span>][<span class="hljs-string">'size'</span>]) &gt; <span class="hljs-number">0</span>) {
+
+                //check for valid extension
+                <span class="hljs-variable">$file</span> = <span class="hljs-variable">$this-</span>&gt;request-&gt;data[<span class="hljs-string">'Issue'</span>][<span class="hljs-string">'picture'</span>]; 
+                <span class="hljs-variable">$ext</span> = substr(strtolower(strrchr(<span class="hljs-variable">$file</span>[<span class="hljs-string">'name'</span>], <span class="hljs-string">'.'</span>)), <span class="hljs-number">1</span>); //get the extension
+                <span class="hljs-variable">$arr</span>_ext = array(<span class="hljs-string">'jpg'</span>, <span class="hljs-string">'jpeg'</span>, <span class="hljs-string">'gif'</span>, <span class="hljs-string">'png'</span>); //set allowed extensions
+                if(in_array(<span class="hljs-variable">$ext</span>, <span class="hljs-variable">$arr</span>_ext)) {
+
+                    //save the file on the server 
+                    move_uploaded_file(<span class="hljs-variable">$file</span>[<span class="hljs-string">'tmp_name'</span>], WWW_ROOT.<span class="hljs-string">'img/uploads/issues/'</span>.<span class="hljs-variable">$file</span>[<span class="hljs-string">'name'</span>]);
+
+                    //prepare the filename for database entry
+                    <span class="hljs-variable">$this-</span>&gt;request-&gt;data[<span class="hljs-string">'Issue'</span>][<span class="hljs-string">'picture'</span>] = <span class="hljs-variable">$file</span>[<span class="hljs-string">'name'</span>];
+                }
+            }
+            else {
+                //no image or an error upon receiving
+                <span class="hljs-variable">$this-</span>&gt;request-&gt;data[<span class="hljs-string">'Issue'</span>][<span class="hljs-string">'picture'</span>] = <span class="hljs-string">'default-issue-picture.png'</span>;
+            }
+
+            //save the file name in database
+            if (<span class="hljs-variable">$this-</span>&gt;Issue-&gt;save(<span class="hljs-variable">$this-</span>&gt;request-&gt;data)) {
+                return true;
+            }
+            return false;
+        }
+    }
+</code></pre><p><strong>Code for PHP server:</strong></p>
+<pre><code class="hljs"><span class="hljs-comment">//triggered by click on submit button</span>
+submit.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    alert(<span class="hljs-string">'title: '</span> +issueTitle.value+
+    <span class="hljs-string">'description:'</span>+ issueDescription.value+
+        <span class="hljs-string">'category:'</span>+ categoryPicker.title+
+        <span class="hljs-string">'email:'</span>+ email.value+
+        <span class="hljs-string">'picture:'</span>+ <span class="hljs-built_in">JSON</span>.stringify(image)+
+        <span class="hljs-string">'lat:'</span> +latitude+
+        <span class="hljs-string">'lon:'</span>+ longitude);
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">'ERROR: '</span> + e.error);
+        alert(<span class="hljs-string">'fail'</span>);
+    };
+
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'STATUS: '</span> + <span class="hljs-keyword">this</span>.status + <span class="hljs-string">' READY_STATE: '</span> + <span class="hljs-keyword">this</span>.readyState);                     
+        alert(<span class="hljs-string">'success'</span>);
+    };
+
+    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">'PROGRESS: '</span> + e.progress);
+    };
+
+    xhr.open(<span class="hljs-string">'POST'</span>,<span class="hljs-string">'http://server.net/test/issues/add'</span>); <span class="hljs-comment">//a directory on server for test</span>
+
+    xhr.setRequestHeader(<span class="hljs-string">"enctype"</span>, <span class="hljs-string">"multipart/form-data"</span>);
+
+    xhr.send({
+        <span class="hljs-string">'title'</span>: issueTitle.value,
+        <span class="hljs-string">'description'</span>: issueDescription.value,
+        <span class="hljs-string">'category'</span>: categoryPicker.getSelectedRow(<span class="hljs-number">0</span>).title,
+        <span class="hljs-string">'email'</span>: email.value,
+        <span class="hljs-string">'picture[size]'</span>: image.file.size,
+        <span class="hljs-string">'picture[tmp_name]'</span>:image.file.nativePath,
+        <span class="hljs-string">'picture[name]'</span>: image.file.name,
+        <span class="hljs-string">'lat'</span>: latitude,
+        <span class="hljs-string">'lon'</span>: longitude
+    });
+});
+</code></pre><p><strong>Thanks for any help!</strong></p>
+<p><em>Note:</em> I also tried to use the <em>aproach that aims to encode in base64</em> the file on the app before to send it and decode it on the server but without success either.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 21st 2015, 2:12:31 pm">March 21st 2015</span>
+				by <span class='authorname'>Edward Stained</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>file uploading</span></li>
+					
+						<li><span class='tagname'>image upload</span></li>
+					
+						<li><span class='tagname'>php server</span></li>
+					
+						<li><span class='tagname'>picture upload</span></li>
+					
+						<li><span class='tagname'>picture uploading</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I just realized I switched the PHP and Titanium blocks of code in my question, sorry</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 21st 2015, 2:17:47 pm">March 21st 2015</span>
+								by <span class='authorname'>Edward Stained</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-286614">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi Edward,<br>Though i do not know the php coding much because i handle only front end when developing apps.</p>
+<p>So what i used to do whenever i have to upload a picture on server is that:</p>
+<pre><code class="hljs"><span class="hljs-comment">// say 'im' is the id of imageView that you want to send on to server</span>
+<span class="hljs-built_in">var</span> <span class="hljs-built_in">data</span> = $<span class="hljs-built_in">.</span>im<span class="hljs-built_in">.</span>toBlob(); <span class="hljs-comment">// notice toBlob() function which returns your image as blob object</span>
+
+<span class="hljs-comment">//now you can send the image as a binary data to your server</span>
+<span class="hljs-attribute">...</span><span class="hljs-built_in">.
+</span>xhr<span class="hljs-built_in">.</span>send({
+    <span class="hljs-attribute">...</span><span class="hljs-built_in">.
+    <span class="hljs-variable">'picture'</span></span> : <span class="hljs-built_in">data</span>
+    <span class="hljs-attribute">...</span><span class="hljs-built_in">.
+</span>});
+</code></pre><ul>
+<li><p>in your code, you were actually trying to send the image name &amp; size with path which will obviously not going to solve your problem</p>
+</li>
+<li><p>since image is a binary data, hence i always use toBlob() function to upload the images &amp; have never faced any issue</p>
+</li>
+<li><p>all other fields in your xhr.send() function are just text fields, so they all get uploaded without any issue.</p>
+</li>
+</ul>
+<p><em>So finally try to use <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.UI.ImageView-method-toBlob">toBlob()</a> function &amp; let us know if you still unable to upload the image</em></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 22nd 2015, 5:48:03 am">March 22nd 2015</span>
+								by <span class='authorname'>Prashant Saini</span><br>
+								<a class="icon-bg icon-link" href="question/181553/upload-a-picture-to-a-php-server#answer-286614" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-286613">
+				
+						<section>
+							<p>Hi</p>
+<p>Here is one I did earlier;</p>
+<ul>
+<li><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;147021&#x2F;file-upload">File Upload</a></li>
+</ul>
+<p>Sends data and files in exactly the same format as a web form - so if you php file processes a test html page using the same values - this code will work for you.</p>
+<p>Using base 64 simply increases the size of the data passed and then you have to decode it.  This is not the issue.</p>
+<ul>
+<li>I assume you have tested the php file with a test html form first.</li>
+</ul>
+<p>If this does work work based on all things being equal then;</p>
+<ul>
+<li>Confirm all paths and folders expected to exist - do exist and you have permissions to access them</li>
+<li>Test with only one text field in the JS and the PHP</li>
+<li>Add the rest of the non-image entries and try again</li>
+<li>Add better error handling to your JS as you are not being told what actually occurred during the transmission</li>
+<li>Add the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Network.HTTPClient-property-onreadystatechange">onreadystatechange</a> method into my code (should be obvious how) and display the states that succeed</li>
+<li>Check the server logs to detail issues - this should detail at least a connection attempt and a status number.</li>
+<li>Confirm if the file is received in the temp folder - if so the problem is the processing of the file not the receipt of the file.</li>
+</ul>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 21st 2015, 8:58:30 pm">March 21st 2015</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/181553/upload-a-picture-to-a-php-server#answer-286613" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-286647">
+				
+						<section>
+							<h1 id="solved-">SOLVED !</h1>
+<p>Hi!</p>
+<p>I follow your advices Prashant Saini using the <strong>toBlob() function and the createImageView() object</strong> but that was not enough to solve my problem.<br>So I tried to debug step by step my app without success tough. It&#39;s another thread in this forum which eventually put me on the right track.<br>&gt; <a href="https:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;118863&#x2F;how-do-i-upload-the-contents-of-an-imageview-to-the-server">How do I upload the contents of an ImageView to the server?</a></p>
+<p>I was actually <strong>sending the wrong header</strong> and I needed to defined a different header according to whether I joined a picture or not. Because otherwise I was able to received the text data only or in another case nothing at all!</p>
+<p>My second mistake was that I wanted to pre-format my data in an indexed array so that it was easier for my PHP script to handle the data.<br>But this was actually not working despite the quotes i put on the variables name.</p>
+<p><strong>Here is the main piece of code I modified to solved my problem:</strong></p>
+<pre><code class="hljs">    var params;
+    <span class="hljs-keyword">if</span>(imageTaken == <span class="hljs-keyword">true</span>) {
+        im = imageView.toBlob();
+        xhr.setRequestHeader(<span class="hljs-string">"Content-type"</span>, <span class="hljs-string">"multipart/form-data"</span>);
+        params = {
+            title: issueTitle.getValue(),
+            description: issueDescription.getValue(),
+            category: categoryPicker.getSelectedRow(0).id,
+            email: email.getValue(),
+            lat: latitude,
+            lon: longitude,
+            picture: im
+        };
+    } <span class="hljs-keyword">else</span> {                    
+        params = {
+            title: issueTitle.getValue(),
+            description: issueDescription.getValue(),
+            category: categoryPicker.getSelectedRow(0).id,
+            email: email.getValue(),
+            lat: latitude,
+            lon: longitude                        
+        };
+    }
+</code></pre><p>I recommend to people who would meet the same issue to <strong>check that:</strong></p>
+<ul>
+<li><p>set the following header if you wish to send at least a file: xhr.setRequestHeader(&quot;Content-type&quot;, &quot;multipart&#x2F;form-data&quot;);<br>but no header at all if it is only text data. Titanium manage to send a default header which works fine for that.</p>
+</li>
+<li><p>put your picture in a Titanium createImageView() object and then transform it with toBlob() before to upload the image</p>
+</li>
+</ul>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 24th 2015, 12:08:56 am">March 24th 2015</span>
+								by <span class='authorname'>Edward Stained</span><br>
+								<a class="icon-bg icon-link" href="question/181553/upload-a-picture-to-a-php-server#answer-286647" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Perfect, &amp; thanks for pointing out at the missing Header type coz i thought that you have already set that header type to multipart.</p>
+<p>Good Luck :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 24th 2015, 3:48:54 am">March 24th 2015</span>
+											by <span class='authorname'>Prashant Saini</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-287758">
+				
+						<section>
+							<p>PHP Code Of File : photoUploader.php&#39;</p>
+<p>&lt;?php<br>    &#x2F;&#x2F;this function returns a random 5-char filename with the jpg extension<br>    function randomFileName()<br>    {<br>       $length = 5;<br>       $characters = &#39;abcdefghijklmnopqrstuvwxyz&#39;;<br>       $string = &#39;&#39;;<br>       for ($p = 0; $p &lt; $length; $p++) {<br>          $string .= $characters[mt_rand(0, strlen($characters))];<br>       }<br>       return $string . &#39;.jpg&#39;;<br>    }</p>
+<pre><code class="hljs">//create the random filename string and uploads target variables
+<span class="hljs-variable">$randomString</span> = randomFileName();
+<span class="hljs-variable">$target</span> = <span class="hljs-string">'upload/'</span>;
+<span class="hljs-variable">$target</span> = <span class="hljs-variable">$target</span> . <span class="hljs-variable">$randomString</span>;
+
+<span class="hljs-keyword">if</span>(move_uploaded_file($_FILES[<span class="hljs-string">'media'</span>][<span class="hljs-string">'tmp_name'</span>], <span class="hljs-variable">$target</span>))
+{
+    //output the location to our image        
+    echo <span class="hljs-string">'http://www.servevername.com/app-data/upload/'</span> . <span class="hljs-variable">$randomString</span>;        
+}
+<span class="hljs-keyword">else</span>
+{
+    echo <span class="hljs-string">"false"</span>;
+}
+</code></pre><p>?&gt;</p>
+<p>————————————————————————-Now Add Following Code In app.js————————————–</p>
+<p>var win = Ti.UI.createWindow({<br>     backgroundColor : &quot;#FFF&quot;<br>});</p>
+<p>var fbButton= Titanium.UI.createButton({<br>    title:&#39;open gallery&#39;,<br>    width: 250,<br>    height: 48,<br>    top:400<br>});<br>function UploadPhotoToServer(media){<br>     if (Titanium.Network.online == true)<br>             {<br>var progressIndicator = Ti.UI.Android.createProgressIndicator({<br>  message: &#39;Loading…&#39;,<br>  location: Ti.UI.Android.PROGRESS_INDICATOR_DIALOG,<br>  type: Ti.UI.Android.PROGRESS_INDICATOR_INDETERMINANT,<br>  cancelable: true,<br>});   </p>
+<p>&#x2F;&#x2F;progressIndicator.show();  </p>
+<p>var xhr = Titanium.Network.createHTTPClient();</p>
+<p>xhr.onerror = function(e){<br>    alert(&#39;IN ERROR &#39; + e.error);<br>    alert(&#39;Sorry, we could not upload your photo! Please try again.&#39;);<br>  };</p>
+<p> xhr.onload = function(){<br>    alert(&#39;IN ONLOAD &#39; + this.status + &#39; readyState &#39; + this.readyState);<br> };</p>
+<p>xhr.onsendstream = function(e){<br>    &#x2F;&#x2F;alert(&#39;ONSENDSTREAM - PROGRESS: &#39; + e.progress);<br>};</p>
+<p>&#x2F;&#x2F; open the client<br>xhr.open(&#39;POST&#39;, &#39;http:&#x2F;&#x2F;www.servevername.com&#x2F;app-data&#x2F;photoUploader.php&#39;); </p>
+<p>&#x2F;&#x2F; send the data<br>xhr.send({<br>    media: media,<br>});    </p>
+<pre><code class="hljs">}
+else
+{
+    alert('You must have a valid Internet connection <span class="hljs-operator">in</span> <span class="hljs-keyword">order</span> <span class="hljs-title">to</span> upload this photo.');
+}
+}
+</code></pre><p>fbButton.addEventListener(&#39;click&#39;,function(e)<br>        {</p>
+<pre><code class="hljs">    Titanium.Media.openPhotoGallery({
+       success:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span></span>
+       {             
+           alert(<span class="hljs-string">'Our type was: '</span>+event.mediaType);
+           <span class="hljs-keyword">if</span>(event.mediaType == Ti.Media.MEDIA_TYPE_PHOTO)
+           {
+               UploadPhotoToServer(event.media);
+
+
+           }
+       },
+       cancel:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>
+       {   
+       },
+       <span class="hljs-built_in">error</span>:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(err)</span></span>
+       {
+           Ti.API.<span class="hljs-built_in">error</span>(err);
+       },
+       mediaTypes:[Ti.Media.MEDIA_TYPE_PHOTO]
+       });
+</code></pre><p>});</p>
+<p>win.add(fbButton);<br>win.open();</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 1st 2015, 10:10:28 am">July 1st 2015</span>
+								by <span class='authorname'>Raju Harry</span><br>
+								<a class="icon-bg icon-link" href="question/181553/upload-a-picture-to-a-php-server#answer-287758" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

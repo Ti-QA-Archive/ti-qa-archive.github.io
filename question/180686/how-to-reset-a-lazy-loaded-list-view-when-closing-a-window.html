@@ -1,0 +1,345 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to reset a lazy loaded list view when closing a window? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to reset a lazy loaded list view when closing a window?</h1>
+		</header>
+		<section>
+			<p>I am not sure what I am missing here. I want to reset the listview when I click the back button so <code>totalLoaded to 0</code> and only the 1st 40 pages load.  When I open the page after it is closes all of the rows that were previous loaded remain.</p>
+<pre><code class="hljs">var row_limit = <span class="hljs-number">0</span>;
+var totalLoaded = <span class="hljs-number">0</span>;
+function genData() {
+     var data = [];
+
+     var commons = require(<span class="hljs-string">'/ui/dbase/dbs'</span>);
+
+     var db = commons.getDb_abb();
+
+     <span class="hljs-comment">// var db = Ti.Database.open('abb');</span>
+
+     var uppd = <span class="hljs-number">0</span>;
+     <span class="hljs-keyword">if</span> (totalLoaded &lt; <span class="hljs-number">39</span>) {
+          uppd = <span class="hljs-number">40</span>;
+     } <span class="hljs-keyword">else</span> {
+          uppd = row_limit;
+     }
+
+
+
+     Ti.API.info(<span class="hljs-string">'uppd'</span>, uppd);
+
+     var resultSet = db.execute(<span class="hljs-string">"SELECT * FROM abbrev limit ?"</span>, uppd);
+     <span class="hljs-keyword">while</span> (resultSet.isValidRow()) {
+          totalLoaded++;
+
+          data.push({
+               <span class="hljs-string">properties :</span> {
+                    <span class="hljs-string">searchableText :</span> resultSet.fieldByName(<span class="hljs-string">'name'</span>)
+               },
+               <span class="hljs-string">avatar :</span> {
+                    <span class="hljs-string">text :</span> resultSet.fieldByName(<span class="hljs-string">'name'</span>)
+               },
+               <span class="hljs-string">info :</span> {
+                    <span class="hljs-string">text :</span> resultSet.fieldByName(<span class="hljs-string">'width'</span>)
+               }
+          });
+
+          resultSet.next();
+     }
+     resultSet.close();
+
+     db.close();
+
+     <span class="hljs-keyword">return</span> data;
+}
+
+function list_performance_contacts(_args) {
+     var myFontName = Ti.App.Properties.getString(<span class="hljs-string">'fnts'</span>);
+     var myFontSize = Ti.App.Properties.getInt(<span class="hljs-string">'fntSize'</span>);
+
+     var $$ = require(<span class="hljs-string">"ui/handheld/styles"</span>);
+     var win = Ti.UI.createWindow($$.window1);
+
+     <span class="hljs-keyword">if</span> (Ti.Android) {
+          win.addEventListener(<span class="hljs-string">"open"</span>, function() {
+               var activity = win.getActivity();
+               <span class="hljs-keyword">if</span> (activity &amp;&amp; activity.actionBar) {
+                    activity.actionBar.setDisplayHomeAsUp(<span class="hljs-literal">true</span>);
+                    activity.actionBar.setTitle(_args.z_cat);
+                    activity.actionBar.onHomeIconItemSelected = function() {
+                         win.close();
+                    };
+               }
+          });
+     } <span class="hljs-keyword">else</span> {
+          var sw = Ti.UI.createLabel({
+               <span class="hljs-string">left :</span> <span class="hljs-number">75</span>,
+               <span class="hljs-string">color :</span> <span class="hljs-string">'white'</span>,
+               <span class="hljs-string">height :</span> Ti.UI.SIZE,
+               <span class="hljs-string">width :</span> Ti.UI.SIZE,
+               <span class="hljs-string">font :</span> {
+                    <span class="hljs-string">fontSize :</span> <span class="hljs-number">20</span> + myFontSize,
+                    <span class="hljs-string">fontFamily :</span> myFontName,
+                    <span class="hljs-string">fontWeight :</span> <span class="hljs-string">'bold'</span>
+               },
+               <span class="hljs-string">text :</span> _args.z_title
+          });
+          win.titleControl = sw;
+          sw.minimumFontSize = <span class="hljs-number">8</span>;
+
+          var backbutton = Titanium.UI.createButton({
+               <span class="hljs-string">backgroundImage :</span> <span class="hljs-string">'images/backA.png'</span>,
+               <span class="hljs-string">width :</span> <span class="hljs-number">20</span>,
+               <span class="hljs-string">height :</span> <span class="hljs-number">20</span>
+          });
+          backbutton.addEventListener(<span class="hljs-string">'click'</span>, function() {
+               win.close();
+        var totalLoaded = <span class="hljs-number">0</span>;
+
+          });
+          win.leftNavButton = backbutton;
+
+          win.extendEdges = Ti.UI.EXTEND_EDGE_ALL;
+          win.barImage = <span class="hljs-string">'/images/rows13/navBarLine.png'</span>;
+          win.shadowImage = <span class="hljs-string">'/images/rows13/navBarLine.png'</span>;
+
+          var sv = Ti.UI.createSearchBar({
+               <span class="hljs-string">barColor :</span> <span class="hljs-string">'#14b0f1'</span>,
+               <span class="hljs-string">borderColor :</span> <span class="hljs-string">'#14b0f1'</span>,
+               <span class="hljs-string">backgroundImage :</span> <span class="hljs-string">'/images/rows13/navBarLine.png'</span>,
+               <span class="hljs-string">borderStyle :</span> Titanium.UI.INPUT_BORDERSTYLE_NONE,
+               <span class="hljs-string">showCancel :</span> <span class="hljs-literal">false</span>,
+               <span class="hljs-string">height :</span> <span class="hljs-number">44</span>,
+               <span class="hljs-string">top :</span> <span class="hljs-number">0</span>,
+               <span class="hljs-string">width :</span> Ti.UI.FILL
+          });
+
+          win.add(sv);
+
+     }
+
+     var myTemplate = {
+          <span class="hljs-string">properties :</span> {
+               <span class="hljs-string">height :</span> Ti.UI.SIZE,
+               <span class="hljs-string">searchableText :</span> <span class="hljs-string">""</span>
+
+          },
+          <span class="hljs-string">childTemplates :</span> [{
+               <span class="hljs-string">type :</span> <span class="hljs-string">'Ti.UI.Label'</span>,
+               <span class="hljs-string">bindId :</span> <span class="hljs-string">'avatar'</span>,
+               <span class="hljs-string">properties :</span> {
+                    <span class="hljs-string">left :</span> <span class="hljs-number">16</span>,
+                    <span class="hljs-string">height :</span> <span class="hljs-number">20</span>,
+                    <span class="hljs-string">color :</span> <span class="hljs-string">'black'</span>,
+                    <span class="hljs-string">font :</span> {
+                         <span class="hljs-string">fontSize :</span> <span class="hljs-number">17</span>,
+                         <span class="hljs-string">fontWeight :</span> <span class="hljs-string">'bold'</span>
+                    },
+                    <span class="hljs-string">top :</span> <span class="hljs-number">0</span>
+               },
+          }, {
+               <span class="hljs-string">type :</span> <span class="hljs-string">'Ti.UI.Label'</span>,
+               <span class="hljs-string">bindId :</span> <span class="hljs-string">'info'</span>,
+               <span class="hljs-string">properties :</span> {
+                    <span class="hljs-string">left :</span> <span class="hljs-number">16</span>,
+                    <span class="hljs-string">bottom :</span> <span class="hljs-number">0</span>,
+                    <span class="hljs-string">top :</span> <span class="hljs-number">20</span>,
+                    <span class="hljs-string">height :</span> Ti.UI.SIZE,
+                    <span class="hljs-string">color :</span> <span class="hljs-string">'#8e8e93'</span>,
+
+                    <span class="hljs-string">font :</span> {
+                         <span class="hljs-string">fontSize :</span> <span class="hljs-number">12</span>,
+                         <span class="hljs-string">fontStyle :</span> <span class="hljs-string">'italic'</span>
+                    }
+               },
+          }]
+     };
+
+     var section = Ti.UI.createListSection({
+          <span class="hljs-string">headerTitle :</span> <span class="hljs-string">''</span>
+     });
+     section.setItems(genData());
+
+     var listView = Ti.UI.createListView({
+          <span class="hljs-string">top :</span> <span class="hljs-number">44</span>,
+          <span class="hljs-string">sections :</span> [section],
+          <span class="hljs-string">templates :</span> {
+               <span class="hljs-string">'template'</span> : myTemplate
+          },
+          <span class="hljs-string">defaultItemTemplate :</span> <span class="hljs-string">'template'</span>,
+          <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">'white'</span>
+     });
+
+     listView.setMarker({
+          <span class="hljs-string">sectionIndex :</span> <span class="hljs-number">0</span>,
+          <span class="hljs-string">itemIndex :</span> (listView.sections[<span class="hljs-number">0</span>].items.length - <span class="hljs-number">10</span>)
+     });
+
+     listView.addEventListener(<span class="hljs-string">"marker"</span>, function(e) {
+          row_limit += <span class="hljs-number">40</span>;
+          Ti.API.info(<span class="hljs-string">'row_limit'</span>, totalLoaded);
+
+          var animationStyle = !listView.sections[<span class="hljs-number">0</span>].items.length ? Ti.UI.iPhone.RowAnimationStyle.NONE : <span class="hljs-literal">null</span>;
+          listView.sections[<span class="hljs-number">0</span>].appendItems(genData(), animationStyle);
+          listView.setMarker({
+               <span class="hljs-string">sectionIndex :</span> <span class="hljs-number">0</span>,
+               <span class="hljs-string">itemIndex :</span> (listView.sections[<span class="hljs-number">0</span>].items.length - <span class="hljs-number">10</span>)
+          });
+
+     });
+
+     sv.addEventListener(<span class="hljs-string">'change'</span>, function(e) {
+          listView.searchText = e.value;
+     });
+
+     win.add(listView);
+
+     <span class="hljs-keyword">return</span> win;
+}
+
+module.exports = list_performance_contacts;
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 6th 2015, 9:47:52 pm">February 6th 2015</span>
+				by <span class='authorname'>Michael Zaladonis</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>lazyload</span></li>
+					
+						<li><span class='tagname'>listview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-285662">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>The problem here is that your CommonJS code is dong a lot, so much you call it once and it is called just once and then cached - you think it is being re-run it is not.  That sounds stupid - so I will try and simplify and then give a suggestion.</p>
+<ul>
+<li>CommonJS modules by design are cached on first use</li>
+<li>This means all code inside it has already run </li>
+<li>Event code acts once required but it has already been cached</li>
+<li>Your module level variable is only called once</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> totalLoaded</span> = <span class="hljs-number">0</span>;
+</code></pre><ul>
+<li>You think it will get called again the next time you use the module - however it will not.</li>
+<li>The last value remains - as you have found</li>
+<li>You have the variable at the module level as you use it in two module root level functions - this is normal</li>
+<li>You export the function <strong>list_performance_contacts</strong>, this is used to create and return the main window and features.  Your solution is in here, you have to add something.</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">list_performance_contacts</span><span class="hljs-params">(_args)</span> </span>{
+     totalLoaded = <span class="hljs-number">0</span>; <span class="hljs-comment">// resets the value each time this is called</span>
+     <span class="hljs-keyword">var</span> myFontName = Ti.App.Properties.getString(<span class="hljs-string">'fnts'</span>);
+     <span class="hljs-keyword">var</span> myFontSize = Ti.App.Properties.getInt(<span class="hljs-string">'fntSize'</span>);
+...
+</code></pre><p>Obviously the initial value of <strong>totalLoaded</strong> is 0, but as all the code is cached that very top line is not run again.  Adding the single extra line I have shown means the variable value is reset to 0 each time the exported function is called.  First time round - it does not have any benefit as it was already 0 - next time it is used however - it get set back to 0.  Note there is NO use of the <strong>var</strong> keyword as we do NOT want to redefine it locally within the function - just set the module level variable.</p>
+<p>There was a short version I could have given - which I will below (you have already seen it - but I felt the reason why you do this was more important than just the answer.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">list_performance_contacts</span><span class="hljs-params">(_args)</span> </span>{
+     totalLoaded = <span class="hljs-number">0</span>; <span class="hljs-comment">// add this line</span>
+     <span class="hljs-keyword">var</span> myFontName = Ti.App.Properties.getString(<span class="hljs-string">'fnts'</span>);
+     <span class="hljs-keyword">var</span> myFontSize = Ti.App.Properties.getInt(<span class="hljs-string">'fntSize'</span>);
+...
+</code></pre><p>See much shorter.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 7th 2015, 3:26:16 pm">February 7th 2015</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/180686/how-to-reset-a-lazy-loaded-list-view-when-closing-a-window#answer-285662" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank you for taking the time to explain in detail the nuances of how the code works. Through trial and error, I ended up placing that line of code in the function in the backbutton eventlistener, but it wasn&#39;t certain why and how it was working.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 7th 2015, 7:31:56 pm">February 7th 2015</span>
+											by <span class='authorname'>Michael Zaladonis</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

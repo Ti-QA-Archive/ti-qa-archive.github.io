@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS App performance and some bugs » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS App performance and some bugs</h1>
+		</header>
+		<section>
+			<p>Hi, team i have a bug and performance issue in my current app let me explain:</p>
+<p>The data of tableview is loaded n times of the user press button back.</p>
+<p>dashboard.js</p>
+<ul>
+<li>This window load data on table view with capabilities of expand&#x2F;colapse row with dynamically child rows, the user can select a row or all rows in order to continue to the next window.</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Dashboard</span><span class="hljs-params">()</span> </span>{
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow();
+<span class="hljs-keyword">var</span> navWin = Ti.UI.iOS.createNavigationWindow({window : <span class="hljs-keyword">self</span>});
+
+<span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView({});
+
+<span class="hljs-keyword">var</span> loadData = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span></span>{
+ callDataWebService();
+ storeData();
+ <span class="hljs-keyword">var</span> data = CallDataLocalDataBase();
+
+ tableView.setData(data);      
+);
+
+tableView.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+ <span class="hljs-keyword">var</span> SessionWindow, win;          
+ SessionWindow = <span class="hljs-keyword">require</span>(<span class="hljs-string">'session'</span>);
+ win = <span class="hljs-keyword">new</span> SessionWindow({
+            dataSelected: dataSelected,
+            containingWin: navWin     
+  });
+  navWin.openWindow(win, {animated:<span class="hljs-keyword">true</span>});
+});
+<span class="hljs-keyword">self</span>.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+
+      loadData();
+
+});
+
+<span class="hljs-keyword">return</span> navWin;
+};
+
+module.exports = Dashboard;
+</code></pre><p>session.js</p>
+<ul>
+<li>It&#39;s a windows with navigationwindow object</li>
+<li>It&#39;s calling to load a table view with all data selected on previous window</li>
+<li>if user press button back the app go to the back window</li>
+<li>if the user return to this window the data of tableview is loaded 2 times, if the user press back one more time and return to this window the data is loaded 3 times, etc.<br>Issue</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Session</span><span class="hljs-params">()</span> </span>{
+
+ <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow();
+
+ <span class="hljs-keyword">var</span> menuView = <span class="hljs-keyword">require</span>(<span class="hljs-string">'Menu'</span>);  <span class="hljs-comment">//bottom menu </span>
+
+ <span class="hljs-keyword">var</span> tableViewSA = <span class="hljs-keyword">require</span>(<span class="hljs-string">'SA'</span>);
+ <span class="hljs-keyword">var</span> saScreen = <span class="hljs-keyword">new</span> tableViewSA(paramSA);
+
+ <span class="hljs-keyword">var</span> tableViewBX = <span class="hljs-keyword">require</span>(<span class="hljs-string">'BX'</span>);
+ <span class="hljs-keyword">var</span> bxScreen = <span class="hljs-keyword">new</span> tableViewBX(paramBX);
+
+
+<span class="hljs-keyword">self</span>.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+
+      <span class="hljs-keyword">self</span>.add(menuView);
+      <span class="hljs-keyword">self</span>.add(saScreen);
+      <span class="hljs-keyword">self</span>.add(bxScreen);
+
+      saScreen.fireEvent(<span class="hljs-string">'sa_load_info'</span>);
+      bxScreen.fireEvent(<span class="hljs-string">'bx_load_info'</span>);
+
+});
+
+<span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+
+module.exports = Session;
+</code></pre><p>SA.js</p>
+<ul>
+<li>On this file the tableview object is created with data populated.</li>
+<li>In order to load data the addEventLister &#39;sa_load_info&#39; is dispatch</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">SA</span>(<span class="hljs-params"></span>) </span>{
+ <span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView();
+
+ <span class="hljs-keyword">var</span> openLoadDataSA = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">var</span> row = [];
+  row = getInfoBD();    <span class="hljs-comment">//Load data of bd </span>
+  tableView.setData(row);
+ };
+
+ tableView.addEventListener(<span class="hljs-string">'sa_load_info'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+       tableView.setData([]);
+       openLoadDataSA();
+
+ });
+ <span class="hljs-keyword">return</span> tableView;
+};
+
+<span class="hljs-built_in">module</span>.exports = SA;
+</code></pre><p>ISSUE</p>
+<ul>
+<li>If user press back button and return to SA.js 2 or n times</li>
+<li>The table view data of SA.js file is loaded n times.</li>
+</ul>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 6th 2015, 11:24:45 am">October 6th 2015</span>
+				by <span class='authorname'>Jorge Luis Frias Butron</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>app</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
