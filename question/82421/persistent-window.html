@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Persistent Window? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Persistent Window?</h1>
+		</header>
+		<section>
+			<p>I have a TableView menu for my application; one of the options is to write a note. Here is the invocation code:</p>
+<pre><code class="hljs">winNote = Titanium.UI.createWindow({
+    url:<span class="hljs-string">'../application_windows/notes.js'</span>,
+    title:<span class="hljs-string">'Notes'</span>
+});
+
+rowNote.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    Titanium.UI.currentTab.open(winNote,{animated:<span class="hljs-literal">true</span>});
+});
+</code></pre><p>Pretty simple, straight forward, and works; but the notes window does not remain persistent. That is, if I click back on the top toolbar (iOS4 emulator), it goes back, and if I click the Notes row on the TableViewRow, it resets the content of the text area as if it is a new window.</p>
+<p>Is there any special procedures I need to do in order to ensure the notes are persistent?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 23rd 2010, 6:09:57 pm">November 23rd 2010</span>
+				by <span class='authorname'>Andy Huang</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>persistent</span></li>
+					
+						<li><span class='tagname'>tableviewrow</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-150851">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>As far as I&#39;ve seen Kitchen sink doesnt persist data after you&#39;ve closed the page either.</p>
+<p>I think what you want to do is store the data so you can get to it later.  Try something like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//You'll have to pass in the clicked id some how.. perhaps store it as an</span>
+<span class="hljs-comment">//app property and access it like this:</span>
+<span class="hljs-keyword">var</span> winNoteProps = JSON.<span class="hljs-keyword">parse</span>(Ti.<span class="hljs-keyword">App</span>.Properties.getString(<span class="hljs-string">"winNoteProps"</span>));
+
+<span class="hljs-comment">//get the data from a local database</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Titanium.Database.<span class="hljs-keyword">open</span>('mylocaldb');
+<span class="hljs-keyword">var</span> rows = <span class="hljs-keyword">db</span>.execute('Select <span class="hljs-keyword">Notes</span> from NotesTable where winNoteId = ' + winNoteProps.id);
+<span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">notes</span> = rows.fieldByName('<span class="hljs-keyword">Notes</span>');
+
+taNotes.value = <span class="hljs-keyword">notes</span>;
+
+
+<span class="hljs-comment">//add an event listener to trigger the database save</span>
+taNotes.addEventListener('blur', function(<span class="hljs-keyword">e</span>){
+  <span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Titanium.Databse.<span class="hljs-keyword">open</span>('mylocaldb');
+  <span class="hljs-keyword">db</span>.execute('INSERT INTO NOTESTABLE (<span class="hljs-keyword">Notes</span>, winNoteId) VALUES (?,?)',
+    <span class="hljs-keyword">e</span>.value, winNoteProps.id);
+  <span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+}
+</code></pre><p>With this solution you&#39;ll have to setup the above database and tables before you use them.  The best place is probably in the app.js file.</p>
+<p>Check out <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2010&#x2F;07&#x2F;how-to-perform-crud-operations-on-a-local-database.html">this article</a> for some more detailed look at database use and <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2010&#x2F;06&#x2F;how-to-persist-complex-javascript-objects.html">this guide</a> for passing the variables between pages as application properties.</p>
+<p>Hope this helps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 27th 2010, 3:56:36 am">November 27th 2010</span>
+								by <span class='authorname'>Jonathon Beschen</span><br>
+								<a class="icon-bg icon-link" href="question/82421/persistent-window#answer-150851" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-149081">
+				
+						<section>
+							<p>can you post the code from notes.js? </p>
+<p>I am going to guess that you are doing something that is cause you to lose  the context and  the data that was added when the window was opened</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 23rd 2010, 9:37:09 pm">November 23rd 2010</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/82421/persistent-window#answer-149081" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi, thanks for replying…<br>Here&#39;s the code for notes.js:</p>
+<pre><code class="hljs">var win = Titanium.UI.currentWindow;
+
+taNotes = Titanium.UI.createTextArea({
+    value:<span class="hljs-string">'I am a textarea'</span>,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">400</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-number">320</span>,
+    top:<span class="hljs-number">0</span>,
+    font:{fontSize:<span class="hljs-number">20</span>,fontFamily:<span class="hljs-string">'Helvatica'</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+    <span class="hljs-built_in">color</span>:<span class="hljs-string">'#000'</span>,
+    <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'left'</span>,
+    appearance:Titanium.UI.KEYBOARD_APPEARANCE_ALERT,    
+    keyboardType:Titanium.UI.KEYBOARD_NUMBERS_PUNCTUATION,
+    returnKeyType:Titanium.UI.RETURNKEY_DEFAULT,
+    suppressReturn:<span class="hljs-keyword">false</span>
+
+});
+win.<span class="hljs-built_in">add</span>(taNotes);
+</code></pre><p>It is mostly copy and pasted from the kitchen sink, except much trimmed down… I tried to change &quot;I am a textarea&quot; to &quot;I am a text-area&quot; as recommended by the auto-correct, as well as typing random asdf qwerty etc. type of dummy text into the text area, but as soon as I click back, and come back, it reverts to &quot;I am a textarea&quot;.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 23rd 2010, 9:53:20 pm">November 23rd 2010</span>
+											by <span class='authorname'>Andy Huang</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-150781">
+				
+						<section>
+							<p>Bumpty bumpty… Does anyone have any insights on this?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 26th 2010, 11:06:02 pm">November 26th 2010</span>
+								by <span class='authorname'>Andy Huang</span><br>
+								<a class="icon-bg icon-link" href="question/82421/persistent-window#answer-150781" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

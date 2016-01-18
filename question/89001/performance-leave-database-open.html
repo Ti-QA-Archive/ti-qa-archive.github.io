@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Performance: Leave database open? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Performance: Leave database open?</h1>
+		</header>
+		<section>
+			<p>I&#39;ve always been a developer to dispose&#x2F;close things as soon as I am done with them, to avoid leaks and improve performance.  </p>
+<p>While without a doubt you should close a result set as soon as you are done, I have also closed &amp; re-opened my database in between calls.  I found this <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2010&#x2F;07&#x2F;how-to-perform-crud-operations-on-a-local-database.html">official example on the Developer blog</a> and wondered being as sqlite is a file……would there be any performance improvements by just leaving the database open? How does leaving it open affect memory on the device? Are there any concurrency issues leaving it open, being as the user may close&#x2F;pause the app at any time…..or would I have to catch the event for app closing and close the database then?</p>
+<p>Anyways, just give my your two cents on the matter.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 13th 2010, 5:41:28 pm">December 13th 2010</span>
+				by <span class='authorname'>Mike Robinson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>base</span></li>
+					
+						<li><span class='tagname'>data</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>open</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+						<li><span class='tagname'>sqlite3</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-159971">
+				
+						<section>
+							<p>My two cents is &quot;it depends&quot;.  :)</p>
+<p>If the app is not database centric, opening and closing on demand is reasonable.  In my tests, the overhead of the open&#x2F;close were surprisingly small.</p>
+<p>However, for database centric apps, my preference is to open during app.js and leave it open.  By way of example, if I assigned the database to a variable called &quot;db&quot;, I would do something similar to:</p>
+<pre><code class="hljs"><span class="hljs-comment">// trap app shutdown event</span>
+Ti.<span class="hljs-keyword">App</span>.addEventListener('<span class="hljs-keyword">close</span>',function(<span class="hljs-keyword">e</span>)
+{
+    <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">db</span> ) {
+        <span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+    }
+});
+</code></pre><p>But I do that not only because of the potential (nominal) performance improvements, but primarily because in my tests it works better if I share a single global instance of the database between all my windows.</p>
+<p>I have an app which is entirely database centric.  But each screen uses the url: *.js property to make the screen run in its own context.  When I had each window open and close the database and put timing checks around the opens, even on the device they only took about 2ms.  However, what I did run into were random crashes I could not trap with try&#x2F;catch.</p>
+<p>The basic problem was some db.execute operations were failing with a &quot;table locked&quot; condition.  I think this is because each screen runs in its own thread (when using the url property) and thus sometimes ended up trying to overlap processing with a new window being opened and trying to access the same database concurrently.</p>
+<p>Normally in sqlite, you would just trap that error, do a short delay, and repeat until it worked.  However, my try&#x2F;catch was ignored and the application simply crashed.</p>
+<p>So what I now do is open the database in app.js then assign the db object as a global property in Ti.App like this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">app</span>.js:
+Ti.<span class="hljs-keyword">App</span>.<span class="hljs-keyword">db</span> = Ti.Database.<span class="hljs-keyword">open</span>('my <span class="hljs-keyword">db</span>');
+</code></pre><p>Then from all other window &#x2F; contexts, I just use Ti.App.db instead of a variable declared and opened in that window, e.g.</p>
+<pre><code class="hljs">Ti.App.db.<span class="hljs-built_in">execute</span>(<span class="hljs-string">'SELECT ...'</span>)<span class="hljs-comment">;</span>
+</code></pre><p>This seems to have solved my random crashes with table locked conditions.  Or at least I have not witnessed one since I switched to that paradigm.</p>
+<p>YMMV.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 13th 2010, 6:35:44 pm">December 13th 2010</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/89001/performance-leave-database-open#answer-159971" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Doug, your approach has helped me solve those pesky locked database problems… it was a huge help… thanks for posting your suggestion!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 29th 2013, 12:48:43 pm">May 29th 2013</span>
+											by <span class='authorname'>Sam Dhand</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>4</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-159941">
+				
+						<section>
+							<p>I haven&#39;t noticed any problems with leaving it open.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 13th 2010, 6:14:14 pm">December 13th 2010</span>
+								by <span class='authorname'>Dan Giulvezan</span><br>
+								<a class="icon-bg icon-link" href="question/89001/performance-leave-database-open#answer-159941" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>neither did I before today, when my app started crashing for no reason.. and then I found out the Sqllite error that the database was locked. Solved with this opening and closing the db in each query.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 20th 2011, 2:04:25 pm">January 20th 2011</span>
+											by <span class='authorname'>Alberto Marcone</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-160011">
+				
+						<section>
+							<p>Hi Mike,</p>
+<p>…each screen runs in its own thread and thus sometimes ended up trying to overlap processing with a new window being opened and trying to access the same database concurrently.</p>
+<p>I encountered the same as Doug; and as a result I prefer to open, do the db stuff, then close - but I usually only use app.js for setting tabs and primary windows.</p>
+<p>cheers,<br>Chris.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 13th 2010, 7:07:06 pm">December 13th 2010</span>
+								by <span class='authorname'>Chris Reed</span><br>
+								<a class="icon-bg icon-link" href="question/89001/performance-leave-database-open#answer-160011" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-160041">
+				
+						<section>
+							<p>I do a lot of database syncing with web services for schedules and photo galleries so my app is very database intensive. Here is what I do: </p>
+<p>Within a db functions file:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openDB</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">return</span> Titanium.Database.open(databaseName + <span class="hljs-string">"_"</span> + databaseVersion);
+}
+</code></pre><p>Then when using the database:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = openDB();
+
+{<span class="hljs-keyword">do</span> stuff}
+
+<span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+</code></pre><p>I haven&#39;t noticed any performance problems with this approach and I never see lock errors.</p>
+<p>As you can see in my openDB() function I keep a name and database version number (within a settings file) in the case I change the database design in future versions of the application. </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 13th 2010, 8:47:36 pm">December 13th 2010</span>
+								by <span class='authorname'>John Welch</span><br>
+								<a class="icon-bg icon-link" href="question/89001/performance-leave-database-open#answer-160041" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

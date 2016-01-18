@@ -1,0 +1,454 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Image upload directly from camera » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Image upload directly from camera</h1>
+		</header>
+		<section>
+			<p>Hey everyone,</p>
+<p>This is more of a solution than a question.  I&#39;ve just spent the morning trying to work out how to upload an image file.  There are a few code examples on here but none of them seemed to work.  I think the key is to specify the headers when you createHTTPClient.</p>
+<p>So, here&#39;s my complete code (you can just copy this into an app.js file and run it straight away)…</p>
+<pre><code class="hljs">Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+
+<span class="hljs-keyword">var</span> win1 = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Tab 1'</span>,
+});
+
+<span class="hljs-keyword">var</span> textfield = Titanium.UI.createTextArea({color:<span class="hljs-string">'#333'</span>,backgroundColor:<span class="hljs-string">'#ddd'</span>,borderRadius:<span class="hljs-number">5</span>,value:<span class="hljs-string">'result of upload... wait for data!'</span>,height:<span class="hljs-number">200</span>,width:<span class="hljs-number">300</span>,top:<span class="hljs-number">20</span>,visible:<span class="hljs-literal">true</span>});
+
+win1.add(textfield);
+
+win1.open();
+
+Titanium.Media.showCamera({
+    success:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span>
+    </span>{
+        <span class="hljs-keyword">var</span> image = event.media;
+        <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'camera_photo.png'</span>);
+        f.write(image);
+        win1.backgroundImage = f.nativePath;
+
+        <span class="hljs-keyword">var</span> data_to_send = { 
+            <span class="hljs-string">"file"</span>: f.read(), 
+            <span class="hljs-string">"name"</span>: <span class="hljs-string">'camera_photo.png'</span> 
+        };
+        xhr = Titanium.Network.createHTTPClient();
+        xhr.setRequestHeader(<span class="hljs-string">"enctype"</span>, <span class="hljs-string">"multipart/form-data"</span>);
+        xhr.setRequestHeader(<span class="hljs-string">"Content-Type"</span>, <span class="hljs-string">"image/png"</span>);
+        xhr.open(<span class="hljs-string">"POST"</span>,<span class="hljs-string">"http://mydomain.com/uploadfile.php"</span>);
+        xhr.send(data_to_send); 
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            textfield.value = <span class="hljs-keyword">this</span>.responseText;
+            Ti.API.info(<span class="hljs-keyword">this</span>.responseText); 
+        };
+
+    },
+    cancel:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+    </span>{
+
+    },
+    error:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(error)</span>
+    </span>{
+        <span class="hljs-comment">// create alert</span>
+        <span class="hljs-keyword">var</span> a = Titanium.UI.createAlertDialog({title:<span class="hljs-string">'Camera'</span>});
+        <span class="hljs-comment">// set message</span>
+        <span class="hljs-keyword">if</span> (error.code == Titanium.Media.NO_CAMERA)
+        {
+            a.setMessage(<span class="hljs-string">'Device does not have video recording capabilities'</span>);
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            a.setMessage(<span class="hljs-string">'Unexpected error: '</span> + error.code);
+        }
+        <span class="hljs-comment">// show alert</span>
+        a.show();
+    },
+});
+</code></pre><p>Right, and here&#39;s the contents for uploadfile.php which you can put on your server… (it&#39;s actually just the code from the w3schools website!)</p>
+<pre><code class="hljs">
+<span class="php"><span class="hljs-preprocessor">&lt;?php</span>
+ini_set(<span class="hljs-string">'max_upload_filesize'</span>, <span class="hljs-number">8388608</span>);
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"error"</span>] &gt; <span class="hljs-number">0</span>)
+    {
+    <span class="hljs-keyword">echo</span> <span class="hljs-string">"Return Code: "</span> . <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"error"</span>] . <span class="hljs-string">"&lt;br /&gt;"</span>;
+    }
+  <span class="hljs-keyword">else</span>
+    {
+    <span class="hljs-keyword">echo</span> <span class="hljs-string">"Upload: "</span> . <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"name"</span>] . <span class="hljs-string">"&lt;br /&gt;"</span>;
+    <span class="hljs-keyword">echo</span> <span class="hljs-string">"Type: "</span> . <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"type"</span>] . <span class="hljs-string">"&lt;br /&gt;"</span>;
+    <span class="hljs-keyword">echo</span> <span class="hljs-string">"Size: "</span> . (<span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"size"</span>] / <span class="hljs-number">1024</span>) . <span class="hljs-string">" Kb&lt;br /&gt;"</span>;
+    <span class="hljs-keyword">echo</span> <span class="hljs-string">"Temp file: "</span> . <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"tmp_name"</span>] . <span class="hljs-string">"&lt;br /&gt;"</span>;
+
+    <span class="hljs-keyword">if</span> (file_exists(<span class="hljs-string">"upload/"</span> . <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"name"</span>]))
+      {
+      <span class="hljs-keyword">echo</span> <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"name"</span>] . <span class="hljs-string">" already exists. "</span>;
+      }
+    <span class="hljs-keyword">else</span>
+      {
+      move_uploaded_file(<span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"tmp_name"</span>],
+      <span class="hljs-string">"upload/"</span> . <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"name"</span>]);
+      <span class="hljs-keyword">echo</span> <span class="hljs-string">"Stored in: "</span> . <span class="hljs-string">"upload/"</span> . <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"name"</span>];
+      }
+    }
+<span class="hljs-preprocessor">?&gt;</span></span>
+</code></pre><p>Hope this helps someone! :)</p>
+<p>Cheers,</p>
+<p>Michael</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 11th 2010, 12:27:40 pm">December 11th 2010</span>
+				by <span class='authorname'>Michael Aldridge</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>camera</span></li>
+					
+						<li><span class='tagname'>file</span></li>
+					
+						<li><span class='tagname'>photo</span></li>
+					
+						<li><span class='tagname'>php</span></li>
+					
+						<li><span class='tagname'>server</span></li>
+					
+						<li><span class='tagname'>upload</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>its not work in android!!!!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 15th 2012, 4:45:56 am">March 15th 2012</span>
+								by <span class='authorname'>Nikunj Jadav</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>28</span> Votes</div>
+			<div class="answers"><span>7</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>7 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-206669">
+				
+						<section>
+							<p>Thanks so much for sharing this I had to deleted some code to get it to work for me</p>
+<p>xhr.setRequestHeader(&quot;enctype&quot;, &quot;multipart&#x2F;form-data&quot;);<br>        xhr.setRequestHeader(&quot;Content-Type&quot;, &quot;image&#x2F;png&quot;);</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 21st 2011, 9:01:25 pm">April 21st 2011</span>
+								by <span class='authorname'>travis k</span><br>
+								<a class="icon-bg icon-link" href="question/88371/image-upload-directly-from-camera#answer-206669" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This should be the answer to the question. I got it to work after removing them lines also, but I just wrapped it in an if statement because I need it for iOS.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 11th 2014, 3:08:24 pm">March 11th 2014</span>
+											by <span class='authorname'>Steven Robichaud</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>4</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-211063">
+				
+						<section>
+							<p>change the sequence:<br>xhr.open(&quot;POST&quot;,&quot;http:&#x2F;&#x2F;mydomain.com&#x2F;uploadfile.php&quot;);<br>xhr.setRequestHeader(&quot;enctype&quot;, &quot;multipart&#x2F;form-data&quot;);<br>xhr.setRequestHeader(&quot;Content-Type&quot;, &quot;image&#x2F;png&quot;);<br>xhr.send(data_to_send);</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 22nd 2011, 2:58:42 pm">June 22nd 2011</span>
+								by <span class='authorname'>Sting Tao</span><br>
+								<a class="icon-bg icon-link" href="question/88371/image-upload-directly-from-camera#answer-211063" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>4</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-213011">
+				
+						<section>
+							<p>Figured it out, turned out my server doesn&#39;t allow for this kind of access. It worked once I put it up somewhere else. I have WebHostingPad. Anyone know if this is a setting I can change? I turned all related file permissions to x777 just in case but still no luck.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 13th 2011, 12:09:18 pm">July 13th 2011</span>
+								by <span class='authorname'>dave fletcher</span><br>
+								<a class="icon-bg icon-link" href="question/88371/image-upload-directly-from-camera#answer-213011" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-278094">
+				
+						<section>
+							<p>Instead to write the picture in the filesystem (and read it back in memory) should be enough to use directly the event.media data (binary format of the picture to be uploaded):</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> data_to_send = { 
+            <span class="hljs-string">"file"</span>: <span class="hljs-keyword">event</span>.media
+            <span class="hljs-string">"name"</span>: <span class="hljs-string">'camera_photo.png'</span> 
+        };
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 24th 2014, 2:03:46 pm">April 24th 2014</span>
+								by <span class='authorname'>Angelo Randazzo</span><br>
+								<a class="icon-bg icon-link" href="question/88371/image-upload-directly-from-camera#answer-278094" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-172761">
+				
+						<section>
+							<p>Thanks for posting this; it has saved me a bag of time. However I was still getting a return code of &quot;1&quot; (uploaded file too large) until I changed the php.ini value for UPLOAD_MAX_SIZE (not the ini variable you specify in your code - perhaps this is php-implementation-specific)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 4th 2011, 5:31:26 pm">January 4th 2011</span>
+								by <span class='authorname'>Mel Bradley</span><br>
+								<a class="icon-bg icon-link" href="question/88371/image-upload-directly-from-camera#answer-172761" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-205277">
+				
+						<section>
+							<p>Hi there,</p>
+<p>this doesn&#39;t work when i try and send over 3G. It says:</p>
+<p>&quot;Notice: Undefined index: file&quot;</p>
+<p>(i added the following to get this output)</p>
+<p>ini_set(&#39;display_errors&#39;, 1);<br>ini_set(&#39;log_errors&#39;, 1);<br>error_reporting(E_ALL);</p>
+<p>It seems it doesn&#39;t send the file over 3g - only if connected via wifi.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 30th 2011, 8:39:57 am">March 30th 2011</span>
+								by <span class='authorname'>James Shrager</span><br>
+								<a class="icon-bg icon-link" href="question/88371/image-upload-directly-from-camera#answer-205277" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-212906">
+				
+						<section>
+							<p>Looks like it should work but I keep getting this response:</p>
+<pre><code class="hljs">[INFO] <span class="hljs-doctype">&lt;!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-title">html</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">head</span>&gt;</span>
+
+400 Bad Request
+
+<span class="hljs-tag">&lt;/<span class="hljs-title">head</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">body</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-title">h1</span>&gt;</span>Bad Request<span class="hljs-tag">&lt;/<span class="hljs-title">h1</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>Your browser sent a request that this server could not understand.<span class="hljs-tag">&lt;<span class="hljs-title">br</span> /&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>Additionally, a 404 Not Found
+
+error was encountered while trying to use an ErrorDocument to handle the request.<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">html</span>&gt;</span>
+</code></pre><p>It would seem it can&#39;t find my uploadfile.php on my server but I&#39;ve tested the same upload code with a browser based post file pass and it uploads to the server just fine. I do have it in a subdirectory so its at http:&#x2F;&#x2F;mydomain.com&#x2F;directory&#x2F;uploadfile.php but this shouldn&#39;t be problem I believe. I changed the sequence of header settings and got rid of it all together, no luck. Any ideas?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 12th 2011, 12:42:49 pm">July 12th 2011</span>
+								by <span class='authorname'>dave fletcher</span><br>
+								<a class="icon-bg icon-link" href="question/88371/image-upload-directly-from-camera#answer-212906" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Dave,</p>
+<p>Have you found any solutions of your problem. I am facing similar type of problem.</p>
+<p>Thanks in advanced.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 27th 2011, 10:36:15 am">September 27th 2011</span>
+											by <span class='authorname'>dinesh singh</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Did anyone find out anything about this issue?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 12th 2012, 6:34:24 am">March 12th 2012</span>
+											by <span class='authorname'>Viet Hoang-Tran</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Not sure if anyone still have a problem with this but I change </p>
+<pre><code class="hljs">xhr.<span class="hljs-built_in">set</span>RequestHeader(<span class="hljs-string">"enctype"</span>, <span class="hljs-string">"multipart/form-data"</span>);
+xhr.<span class="hljs-built_in">set</span>RequestHeader(<span class="hljs-string">"Content-Type"</span>, <span class="hljs-string">"image/png"</span>);
+</code></pre><p>to </p>
+<pre><code class="hljs">xhr.<span class="hljs-built_in">set</span>RequestHeader(<span class="hljs-string">"contentType"</span>, <span class="hljs-string">"multipart/form-data"</span>);
+</code></pre><p>and it worked for me</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 18th 2013, 2:41:50 pm">April 18th 2013</span>
+											by <span class='authorname'>Tony Fox</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Tony, I tried as per you suggestion, but I am still getting 500 error.</p>
+<p>Can you post your complete sample code here?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 26th 2013, 5:03:22 am">September 26th 2013</span>
+											by <span class='authorname'>Kapil Maheshwari</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

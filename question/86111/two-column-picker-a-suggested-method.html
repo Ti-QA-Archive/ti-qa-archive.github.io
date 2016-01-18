@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Two column picker: a suggested method  » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Two column picker: a suggested method </h1>
+		</header>
+		<section>
+			<p>What follows is one possible workaround for pickers that require two columns with the contents of the second column being dependent on the value of first column.  The method addresses (what I believe to be) a bug in the Titanium 1.4x SDK (Titanium.UI.Picker.reloadColumn does not work).</p>
+<p>The app I&#39;m working on at the moment requires a means of picking your timezone from a list.  The total list of world timezones is pretty large (400+ zones) so, in order to keep the list manageable for the user, I am parsing a text file (from geonames.org) so that it breaks the data up into continents and regions.  The resulting hash contains items like this:</p>
+<pre><code class="hljs">nameArray[<span class="hljs-link_label">"America"</span>][<span class="hljs-link_reference">94</span>] = { region: "New York", gmt: "-5.00", dst: "-4.00" };
+nameArray[<span class="hljs-link_label">"Europe"</span>][<span class="hljs-link_reference">17</span>] = { region: "Jersey", gmt: "0.00", dst: "1.00" };
+</code></pre><p>When coding in Javascript, I much prefer to use the &quot;Constructor&quot; pattern to create classes and this seems to work out pretty well with Titanium code as well.  This is the class to create a fairly flexible two-column picker:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MultiPicker</span><span class="hljs-params">(arg)</span> </span>{
+    <span class="hljs-comment">//*** Create a reference to this instance to be used within methods</span>
+    <span class="hljs-keyword">var</span> me = <span class="hljs-keyword">this</span>;
+    <span class="hljs-keyword">this</span>.arg = arg;
+    <span class="hljs-comment">//*** Set arg values if defined or default if not</span>
+    <span class="hljs-keyword">this</span>.arg_set = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(argv, defaultValue)</span> </span>{
+        <span class="hljs-keyword">var</span> dVal = (<span class="hljs-keyword">typeof</span>(defaultValue) == <span class="hljs-string">"undefined"</span>) ? <span class="hljs-literal">null</span> : defaultValue;
+        <span class="hljs-keyword">return</span> (<span class="hljs-keyword">typeof</span>(argv) == <span class="hljs-string">"undefined"</span>) ? dVal : argv;
+    };
+    <span class="hljs-keyword">this</span>.win = <span class="hljs-keyword">this</span>.arg_set(arg.win);
+    <span class="hljs-keyword">this</span>.dataArray = <span class="hljs-keyword">this</span>.arg_set(arg.dataArray);
+    <span class="hljs-keyword">this</span>.picker = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.column1 = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.column2 = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.colOneArray = [];
+    <span class="hljs-keyword">this</span>.colTwoArray = [];
+    <span class="hljs-keyword">this</span>.colOneOptions = <span class="hljs-keyword">this</span>.arg_set(arg.colOneOptions,{
+        opacity: <span class="hljs-number">0</span>
+    });
+    <span class="hljs-keyword">this</span>.colTwoOptions = <span class="hljs-keyword">this</span>.arg_set(arg.colTwoOptions,{
+        opacity: <span class="hljs-number">0</span>
+    });
+    <span class="hljs-keyword">this</span>.colTwoLabel = <span class="hljs-keyword">this</span>.arg_set(arg.colTwoLabel);
+    <span class="hljs-keyword">this</span>.currentValue = <span class="hljs-string">""</span>;
+    <span class="hljs-keyword">this</span>.pickerValues = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.initialized = <span class="hljs-literal">false</span>;
+
+    MultiPicker.prototype.load = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(colOneName, colTwoSelected)</span> </span>{
+        <span class="hljs-keyword">if</span> (me.initialized) {
+            me.win.remove(me.picker);
+        }
+        me.picker = Ti.UI.createPicker({
+            type: Ti.UI.PICKER_TYPE_PLAIN
+        });
+        me.picker.selectionIndicator = <span class="hljs-literal">true</span>;
+
+          <span class="hljs-keyword">var</span> colOneIndex = me.load_col_one(colOneName);
+        me.picker.add(me.column1);
+
+         <span class="hljs-keyword">var</span> colTwoIndex = me.load_col_two(colOneName,colTwoSelected);
+        me.picker.add(me.column2);
+
+        me.picker.setSelectedRow(<span class="hljs-number">0</span>,colOneIndex,<span class="hljs-literal">false</span>);
+        <span class="hljs-comment">//*** Use timers to prevent unwanted behaviors</span>
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ me.picker.setSelectedRow(<span class="hljs-number">1</span>,colTwoIndex,<span class="hljs-literal">false</span>); },<span class="hljs-number">100</span>);
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ me.set_event(); },<span class="hljs-number">500</span>);
+
+        me.pickerValues = { col1: colOneName, col2: colTwoIndex };
+        me.win.add(me.picker);
+        me.initialized = <span class="hljs-literal">true</span>;
+    };
+
+    MultiPicker.prototype.get_values = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> me.pickerValues;
+    };
+
+    <span class="hljs-comment">//*** Privileged methods (members)</span>
+
+    <span class="hljs-keyword">this</span>.load_col_one = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(selectName)</span> </span>{
+        <span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">var</span> selectedIndex;
+
+        me.column1 = Ti.UI.createPickerColumn(me.colOneOptions);        
+        me.column1.colIndex = <span class="hljs-number">1</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> me.dataArray) {
+            <span class="hljs-keyword">if</span> (me.dataArray.hasOwnProperty(key)) {
+                me.colOneArray[i] = key;
+                <span class="hljs-keyword">var</span> row = Ti.UI.createPickerRow({ title: key });
+                row.rowIndex = i;
+                me.column1.addRow(row);    
+                <span class="hljs-keyword">if</span> (selectName == key) {
+                    selectedIndex = i;
+                }
+                i++;
+            }
+        }
+        <span class="hljs-keyword">return</span> selectedIndex;
+    };
+
+    <span class="hljs-keyword">this</span>.load_col_two = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(colOneName, colTwoSelected)</span> </span>{
+        <span class="hljs-keyword">var</span> selectedIndex;
+
+        me.column2 = Ti.UI.createPickerColumn(me.colTwoOptions);
+        me.column2.colIndex = <span class="hljs-number">2</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;me.dataArray[colOneName].length; i++) {
+            me.colTwoArray[i] = me.dataArray[colOneName][i];
+            <span class="hljs-keyword">var</span> row = Ti.UI.createPickerRow({});
+            <span class="hljs-keyword">var</span> value = me.colTwoArray[i].region;
+
+            <span class="hljs-keyword">if</span> (me.colTwoLabel != <span class="hljs-literal">null</span>) {
+                <span class="hljs-keyword">var</span> label = Ti.UI.createLabel(me.colTwoLabel);
+                label.text = value;
+                row.add(label);
+            } <span class="hljs-keyword">else</span> {
+                row.title = value;
+            }
+            <span class="hljs-keyword">if</span> (colTwoSelected == value) {
+                selectedIndex = i;
+            }
+            row.rowIndex = i;
+            me.column2.addRow(row);    
+        }
+        <span class="hljs-keyword">return</span> selectedIndex;
+    };
+
+    <span class="hljs-keyword">this</span>.set_event = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+        me.picker.addEventListener(<span class="hljs-string">'change'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            <span class="hljs-keyword">var</span> selectedValue = me.colOneArray[e.row.rowIndex];
+            <span class="hljs-keyword">if</span> (e.column.colIndex == <span class="hljs-number">1</span> &amp;&amp; selectedValue != me.currentValue) {
+                <span class="hljs-comment">//*** Reload picker with the selected value</span>
+                me.load(selectedValue, <span class="hljs-number">0</span>);
+                me.currentValue = selectedValue;
+            }
+            <span class="hljs-keyword">if</span> (e.column.colIndex == <span class="hljs-number">2</span>) {
+                me.pickerValues = { col1: me.currentValue, col2: e.row.rowIndex };
+            }
+        });
+    };
+}
+</code></pre><p>To use this in practice, you&#39;ll need to insert your data in to a hash similar to the one shown above and then instantiate the MultiPicker like this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">win</span> = Titanium.UI.currentWindow;
+
+<span class="hljs-keyword">var</span> tzPick = new MultiPicker({
+    <span class="hljs-keyword">win</span>: <span class="hljs-keyword">win</span>,
+    dataArray: nameArray
+});
+</code></pre><p>If you want to get fancy, you can define the appearance of the columns and include a custom view in the second column like this:</p>
+<pre><code class="hljs">var tzPick = <span class="hljs-keyword">new</span> MultiPicker({
+    win: win,
+    dataArray: nameArray,
+    colOneOptions: {
+        opacity: <span class="hljs-number">0</span>,
+        <span class="hljs-variable">width</span>: <span class="hljs-number">120</span>
+    },
+    colTwoOptions: {
+        opacity: <span class="hljs-number">0</span>,
+        <span class="hljs-variable">width</span>: <span class="hljs-number">180</span>
+    },
+    colTwoLabel: {
+        font: { fontSize: <span class="hljs-number">14</span>, fontWeight: <span class="hljs-string">'bold'</span>},
+        <span class="hljs-built_in">textAlign</span>: <span class="hljs-string">'left'</span>,
+        left: <span class="hljs-string">'auto'</span>,
+        <span class="hljs-variable">width</span>: <span class="hljs-string">'auto'</span>,
+        <span class="hljs-variable">height</span>: <span class="hljs-string">'auto'</span>
+    }
+});
+</code></pre><p>Next, call the &quot;load&quot; method and the picker will display with the selected values:</p>
+<pre><code class="hljs">tzPick.<span class="hljs-built_in">load</span>(<span class="hljs-string">"America"</span>,<span class="hljs-string">"New York"</span>);
+</code></pre><p>The &#39;change&#39; event of the picker returns an object that contains the properties &#39;col1&#39; and &#39;col2&#39;.  You can access it by calling the &#39;get_values()&#39; method.  In my implementation, I&#39;m grabbing it in the listener of a &#39;Save&#39; button:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> saveBtn = Ti.UI.createButton({
+    title: <span class="hljs-string">'Save'</span>
+});
+saveBtn.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> tzValues = tzPick.get_values();
+    <span class="hljs-comment">//*** Do whatever you need to with the returned values here</span>
+    win.close();
+});
+win.setRightNavButton(saveBtn);
+</code></pre><p>That&#39;s about it!  There are a couple of kludges in this system due to the present operation of the picker in Titanium (e.g, the picker is removed then re-added to the current window since we can&#39;t reload the column data and there some &#39;setTimeout&#39; calls to avoid timing snafus when binding the listener and positioning the selection of the second column).  Hope you find it to be of some use!</p>
+<p>Mark</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 5th 2010, 8:11:43 pm">December 5th 2010</span>
+				by <span class='authorname'>Mark Pemburn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>picker</span></li>
+					
+						<li><span class='tagname'>workaround</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

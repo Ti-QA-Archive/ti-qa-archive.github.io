@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Options Menu that works on Android and IPhone on Ti 1.4 and 1.5 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Options Menu that works on Android and IPhone on Ti 1.4 and 1.5</h1>
+		</header>
+		<section>
+			<p>For those of you who have used the options menu (it shows up at the bottom of the screen in iphone and when you press the menu button in android), you know that the code to instantiate one is different in iphone and android. On top of that, the code is changing again in Ti 1.5 for android. With that in mind, I created a menu.js file that you can include in a window to instantiate a menu without having to worry about platform or ti version.</p>
+<p>menu.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> menu = {
+
+    isAndroid: Ti.Platform.name == <span class="hljs-string">'android'</span>,
+    win: Ti.UI.currentWindow,
+    data: [],
+    tiVersion: <span class="hljs-number">1.5</span>,
+
+    init: function (<span class="hljs-keyword">params</span>) {
+        <span class="hljs-keyword">if</span> (!menu.isAndroid) {
+            <span class="hljs-comment">//create iphone menu.</span>
+            <span class="hljs-keyword">var</span> index = <span class="hljs-number">0</span>;
+            <span class="hljs-keyword">var</span> flexSpace = <span class="hljs-keyword">new</span> Button({ systemButton: Ti.UI.iPhone.SystemButton.FLEXIBLE_SPACE });
+            menu.data[index++] = flexSpace;
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> k = <span class="hljs-number">0</span>; k &lt; <span class="hljs-keyword">params</span>.buttons.length; k++) {
+                menu.data[index] = <span class="hljs-keyword">new</span> Button({ title: <span class="hljs-keyword">params</span>.buttons[k].title, style: Ti.UI.iPhone.SystemButtonStyle.BORDERED });
+                menu.data[index].addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-keyword">params</span>.buttons[k].clickevent);
+                index++;
+                menu.data[index++] = flexSpace;
+            }
+            menu.win.setToolbar(menu.data);
+        }
+        <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//create android menu.</span>
+            <span class="hljs-keyword">if</span> (menu.tiVersion &gt;= <span class="hljs-number">1.5</span>) {
+                <span class="hljs-comment">//ti 1.5 has new way to create menu.</span>
+                <span class="hljs-keyword">var</span> activity = Ti.Android.currentActivity;
+                activity.onCreateOptionsMenu = function (e) {
+                    <span class="hljs-keyword">var</span> optionsmenu = e.menu;
+                    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> k = <span class="hljs-number">0</span>; k &lt; <span class="hljs-keyword">params</span>.buttons.length; k++) {
+                        menu.data[k] = optionsmenu.add({ title: <span class="hljs-keyword">params</span>.buttons[k].title })
+                        menu.data[k].addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-keyword">params</span>.buttons[k].clickevent);
+                    }
+                }
+            }
+            <span class="hljs-keyword">else</span> {
+                <span class="hljs-comment">//pre-ti 1.5 way to create menu.</span>
+                <span class="hljs-keyword">var</span> optionsmenu = Ti.UI.Android.OptionMenu.createMenu();
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> k = <span class="hljs-number">0</span>; k &lt; <span class="hljs-keyword">params</span>.buttons.length; k++) {
+                    menu.data[k] = Ti.UI.Android.OptionMenu.createMenuItem({ title: <span class="hljs-keyword">params</span>.buttons[k].title })
+                    menu.data[k].addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-keyword">params</span>.buttons[k].clickevent);
+                    optionsmenu.add(menu.data[k]);
+                }
+                Ti.UI.Android.OptionMenu.setMenu(optionsmenu);
+            }
+        }
+    },
+
+    setTiVersion: function (<span class="hljs-keyword">value</span>) {
+        <span class="hljs-comment">//only need to set this if using android and an older version of ti than 1.5.</span>
+        menu.tiVersion = <span class="hljs-keyword">value</span>;
+    }
+
+};
+</code></pre><p>How to use it:</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'menu.js'</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createMenu</span><span class="hljs-params">()</span> </span>{
+    menu.setTiVersion(<span class="hljs-number">1.4</span>);
+    menu.init({
+        buttons: [
+            {
+                title: <span class="hljs-string">"Refresh"</span>,
+                clickevent: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ refresh(<span class="hljs-literal">true</span>); }
+            },
+            {
+                title: <span class="hljs-string">"Logout"</span>,
+                clickevent: logout
+            }
+        ]
+    });
+}
+</code></pre><p>Hopefully this will help clean up yall&#39;s code…</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 8th 2010, 5:58:14 pm">December 8th 2010</span>
+				by <span class='authorname'>Justin Toth</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>menu</span></li>
+					
+						<li><span class='tagname'>optionmenu</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-160911">
+				
+						<section>
+							<p>Nice.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 14th 2010, 6:40:14 pm">December 14th 2010</span>
+								by <span class='authorname'>Justin Richards</span><br>
+								<a class="icon-bg icon-link" href="question/87341/options-menu-that-works-on-android-and-iphone-on-ti-14-and-15#answer-160911" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-202661">
+				
+						<section>
+							<p>I added a property for an icon (image) attached to each menu button for Android, uncertain how to best implement for iPhone. You can view my refined version <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;841456">here</a>.  HTH.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 24th 2011, 5:53:39 pm">February 24th 2011</span>
+								by <span class='authorname'>Bob Sims</span><br>
+								<a class="icon-bg icon-link" href="question/87341/options-menu-that-works-on-android-and-iphone-on-ti-14-and-15#answer-202661" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
