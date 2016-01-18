@@ -1,0 +1,512 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Large file download on mobile » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Large file download on mobile</h1>
+		</header>
+		<section>
+			<p>Hi. I&#39;m tearing my hair out trying to figure this one out… </p>
+<p>I&#39;m trying to download a 4 meg(ish) file to local (mobile) storage from a remote server.  The following code works fine for smaller files, but with larger ones I get an outOfMemory exception.  This is because Ti saves the data to memory before committing it to the file… which is no good for me.</p>
+<p>My code follows (cut down, but you get the idea)…</p>
+<pre><code class="hljs">var videoFile = Titanium.Filesystem.getFile(localFilename);
+var httpClient = Ti.Network.createHTTPClient();
+httpClient.onreadystatechange = function(){
+    if(httpClient.readyState == <span class="hljs-number">4</span>){
+        videoFile.write(httpClient.responseData);
+    }
+};
+httpClient.open(<span class="hljs-string">"<span class="hljs-keyword">GET</span>"</span>, theRemoteFileURL);
+httpClient.send(null);
+</code></pre><p>Like i say… the above works fine for small files, but gets messy for larger files.</p>
+<p>I found the following post… http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;26001&#x2F;copying-a-file-from-a-server-to-your-harddisk<br>but this is for Ti Desktop… i tried the code anyway and just got nothing but trouble.  It would seem that  Filesystem.getFileStream isnt implemented in Mobile, nor is HTTPClient.receive.  (I would have been able to see this without testing if I at all trusted the documentation to be in any way reliable, btw(!)).</p>
+<p>I was hoping to maybe set an interval to Append to the file every X seconds and then maybe flush the HttpClient (to clear memory) - but from what I&#39;ve seen I can&#39;t append to a file, nor flush the stream.</p>
+<p>Does <em>anybody</em> have any info that can help?</p>
+<p>Also, is there anywhere else I can get better documentation… I use KitchenSink when possible but the demos sometimes arent extensive enough.</p>
+<p>Cheers.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 15th 2010, 7:55:32 am">June 15th 2010</span>
+				by <span class='authorname'>Steffan Luczyn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>download</span></li>
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>5</span> Votes</div>
+			<div class="answers"><span>9</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>9 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-197841">
+				
+						<section>
+							<p>I&#39;m still encountering this problem in Android, so I dug through the Titanium 1.5.1 source for the HTTPClient, and came up with a (not entirely elegant) work-around.</p>
+<p>Here&#39;s an example onload function for the HTTPClient:</p>
+<pre><code class="hljs">xmlHttpObj = Ti.Network.createHTTPClient();
+xmlHttpObj.onload = onSuccess;
+...
+filename = <span class="hljs-string">"filename.txt"</span>;
+...
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onSuccess</span><span class="hljs-params">()</span>
+</span>{
+  Ti.API.info(<span class="hljs-string">"Successfully downloaded file"</span>);
+  Ti.API.info(<span class="hljs-string">"Saving file"</span>);
+
+  <span class="hljs-comment">// This method results in Out of Memory Error for large files</span>
+  <span class="hljs-comment">//var f = Ti.Filesystem.getFile(</span>
+  <span class="hljs-comment">//        Ti.Filesystem.getExternalStorageDirectory(),</span>
+  <span class="hljs-comment">//        filename);</span>
+  <span class="hljs-comment">//f.write(xmlHttpObj.responseData);</span>
+
+  <span class="hljs-comment">// Use the fact that TiHTTPClient internally saves to a</span>
+  <span class="hljs-comment">// file to move that temporary file where we want it.</span>
+  <span class="hljs-comment">// responseData is a TiBlob object, which can get data from</span>
+  <span class="hljs-comment">// multiple sources, including files (TYPE == 1).</span>
+  <span class="hljs-keyword">if</span> (xmlHttpObj.responseData.type == <span class="hljs-number">1</span>)
+  {
+    <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(
+               xmlHttpObj.responseData.nativePath);
+    <span class="hljs-keyword">var</span> dest = Ti.Filesystem.getFile(
+                  Ti.Filesystem.getExternalStorageDirectory(),
+                  filename);
+    <span class="hljs-keyword">if</span> (dest.exists)
+      dest.deleteFile();
+    f.move(dest.nativePath);
+  }
+  <span class="hljs-keyword">else</span>
+  {
+    <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(
+               Ti.Filesystem.getExternalStorageDirectory(),
+               filename);
+    f.write(xmlHttpObj.responseData);
+  }
+  <span class="hljs-comment">// Do not access xmlHttpObj.responseData after this point,</span>
+  <span class="hljs-comment">// since the file backing it might have been moved in the</span>
+  <span class="hljs-comment">// previous step.</span>
+
+  Ti.API.info(<span class="hljs-string">"Successfully saved file"</span>);
+}
+</code></pre><p>There needs to be at least twice the file size of space left on the device, since Titanium&#39;s file.move() implementation copies the file before removing the original.</p>
+<p>And just to note, I&#39;ve only done some simple testing with this code. I can&#39;t guarantee that it will always work, although I don&#39;t know why it wouldn&#39;t!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 14th 2011, 4:11:00 pm">February 14th 2011</span>
+								by <span class='authorname'>Jens Taylor</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-197841" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Jens, I just did a test download of a 28MB file and it worked perfectly!  Thanks very much.  I just voted this up.  I had not dug into the source code yet because with iOS solved, this had not escalated to the top of my priority pile yet.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 14th 2011, 7:55:27 pm">February 14th 2011</span>
+											by <span class='authorname'>Doug Handy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>had the same problem, this seems to work fine, thanks. however, i don&#39;t understand how Ti determines the responseData.type. does it depend on size? i&#39;ve observed that smaller files have a responseData.type == 2. anyway. –</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 24th 2011, 1:33:44 pm">March 24th 2011</span>
+											by <span class='authorname'>u no</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Internally, the HTTPClient stores the response to a request depending on the headers it receives for the response&#39;s size. If it&#39;s under a certain (configurable?) size, it&#39;s simply stored in memory. If it&#39;s larger, it gets stored to a file.</p>
+<p>The HTTPClient then passes either the memory or the file location off to a TiBlob, which uses that as backing. So in the small file size case, the TiBlob is backed by memory. In the large file size case, it&#39;s backed by a file.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 24th 2011, 1:44:46 pm">March 24th 2011</span>
+											by <span class='authorname'>Jens Taylor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>9</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-71291">
+				
+						<section>
+							<p>https:&#x2F;&#x2F;appcelerator.lighthouseapp.com&#x2F;projects&#x2F;32238&#x2F;tickets&#x2F;1019-httpclient-crashes-app-with-substantial-downloads</p>
+<p>it&#39;s a known ticket apparently so you have to wait for it to be resolved or give up Titanium mobile</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 15th 2010, 1:57:42 pm">June 15th 2010</span>
+								by <span class='authorname'>Guillaume LAFOUTRY</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-71291" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I was hoping that there may be a workaround i.e. writing to the file in chunks and clearing the recievedData in httpClient.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 15th 2010, 2:05:22 pm">June 15th 2010</span>
+											by <span class='authorname'>Steffan Luczyn</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-150821">
+				
+						<section>
+							<p>I am stuck on this as well. Being able to download large file to iphone is a very important feature of my app.<br>I am now reading the module guide to write a module to handle this. So sad to go back to that damn objective-c again.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 27th 2010, 2:58:03 am">November 27th 2010</span>
+								by <span class='authorname'>jason hu</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-150821" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-151011">
+				
+						<section>
+							<p>I&#39;ve solved this problem in other apps (not titanium, but similar issue) by implementing a REST service that allows me to get chunks of the file via service calls.  Then I make consecutive calls to the service and append the data on each chunk received.  It can be time consuming to do, but you get other benefits as well like the ability to continue downloads where they left off if a connection is dropped, etc.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 27th 2010, 6:05:35 pm">November 27th 2010</span>
+								by <span class='authorname'>Javier Muniz</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-151011" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>i thought about this in the beginning, but as Steffan L said, Titanium&#39;s File method doesn&#39;t allow appending data to an existing file. So that wiped out this possibility too.</p>
+<p>I made some progress on my first module code, i can invoke a method and fire event, however, the asynchronous httpconnection doesn&#39;t callback inside the module. and I feel helpless here with so little information available in this module guide.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 27th 2010, 6:25:13 pm">November 27th 2010</span>
+											by <span class='authorname'>jason hu</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-151111">
+				
+						<section>
+							<p>finally my prototype module for downloading large file is working. I still need to add more whistles and bells to it.<br>it will download file to disk, report progress, and resume download<br> I will publish it once I get it done. </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 28th 2010, 1:38:57 pm">November 28th 2010</span>
+								by <span class='authorname'>jason hu</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-151111" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey Jason, any progress on this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 11th 2010, 6:54:17 am">December 11th 2010</span>
+											by <span class='authorname'>Scott M</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-151311">
+				
+						<section>
+							<p>Jason,</p>
+<p>This sounds wonderful.  Which platform(s) are you targeting with your module?  Is it still possible to run the project in the simulator while the module is named in the project&#39;s tiapp.xml file?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 28th 2010, 4:39:11 pm">November 28th 2010</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-151311" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I only tested it in iPhone 4, but I need it to run in android later,  yes, it can be simply added to tiapp.xml   just like the admob plugin someone published.<br>The module is pretty simple to use and looks like everything works as expected, even the resume downloading.<br>so far, I only tested it in simulator with &quot;titanium run&quot; command, can&#39;t appreciate titanium more, they made it so easy, all the troubles I had were my own dumb mistakes.<br>I will publish the module zip later once I fully test it in device mode.<br> I know a lot of people are struggling with learning titanium, I am one of them, so I hope this can ease some pain for you guys.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 28th 2010, 6:55:49 pm">November 28th 2010</span>
+											by <span class='authorname'>jason hu</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;d love to see this too. I&#39;m finding this problem with JSON responses larger than 500k. Any advice on workarounds the meantime?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 2nd 2010, 3:48:20 pm">December 2nd 2010</span>
+											by <span class='authorname'>Stephen Baker</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-159001">
+				
+						<section>
+							<p>It looks like there&#39;s a fix in 1.5.0 for this:</p>
+<p>https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;commit&#x2F;05ab7461dab9a38200a27d082389d2885be951f8</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 11th 2010, 4:14:13 pm">December 11th 2010</span>
+								by <span class='authorname'>Scott M</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-159001" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-186781">
+				
+						<section>
+							<p>Hey Did anyone ever solve this issue? Jason, have you posted your module anywhere for us to play with? Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 28th 2011, 12:17:43 am">January 28th 2011</span>
+								by <span class='authorname'>Dave F</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-186781" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-209695">
+				
+						<section>
+							<p>Checkout the file download example in the latest Kitchen sink. You use a xhr.file = (path); after open and before send and it will automatically stream the file to that path, this will stop you running out of memory.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 9th 2011, 6:45:29 am">June 9th 2011</span>
+								by <span class='authorname'>Mark Henderson</span><br>
+								<a class="icon-bg icon-link" href="question/35041/large-file-download-on-mobile#answer-209695" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>According to the API docs as of 1.7.2, this is only applicable to IOS.<br>This leaves the android download problem.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 27th 2011, 4:48:12 pm">July 27th 2011</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>True, but see the top reply with 2 votes.  It shows sample code for how you can achieve the same effect in Android, without using the .file property available for iOS.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 27th 2011, 4:57:35 pm">July 27th 2011</span>
+											by <span class='authorname'>Doug Handy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Doug, agreed.</p>
+<p>We are still writing or hunting for work arounds for an incomplete (read non-equal) android implementation.  This work around is STILL required (was written 6 months ago) after 1.5.0, 1.6.0, 1.7.x Sdk releases, and you know what?  It still seems to be required in 1.8.0. (and no one start preaching about beta junk, i loaded it to see if it was fixed).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 27th 2011, 11:47:23 pm">July 27th 2011</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Don&#39;t shoot the messenger :)</p>
+<p>I was just trying to help and point out that at least a work-around exists in this case.  My SWAG is that it will remain this way until a Pro or Enterprise subscriber raises it as an issue.</p>
+<p>And frankly, I am OK with that in this case simply because I do know of a work-around.  So while parity between the OS versions is a laudable goal, I personally am more concerned about things where there is no work-around.</p>
+<p>Maybe that is just me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 28th 2011, 12:31:40 am">July 28th 2011</span>
+											by <span class='authorname'>Doug Handy</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

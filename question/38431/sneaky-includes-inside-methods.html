@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Sneaky Includes inside Methods » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Sneaky Includes inside Methods</h1>
+		</header>
+		<section>
+			<p>I&#39;m familiar with this handy bit of code:</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">"includes/database.js"</span>);
+</code></pre><p>…but I&#39;m wondering if there&#39;s a way to do an <strong><em>include inside a method</em></strong> like this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> myField = Titanium.UI.createTextField({
+     Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">"includes/textFieldStyle.js"</span>);
+});
+</code></pre><p>…and then <strong>textFieldStyle.js</strong> would have something like:</p>
+<pre><code class="hljs"><span class="hljs-string">color:</span><span class="hljs-string">'#FFF'</span>,
+<span class="hljs-string">borderRadius:</span><span class="hljs-number">6</span>
+</code></pre><p>Is there a way to pull that off?</p>
+<p>It would make it much more convenient to define a global style for a textField and just include all the attributes each time instead of copying and pasting them all.</p>
+<p>Any ideas?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 25th 2010, 6:30:02 pm">June 25th 2010</span>
+				by <span class='authorname'>Clifton Labrum</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>include</span></li>
+					
+						<li><span class='tagname'>method</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-205842">
+				
+						<section>
+							<p>How I do this type of thing:</p>
+<p>First, define my styles in a styles.js that I Ti.include at the start of my app, eg:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> textFieldStyle = {
+  color: <span class="hljs-string">'#FFF'</span>,
+  borderRadius: <span class="hljs-number">6</span>
+};
+</code></pre><p>Then I roll an extension to the main Object class like so:</p>
+<pre><code class="hljs">Object.prototype.mergeDefaults = function(source) {
+  for (var <span class="hljs-keyword">property</span><span class="hljs-title"> </span><span class="hljs-operator">in</span> source) {
+    if (this[<span class="hljs-keyword">property</span><span class="hljs-title"></span>] === undefined) {
+      if (source[<span class="hljs-keyword">property</span><span class="hljs-title"></span>] &amp;&amp; source[<span class="hljs-keyword">property</span><span class="hljs-title"></span>].constructor &amp;&amp;
+          source[<span class="hljs-keyword">property</span><span class="hljs-title"></span>].constructor === Object) {
+        this[<span class="hljs-keyword">property</span><span class="hljs-title"></span>] = this[<span class="hljs-keyword">property</span><span class="hljs-title"></span>] || {};
+        this[<span class="hljs-keyword">property</span><span class="hljs-title"></span>].mergeDefaults(source[<span class="hljs-keyword">property</span><span class="hljs-title"></span>]);
+      } else {
+        this[<span class="hljs-keyword">property</span><span class="hljs-title"></span>] = source[<span class="hljs-keyword">property</span><span class="hljs-title"></span>];
+      }
+    }
+  }
+  return this;
+};
+</code></pre><p>Now, when defining a new text field, I can do this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> myField = Titanium.UI.createTextField({
+     color: <span class="hljs-string">'#00FF00'</span>  <span class="hljs-comment">// Overrides default</span>
+}.mergeDefaults(textFieldDefaults));
+</code></pre><p>Handy!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 7th 2011, 3:48:41 pm">April 7th 2011</span>
+								by <span class='authorname'>Rob Morris</span><br>
+								<a class="icon-bg icon-link" href="question/38431/sneaky-includes-inside-methods#answer-205842" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-76481">
+				
+						<section>
+							<p>Open file, evaluate file contents, sorry for shorthand. On mobile</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 26th 2010, 11:48:16 am">June 26th 2010</span>
+								by <span class='authorname'>Ryan Tregea</span><br>
+								<a class="icon-bg icon-link" href="question/38431/sneaky-includes-inside-methods#answer-76481" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
