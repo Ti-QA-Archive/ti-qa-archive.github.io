@@ -1,0 +1,349 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>MVC structure with auto loading mechanism » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>MVC structure with auto loading mechanism</h1>
+		</header>
+		<section>
+			<p>Hey guys,</p>
+<p>I&#39;m working on my first mobile application and want some sort of a MVC pattern with an basic auto loading mechanism to reduce the amount of Ti.include()&#39;s. It would be kind if a experienced developer could check out what I come up with and comment it.</p>
+<p>Okay, let me start with the folder structure:</p>
+<pre><code class="hljs"><span class="hljs-keyword">app</span>/
+   controllers/
+   models/
+   views/
+   helper.js
+<span class="hljs-keyword">app</span>.js
+</code></pre><p>app.js - Commented version on <a href="http:&#x2F;&#x2F;pastie.org&#x2F;3309389">Pastie</a></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> App = App || {
+
+   name: <span class="hljs-string">'App'</span>,
+   basePath: <span class="hljs-string">'app'</span>,
+
+   controller: {},
+   model: {},
+   view: {},
+
+   requires: {
+      controllers: [ <span class="hljs-string">'Main'</span> ],
+      models: [],
+      views: []
+   },
+
+   init: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">this</span>.autoLoadComponent(<span class="hljs-keyword">this</span>.requires);
+   },
+
+   autoLoadComponent: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(requires)</span> </span>{
+      <span class="hljs-keyword">var</span> DS = <span class="hljs-string">'/'</span>,
+         extension = <span class="hljs-string">'.js'</span>,
+         me = <span class="hljs-keyword">this</span>;
+
+      <span class="hljs-keyword">if</span>(!requires || <span class="hljs-keyword">typeof</span>(requires) !== <span class="hljs-string">'object'</span>) {
+         <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+      }
+
+      requires.foreach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(component, contains)</span> </span>{
+
+         <span class="hljs-keyword">if</span>(!contains.length) {
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+         }
+
+         contains.foreach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(index, name)</span> </span>{
+            <span class="hljs-keyword">var</span> lowerName = name.toLowerCase(),
+               path = me.basePath + DS + component + DS + lowerName + extension,
+               cleanComponent = component.replace(component.substring(component.length -<span class="hljs-number">1</span>), <span class="hljs-string">''</span>),
+               init = me.name + <span class="hljs-string">'.'</span> + cleanComponent + <span class="hljs-string">'.'</span> + name + <span class="hljs-string">'.'</span> + <span class="hljs-string">'initComponent'</span>;
+
+            Ti.<span class="hljs-keyword">include</span>(path);
+            init = eval(init);
+            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">typeof</span>(init) !== <span class="hljs-string">'function'</span>) {
+               <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+            }
+
+            init.call(me);
+         });
+      });
+
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+   }
+};
+
+Ti.<span class="hljs-keyword">include</span>(App.basePath + <span class="hljs-string">'/helper.js'</span>);
+App.init();
+</code></pre><p>app&#x2F;controllers&#x2F;main.js</p>
+<pre><code class="hljs">App.controller.Main = {
+   initComponent: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      Titanium.API.info(<span class="hljs-string">'App.controller.Main loaded'</span>);
+   }
+}
+</code></pre><p>app&#x2F;helpers.js</p>
+<pre><code class="hljs">Object.prototype.foreach = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( callback )</span> </span>{
+   <span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> k <span class="hljs-keyword">in</span> <span class="hljs-keyword">this</span> ) {
+      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.hasOwnProperty(k)) {
+         <span class="hljs-keyword">callback</span>( k, <span class="hljs-keyword">this</span>[ k ] );
+      }
+   }
+}
+
+Array.prototype.foreach = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( callback )</span> </span>{
+   <span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> k=<span class="hljs-number">0</span>; k&lt;<span class="hljs-keyword">this</span> .length; k++ ) {
+      <span class="hljs-keyword">callback</span>( k, <span class="hljs-keyword">this</span>[ k ] );
+   }
+}
+</code></pre><p>The code above are loosely based on the MVC pattern and auto loading which is included in ExtJS 4.x. Maybe it&#39;s a good starting point for other beginner as well.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 3rd 2012, 12:34:27 pm">February 3rd 2012</span>
+				by <span class='authorname'>Stephan Pohl</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>auto loading</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>mvc</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>hey! I have checked lots of MVC&#39;s and really this one looks the easier to use! Do you have any apps built with this to use them as examples?</p>
+<p>Thanks</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 1st 2012, 7:32:37 pm">June 1st 2012</span>
+								by <span class='authorname'>George Georgiou</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-229343">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>For new development dont use Ti.include - Its a thing of the past - CommonJS is a far better solution. I believe it also takes care of only loading your modules once, so a lot of this becomes unneccessary</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 3rd 2012, 1:05:08 pm">February 3rd 2012</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/131621/mvc-structure-with-auto-loading-mechanism#answer-229343" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I didn&#39;t know that Ti supports CommonJS, thanks for the hint :) After some research I&#39;ve found a <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2011&#x2F;08&#x2F;forging-titanium-episode-1-commonjs-modules.html">screencast</a> and a <a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;CommonJS+Modules+in+Titanium">wiki article</a> which introduce the usage of CommonJS in Ti.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2012, 3:16:48 pm">February 3rd 2012</span>
+											by <span class='authorname'>Stephan Pohl</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-229344">
+				
+						<section>
+							<p>I like the idea and this srsly will make it cleaner. would need to check if its still ok when using require instead of include.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 3rd 2012, 1:06:47 pm">February 3rd 2012</span>
+								by <span class='authorname'>Alexander Bauer</span><br>
+								<a class="icon-bg icon-link" href="question/131621/mvc-structure-with-auto-loading-mechanism#answer-229344" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Alexander. After the answer from Nick Milner I&#39;ve done some research and maybe found a way to similar thinks with CommonJS but I don&#39;t know if Ti supports that kind of stuff ;)</p>
+<p>You could do something like that:</p>
+<pre><code class="hljs"><span class="hljs-built_in">require</span>.define({
+  <span class="hljs-string">"alpha"</span>: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">require, exports, module</span>) </span>{
+    exports.verb = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      <span class="hljs-keyword">return</span> <span class="hljs-built_in">require</span>(<span class="hljs-string">"beta"</span>).action();
+    }
+  },
+  <span class="hljs-string">"beta"</span>: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">require, exports, module</span>) </span>{
+    exports.action = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      <span class="hljs-keyword">return</span> <span class="hljs-built_in">require</span>(<span class="hljs-string">"gamma"</span>).something();
+    }
+  },
+}, [<span class="hljs-string">"gamma"</span>]);
+</code></pre><p>…and here&#39;s the syntax:</p>
+<pre><code class="hljs"><span class="hljs-keyword">require</span><span class="hljs-built_in">.</span><span class="hljs-class"><span class="hljs-keyword">define</span></span>({
+  <span class="hljs-string">"MODULE_ID"</span>: FACTORY_FUNCTION <span class="hljs-subst">or</span> {injects: <span class="hljs-preprocessor">[</span>INJECTIONS<span class="hljs-preprocessor">]</span><span class="hljs-markup">, factory: FACTORY_FUNCTION}, 
+  ...
+}, </span><span class="hljs-preprocessor">[</span>ARRAY_OF_DEPENDENCY_MODULE_IDS<span class="hljs-preprocessor">]</span><span class="hljs-markup">);</span>
+</code></pre><p>Source: <a href="http:&#x2F;&#x2F;wiki.commonjs.org&#x2F;wiki&#x2F;Modules&#x2F;Transport&#x2F;D">CommonJS Wiki</a></p>
+<p>That would be a great way to implement the different parts of the application. For example if I&#39;ve a User Controller which contains the business logic, the model requests the data from the database and the view returns the presentation layer to the app.js which render the computed view into a Titanium.UI.Window e.g.</p>
+<pre><code class="hljs"><span class="hljs-built_in">require</span>.define({
+   <span class="hljs-string">'User.controller'</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">require, exports, module</span>) </span>{
+      exports.createView = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+         <span class="hljs-keyword">var</span> userData = exports.getUserData();
+         <span class="hljs-keyword">return</span> <span class="hljs-built_in">require</span>(<span class="hljs-string">'User.view'</span>).render(userData);
+      }
+
+      exports.getUserData = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+         <span class="hljs-keyword">return</span> <span class="hljs-built_in">require</span>(<span class="hljs-string">'User.model'</span>).getData();
+      }
+   },
+   <span class="hljs-string">'User.model'</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">require, exports, module</span>) </span>{
+      exports.getData = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+         <span class="hljs-keyword">var</span> id, data;
+
+         <span class="hljs-comment">// User id as an optional parameter to get</span>
+         <span class="hljs-comment">// something like "getDataById"</span>
+         <span class="hljs-keyword">if</span>(<span class="hljs-built_in">arguments</span>[<span class="hljs-number">0</span>]) {
+            id = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">0</span>];
+         }
+
+         <span class="hljs-comment">// do some database stuff...</span>
+         <span class="hljs-keyword">return</span> data;
+      }
+   },
+   <span class="hljs-string">'User.view'</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">require, exports, module</span>) </span>{
+      exports.render = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+         <span class="hljs-keyword">var</span> renderData;
+
+         <span class="hljs-comment">// .. do some templating stuff...</span>
+         <span class="hljs-keyword">return</span> renderData
+      }
+   }
+}, [<span class="hljs-string">'Settings'</span>, <span class="hljs-string">'Database'</span>]);
+</code></pre><p>Do you know if something like that is possible in Titanium?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2012, 3:40:51 pm">February 3rd 2012</span>
+											by <span class='authorname'>Stephan Pohl</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-229371">
+				
+						<section>
+							<p>Hello,</p>
+<p>as a side comment, there is a work in progress related to MVC use in Appc <a href="https:&#x2F;&#x2F;github.com&#x2F;jlkalberer&#x2F;Appcelerator-Mvc">here</a>. </p>
+<p>Best,</p>
+<p>Mauro</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 3rd 2012, 4:46:42 pm">February 3rd 2012</span>
+								by <span class='authorname'>Mauro Parra</span><br>
+								<a class="icon-bg icon-link" href="question/131621/mvc-structure-with-auto-loading-mechanism#answer-229371" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

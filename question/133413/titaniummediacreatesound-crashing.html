@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium.Media.createSound Crashing » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium.Media.createSound Crashing</h1>
+		</header>
+		<section>
+			<p>My application is crashing with the following audio controller, I&#39;ve tried to debug each component but I&#39;ve had no luck with stopping the application from crashing.</p>
+<p>I have a window which fires events to load the songs, play, stop, pause, previous and next tracks etc.</p>
+<p>The file below is included in the app.js file.</p>
+<pre><code class="hljs"><span class="hljs-comment">// Global variables</span>
+<span class="hljs-keyword">var</span> songs_array = [];
+<span class="hljs-keyword">var</span> current_track_position = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> total_number_songs = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> interval;
+
+<span class="hljs-comment">// Set Audio Tracks</span>
+Ti.App.addEventListener(<span class="hljs-string">'loadSongs'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">typeof</span> data.current_track_position != <span class="hljs-string">"undefined"</span>) {
+        current_track_position = <span class="hljs-built_in">parseInt</span>(data.current_track_position);
+    } <span class="hljs-keyword">else</span> {
+        current_track_position = <span class="hljs-number">0</span>;
+    }
+    total_number_songs = data.tracklist_array.length;
+    songs_array = data.tracklist_array;
+});
+
+<span class="hljs-comment">// Play Song</span>
+Ti.App.addEventListener(<span class="hljs-string">'playSong'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+        <span class="hljs-comment">// Clear the Song Update Interval</span>
+        clearInterval(interval);
+
+        <span class="hljs-comment">// Stop any current songs</span>
+        Ti.App.song_audio.stop();
+        Ti.App.song_audio.release();
+
+        <span class="hljs-comment">// Create a new sound</span>
+        Ti.App.song_audio = Titanium.Media.createSound({
+            audioSessionMode: Titanium.Media.AUDIO_SESSION_MODE_PLAYBACK,
+            url: Titanium.Filesystem.applicationDataDirectory + <span class="hljs-string">'music'</span> + Titanium.Filesystem.separator + songs_array[current_track_position][<span class="hljs-string">'song_id'</span>] + <span class="hljs-string">'.mp3'</span>,
+            volume: <span class="hljs-number">1.0</span>
+        });
+
+        <span class="hljs-comment">// Start playing the song</span>
+        Ti.App.song_audio.play();
+
+        <span class="hljs-comment">// Song Completed</span>
+        Ti.App.song_audio.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.App.song_audio.release();
+
+            <span class="hljs-keyword">if</span>(current_track_position &lt; (total_number_songs - <span class="hljs-number">1</span>)) {
+                current_track_position = current_track_position + <span class="hljs-number">1</span>;
+                Ti.App.fireEvent(<span class="hljs-string">'playSong'</span>);
+                sendPlayingStatus(<span class="hljs-literal">true</span>);
+            }
+        });
+
+        <span class="hljs-comment">// Send the Audio Progress every 0.5 seconds</span>
+        interval = setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">if</span> (Ti.App.song_audio.isPlaying()) {
+                Ti.App.fireEvent(<span class="hljs-string">'songProgress'</span>, {
+                    song_id: songs_array[current_track_position][<span class="hljs-string">'song_id'</span>],
+                    song_order: songs_array[current_track_position][<span class="hljs-string">'song_order'</span>],
+                    song_exercise: songs_array[current_track_position][<span class="hljs-string">'song_exercise'</span>],
+                    total_number_songs: total_number_songs,
+                    progress: Ti.App.song_audio.time
+                });
+            }
+        }, <span class="hljs-number">1000</span>);
+});
+
+<span class="hljs-comment">// Previous Track</span>
+Ti.App.addEventListener(<span class="hljs-string">'previousSong'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+    <span class="hljs-keyword">if</span>(current_track_position &gt;= <span class="hljs-number">1</span>) {
+        current_track_position = current_track_position - <span class="hljs-number">1</span>;
+    } <span class="hljs-keyword">else</span> {
+        current_track_position = total_number_songs - <span class="hljs-number">1</span>;
+    }
+    Ti.App.fireEvent(<span class="hljs-string">'playSong'</span>);
+    sendPlayingStatus(<span class="hljs-literal">true</span>);
+});
+
+<span class="hljs-comment">// Play / Pause Song</span>
+Ti.App.addEventListener(<span class="hljs-string">'playPauseSong'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+    <span class="hljs-keyword">if</span>(Ti.App.song_audio.isPlaying()) {
+        Ti.App.song_audio.pause();
+        sendPlayingStatus(<span class="hljs-literal">false</span>);
+    } <span class="hljs-keyword">else</span> {
+        Ti.App.song_audio.play();
+        sendPlayingStatus(<span class="hljs-literal">true</span>);
+    }
+});
+
+<span class="hljs-comment">// Next Track</span>
+Ti.App.addEventListener(<span class="hljs-string">'nextSong'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+    <span class="hljs-keyword">if</span>(current_track_position &lt; (total_number_songs - <span class="hljs-number">1</span>)) {
+        current_track_position = current_track_position + <span class="hljs-number">1</span>;
+    } <span class="hljs-keyword">else</span> {
+        current_track_position = <span class="hljs-number">0</span>;
+    }
+    Ti.App.fireEvent(<span class="hljs-string">'playSong'</span>);
+    sendPlayingStatus(<span class="hljs-literal">true</span>);
+});
+
+<span class="hljs-comment">// Send Playing Status</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendPlayingStatus</span>(<span class="hljs-params">playing_status</span>) </span>{
+    <span class="hljs-keyword">if</span>(playing_status == <span class="hljs-literal">true</span>) {
+        Ti.App.fireEvent(<span class="hljs-string">'playPauseCallback'</span>, {
+            image: <span class="hljs-string">'pause'</span>
+        });
+    } <span class="hljs-keyword">else</span> {
+        Ti.App.fireEvent(<span class="hljs-string">'playPauseCallback'</span>, {
+            image: <span class="hljs-string">'play'</span>
+        });
+    }
+}
+
+<span class="hljs-comment">// Time Seek</span>
+Ti.App.addEventListener(<span class="hljs-string">'songSeek'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+    Ti.App.song_audio.setTime(data.time);
+    Ti.App.song_audio.play();
+});
+</code></pre><p>Titanium information</p>
+<pre><code class="hljs"><span class="hljs-attr_selector">[INFO]</span> <span class="hljs-tag">Titanium</span> <span class="hljs-tag">SDK</span> <span class="hljs-tag">version</span>: 1<span class="hljs-class">.7</span><span class="hljs-class">.5</span>
+<span class="hljs-attr_selector">[INFO]</span> <span class="hljs-tag">iPhone</span> <span class="hljs-tag">Device</span> <span class="hljs-tag">family</span>: <span class="hljs-tag">iphone</span>
+<span class="hljs-attr_selector">[INFO]</span> <span class="hljs-tag">iPhone</span> <span class="hljs-tag">SDK</span> <span class="hljs-tag">version</span>: 4<span class="hljs-class">.3</span>
+<span class="hljs-attr_selector">[INFO]</span> <span class="hljs-tag">iPhone</span> <span class="hljs-tag">simulated</span> <span class="hljs-tag">device</span>: <span class="hljs-tag">iphone</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 8th 2012, 2:39:44 am">March 8th 2012</span>
+				by <span class='authorname'>Dallas Clark</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Note: I have the following line of code in the app.js file:</p>
+<pre><code class="hljs">Ti.App.song_audio = Titanium.Media.createSound()<span class="hljs-comment">;</span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="March 8th 2012, 2:42:30 am">March 8th 2012</span>
+								by <span class='authorname'>Dallas Clark</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

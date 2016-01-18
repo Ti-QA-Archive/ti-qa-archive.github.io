@@ -1,0 +1,344 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>File Download and File Storage Locations » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>File Download and File Storage Locations</h1>
+		</header>
+		<section>
+			<p>Hi guys, </p>
+<p>I have files in my project (.xml and .png) and files in a server. I need to check if the files that is in my project is the last version that is in the server. If it is not the last version I need to replace the files that is in my project.</p>
+<p>Could someone tell me how can I do that? A example will help me a lot…</p>
+<p>Thanks!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 22nd 2012, 12:15:17 pm">June 22nd 2012</span>
+				by <span class='authorname'>P G</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>file</span></li>
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>image</span></li>
+					
+						<li><span class='tagname'>titanium studio</span></li>
+					
+						<li><span class='tagname'>xml</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-241658">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Here&#39;s some code we use; it&#39;s a CommonJS module.   I&#39;ve had to change it a little to remove the URL and some external library dependencies, but it should work.</p>
+<p>Note that we cache the config, and if it&#39;s newer than 3 days, we will proceed with the initialization of the application, but still check for a newer version.  If we get the newer version, it will take effect the <em>next</em> time we launch the application.</p>
+<p>I didn&#39;t want to have to wait for a network download just to initialize the UI.  So if you use the app regularly, you&#39;ll never have to wait for that config to download.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> _file = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, <span class="hljs-string">'AppConfig.json'</span>);
+<span class="hljs-keyword">var</span> _url = <span class="hljs-string">"http://YOURCONFIGURLHERE"</span>;
+<span class="hljs-keyword">var</span> _xhr;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">AppConfig</span> (<span class="hljs-params"></span>)
+</span>{
+
+}
+
+AppConfig.data = <span class="hljs-literal">null</span>;
+
+<span class="hljs-keyword">var</span> xhr_onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">var</span> obj = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+
+    <span class="hljs-keyword">if</span> (!obj)
+    {
+        Ti.API.info (<span class="hljs-string">'[AppConfig] error parsing JSON'</span>);
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">if</span> ((obj.status == <span class="hljs-string">'unchanged'</span>) &amp;&amp; (AppConfig.data != <span class="hljs-literal">null</span>))
+    {
+        <span class="hljs-comment">// re-save the config to update its timestamp</span>
+        <span class="hljs-keyword">var</span> str = <span class="hljs-built_in">JSON</span>.stringify (AppConfig.data);
+
+        <span class="hljs-keyword">if</span> (_file.write (str) === <span class="hljs-literal">false</span>)
+        {
+            Ti.API.info (<span class="hljs-string">'[AppConfig] error updating config timestamp'</span>);
+        }
+    }
+
+
+    <span class="hljs-keyword">if</span> ((obj.status == <span class="hljs-string">'new'</span>) &amp;&amp; (<span class="hljs-keyword">typeof</span> obj.data != <span class="hljs-string">"undefined"</span>))
+    {
+        <span class="hljs-comment">// if we've already fired the event once, don't re-trigger it</span>
+        <span class="hljs-keyword">if</span> (AppConfig.data == <span class="hljs-literal">null</span>)
+        {
+            AppConfig.data = obj.data;
+            Ti.App.fireEvent (<span class="hljs-string">'App:AppConfigLoaded'</span>, {});
+        }
+
+        <span class="hljs-keyword">var</span> str = <span class="hljs-built_in">JSON</span>.stringify (obj.data);
+
+        <span class="hljs-keyword">if</span> (_file.write (str) === <span class="hljs-literal">false</span>)
+        {
+            Ti.API.info (<span class="hljs-string">'[AppConfig] error writing config to file system'</span>);
+            <span class="hljs-keyword">return</span>;
+        }
+
+        Ti.API.info (<span class="hljs-string">'[AppConfig] new config written to file system'</span>);
+    }
+
+};
+
+
+AppConfig.refresh = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">if</span> (_file.exists ())
+    {
+        <span class="hljs-keyword">var</span> json = _file.read ();
+        <span class="hljs-keyword">var</span> obj = <span class="hljs-built_in">JSON</span>.parse (json);
+
+        _url += (_url.indexOf(<span class="hljs-string">'?'</span>) == -<span class="hljs-number">1</span>) ? <span class="hljs-string">'?'</span> : <span class="hljs-string">'&amp;'</span>;
+        _url += <span class="hljs-string">"current_version="</span> + obj.version;
+
+        <span class="hljs-keyword">var</span> ts = _file.modificationTimestamp ();
+        <span class="hljs-keyword">var</span> age = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() - ts;
+
+        Ti.API.debug (<span class="hljs-string">'[AppConfig] configuration file is '</span> + age + <span class="hljs-string">' ms old'</span>);
+
+        <span class="hljs-comment">// if the config is less than 3 days old, it's OK to use it to lay out the UI</span>
+        <span class="hljs-keyword">if</span> (age &lt; <span class="hljs-number">3</span> * <span class="hljs-number">86400</span> * <span class="hljs-number">1000</span>)
+        {
+            AppConfig.data = obj;
+            Ti.App.fireEvent (<span class="hljs-string">'App:AppConfigLoaded'</span>, {});
+        }
+    }
+
+    _xhr = Ti.Network.createHTTPClient ();
+    _xhr.onload = xhr_onload;
+    _xhr.open (_method, _url);
+    _xhr.send ()
+}
+
+
+<span class="hljs-built_in">module</span>.exports = AppConfig;
+</code></pre><p>app.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> AppConfig = <span class="hljs-built_in">require</span> (<span class="hljs-string">'/AppConfig'</span>);
+
+Ti.App.addEventListener (<span class="hljs-string">'App:AppConfigLoaded'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    Ti.API.debug (<span class="hljs-string">'[app] AppConfig loaded'</span>);
+    init_ui ();        
+});
+AppConfig.refresh ();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 22nd 2012, 1:51:46 pm">June 22nd 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/138697/file-download-and-file-storage-locations#answer-241658" rel="permalink">permalink</a>
+							</div>
+
+							<h5>9 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I like this .. nice.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2012, 2:04:54 pm">June 22nd 2012</span>
+											by <span class='authorname'>Anthony Decena</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Great! Thanks very much! Im new in Titanium&#39;s world and a have a dumb question maybe.<br>The first code is a .js? I did not understand the structure.<br>I need CommonJS module, right? I saw that in .app is required the &#x2F;AppConfig so AppConfig is a folder, right?<br>Sorry about that but i don&#39;t know when I should put this first code. Like I told before I started to study a week ago. I have a lot of things to learn yet… Thanks again!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2012, 4:41:00 pm">June 22nd 2012</span>
+											by <span class='authorname'>P G</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry – the first file is &quot;AppConfig.js&quot;.  It lives in the Resources folder.</p>
+<p>When you require a file in Ti, you omit the &quot;.js&quot; in the filename, and &quot;&#x2F;&quot; refers to the Resources folder.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2012, 4:43:39 pm">June 22nd 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Oh, I understood! Now I will learn how to use the CommonJS module. I will try this! Thanks again!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2012, 4:50:45 pm">June 22nd 2012</span>
+											by <span class='authorname'>P G</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Glad to hear it.  Definitely spend a couple of days learning CommonJS.  It will pay off in application stability down the road.</p>
+<p>Don&#39;t forget to mark a best answer to your question!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2012, 5:02:17 pm">June 22nd 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Jason Priebe, what is &quot;_method&quot; that you use in &quot; _xhr.open (_method, _url);&quot; ? Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 24th 2012, 5:37:16 pm">June 24th 2012</span>
+											by <span class='authorname'>P G</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry, it&#39;s the string &quot;GET&quot;.  I am trying to combine a couple of libraries on the fly, and I failed to correct that in my cut-and-paste.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 25th 2012, 12:35:39 am">June 25th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Oh, don&#39;t worry! What should I put in function &quot;AppConfig ()&quot;? When I run the application the info &quot;[AppConfig] error parsing JSON&quot; is displayed to me. I don&#39;t know what to do =[</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2012, 9:44:42 am">June 26th 2012</span>
+											by <span class='authorname'>P G</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nothing goes in AppConfig() – the function is just there so we can define an object to export.</p>
+<p>You need to build the back-end code to support this.  My JSON config object has a version property.  If we have previously downloaded the JSON object, we parse it and make a request to the server for a new config object, passing the old version number.</p>
+<p>The server side code looks at the version number, compares it to its config file, and if its copy is newer, it sends back an object with status=new, and the configuration in data:</p>
+<pre><code class="hljs"><span class="hljs-rules">{
+    <span class="hljs-rule"><span class="hljs-attribute">status</span>:<span class="hljs-value"> <span class="hljs-string">"new"</span>,
+    data: {
+        // new configuration here
+    </span></span></span>}
+}
+</code></pre><p>If the app&#39;s version is equal to the server-side version, the server sends back:</p>
+<pre><code class="hljs"><span class="hljs-rules">{
+    <span class="hljs-rule"><span class="hljs-attribute">status</span>:<span class="hljs-value"> <span class="hljs-string">"unchanged"</span>
+</span></span></span>}
+</code></pre><p>Then the app uses the version it has stored to the filesystem.</p>
+<p>I don&#39;t know if your JSON parse error is happening when you&#39;re parsing the server response or when you&#39;re reading the local file.  But the bottom line is that you need to write a server back-end to work with this (or modify my code to work with whatever back end you want to use).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2012, 10:15:58 am">June 26th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-241659">
+				
+						<section>
+							<p>This is how I would handle it. One way to know the &#39;version&#39; of a file without giving it a different name is to use the server creation date. So I would keep a JSON file with the filename and server date within your app. When necessary, you can check those files with your server and update any files that need updating. You&#39;d then need to write the new information to the JSON file so that it is up to date. To do this, you&#39;re going to need a server component that will check for new versions and pass back the data that you need to your app.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 22nd 2012, 2:02:52 pm">June 22nd 2012</span>
+								by <span class='authorname'>Anthony Decena</span><br>
+								<a class="icon-bg icon-link" href="question/138697/file-download-and-file-storage-locations#answer-241659" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

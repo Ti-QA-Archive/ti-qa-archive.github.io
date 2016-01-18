@@ -1,0 +1,276 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Example / Productivity Tool - Saving video to iOS Simulator » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Example / Productivity Tool - Saving video to iOS Simulator</h1>
+		</header>
+		<section>
+			<p>Wrote a 5 min. app to save video from a URL into the Photo Gallery. This is a convenient way to load your iOS simulator with video content, if you need it for testing. Hopefully this will be useful to someone beside me. ;)</p>
+<p>To use this yourself, create a new mobile app and replace app.js with this code. Run in your simulator and you&#39;re done. Then, enter in a valid URL and press the button. I find it easiest to turn on web sharing on your computer and just pull from your local device. But, this should work with any valid URL.</p>
+<pre><code class="hljs"><span class="hljs-comment">// GallerySaver by David Geller. No rights reserved whatsoever.</span>
+<span class="hljs-comment">// Do whatever you like with this code!</span>
+
+<span class="hljs-comment">// this sets the background color of the master UIView (when there are no windows/tab groups on it)</span>
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+
+<span class="hljs-comment">// create tab group</span>
+<span class="hljs-keyword">var</span> tabGroup = Titanium.UI.createTabGroup();
+<span class="hljs-keyword">var</span> media_file = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory, <span class="hljs-string">'captured_media.mp4'</span>);
+
+<span class="hljs-comment">/**
+ * Copy the file to the gallery
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">copyToGallery</span> (<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">var</span> video_blob = media_file.read();
+
+    Ti.API.info (<span class="hljs-string">"[message_download.js:copyToGallery] video_file: "</span> + media_file.getName);
+    Ti.API.info (<span class="hljs-string">"[message_download.js:copyToGallery] length (bytes): "</span> + media_file.size);
+
+    Ti.Media.saveToPhotoGallery (video_blob, {
+        success: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info (<span class="hljs-string">"[message_download.js:copyToGallery] media data saved gallery"</span>);
+            progress_indicator.message = <span class="hljs-string">'Media saved to gallery!'</span>;
+            <span class="hljs-keyword">return</span>;
+        },
+        error: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">var</span> emsg = <span class="hljs-string">'Media could not be saved to your Photo Gallery. Error: '</span> + e.error;
+            Titanium.UI.createAlertDialog({
+                title:<span class="hljs-string">'Error saving'</span>,
+                message:emsg
+            }).show();
+        }
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">downloadMedia</span> (<span class="hljs-params">path</span>)
+</span>{
+    <span class="hljs-comment">// this is where we will save the file</span>
+    <span class="hljs-keyword">var</span> f = media_file;
+
+    <span class="hljs-keyword">if</span> (media_file.exists()) {
+        media_file.deleteFile();
+    }
+
+    download_xhr = Ti.Network.createHTTPClient();
+    download_xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        f.write(<span class="hljs-keyword">this</span>.responseData);
+        Ti.API.info (<span class="hljs-string">'[downloadMedia] file downloaded!'</span>);
+        progress_indicator.message = <span class="hljs-string">'Downloaded! Saving...'</span>;
+        copyToGallery ();
+        <span class="hljs-keyword">return</span>;
+    };
+
+    download_xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.info (<span class="hljs-string">'[downloadMedia] onerror'</span>);
+        <span class="hljs-keyword">return</span>;
+    };
+
+    download_xhr.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        progress_indicator.value = e.progress;
+        <span class="hljs-keyword">return</span>;
+    }
+
+    Ti.API.info (<span class="hljs-string">'[downloadMedia] getting '</span> + path)
+    download_xhr.open (<span class="hljs-string">'GET'</span>, path);
+
+    download_xhr.file = f;
+    download_xhr.send();
+}
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// create base UI tab and root window</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-keyword">var</span> win1 = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Gallery Saver'</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>
+});
+<span class="hljs-keyword">var</span> tab1 = Titanium.UI.createTab({  
+    icon:<span class="hljs-string">'KS_nav_views.png'</span>,
+    title:<span class="hljs-string">'Gallery Saver'</span>,
+    <span class="hljs-built_in">window</span>:win1
+});
+
+
+<span class="hljs-keyword">var</span> url = Ti.UI.createTextField ({
+    top: <span class="hljs-number">40</span>,
+    left: <span class="hljs-number">20</span>,
+    width: <span class="hljs-number">280</span>,
+    height: <span class="hljs-number">30</span>,
+    borderWidth: <span class="hljs-number">1</span>,
+    borderRadius: <span class="hljs-number">8</span>,
+    hintText: <span class="hljs-string">'Enter URL here'</span>
+});
+
+win1.add (url);
+
+<span class="hljs-keyword">var</span> progress_indicator = Titanium.UI.createProgressBar({
+    width:<span class="hljs-number">200</span>,
+    height:<span class="hljs-number">50</span>,
+    min:<span class="hljs-number">0</span>,
+    max:<span class="hljs-number">1</span>,
+    value:<span class="hljs-number">0</span>,
+    style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+    top:<span class="hljs-number">100</span>,
+    message:<span class="hljs-string">'Downloading video'</span>,
+    font:{fontSize:<span class="hljs-number">14</span>, fontWeight:<span class="hljs-string">'normal'</span>},
+    color:<span class="hljs-string">'#888'</span>,
+    visible:<span class="hljs-literal">false</span>
+});
+
+win1.add (progress_indicator);
+
+
+<span class="hljs-keyword">var</span> button = Ti.UI.createButton ({
+    top: <span class="hljs-number">150</span>,
+    width: <span class="hljs-number">100</span>,
+    height: <span class="hljs-number">32</span>,
+    title: <span class="hljs-string">'Grab Media'</span>    
+});
+
+button.addEventListener (<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+
+    progress_indicator.visible = <span class="hljs-literal">true</span>;    
+    progress_indicator.value = <span class="hljs-number">0</span>;
+    downloadMedia (url.value);
+
+});
+
+win1.add (button);
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//  add tabs</span>
+<span class="hljs-comment">//</span>
+tabGroup.addTab(tab1);  
+
+
+<span class="hljs-comment">// open tab group</span>
+tabGroup.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 23rd 2012, 9:33:38 pm">May 23rd 2012</span>
+				by <span class='authorname'>David Geller</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>downloading</span></li>
+					
+						<li><span class='tagname'>gallery</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>video</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Thanks for sharing :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 24th 2012, 3:14:18 am">May 24th 2012</span>
+								by <span class='authorname'>Jae Lee</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Thanks David.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 25th 2012, 4:39:23 pm">May 25th 2012</span>
+								by <span class='authorname'>Gaurang Chhatbar</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-241086">
+				
+						<section>
+							<p>Thanks for this. Really helped</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 18th 2012, 2:02:28 pm">June 18th 2012</span>
+								by <span class='authorname'>Arjun Anand</span><br>
+								<a class="icon-bg icon-link" href="question/137365/example--productivity-tool---saving-video-to-ios-simulator#answer-241086" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

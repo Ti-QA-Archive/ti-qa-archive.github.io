@@ -1,0 +1,602 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium V8 Runtime Disposed while C2DM Receives » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium V8 Runtime Disposed while C2DM Receives</h1>
+		</header>
+		<section>
+			<p>I have succesfully included a <a href="https:&#x2F;&#x2F;github.com&#x2F;Kuraturpa&#x2F;titanium-c2dm">C2DM Module</a> (Android&#39;s Cloud to Device Messaging Framework) in my project and have been able to succesfully register and receive Android push notifications. However, I have noticed that every once in a while, when I send the notifications the new Notification is not displayed on the device.</p>
+<p>Today, I plugged in my device and used the adb logcat and noticed that the IntentService[c2dmBaseReceiver] was actually being fired and it received the message I sent, however the callback function was not being because the V8 Runtime had been disposed (see following lines from logcat)</p>
+<pre><code class="hljs">D/<span class="hljs-function"><span class="hljs-title">C2DMReceiver</span><span class="hljs-params">( <span class="hljs-number">1069</span>)</span></span>: (IntentService[C2DMBaseReceiver]) [<span class="hljs-number">369956</span>,<span class="hljs-number">441456</span>] Message received
+D/<span class="hljs-function"><span class="hljs-title">C2DMReceiver</span><span class="hljs-params">( <span class="hljs-number">1069</span>)</span></span>: (IntentService[C2DMBaseReceiver]) [<span class="hljs-number">1</span>,<span class="hljs-number">441457</span>] Message key: message value: This is <span class="hljs-tag">a</span> test notification
+D/<span class="hljs-function"><span class="hljs-title">C2DMReceiver</span><span class="hljs-params">( <span class="hljs-number">1069</span>)</span></span>: (IntentService[C2DMBaseReceiver]) [<span class="hljs-number">0</span>,<span class="hljs-number">441457</span>] Message key: title value: myAppName
+D/<span class="hljs-function"><span class="hljs-title">C2DMReceiver</span><span class="hljs-params">( <span class="hljs-number">1069</span>)</span></span>: (IntentService[C2DMBaseReceiver]) [<span class="hljs-number">2</span>,<span class="hljs-number">441459</span>] Message key: tickerText value: Notification Ticker
+D/<span class="hljs-function"><span class="hljs-title">C2DMReceiver</span><span class="hljs-params">( <span class="hljs-number">1069</span>)</span></span>: (IntentService[C2DMBaseReceiver]) [<span class="hljs-number">1</span>,<span class="hljs-number">441460</span>] Message key: from value: abrahamvivas@gmail<span class="hljs-class">.com</span>
+D/<span class="hljs-function"><span class="hljs-title">C2DMReceiver</span><span class="hljs-params">( <span class="hljs-number">1069</span>)</span></span>: (IntentService[C2DMBaseReceiver]) [<span class="hljs-number">0</span>,<span class="hljs-number">441460</span>] Message key: collapse_key value: myApp Alert
+W/<span class="hljs-function"><span class="hljs-title">V8Function</span><span class="hljs-params">( <span class="hljs-number">1069</span>)</span></span>: Runtime disposed, cannot call function
+</code></pre><p>This is my callback</p>
+<pre><code class="hljs">callback:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>
+{
+        Ti.API.info(<span class="hljs-string">'JS message event: '</span> + JSON.stringify(e.<span class="hljs-type">data</span>));
+        var <span class="hljs-type">intent</span> = Ti.Android.createIntent({
+        <span class="hljs-keyword">action</span>: Ti.Android.ACTION_MAIN,
+        flags: Ti.Android.FLAG_ACTIVITY_NEW_TASK | Ti.Android.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED,
+        className: <span class="hljs-string">'com.avivas.myApp.myAppActivity'</span>,
+        packageName: <span class="hljs-string">'com.avivas.myApp'</span>
+    });
+
+    <span class="hljs-type">intent</span>.addCategory(Ti.Android.CATEGORY_LAUNCHER); 
+
+    var pending = Ti.Android.createPendingIntent({
+        activity: Ti.Android.currentActivity,
+        <span class="hljs-type">intent</span>: <span class="hljs-type">intent</span>,
+        <span class="hljs-keyword">type</span>: Ti.Android.PENDING_INTENT_FOR_ACTIVITY,
+    });
+
+    var notification = Ti.Android.createNotification({
+        contentIntent: pending,
+        contentTitle: e.<span class="hljs-type">data</span>.title,
+        contentText: e.<span class="hljs-type">data</span>.message,
+        tickerText: e.<span class="hljs-type">data</span>.tickerText
+    });
+
+    Ti.Android.NotificationManager.notify(<span class="hljs-number">1</span>, notification);
+
+    Titanium.Media.vibrate([<span class="hljs-number">0</span>,<span class="hljs-number">300</span>, <span class="hljs-number">100</span>, <span class="hljs-number">300</span>]);
+}
+</code></pre><p>I&#39;m assuming that because the callback function from c2dm is in javascript, it can&#39;t execute because the V8 runtime has been disposed. </p>
+<p>Is there anyone who can confirm this? In addition, is there any workaround for this as I would like to display a notification when I receive one?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 27th 2012, 12:06:54 pm">April 27th 2012</span>
+				by <span class='authorname'>Abraham Vivas</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>c2dm</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+						<li><span class='tagname'>runtime</span></li>
+					
+						<li><span class='tagname'>v8</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Have you found a solution? I have the same problem.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 9th 2012, 12:00:47 pm">May 9th 2012</span>
+								by <span class='authorname'>Alexander Reimchen</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Same here with no solution.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 22nd 2012, 8:30:42 am">May 22nd 2012</span>
+								by <span class='authorname'>Jens Kestermann</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-239465">
+				
+						<section>
+							<p>It works with Rhino Engine.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 27th 2012, 7:32:35 am">May 27th 2012</span>
+								by <span class='authorname'>Alexander Reimchen</span><br>
+								<a class="icon-bg icon-link" href="question/136149/titanium-v8-runtime-disposed-while-c2dm-receives#answer-239465" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>hmm,  with v8 i get this error (log from adb):</p>
+<p>W&#x2F;V8Function(21078): Runtime disposed, cannot call function.</p>
+<p>and with rhino i get this error (log from adb):</p>
+<p>W&#x2F;TiJSError(21252): (main) [67,31867] Activity is null or already finishing, skipping dialog.</p>
+<p>can we compare settings (manifest or callback in app)?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 27th 2012, 8:25:19 am">May 27th 2012</span>
+											by <span class='authorname'>Alexander de Greiff</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes, but different from V8 this Error is thrown in the Callback function when creating the intent. I solved by changing the <em>onMessage</em> function in <em>C2DMReceiver.java</em> in the module.<br>There are only 2 lines changed. I&#39;ve labeled them with <em>NEW</em>. </p>
+<pre><code class="hljs"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> onMessage(Context context, Intent intent) {
+        Log.d(LCAT, <span class="hljs-string">"Message received"</span>);
+
+        <span class="hljs-keyword">HashMap</span> data = <span class="hljs-keyword">new</span> <span class="hljs-keyword">HashMap</span>();
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">String</span> <span class="hljs-variable">key</span> : intent.getExtras().keySet()) {
+            Log.d(LCAT, <span class="hljs-string">"Message key: "</span> + <span class="hljs-variable">key</span> + <span class="hljs-string">" value: "</span>
+                    + intent.getExtras().getString(<span class="hljs-variable">key</span>));
+
+            <span class="hljs-keyword">String</span> eventKey = <span class="hljs-variable">key</span>.startsWith(<span class="hljs-string">"data."</span>) ? <span class="hljs-variable">key</span>.substring(<span class="hljs-number">5</span>) : <span class="hljs-variable">key</span>;
+            data.put(eventKey, intent.getExtras().getString(<span class="hljs-variable">key</span>));
+        }
+<span class="hljs-comment">//NEW        //if (C2dmModule.getInstance() == null) { </span>
+            <span class="hljs-built_in">int</span> icon = <span class="hljs-number">0x7f02000a</span>; <span class="hljs-comment">// get this from R.java</span>
+            CharSequence tickerText = <span class="hljs-string">"Notification Ticker Here"</span>;
+            <span class="hljs-keyword">long</span> when = System.currentTimeMillis();
+
+            CharSequence contentTitle = <span class="hljs-string">"Notification Title"</span>; <span class="hljs-comment">// expanded message title</span>
+            CharSequence contentText = <span class="hljs-string">"Notification Content"</span>; <span class="hljs-comment">// expanded</span>
+                                                                            <span class="hljs-comment">// message</span>
+                                                                            <span class="hljs-comment">// text</span>
+
+            Intent notificationIntent = <span class="hljs-keyword">new</span> Intent(<span class="hljs-keyword">this</span>, C2DMReceiver.class);
+
+            Intent launcherintent = <span class="hljs-keyword">new</span> Intent(<span class="hljs-string">"android.intent.action.MAIN"</span>);
+            launcherintent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.        FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            launcherintent
+                    .setComponent(ComponentName
+                            .unflattenFromString(<span class="hljs-string">"[package name]/.[activity name]"</span>));
+            launcherintent.addCategory(<span class="hljs-string">"android.intent.category.LAUNCHER"</span>);
+
+
+            PendingIntent contentIntent = PendingIntent.getActivity(<span class="hljs-keyword">this</span>, <span class="hljs-number">0</span>,
+                    launcherintent, <span class="hljs-number">0</span>);
+
+            <span class="hljs-comment">// the next two lines initialize the Notification, using the</span>
+            <span class="hljs-comment">// configurations above</span>
+
+            Notification notification = <span class="hljs-keyword">new</span> Notification(icon, tickerText, when);
+
+            notification.defaults = Notification.DEFAULT_ALL;
+            notification.flags = Notification.FLAG_AUTO_CANCEL;
+            notification.setLatestEventInfo(context, contentTitle, contentText,
+                    contentIntent);
+            <span class="hljs-keyword">String</span> ns = Context.NOTIFICATION_SERVICE;
+            NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
+            mNotificationManager.notify(<span class="hljs-number">1</span>, notification);
+<span class="hljs-comment">//NEW        //} else</span>
+            C2dmModule.getInstance().sendMessage(data);
+    }
+</code></pre><p>Now the notification is starting everytime from module and you can remove the intent, pending and notification objects in the Callback function.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 27th 2012, 3:39:12 pm">May 27th 2012</span>
+											by <span class='authorname'>Alexander Reimchen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>thanks for your help. that works for me now.</p>
+<p>but overall and considering all the tweaks i have applied to the native c2dm for titanium &gt;1.8.2 (Kuraturpa-titanium-c2dm or surajit-rcc8-c2dm-in-titanium-1.8.2) incl. custom app code in the module i think a cleanup on these two modules on github is required to save other peoples time. I&#39;ll try to contribute. </p>
+<p>(reminder for myself: </p>
+<ul>
+<li>android manifest different from example </li>
+<li>callback in app.js </li>
+<li>require(&#39;com.findlaw.c2dm&#39;) and not require(&#39;com.findlaw.titanium,c2dm&#39;) </li>
+<li>registerC2dm instead of register </li>
+<li>help for building module with ant incl. xcode 4.3 minimum requirement</li>
+<li>gperf not found on mac 10.7</li>
+<li>custom code in C2dmReceiver<br>)</li>
+</ul>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 28th 2012, 6:39:41 am">May 28th 2012</span>
+											by <span class='authorname'>Alexander de Greiff</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-239532">
+				
+						<section>
+							<p>surajit,</p>
+<p>i went down this road: <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;136149&#x2F;titanium-v8-runtime-disposed-while-c2dm-receives#comment-128293">question&#x2F;136149</a> </p>
+<p>there were so many inconsistencies in previous examples and tweaks on my side that i have to write down a clean recipe for c2dm with titanium &gt;2.0 to help others.</p>
+<p>with the help of alex reimchen i&#39;ve got this working: the main part is now that, after receiving a push message, i create the intent within<br>the C2dmReceiver of the module rather than in my app.js.</p>
+<p>in my view this is not clean but for now it works. i was under the impression that it only works in rhino, but hey, after testing i&#39;ve discovered<br>it also works in V8. </p>
+<p>the main steps and findings where:</p>
+<ul>
+<li>use Kuraturpa-titanium-c2dm or surajit-rcc8-c2dm-in-titanium-1.8.2 from github</li>
+<li>android manifest different from example </li>
+<li>callback in app.js is now empty</li>
+<li>require(&#39;com.findlaw.c2dm&#39;) and not require(&#39;com.findlaw.titanium.c2dm&#39;) </li>
+<li>registerC2dm instead of register </li>
+<li>building module with ant incl. xcode 4.3 minimum requirement </li>
+<li>gperf not found on mac 10.7 </li>
+<li>custom code in C2dmReceiver (see link above)</li>
+</ul>
+<p>snippet from Android Manifest:</p>
+<pre><code class="hljs">            <span class="hljs-tag">&lt;<span class="hljs-title">application</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">service</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.findlaw.c2dm.C2DMReceiver"</span>/&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span>
+                    <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.google.android.c2dm.C2DMBroadcastReceiver"</span> <span class="hljs-attribute">android:permission</span>=<span class="hljs-value">"com.google.android.c2dm.permission.SEND"</span>&gt;</span>
+                    <span class="hljs-comment">&lt;!-- Receive the actual message --&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.google.android.c2dm.intent.RECEIVE"</span>/&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.mypackage.myapp"</span>/&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+                    <span class="hljs-comment">&lt;!-- Receive the registration id --&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.google.android.c2dm.intent.REGISTRATION"</span>/&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.mypackage.myapp"</span>/&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-title">receiver</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
+</code></pre><p>snippet from app.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> c2dm = require(<span class="hljs-string">'com.findlaw.c2dm'</span>);        <span class="hljs-comment">// not com.findlaw.titanium.c2dm like in old module    </span>
+
+Ti.API.info(<span class="hljs-string">'Registering...'</span>);
+<span class="hljs-comment">// c2dm.register(senderId, {    // old in c2dm module for titanium 1.7.5</span>
+c2dm.registerC2dm(senderId, {    <span class="hljs-comment">//new</span>
+    success:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+               <span class="hljs-keyword">var</span> deviceToken = e.registrationId;
+        Titanium.App.Properties.setString(<span class="hljs-string">'devicetoken'</span>,deviceToken);
+        },
+    error:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">//my stuff here</span>
+    },
+        <span class="hljs-keyword">callback</span>:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">// empty because it is not called now</span>
+    }
+});
+</code></pre><p>snippet from C2dmReceiver.java (actually the whole file):</p>
+<pre><code class="hljs"><span class="hljs-keyword">package</span> com.findlaw.c2dm;
+
+<span class="hljs-keyword">import</span> java.io.IOException;
+<span class="hljs-keyword">import</span> java.util.<span class="hljs-keyword">HashMap</span>;
+<span class="hljs-keyword">import</span> org.appcelerator.titanium.util.Log;
+
+<span class="hljs-keyword">import</span> com.google.android.c2dm.C2DMBaseReceiver;
+
+<span class="hljs-keyword">import</span> android.app.Notification;
+<span class="hljs-keyword">import</span> android.app.NotificationManager;
+<span class="hljs-keyword">import</span> android.app.PendingIntent;
+<span class="hljs-keyword">import</span> android.content.ComponentName;
+<span class="hljs-keyword">import</span> android.content.Context;
+<span class="hljs-keyword">import</span> android.content.Intent;
+
+<span class="hljs-keyword">public</span> class C2DMReceiver extends C2DMBaseReceiver {
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">String</span> LCAT = <span class="hljs-string">"C2DMReceiver"</span>;
+
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">String</span> REGISTER_EVENT = <span class="hljs-string">"registerC2dm"</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">String</span> UNREGISTER_EVENT = <span class="hljs-string">"unregister"</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">String</span> MESSAGE_EVENT = <span class="hljs-string">"message"</span>;
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">String</span> ERROR_EVENT = <span class="hljs-string">"error"</span>;
+
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> onRegistrered(Context context, <span class="hljs-keyword">String</span> registrationId)
+            <span class="hljs-keyword">throws</span> IOException {
+        Log.d(LCAT, <span class="hljs-string">"Registered: "</span> + registrationId);
+
+        C2dmModule.getInstance().sendSuccess(registrationId);
+    }
+
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> onUnregistered(Context context) {
+        Log.d(LCAT, <span class="hljs-string">"Unregistered"</span>);
+
+        C2dmModule.getInstance().fireEvent(UNREGISTER_EVENT, <span class="hljs-keyword">new</span> <span class="hljs-keyword">HashMap</span>());
+    }
+
+    @Override
+    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> onMessage(Context context, Intent intent) {
+        Log.d(LCAT, <span class="hljs-string">"Message received"</span>);
+
+        <span class="hljs-keyword">HashMap</span> data = <span class="hljs-keyword">new</span> <span class="hljs-keyword">HashMap</span>();
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">String</span> <span class="hljs-variable">key</span> : intent.getExtras().keySet()) {
+            Log.d(LCAT, <span class="hljs-string">"Message key: "</span> + <span class="hljs-variable">key</span> + <span class="hljs-string">" value: "</span>
+                    + intent.getExtras().getString(<span class="hljs-variable">key</span>));
+
+            <span class="hljs-keyword">String</span> eventKey = <span class="hljs-variable">key</span>.startsWith(<span class="hljs-string">"data."</span>) ? <span class="hljs-variable">key</span>.substring(<span class="hljs-number">5</span>) : <span class="hljs-variable">key</span>;
+            data.put(eventKey, intent.getExtras().getString(<span class="hljs-variable">key</span>));
+        }
+
+<span class="hljs-comment">//new: comment following line to always create intent here</span>
+<span class="hljs-comment">//        if (C2dmModule.getInstance() == null) {</span>
+            <span class="hljs-comment">//int icon = 0x7f02000a; // get this from R.java</span>
+            <span class="hljs-built_in">int</span> icon = <span class="hljs-number">0x7f020000</span>; <span class="hljs-comment">// AdG: this is my icon from R.java</span>
+
+            CharSequence tickerText = <span class="hljs-keyword">new</span> <span class="hljs-keyword">String</span>(<span class="hljs-string">"My app name: "</span> + data.<span class="hljs-built_in">get</span>(<span class="hljs-string">"message"</span>));
+            <span class="hljs-keyword">long</span> when = System.currentTimeMillis();
+
+            CharSequence contentTitle = <span class="hljs-string">"My app name"</span>; <span class="hljs-comment">// expanded message title</span>
+            CharSequence contentText = <span class="hljs-keyword">new</span> <span class="hljs-keyword">String</span>(<span class="hljs-string">" "</span> + data.<span class="hljs-built_in">get</span>(<span class="hljs-string">"message"</span>));
+
+            Intent notificationIntent = <span class="hljs-keyword">new</span> Intent(<span class="hljs-keyword">this</span>, C2DMReceiver.class);
+
+            Intent launcherintent = <span class="hljs-keyword">new</span> Intent(<span class="hljs-string">"android.intent.action.MAIN"</span>);
+            launcherintent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.        FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            <span class="hljs-comment">//launcherintent</span>
+            <span class="hljs-comment">//        .setComponent(ComponentName</span>
+            <span class="hljs-comment">//                .unflattenFromString("[package name]/[package name].[activity name]"));</span>
+
+<span class="hljs-comment">// change the following to match your app</span>
+            launcherintent
+                    .setComponent(ComponentName                            .unflattenFromString(<span class="hljs-string">"com.degreiff.mytoffice/com.mypackage.myapp.myMainActivity"</span>));
+            launcherintent.addCategory(<span class="hljs-string">"android.intent.category.LAUNCHER"</span>);
+
+
+            PendingIntent contentIntent = PendingIntent.getActivity(<span class="hljs-keyword">this</span>, <span class="hljs-number">0</span>,
+                    launcherintent, <span class="hljs-number">0</span>);
+
+            <span class="hljs-comment">// the next two lines initialize the Notification, using the</span>
+            <span class="hljs-comment">// configurations above</span>
+
+            Notification notification = <span class="hljs-keyword">new</span> Notification(icon, tickerText, when);
+
+            notification.defaults = Notification.DEFAULT_ALL;
+            notification.flags = Notification.FLAG_AUTO_CANCEL;
+            notification.setLatestEventInfo(context, contentTitle, contentText,
+                    contentIntent);
+            <span class="hljs-keyword">String</span> ns = Context.NOTIFICATION_SERVICE;
+            NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
+            mNotificationManager.notify(<span class="hljs-number">1</span>, notification);
+<span class="hljs-comment">//new    } else</span>
+<span class="hljs-comment">//new        C2dmModule.getInstance().sendMessage(data);</span>
+    }
+
+
+    @Override
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> onError(Context context, <span class="hljs-keyword">String</span> errorId) {
+        Log.e(LCAT, <span class="hljs-string">"Error: "</span> + errorId);
+
+        C2dmModule.getInstance().sendError(errorId);
+    }
+
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 28th 2012, 3:00:09 pm">May 28th 2012</span>
+								by <span class='authorname'>Alexander de Greiff</span><br>
+								<a class="icon-bg icon-link" href="question/136149/titanium-v8-runtime-disposed-while-c2dm-receives#answer-239532" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Alexander, I was wondering if you could post the .jar file for us that don&#39;t have ant and eclipse installed.  Also, does it work in V8?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 29th 2012, 6:28:47 pm">June 29th 2012</span>
+											by <span class='authorname'>Jon Barnhart</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Jon,<br>it is working in V8 as well. Unfortulately uploading the jar file won&#39;t help you. as you can see from the snippet from C2dmReceiver.java above there is some hardcoded stuff in there (reference to my app package and app icon).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 1st 2012, 6:18:03 pm">July 1st 2012</span>
+											by <span class='authorname'>Alexander de Greiff</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Alexander,<br>I got it working just fine running Rhino, but V8 gives me this error message:  runtime.addExternalModule(&quot;com.findlaw.c2dm&quot;, com.findlaw.c2dm.C2dmBootstrap.class);<br>Any ideas as to what I have done wrong?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 9th 2012, 4:22:56 pm">July 9th 2012</span>
+											by <span class='authorname'>Jon Barnhart</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-239434">
+				
+						<section>
+							<p>I got stuck at the same point. processing the messages fine while my app is running, but when my app is not running i see the same log as above (in adb).</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 25th 2012, 8:30:09 pm">May 25th 2012</span>
+								by <span class='authorname'>Alexander de Greiff</span><br>
+								<a class="icon-bg icon-link" href="question/136149/titanium-v8-runtime-disposed-while-c2dm-receives#answer-239434" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-242292">
+				
+						<section>
+							<p>with the announcements from google last week C2DM will be dead soon. google has announced GCM Google Cloud Messaging the successor of C2DM. has anybody started on a titanium module for GCM yet? i guess we cannot hope for appcelerators help since they want to sell their cloud service. but i still prefer the direct GCM support in my apps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 1st 2012, 6:23:54 pm">July 1st 2012</span>
+								by <span class='authorname'>Alexander de Greiff</span><br>
+								<a class="icon-bg icon-link" href="question/136149/titanium-v8-runtime-disposed-while-c2dm-receives#answer-242292" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>The in app module will work the same without any changes.   You will need to change the sender ID for the app however.  It is no longer an email address but an assigned number from Google.  I actually have that part working (in Rhino). </p>
+<p>see this article from Google:<br>http:&#x2F;&#x2F;developer.android.com&#x2F;guide&#x2F;google&#x2F;gcm&#x2F;c2dm.html</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 9th 2012, 4:27:44 pm">July 9th 2012</span>
+											by <span class='authorname'>Jon Barnhart</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes. You can get module here https:&#x2F;&#x2F;github.com&#x2F;liccowee&#x2F;Google-Cloud-Messaging–Titanium-</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 27th 2012, 3:35:40 am">August 27th 2012</span>
+											by <span class='authorname'>Marimuthu Govind</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-247320">
+				
+						<section>
+							<p>Has anyone had success with this?  We&#39;ve used the new GCM module, but we aren&#39;t able to receive messages on the device.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 14th 2012, 6:05:35 pm">September 14th 2012</span>
+								by <span class='authorname'>Kevin Wheeler</span><br>
+								<a class="icon-bg icon-link" href="question/136149/titanium-v8-runtime-disposed-while-c2dm-receives#answer-247320" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-250814">
+				
+						<section>
+							<p>Hi all, there&#39;s a new module in the Marketplace called uPush for Android push messages, got it working with my project today in about 10 minutes, saved me so much time.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 9th 2012, 11:10:15 am">November 9th 2012</span>
+								by <span class='authorname'>Alan Browne</span><br>
+								<a class="icon-bg icon-link" href="question/136149/titanium-v8-runtime-disposed-while-c2dm-receives#answer-250814" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

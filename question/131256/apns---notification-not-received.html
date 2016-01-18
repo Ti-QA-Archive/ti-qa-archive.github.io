@@ -1,0 +1,262 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>APNS - Notification not received » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>APNS - Notification not received</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I managed to have the device token when launching my application with (app.js): </p>
+<pre><code class="hljs"><span class="hljs-comment">// Apple Push Notifications Service</span>
+Ti.Network.registerForPushNotifications({
+    types: [
+        Ti.Network.NOTIFICATION_TYPE_BADGE,
+        Ti.Network.NOTIFICATION_TYPE_ALERT,
+        Ti.Network.NOTIFICATION_TYPE_SOUND
+    ],
+    success: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+
+        <span class="hljs-keyword">var</span> badgeNotification = <span class="hljs-string">'disabled'</span>;
+        <span class="hljs-keyword">var</span> alertNotification = <span class="hljs-string">'disabled'</span>;
+        <span class="hljs-keyword">var</span> soundNotification = <span class="hljs-string">'disabled'</span>;
+
+        <span class="hljs-keyword">if</span>(Ti.Network.remoteNotificationTypes.in_array(Ti.Network.NOTIFICATION_TYPE_BADGE)) {
+            badgeNotification = <span class="hljs-string">'enabled'</span>;
+        }
+        <span class="hljs-keyword">if</span>(Ti.Network.remoteNotificationTypes.in_array(Ti.Network.NOTIFICATION_TYPE_ALERT)) {
+            alertNotification = <span class="hljs-string">'enabled'</span>;
+        }
+        <span class="hljs-keyword">if</span>(Ti.Network.remoteNotificationTypes.in_array(Ti.Network.NOTIFICATION_TYPE_SOUND)) {
+            soundNotification = <span class="hljs-string">'enabled'</span>;
+        }
+
+        <span class="hljs-keyword">var</span> postValue = {
+            <span class="hljs-string">'task'</span>:<span class="hljs-string">'register'</span>,
+            <span class="hljs-string">'appname'</span>:Ti.App.getName(),
+            <span class="hljs-string">'appversion'</span>:Ti.App.getVersion(),
+            <span class="hljs-string">'deviceuid'</span>:Ti.Platform.getId(),
+            <span class="hljs-string">'devicetoken'</span>:e.deviceToken,
+            <span class="hljs-string">'devicename'</span>:Ti.Platform.getName(),
+            <span class="hljs-string">'devicemodel'</span>:Ti.Platform.getModel(),
+            <span class="hljs-string">'deviceversion'</span>:Ti.Platform.getVersion(),
+            <span class="hljs-string">'pushbadge'</span>:badgeNotification,
+            <span class="hljs-string">'pushalert'</span>:alertNotification,
+            <span class="hljs-string">'pushsound'</span>:soundNotification
+        };
+
+        Xhr.XHRRequest({
+            url:URLapns,
+            objectPostValue:postValue,
+            params:{type:<span class="hljs-string">'text'</span>,method:<span class="hljs-string">'post'</span>}
+        });
+    },
+    error: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>  </span>{
+        alert(<span class="hljs-string">'Error :'</span>+ e.error);
+    },
+    <span class="hljs-keyword">callback</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+          <span class="hljs-comment">// called when a push notification is received.</span>
+        Ti.Media.vibrate();
+        <span class="hljs-keyword">var</span> data = JSON.parse(e.data);
+        <span class="hljs-keyword">var</span> badge = data.badge;
+        <span class="hljs-keyword">if</span>(badge &gt; <span class="hljs-number">0</span>) {
+            Ti.UI.iPhone.appBadge = badge;
+        }
+        <span class="hljs-keyword">var</span> message = data.message;
+        <span class="hljs-keyword">if</span>(message != <span class="hljs-string">''</span>) {
+            <span class="hljs-keyword">var</span> my_alert = Ti.UI.createAlertDialog({title:<span class="hljs-string">''</span>, message:message});
+            my_alert.show();
+        }
+     }
+});
+</code></pre><p>I managed to generate the push certificate .pem with these manipulations :</p>
+<pre><code class="hljs">$ openssl x509 -<span class="hljs-keyword">in</span> aps_developer_identity<span class="hljs-class">.cer</span> -inform der -out MyCert.pem
+</code></pre><p>Convert the private key’s .p12 file into a .pem file:</p>
+<pre><code class="hljs">$ openssl pkcs12 -nocerts -<span class="hljs-type">out</span> MyKey.pem -<span class="hljs-type">in</span> MyKey.p12
+Enter <span class="hljs-keyword">Import</span> Password: 
+MAC verified OK
+Enter PEM <span class="hljs-keyword">pass</span> phrase: 
+Verifying - Enter PEM <span class="hljs-keyword">pass</span> phrase:
+</code></pre><p>Finally, combine the certificate and key into a single .pem file:</p>
+<pre><code class="hljs">$ cat MyCert<span class="hljs-class">.pem</span> MyKey<span class="hljs-class">.pem</span> &gt; ck.pem
+</code></pre><p>And has to send to Apple server one or several notifications :</p>
+<pre><code class="hljs"><span class="hljs-variable">$message</span> = {<span class="hljs-string">"aps"</span>:{<span class="hljs-string">"push_notification_id"</span>:<span class="hljs-string">"1"</span>,<span class="hljs-string">"alert"</span>:{<span class="hljs-string">"body"</span>:<span class="hljs-string">"test push notification"</span>}}}
+
+<span class="hljs-variable">$ctx</span> = stream_context_create();
+stream_context_set_option(<span class="hljs-variable">$ctx</span>, <span class="hljs-string">'ssl'</span>, <span class="hljs-string">'local_cert'</span>, <span class="hljs-string">'ck.pem'</span>);
+stream_context_set_option(<span class="hljs-variable">$ctx</span>, <span class="hljs-string">'ssl'</span>, <span class="hljs-string">'passphrase'</span>, <span class="hljs-variable">$passphrase</span>);
+<span class="hljs-variable">$fp</span> = stream_socket_client(<span class="hljs-string">'ssl://gateway.push.apple.com:2195'</span>, <span class="hljs-variable">$error</span>, <span class="hljs-variable">$errorString</span>, <span class="hljs-number">100</span>, (STREAM_CLIENT_CONNECT|STREAM_CLIENT_PERSISTENT), <span class="hljs-variable">$ctx</span>);
+
+<span class="hljs-keyword">if</span>(!<span class="hljs-variable">$fp</span>){
+    <span class="hljs-variable">$this-</span>&gt;_pushFailed(<span class="hljs-variable">$pid</span>);
+}
+<span class="hljs-keyword">else</span> {
+    <span class="hljs-variable">$msg</span> = chr(<span class="hljs-number">0</span>).pack(<span class="hljs-string">"n"</span>,<span class="hljs-number">32</span>).pack(<span class="hljs-string">'H*'</span>,<span class="hljs-variable">$token</span>).pack(<span class="hljs-string">"n"</span>,strlen(<span class="hljs-variable">$message</span>)).<span class="hljs-variable">$message</span>;
+    <span class="hljs-variable">$fwrite</span> = fwrite(<span class="hljs-variable">$fp</span>, <span class="hljs-variable">$msg</span>);
+    if(!<span class="hljs-variable">$fwrite</span>) {
+        <span class="hljs-variable">$this-</span>&gt;_pushFailed(<span class="hljs-variable">$pid</span>);
+    }
+    else {
+        <span class="hljs-variable">$this-</span>&gt;_pushSuccess(<span class="hljs-variable">$pid</span>);
+    }
+}
+fclose(<span class="hljs-variable">$fp</span>);
+</code></pre><p>I&#39;ve no error during this sending, but I never receives these notification on devices…</p>
+<p>Have you an idea on which I can look ? Or a solution?<br>That they are the manipulations (script, configuration, other) that you made to make your service for receive push notification ?</p>
+<p>Thank you so much !</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 27th 2012, 7:29:48 am">January 27th 2012</span>
+				by <span class='authorname'>Mickaël Brotons</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>apns</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>no received</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+						<li><span class='tagname'>psuh</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-228712">
+				
+						<section>
+							<p>Did you add that entitlement to your provisioning profile ?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 27th 2012, 7:37:05 am">January 27th 2012</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/131256/apns---notification-not-received#answer-228712" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-228718">
+				
+						<section>
+							<p>&gt;Did you add that entitlement to your provisioning profile ?</p>
+<p>On developer.apple.com, my App ID APNS is enabled for Development, and I used this certificate for compilation and I generate .pem file.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 27th 2012, 8:02:37 am">January 27th 2012</span>
+								by <span class='authorname'>Mickaël Brotons</span><br>
+								<a class="icon-bg icon-link" href="question/131256/apns---notification-not-received#answer-228718" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-228751">
+				
+						<section>
+							<p>I change &#39;ssl:&#x2F;&#x2F;gateway.push.apple.com:2195&#39; to &#39;ssl:&#x2F;&#x2F;gateway.sandbox.push.apple.com:2195&#39; with development certificate (push and provisioning profile) but not received too…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 27th 2012, 1:23:24 pm">January 27th 2012</span>
+								by <span class='authorname'>Mickaël Brotons</span><br>
+								<a class="icon-bg icon-link" href="question/131256/apns---notification-not-received#answer-228751" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

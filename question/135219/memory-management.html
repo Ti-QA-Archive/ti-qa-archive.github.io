@@ -1,0 +1,439 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Memory Management » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Memory Management</h1>
+		</header>
+		<section>
+			<p>I can&#39;t for the likes of me figure out WHY this code doesn&#39;t actually free the allocated View and ImageViews:</p>
+<pre><code class="hljs">var win = Ti.UI.createWindow({
+    navBarHidden: <span class="hljs-keyword">true</span>,
+    orientationModes:[
+        Titanium.UI.LANDSCAPE_LEFT,
+        Titanium.UI.LANDSCAPE_RIGHT
+    ]
+});
+
+win.<span class="hljs-built_in">open</span>();
+Ti.API.info(<span class="hljs-string">'go'</span>);
+
+var fadeView = Ti.UI.createView({
+    <span class="hljs-variable">width</span> : Titanium.Platform.displayCaps.platformWidth,
+    <span class="hljs-variable">height</span> : Titanium.Platform.displayCaps.platformHeight,
+    opacity:<span class="hljs-number">0</span>
+});
+
+
+win.addEventListener(<span class="hljs-string">'click'</span>,function(e){
+
+    <span class="hljs-keyword">if</span>(fadeView.opacity==<span class="hljs-number">0</span>) {
+
+        fadeView.<span class="hljs-built_in">add</span>(Ti.UI.createImageView({
+            <span class="hljs-built_in">image</span>:Ti.Filesystem.applicationDataDirectory+<span class="hljs-string">"/images/img1.png"</span>
+        }));
+
+        fadeView.<span class="hljs-built_in">add</span>(Ti.UI.createImageView({
+            <span class="hljs-built_in">image</span>:Ti.Filesystem.applicationDataDirectory+<span class="hljs-string">"/images/img2.png"</span>
+        }));
+
+        win.<span class="hljs-built_in">add</span>(fadeView);    
+
+        fadeView.opacity = <span class="hljs-number">1</span>;
+    } <span class="hljs-keyword">else</span> {
+
+        win.remove(fadeView);
+        fadeView = <span class="hljs-keyword">null</span>;
+    }
+});
+</code></pre><p>Using Instruments, I can see that the app keeps 1 TiUIView and 2 TiUIImageView &#x2F; TiUIImageViewProxy alive after the second time I click on the screen (i.e. should remove and release everything).</p>
+<p>This is driving me insane - anyone ?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 11th 2012, 8:03:00 am">April 11th 2012</span>
+				by <span class='authorname'>Morten Fredrik Thomsen</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>instruments</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-235757">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hello.</p>
+<p>Avoid using global scope (if you&#39;re not using CommonJS). If something has to be top level, wrap it in self-invoking function (every function forms new scope):</p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> <span class="hljs-collection">{
+    //global code
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>…</p>
+<p>It seems that there are some memory issues in Ti caused by usage of global variables (variables declared in global scope) and closure (your event listener forms closure), so that should be avoided. In theory, your code is fine and view should be released from memory.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 11th 2012, 9:25:14 am">April 11th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/135219/memory-management#answer-235757" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Good to know that the theory of the code at least is sound.</p>
+<p>I am not at all familiar with the logic you are refering to (self-invoking functions) - but I suppose I should try to familiarize myself with CommonJS - I&#39;ve seen that it is the recommended approach.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 11th 2012, 10:54:26 am">April 11th 2012</span>
+											by <span class='authorname'>Morten Fredrik Thomsen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>CommonJS:</p>
+<p><a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Coding+Strategies#CodingStrategies-CommonJSmodules">https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Coding+Strategies#CodingStrategies-CommonJSmodules</a><br><a href="http:&#x2F;&#x2F;www.commonjs.org&#x2F;">http:&#x2F;&#x2F;www.commonjs.org&#x2F;</a></p>
+<p>Self-invoking function, as name says, is a function that invokes itself (it&#39;s pretty common JS pattern). So, first you create anonymous function:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">//code</span>
+}
+</code></pre><p>and than you execute it right away:</p>
+<pre><code class="hljs"><span class="hljs-list">()</span>
+</code></pre><p>It&#39;s like like you did this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> f = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{};
+
+f();
+</code></pre><p>It&#39;s just shorter way of writing.</p>
+<pre><code class="hljs"><span class="hljs-comment">//global scope</span>
+(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">//function scope</span>
+})()
+</code></pre><p>Brackets must be present because otherwise that would not be a statement, but function declaration and you would get syntax error.</p>
+<p>It is used in cases when new scope is needed (for example, when you don&#39;t want to pollute current scope, but you want to create new private scope).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 11th 2012, 11:10:28 am">April 11th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Ivan - thanks! Will be digging in to that ASAP!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 11th 2012, 2:47:03 pm">April 11th 2012</span>
+											by <span class='authorname'>Morten Fredrik Thomsen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-235741">
+				
+						<section>
+							<p>just a thought…</p>
+<p>Put the fade view creation in the event listener….</p>
+<p>Create the two image views into variables…</p>
+<p>Remove those from the fade view then remove the fade view and null all variables.</p>
+<p>Declare the variables var fadeView = null; var image1 = null; var image 2 = null; before the event listener.</p>
+<p>T…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 11th 2012, 8:07:16 am">April 11th 2012</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/135219/memory-management#answer-235741" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Moving the creation of the fadeView into the eventlistener works - even if I don&#39;t use variables for the ImageViews - but I don&#39;t understand WHY it works.</p>
+<p>I also notice that when I create the fadeView outside the eventlistener, I don&#39;t get a TiUIViewProxy (in Instruments), but when I create it inside the eventlistener, I do….</p>
+<p>Obviously this code is just a sample to try to understand the memory management, so I need to understand WHY this is happening, so I can apply it to my actual app - can you be of any assistance ?</p>
+<p>-morten</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 11th 2012, 8:20:39 am">April 11th 2012</span>
+											by <span class='authorname'>Morten Fredrik Thomsen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In reality I probably wouldn&#39;t be able to fully explain it. But I would guess that it has to do with variable scope within the function of the event listener.</p>
+<p>Also your nulling out the view and then adding new image views to it, which would effectively not then enable you to null it again and remove the image views.</p>
+<p>Well that would be my guess.</p>
+<p>So putting the var in the event listener means that the view is created and nulled as required.</p>
+<p>T.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 11th 2012, 9:09:50 am">April 11th 2012</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-235748">
+				
+						<section>
+							<p>2 small changes made the original code work:</p>
+<p>1) move the win.open() BELOW the eventlistener definition and<br>2) first set fadeView = null; THEN perform the fadeView = Ti.UI.createView() </p>
+<p>I still don&#39;t see a TiUIViewProxy in Instruments (for the fadeView), but at least it releases all views as it should….</p>
+<p>If anyone has any reasonable explanations for this, I would love to hear about it!</p>
+<p>-morten</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 11th 2012, 8:36:46 am">April 11th 2012</span>
+								by <span class='authorname'>Morten Fredrik Thomsen</span><br>
+								<a class="icon-bg icon-link" href="question/135219/memory-management#answer-235748" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-236171">
+				
+						<section>
+							<p>I went ahead and made this example into an instantiable object using the CommonJS approach, and figured I would post it here if anyone else wanted to see the &quot;solution&quot; to this.  This module seems to clean up nicely after itself:</p>
+<pre><code class="hljs"><span class="hljs-comment">/*
+*  file: memrelease.js
+*/</span> 
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    navBarHidden: <span class="hljs-literal">true</span>,
+    orientationModes:[
+        Titanium.UI.LANDSCAPE_LEFT,
+        Titanium.UI.LANDSCAPE_RIGHT
+    ],
+    name:<span class="hljs-string">'win'</span>
+}); 
+
+<span class="hljs-keyword">var</span> fadeView;
+
+win.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">if</span> ((fadeView===<span class="hljs-literal">undefined</span>) || (fadeView===<span class="hljs-literal">null</span>)) {
+        Ti.API.info(<span class="hljs-string">'adding assets'</span>);
+        fadeView = Ti.UI.createView({
+            width : Titanium.Platform.displayCaps.platformWidth,
+            height : Titanium.Platform.displayCaps.platformHeight,
+            opacity:<span class="hljs-number">1</span>,
+            touchEnabled: <span class="hljs-literal">false</span>,
+            name:<span class="hljs-string">'fadeView'</span>
+        });
+
+
+        fadeView.add( Ti.UI.createImageView({
+            image:Ti.Filesystem.applicationDataDirectory+<span class="hljs-string">"images/img1.png"</span>,
+            name:<span class="hljs-string">'img1'</span>,
+            touchEnabled: <span class="hljs-literal">false</span>
+        }));
+
+        fadeView.add( Ti.UI.createImageView({
+            image:Ti.Filesystem.applicationDataDirectory+<span class="hljs-string">"images/img2.png"</span>,
+            name:<span class="hljs-string">'img2'</span>,
+            touchEnabled: <span class="hljs-literal">false</span>
+        }));
+        win.add(fadeView);    
+    } <span class="hljs-keyword">else</span> {
+        Ti.API.info(<span class="hljs-string">'removing assets'</span>);
+        win.remove(fadeView);
+        fadeView = <span class="hljs-literal">null</span>;
+    }    
+});
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">memrelease</span>(<span class="hljs-params"></span>) </span>{    
+    win.open();
+}
+
+<span class="hljs-built_in">module</span>.exports = memrelease;
+
+<span class="hljs-comment">/*
+* file: app.js
+*/</span>
+
+<span class="hljs-keyword">var</span> oxi = {};
+
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    oxi.memrelease = <span class="hljs-built_in">require</span>(<span class="hljs-string">'memrelease'</span>);
+    oxi.memtest = <span class="hljs-keyword">new</span> oxi.memrelease();
+})();
+</code></pre><p>If I have done any boo-boo&#39;s in this code, please let me know.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 16th 2012, 6:29:48 am">April 16th 2012</span>
+								by <span class='authorname'>Morten Fredrik Thomsen</span><br>
+								<a class="icon-bg icon-link" href="question/135219/memory-management#answer-236171" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>That&#39;s not good approach. :)</p>
+<p>The thing here is the following. CommonJS modules are singletons, that means they won&#39;t be re-evaluated every time they are required. Because of that, you&#39;ll have only one instance of a window for every require of that module. In general, that approach is not stable (at least not on Android) and is memory-leak prone. Because of that, IMHO, it is better to wrap window creation logic to factory method like this:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createWindow</span>(<span class="hljs-params"></span>) </span>{
+    ...
+    <span class="hljs-keyword">return</span> createdWindow;
+}
+
+<span class="hljs-built_in">module</span>.exports = createWindow;
+</code></pre><p>The benefit of this approach is that you don&#39;t need to worry about memory much, because every function create new scope and variable declared in that scope will automatically be GCed once function finishes with execution (if there are no closures created). When using global scope, that is not possible and in some situations can cause memory leaks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 16th 2012, 6:49:36 am">April 16th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Ivan, thanks for pointing this out.</p>
+<p>Not sure I fully understand the concept you are describing though.  Would you split my memrelease.js module into 2 modules, or simply return the win variable, allowing the app.js to open the window returned, thus retaining the control of the window in app.js ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 16th 2012, 6:55:22 am">April 16th 2012</span>
+											by <span class='authorname'>Morten Fredrik Thomsen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I would simply return win variable (but you can open it also without returning).</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createWindow</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> createdWindow = Ti.UI.createWindow(...);
+
+    <span class="hljs-comment">//add other components</span>
+    <span class="hljs-comment">//attach events</span>
+
+    <span class="hljs-keyword">return</span> createdWindow;
+}
+
+<span class="hljs-built_in">module</span>.exports = createWindow;
+</code></pre><p>The point here is that &quot;createdWindow&quot;  function creates new instances of window every time it is called and &quot;createdWindow&quot; is local variable that will be GCed when that function finishes with execution. Note that returned window reference can be stored in other variable:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> = createWindow();
+</code></pre><p>and again you need to be careful what are you doing with that variable (in respect to GC).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 16th 2012, 8:23:56 am">April 16th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

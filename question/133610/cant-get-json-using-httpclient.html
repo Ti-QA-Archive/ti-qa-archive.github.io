@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Can&#39;t get json using HTTPClient » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Can&#39;t get json using HTTPClient</h1>
+		</header>
+		<section>
+			<p>Hello, I&#39;m hoping someone can help me with this frustrating issue: I&#39;m making a simple GET api call to get some json, but the client will not return it in responseText; it is in responseData, but if I do a getText() on that it returns null.</p>
+<p>It appears to be an issue with utf8, as explained in this <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;126012&#x2F;xhr-json-response-shows-up-in-responsedata-and-not-responsetext-when-utf8-chars-are-present">question</a> but there is no solution there or anywhere else that I can find.</p>
+<p>I have also tried the following:</p>
+<ul>
+<li>Sniffed net packets with WireShark to make sure the simulator is getting the same as I do from browser.</li>
+<li>Have verified that I get expected response headers, and responseData.length matches exact length of response body I get from browser; responseData mime type (and response header Content-Type) is set to application&#x2F;json.</li>
+<li><p>Changed server to wrap object array like this (both versions are valid json according to jsonlint.com):</p>
+<pre><code class="hljs"><span class="hljs-collection">{<span class="hljs-string">"comments"</span>:<span class="hljs-collection">[<span class="hljs-collection">{<span class="hljs-string">"contentPlaintext"</span><span class="hljs-attribute">:....</span></span></span></span>
+</code></pre><p>instead of </p>
+<pre><code class="hljs"><span class="hljs-collection">[<span class="hljs-collection">{<span class="hljs-string">"contentPlaintext"</span><span class="hljs-attribute">:....</span></span></span>
+</code></pre></li>
+<li><p>Same behavior whether url returns lots of data or a little bit.  Only thing that works is no data: </p>
+<pre><code class="hljs">[]
+</code></pre></li>
+<li><p>Have set Accept-Encoding to &#39;identity&#39; to avoid gzip compression, and Accept-Charset to &#39;ISO-8859-1&#39;, but I don&#39;t know for sure that the server is respecting the latter.</p>
+</li>
+</ul>
+<p>Here&#39;s the code…</p>
+<pre><code class="hljs">    var url = <span class="hljs-string">"http://www.commentous.com/f/tf/obama+contraception/month"</span>;
+    var xhr = Ti.Network.createHTTPClient({
+        onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span> {
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'onload called'</span>);
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'1: '</span> + this.getResponseData());
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'2: '</span> + this.getResponseData().getText());
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'3: '</span> + this.getResponseData().toString());
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'4: '</span> + this.responseText);
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'5: '</span> + this.getResponseData().length);
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'6: '</span> + this.getResponseData().mimeType);
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'7: '</span> + this.getResponseHeader(<span class="hljs-string">'X-TraceUrl'</span>));
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'8: '</span> + this.getResponseHeader(<span class="hljs-string">'Content-Encoding'</span>));
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'9: '</span> + this.getResponseHeader(<span class="hljs-string">'Content-Type'</span>));
+            Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">'10: '</span> + this.getStatus());
+        },
+        onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+            Ti.API.<span class="hljs-built_in">debug</span>(e.<span class="hljs-built_in">error</span>);
+            alert(<span class="hljs-string">'error'</span>);
+        },
+        timeout:<span class="hljs-number">20000</span> 
+    });
+    xhr.open(<span class="hljs-string">"GET"</span>, url);
+    xhr.setRequestHeader(<span class="hljs-string">'Accept-Encoding'</span>,<span class="hljs-string">'identity'</span>);
+    xhr.setRequestHeader(<span class="hljs-string">'Accept-Charset'</span>,<span class="hljs-string">'ISO-8859-1'</span>);
+    xhr.setRequestHeader(<span class="hljs-string">'Accept'</span>,<span class="hljs-string">'application/json'</span>);
+    xhr.send();
+</code></pre><p>.. and the log output:</p>
+<pre><code class="hljs"><span class="hljs-string">[DEBUG]</span> onload called
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">1</span>: <span class="hljs-string">[object TiBlob]</span>
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">2</span>: undefined
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">3</span>: <span class="hljs-string">[object TiBlob]</span>
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">4</span>: null
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">5</span>: <span class="hljs-number">1757</span>
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">6</span>: application/json
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">7</span>: /appstats/details?time=<span class="hljs-number">1331496393359</span>&amp;type=json
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">8</span>: undefined
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">9</span>: application/json
+<span class="hljs-string">[DEBUG]</span> <span class="hljs-number">10</span>: <span class="hljs-number">302</span>
+</code></pre><p>You can try the url yourself, but must set the Accept header to application&#x2F;json </p>
+<p>Thanks in advance for your time!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 11th 2012, 9:02:16 pm">March 11th 2012</span>
+				by <span class='authorname'>Mauricio Aristizabal</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>responsetext</span></li>
+					
+						<li><span class='tagname'>utf8</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>6 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Probably not related but why is your server returning a 302 response?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 11th 2012, 9:30:31 pm">March 11th 2012</span>
+								by <span class='authorname'>David Bankier</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Just an oversight, thank you for that David.  However changing to 200 didn&#39;t fix the issue.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 12th 2012, 2:55:43 am">March 12th 2012</span>
+								by <span class='authorname'>Mauricio Aristizabal</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>have you got the response at server side..?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 12th 2012, 7:18:36 am">March 12th 2012</span>
+								by <span class='authorname'>Mitul Bhalia</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#39;m facing this same issue, but only when Emoji is included in the JSON data.  (Otherwise responseText returns fine.)</p>
+<p>But yes – I need to extract the JSON from the responseData!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 14th 2012, 3:56:12 pm">March 14th 2012</span>
+								by <span class='authorname'>Elijah Windsor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Mitul, you can GET the response at http:&#x2F;&#x2F;www.commentous.com&#x2F;comments&#x2F;testjson without needing to set any request headers.</p>
+<p>Another interesting tidbit is that I see a custom response header come in fine, as well as Content-Type (application&#x2F;json as you can see above), but not Content-Encoding or Content-Length.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 15th 2012, 6:23:18 am">March 15th 2012</span>
+								by <span class='authorname'>Mauricio Aristizabal</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>So after another look I did find a &amp;#039; character in the response, and I&#39;m sure that&#39;s what&#39;s causing it.  Now have to figure out how I&#39;m screwing up the encoding.  Tomorrow!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 15th 2012, 7:33:23 am">March 15th 2012</span>
+								by <span class='authorname'>Mauricio Aristizabal</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-234940">
+				
+						<section>
+							<p>I figured out in the end how to get my server to encode the response properly.  It had nothing to do with Titanium so if you&#39;re having this issue just focus on making sure that your server is actually encoding in UTF8.  The easiest way to do this is to enter your url in jsonformat.com and see if any weird chars show up (as well as an error in the formatted output section).</p>
+<p>I&#39;m using Java&#x2F;Spring MVC and here&#39;s what I had to do:</p>
+<p>Doing response.setCharacterEncoding(&quot;UTF-8&quot;) or response.setContentType(&quot;application&#x2F;json;charset=utf-8&quot;) in controller did not help, it is disregarded by the HttpMessageConverter.</p>
+<p>The converter actually looks for a Content-Type response header, and in its absence looks at the Accepts request header.</p>
+<p>However even setting Content-Type to &#39;application&#x2F;json&#39; didn&#39;t work, because for some reason Spring&#39;s json MediaType does not define a particular charset, and it ends up using the default ISO-8859-1</p>
+<p>So make sure to set a Content-Type response header to &#39;application&#x2F;json;charset=utf-8&#39;</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 1st 2012, 6:00:41 am">April 1st 2012</span>
+								by <span class='authorname'>Mauricio Aristizabal</span><br>
+								<a class="icon-bg icon-link" href="question/133610/cant-get-json-using-httpclient#answer-234940" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

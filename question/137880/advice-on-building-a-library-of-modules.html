@@ -1,0 +1,387 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Advice on building a library of modules » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Advice on building a library of modules</h1>
+		</header>
+		<section>
+			<p>I&#39;m trying to build a library of utility functions and classes that I find useful across multiple applications.  Each module is a CommonJS module.  There are dependencies between some of the modules.</p>
+<p>I&#39;d like to organize the modules into a hierarchical library.  So it might look like</p>
+<pre><code class="hljs">Foo
+Foo<span class="hljs-class">.Util</span>
+Foo<span class="hljs-class">.Network</span>
+...
+etc.
+</code></pre><p>The root-level code in Foo requires Foo&#x2F;Util and Foo&#x2F;Network and adds them as properties to the Foo function.  (I&#39;ve read the guidance about not loading anything until you need it, but I need these functions throughout my application, and from what I&#39;m seeing so far, the library isn&#39;t big enough to cause performance problems when I load it all up front).</p>
+<p>Foo.js:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Foo</span> (<span class="hljs-params"></span>)
+</span>{
+}
+
+Foo.Util = <span class="hljs-built_in">require</span> (<span class="hljs-string">'Foo/Util'</span>);
+Foo.Network = <span class="hljs-built_in">require</span> (<span class="hljs-string">'Foo/Network'</span>);
+
+<span class="hljs-built_in">module</span>.exports = Foo;
+</code></pre><p>One of the problems I have is that if some code in Foo.Network needs to call a function in Foo.Util, it has no way to do so.  I&#39;ve had to build in some ugly initialization functions so that Foo.Network can store a reference to Foo (and therefore can access Foo.Util).</p>
+<p>Foo&#x2F;Network.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Foo = <span class="hljs-literal">null</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Network</span> (<span class="hljs-params"></span>)
+</span>{
+}
+
+Network.function1 = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">var</span> x = Foo.Util.someOtherFunction ();
+    <span class="hljs-keyword">return</span> x + <span class="hljs-number">1</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fooInit</span> (<span class="hljs-params">foo</span>)
+</span>{
+    Foo = foo;
+}
+
+<span class="hljs-built_in">module</span>.exports = Network;
+</code></pre><p>Then Foo has to call that fooInit() function as below</p>
+<p>Foo.js:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Foo</span> (<span class="hljs-params"></span>)
+</span>{
+}
+
+Foo.Util = <span class="hljs-built_in">require</span> (<span class="hljs-string">'Foo/Util'</span>);
+Foo.Network = <span class="hljs-built_in">require</span> (<span class="hljs-string">'Foo/Network'</span>);
+Foo.Network.fooInit (Foo);
+
+<span class="hljs-built_in">module</span>.exports = Foo;
+</code></pre><p>Is there a better way to structure such a library?  Is there a reason <em>not</em> to even try what I&#39;m doing?  It&#39;s hard to imagine that the ultimate goal of a CommonJS app is 100 independent JS files and classes with little organization.</p>
+<p>One thing I&#39;d like to avoid is having lots of require statements in all the application&#39;s modules.  With this proposed library structure, I can just require Foo in an application module, and it has access to the entire library.</p>
+<p>In an ideal world, I could just require Foo in my app.js, and I could access the entire library from any application module.  I tried doing that in the global namespace, which worked great on iOS but failed horribly on Android (I understand that it <em>isn&#39;t</em> supposed to work).  </p>
+<p>Is there any other way to accomplish this?  Add something to Ti.App ?  Like Ti.App.Foo ?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 4th 2012, 6:58:43 pm">June 4th 2012</span>
+				by <span class='authorname'>Jason Priebe</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-240157">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Jason,</p>
+<ul>
+<li><p>commonJS + namespace works on iOS because iOS (for once) is the poor performer here by allowing the commonJS modules access to the global namespace.  The correct implementation is androids with each module isolated from the global space.</p>
+</li>
+<li><p>for android <code>Foo.Util = require (&amp;#39;&amp;#x2F;Foo&amp;#x2F;Util&amp;#39;);</code> always preface with a leading slash.  This will work in android AND iOS but fail for the mobile web builds.</p>
+</li>
+<li><p>the advantage of require() and commonJS is lost if we just go an include every library file like we did using Ti.include().  We are again loading our entire app into memory at runtime. Because you may not use every function in every library in every app, instead of </p>
+</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> myVar = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/coolTools'</span>);
+<span class="hljs-keyword">var</span> myVar2 = myVar.functionXYZ();
+</code></pre><p>you can do things like:</p>
+<pre><code class="hljs">myVar2 = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/coolTools'</span>).functionXYZ();
+</code></pre><p>&#39;Big Deal!&#39; someone says, &quot;still have to load the file in!&quot; But what if &#39;&#x2F;lib&#x2F;coolTools.js&#39; had two functions in it:</p>
+<pre><code class="hljs">exports.ABC = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+ <span class="hljs-keyword">var</span> myInternalVar = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib//ultraCoolTools'</span>);
+ <span class="hljs-keyword">return</span> myInternalVar;
+};
+
+exports.XYZ = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+ <span class="hljs-keyword">var</span> myOtherInternalVar = <span class="hljs-string">'I rock'</span>;
+ <span class="hljs-keyword">return</span> myOtherInternalVar;
+};
+</code></pre><p>Using the second method, I don&#39;t load in &#39;&#x2F;lib&#x2F;ultraCoolTools.js&#39; even though its packaged and available.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 4th 2012, 9:41:03 pm">June 4th 2012</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/137880/advice-on-building-a-library-of-modules#answer-240157" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>If you have a utils library that exposes things like isAndroid or isIOS or isNetwork, or a theme library or a config library, you can put that at the top of each of your files and it only ever gets loaded once.</p>
+<p>The other thing to remember is that objects in a library know about the other objects in the same library.  This is useful when dealing with UI elements.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2012, 9:47:12 pm">June 4th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>revor Ward, the <a href="http:&#x2F;&#x2F;www.thewarpedcoder.net&#x2F;">warped coder</a>, wrote an article, <a href="http:&#x2F;&#x2F;www.thewarpedcoder.net&#x2F;2011&#x2F;12&#x2F;apccelrator-titanium-commonjs-global-variables&#x2F;">Appcelerator Titanium commonJS $ Global Variables</a> that you may want to take a look at.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2012, 9:51:26 pm">June 4th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><code>Like Ti.App.Foo</code> &lt;— Thats a bad thing, extending the titanium name space.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 4th 2012, 9:52:08 pm">June 4th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-240161">
+				
+						<section>
+							<p>Stephen – thank you for all the feedback.  I&#39;ll definitely clean up my require() paths with the leading slash – and thanks for stopping me from doing something dumb like Ti.App.Foo!</p>
+<p>I get the general idea of avoiding loading everything at once, but I&#39;m not exactly clear on something.</p>
+<p>If you can put a require at the top of every file, and it only gets loaded once, then as my app runs and incrementally loads modules, eventually, they&#39;re all in RAM, right?  At which point it seems to me the only advantage over incremental loading vs. up-front loading is the decreased startup time.  Am I missing something?</p>
+<p>I guess I&#39;m just averse to the proliferation of require() calls throughout my application modules, especially since each has a hard-coded path to the module file.  That seems contrary to my instinct to centralize the configuration of the application.</p>
+<p>One last thing – does the idea of organizing my library hierarchically (a la the Titanium API itself) make any sense?  Or am I trying to force Titanium&#x2F;CommonJS code into a model for which it was never intended?  Is there a better way to organize a library?  It seems that a &quot;bucket o classes&quot; is just too disorganized…</p>
+<p>Thanks again!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 4th 2012, 10:27:16 pm">June 4th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/137880/advice-on-building-a-library-of-modules#answer-240161" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p><strong>If you can put a require at the top of every file, and it only gets loaded once, then as my app runs and incrementally loads modules, eventually, they&#39;re all in RAM, right?</strong></p>
+<p>yes</p>
+<p><strong>At which point it seems to me the only advantage over incremental loading vs. up-front loading is the decreased startup time.</strong></p>
+<p>no</p>
+<p>Even if you only use require() as a replacement for Ti.include() you eliminate the polluting of the global namespace.</p>
+<p><strong>I guess I&#39;m just averse to the proliferation of require() calls throughout my application modules, especially since each has a hard-coded path to the module file. That seems contrary to my instinct to centralize the configuration of the application.</strong></p>
+<p>There are still some details that need to be hammered out. <em>grin</em></p>
+<p>I&#39;m about 95% done with porting one of our largest app frameworks over to commonJS.  This is its SECOND rewrite in less than 18 months.  It was built using the url: structure as was recommended by the docs&#x2F;kitchensink, etc.  No sooner had it been finished, but not released, the new best practice appeared pushing the tweetanium structure of a single common namespace.  Then commonJS appeared and is the current darling.  Our other apps have been built using commonJS, this is just the last old set to get ported over. So the framework went from <strong>multiple contexts -&gt; single context -&gt; multiple controlled contexts</strong>.</p>
+<p>In this particular app, load time was decreased significantly by using commonJS. Multiple pages, multiple network calls aren&#39;t even thought of by the javascript engine at bootstrap.  It isn&#39;t until that first instance they are needed is that code touched, loaded.</p>
+<p><strong>does the idea of organizing my library hierarchically (a la the Titanium API itself) make any sense?</strong></p>
+<p>Back to this app as an example.  It was a giant common namespace.  We had already kind of broken it out.</p>
+<pre><code class="hljs"><span class="hljs-keyword">app</span> = {};
+<span class="hljs-keyword">app</span>.UI = {}; <span class="hljs-comment">// Contained any AND all UI components</span>
+<span class="hljs-keyword">app</span>.UI.Publications={}; <span class="hljs-comment">// Contained all the UI components for a particular tab</span>
+<span class="hljs-keyword">app</span>.CONFIG = {}; <span class="hljs-comment">// Contained client specific app configurations</span>
+<span class="hljs-keyword">app</span>.DATA= {}; <span class="hljs-comment">// Contained all the database functionality</span>
+<span class="hljs-keyword">app</span>.UTILS = {}; <span class="hljs-comment">// Ok, this was a catch all</span>
+</code></pre><p>When it came time to refactor, the libraries came out of that pattern.  As for best practice?  JS Client devs argue with the JS Server devs about this all the time. </p>
+<ul>
+<li>What benefits the end user first?</li>
+<li>What benefits you the developer second?</li>
+</ul>
+<p>Code for that and I don&#39;t think you can go wrong.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 5th 2012, 3:07:57 am">June 5th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><em>At which point it seems to me the only advantage over incremental loading vs. up-front loading is the decreased startup time.</em></p>
+<p>**no</p>
+<p>Even if you only use require() as a replacement for Ti.include() you eliminate the polluting of the global namespace.**</p>
+<p>I&#39;m definitely on board with this – I started Ti development early this year, so CommonJS was alreayd established as best practice – I&#39;m a firm believer in using CommonJS.  </p>
+<p>I&#39;m just wondering if it makes sense to &quot;pre-load&quot; a few commonly-used library modules and &quot;link&quot; them together so that they can be used from the application code with a single require() call.  If I don&#39;t see an appreciable degradation in load time, are there any other pitfalls from such preloading?</p>
+<p>I&#39;m curious about how you converted your namespace to CommonJS.  With the CommonJS implementation, is it still hierarchically organized?  In other words does application code make calls like:</p>
+<pre><code class="hljs">app<span class="hljs-class">.UTILS</span><span class="hljs-class">.doSomething</span>()
+</code></pre><p>Are the UTILS functions in their own module?  If so, how does the UTILS object become a property of the app object?  And what require() calls does the application code make if it wants to use something in app.UTILS?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 5th 2012, 10:22:22 am">June 5th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>No pitfalls from preloading your library in.  Just the time.</p>
+<p>config.js and theme.js are required whole at the top of every file (except app.js).<br>The app namespace only holds a tabGroup.<br>app.js only has three variables declared in it, app, analytics, testflight.<br>analytics and testflight receive calls from the other parts of the app via events. Everything else is local to the module it&#39;s called in.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 5th 2012, 12:40:13 pm">June 5th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>&#x2F;lib&#x2F;utils.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">exports</span>.isAndroid = Ti.Platform.name === <span class="hljs-string">'android'</span>;
+<span class="hljs-keyword">exports</span>.isIOS = Ti.Platform.name !===<span class="hljs-string">'android'</span>;
+</code></pre><p>someother.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> utils = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/utils'</span>);
+
+<span class="hljs-keyword">if</span> (utils.isIOS){
+ <span class="hljs-comment">//run my iOS code</span>
+}
+</code></pre><p>But for some some other functions, such as the social media sharing bar (iOS) or menu (android) share.js functions are pulled in:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">if</span> (utils.isIOS){
+  <span class="hljs-keyword">var</span> myarticlebar = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/share'</span>).articlebar();
+  something.add(myarticlebar);
+} <span class="hljs-keyword">else</span> {
+  <span class="hljs-keyword">var</span> myarticlemenu = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/share'</span>).articlemenu();
+  <span class="hljs-comment">// code to attach myarticlemenu to current activity:</span>
+}
+</code></pre><p>There is no reason to load in functions that only apply to iOS on android and vice versa.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 5th 2012, 12:49:13 pm">June 5th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I timed my require(), and it&#39;s acceptable to me for now – about 200ms.  The splash screen is up for 2-3 seconds anyway, so I don&#39;t think it makes a big difference in the user experience.</p>
+<p>So it looks like you &quot;flattened&quot; out your namespace when you moved to CommonJS – there&#39;s no explicit relationship between app and utils, for example.</p>
+<p>Just so you don&#39;t think I&#39;m crazy, my library is full of stuff like platform checks, usable window dimensions (minus tabs, headers, etc.), density-dependent dimension calculators, and a theme.  It&#39;s about 5 JS files, and I think they all get used in the very first window I open.  So I think it&#39;s safe to just preload the whole thing.</p>
+<p>Two benefits that I can see:</p>
+<ul>
+<li>I only need one require() in my application code (for the top-level module)</li>
+<li>calls to the library modules&#39; functions are explicitly &quot;namespaced&quot;, so from a code maintenance standpoint, you can quickly see where the function comes from</li>
+</ul>
+<p>I can see where if the library were larger (5-10 or more JS files), or less frequently used, it might not make sense to preload it.  And I certainly see the value of conditionally loading what you can.</p>
+<p>I really appreciate the conversation.  I think you set me straight on a couple of issues, and helped me work through the pros&#x2F;cons of other parts of my approach.  I feel a lot better now!  :-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 5th 2012, 1:07:45 pm">June 5th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Take a look at the <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2012&#x2F;02&#x2F;building-the-community-app.html">Building the Community App</a> for your UI&#x2F;tabs stuff.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 5th 2012, 3:27:19 pm">June 5th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-241315">
+				
+						<section>
+							<p>25</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 19th 2012, 9:58:19 pm">June 19th 2012</span>
+								by <span class='authorname'>Bill Freedman</span><br>
+								<a class="icon-bg icon-link" href="question/137880/advice-on-building-a-library-of-modules#answer-241315" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

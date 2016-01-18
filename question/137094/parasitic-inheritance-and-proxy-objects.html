@@ -1,0 +1,333 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Parasitic inheritance and proxy objects » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Parasitic inheritance and proxy objects</h1>
+		</header>
+		<section>
+			<p>I&#39;m getting mixed messages about using parasitic inheritance with proxy objects.</p>
+<p>The <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator-titans&#x2F;App">Community app</a> uses the technique.</p>
+<p>But the <a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Mobile+Best+Practices">Mobile Best Practices</a> wiki article states this:</p>
+<p><em>A common practice for extending built-in objects is parasitic inheritance. While a perfectly valid practice in standard JavaScript, it can result in unpredictable behavior in Titanium Mobile when using proxy objects (objects returned by Ti.UI.createView and similar). A reasonable approach to creating a custom component would be to associate a proxy with a normal JavaScript object…</em></p>
+<p>I know there are places where the documentation has not kept up with the rapidly changing SDK.  Can we get a definitive ruling about this technique?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 17th 2012, 10:29:18 am">May 17th 2012</span>
+				by <span class='authorname'>Jason Priebe</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Adding a quick comment about documentation resources, the <a href="http:&#x2F;&#x2F;docs.appcelerator.com">docs.appcelerator.com</a> site has replaced the wiki. We have kept the wiki online, but just to make sure inbound links don&#39;t 404. Most of the old wiki content has been copied to the new docs site, though it was in some cases rearranged or rewritten. Any new info will be going into the docs site.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 17th 2012, 7:38:52 pm">May 17th 2012</span>
+								by <span class='authorname'>Tim Poulsen</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>5</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-238865">
+				
+						<section>
+							<p>Hello Jason.</p>
+<p>You need to have in mind that there are two kinds of objects in JS environments - host and native objects. Native objects are defined by ECMAScript specification, while the same specification states that host object are objects provided by host environment (Titanium in this case) and that they can behave differently from native objects and that they do not need to implement functionality that native objects has.</p>
+<p>That said, JS is object-based language. It uses prototypes to implement OOP. And that works fine with native objects. But with host objects (Titanium in this case) we can&#39;t do the same thing as with native objects because they do not implement internal prototype property and they cannot be prototype of some other object. So, it is imposible to use inheritance on Titanium host objects.</p>
+<p>Still, there are few approaches that can be used to implement inheritance in Titanium. I used one and in that approach I used native objects as configuration objects that can be inherited. I wasn&#39;t too happy with that approach and I developed new approach that I currently work on. I wrote native-like Titanium wrappers. Basic idea is similar to the one presented in Community app, but far more better in regard to inheritance. The problem with approach in Community app is that wrapper object (native object that acts as proxy to host object) cannot be used for inheritance without calling its parent constructor. The thing is that host Titanium object is created in function constructor and if you try to use wrapper objet as prototype, only one host Titanium object will be created.</p>
+<p>In general, there is a problem with understanding how OOP works in JS (because they came from class-based languages) and many people put their logic in constructor function, which is semantically wrong because constructor is not inherited (it can be seen as outside entity).</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ExtendedView</span><span class="hljs-params">()</span> {</span>
+    //need <span class="hljs-keyword">to</span> <span class="hljs-keyword">do</span> this <span class="hljs-keyword">to</span> <span class="hljs-keyword">make</span> it work
+    //View.<span class="hljs-built_in">call</span>(this);
+}
+
+ExtendedView.prototype = <span class="hljs-keyword">new</span> View(); // <span class="hljs-keyword">only</span> one TiUIView <span class="hljs-keyword">is</span> created
+</code></pre><p>In my opinion, that approach is not good. One guy solved that by using &quot;init&quot; method:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">View</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.init();
+}
+
+View.prototype.init = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">//create TiUIView</span>
+}
+</code></pre><p>This approach is better, but still, when extending some component, this &quot;init&quot; method must be called:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ExtendedView</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.init();
+}
+
+ExtendedView.prototype = <span class="hljs-keyword">new</span> View();
+</code></pre><p>My new approach (called ZenTi) solves all this problems and any UI component can be extended with standard &quot;extend&quot; function used in popular DOM frameworks. The best thing is that there are no hacks involved. :)</p>
+<p>Here is fist look: <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;2028016">https:&#x2F;&#x2F;gist.github.com&#x2F;2028016</a></p>
+<p>UI components can be extended, they are truly native objects and everything you do with native objects can be done with my wrappers also. For example, you can use &quot;hasOwnProperty&quot;, &quot;instanceof&quot;, etc.</p>
+<p>It&#39;s not open-source yet, but it should be soon … so stay around if you are interested (I&#39;ll write a blog post about OOP in JS and implementation details of my ZenTi wrappers in particular).</p>
+<p>Cheers, Ivan.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2012, 11:11:49 am">May 17th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/137094/parasitic-inheritance-and-proxy-objects#answer-238865" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>+1 for a great explanation  and +1 for the question as I hope it catches the attention of other new ti developers as they browse the Q&amp;A.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 11:36:19 am">May 17th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Good info about JS OO design, Ivan.  I look forward to seeing your ZenTi work.</p>
+<p>To clarify, I don&#39;t want to use host objects as prototypes for my classes, but I&#39;ve been using parasitic inheritance to build custom view classes.  It seems to work, but maybe there will be stability&#x2F;reliability issues down the road.</p>
+<p>Look at this code example from the Community project:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">EventsView</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> _ = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/lib/underscore'</span>),
+        theme = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/theme'</span>),
+        ui = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/components'</span>);
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = <span class="hljs-keyword">new</span> ui.View();
+
+    <span class="hljs-keyword">self</span>.add(<span class="hljs-keyword">new</span> ui.Label(<span class="hljs-string">'Events'</span>, {
+        color:<span class="hljs-string">'#ffffff'</span>
+    }));
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+}
+
+module.exports = EventsView;
+</code></pre><p>Note that ui.View() is defined as this:</p>
+<pre><code class="hljs">exports.View = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(args)</span> </span>{
+    <span class="hljs-keyword">return</span> Ti.UI.createView(args);
+};
+</code></pre><p>So the <code>EventsView()</code> constructor is returning a proxy UI object, which is not good practice according to the wiki.  </p>
+<p>Is the wiki outdated or is the Community code not following best practices?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 11:47:01 am">May 17th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Unfortunately both the wiki and my code are right in different senses.  <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2012&#x2F;02&#x2F;what-is-a-titanium-proxy-object.html">Titanium proxy objects</a> do not have a prototype (which one actually doesn&#39;t want to extend anyway - I rarely want to extend the prototype of Ti.UI.View.  I want to create subclasses of Ti.UI.View).  On top of that, proxy objects have other magical attributes, which that blog post describes somewhat.  So standard inheritance techniques in JavaScript are challenging, including <a href="http:&#x2F;&#x2F;www.crockford.com&#x2F;javascript&#x2F;inheritance.html">parasitic inheritance</a>.  On Android and mobile web, this technique works just fine.  On iOS, proxy objects will &quot;intercept&quot; certain function calls and assignments, so occasionally you will run into naming collisions.</p>
+<p>Fixing this will be a major effort in the core, so until that happens, developers have two choices:</p>
+<ul>
+<li><p>Use parasitic inheritance with caution, and know that hanging custom methods and properties off the &quot;parent&quot; object may fail for &quot;setXXX&quot; and &quot;getXXX&quot; function names and known properties of the underlying native object</p>
+</li>
+<li><p>Use a &quot;wrapper&quot; object, of which a proxy object is a member.</p>
+</li>
+</ul>
+<p>Quite frankly, neither of these approaches is optimal.  What is needed is a proper component model for Titanium, which is being worked on as part of a higher level framework for Titanium apps.  We plan to move that development process out into the OSS community for comment soon.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 12:24:41 pm">May 17th 2012</span>
+											by <span class='authorname'>Kevin Whinnery</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>&quot;EventsView&quot; actually is not constructor, but regular function (because it returns value), even though it is called as constructor. That approach is old and it works fine, but it is not the most efficient one. You can return UI proxy object, I don&#39;t know where Wiki states it does not, that&#39;s pretty common practice.</p>
+<p>And in my opinion, that approach is far from being OO approach. Just try to extend that component and change label&#39;s color. Example is simple and parasitic inheritance is fine for simple (native) objects, but, if you want to build large app (in which using OOP has sense), then you&#39;ll find it limited. I used it with configuration objects, but, as I said, wasn&#39;t satisfied with it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 12:26:10 pm">May 17th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Kevin - could you share more info about that higher level framework?</p>
+<p>I wanted to create the same thing (my wrappers are just one part of everything I wanted to implement), but unfortunately I must do other (boring :D ) things.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 12:36:22 pm">May 17th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ivan and Kevin, thanks for great explanations, this is some really great info for the wiki btw :)</p>
+<p>I&#39;ve also seen many people wonder about parasitic inheritance in relation to Titanium, probably because it was never explained in such a nice way - more videos are more in the line of &quot;on iOS our objects do some magic stuff so if you use parasitic inheritance make sure you know what you&#39;re doing or things will break&quot; :)</p>
+<p>This post really explains it well, and yes, basically the only real caveat to be careful about when using it (from my experience) is what Kevin mentioned. Make sure you are not starting any methods with get or set because they will silently fail, which means you might miss it if you&#39;re not doing good unit testing since your code won&#39;t really produce any errors (methods just won&#39;t execute).</p>
+<p>Other than that, I belive parasitic inheritance still has it&#39;s valid place in Titanium app frameworks, it might not be an optimal solution in all cases, but it&#39;s one of the valid solutions. JavaScript is great in the way that you don&#39;t necessarily need strict OOP with long inheritance chains and tons of subclasses (which if you&#39;re coming from strictly class-oriented languages like me, will be your first instinct) and you can still create a pretty decent abstraction framework.</p>
+<p>@Ivan: I love that extend approach on gist! Hope you do get around to making your library available in the future, looks pretty sweet :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 6:20:19 pm">May 17th 2012</span>
+											by <span class='authorname'>Goran Skledar</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Goran. :)</p>
+<p>I started to work on article about ZenTi, so it should be out soon. It might not be totally complete when I make it public, but I hope that with help of good programmers from community it can become superb. :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 18th 2012, 7:19:49 am">May 18th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238877">
+				
+						<section>
+							<p>Kevin: thanks for the thorough explanation of the naming collision problem.  I was worried that I&#39;d be dealing with stranger, more intermittent problems.  It sounds like if I use PI, if I end up with the collisions on iOS, the problem will show up in testing.  Now that I understand the exact risks involved, I can use the technique safely.  (BTW – your explanation would really enhance the best practices wiki page ;-))</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2012, 1:21:08 pm">May 17th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/137094/parasitic-inheritance-and-proxy-objects#answer-238877" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238891">
+				
+						<section>
+							<p>I have made some mods to this idea and also added mapping of object properties for better setting&#x2F;getting and added some helper functions. Check out <a href="https:&#x2F;&#x2F;github.com&#x2F;Xogix&#x2F;Shimmy.js&#x2F;blob&#x2F;master&#x2F;Shimmy.js">Shimmy.js</a>. Still needs some features implemented so Feel free to fork and improve.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2012, 4:05:39 pm">May 17th 2012</span>
+								by <span class='authorname'>Christian Sullivan</span><br>
+								<a class="icon-bg icon-link" href="question/137094/parasitic-inheritance-and-proxy-objects#answer-238891" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-241327">
+				
+						<section>
+							<p>25</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 19th 2012, 10:00:42 pm">June 19th 2012</span>
+								by <span class='authorname'>Bill Freedman</span><br>
+								<a class="icon-bg icon-link" href="question/137094/parasitic-inheritance-and-proxy-objects#answer-241327" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

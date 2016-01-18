@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>User sessions / need to implement &#39;Remember me&#39; functionality » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>User sessions / need to implement &#39;Remember me&#39; functionality</h1>
+		</header>
+		<section>
+			<p>Hi fellow Appcelerators, I am trying to implement user session functionality into my app, but am struggling with getting this to function as I would like it to. I have a basic table (login form), which a user can type in their &#39;username&#39; and &#39;password&#39;.  I have a PHP script which authenticates the typed in details on submit. Once authenticated within the app, the user is able to view more windows than the average person. I am wanting to give the user the option to toggle a switch which remembers their login info, so that when the app is hidden or closed, and they return to the app on their device, they would automatically be authenticated without having to re-type in their credentials. I&#39;m guessing I will need a fire event somewhere in my <em>app.js</em> code, which will first try and log the user in with their stored credentials.  If the stored credentials are not found (ie. they did not choose to save their password), then it will re-direct them to the loginWin to log in.</p>
+<p>I currently have the user authentication working and a few of the other inner workings, but am getting hung up on storing the credentials to the phone, reading the stored data upon app reload, etc. I&#39;ve stripped down my code quite a bit to appropriately fit this Q&amp;A. If you can point me in any direction, tutorials, provide me some of your own code at how you tackled this, etc, I would greatly appreciate it!  Thanks! I&#39;ve been trying to make sense of these posts:  <a href="http:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;5742233&#x2F;appcelerator-handling-user-sessions&#x2F;5831290#5831290">Stack Overflow: Handling user sessions</a> &amp; <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;117952&#x2F;remember-me--session-implementation">Remember me session implementation</a></p>
+<p><strong>loginWin.js file</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> loginWin = Titanium.UI.createWindow();
+<span class="hljs-keyword">var</span> username = Ti.UI.createTextField();
+<span class="hljs-keyword">var</span> password = Ti.UI.createTextField();
+<span class="hljs-keyword">var</span> saveLogin = Titanium.UI.createSwitch({
+    <span class="hljs-keyword">value</span>:<span class="hljs-keyword">false</span>
+});
+saveLogin.addEventListener(<span class="hljs-string">'change'</span>, function() {
+    <span class="hljs-keyword">if</span> (e.<span class="hljs-keyword">value</span>==<span class="hljs-keyword">true</span>){
+        <span class="hljs-comment">// 'Save credentials' set to on…so, save credentials to local Properties string</span>
+        Ti.App.Properties.setString(<span class="hljs-string">'account_username'</span>,username.<span class="hljs-keyword">value</span>);
+        Ti.App.Properties.setString(<span class="hljs-string">'account_password'</span>,Ti.Utils.md5HexDigest(password.<span class="hljs-keyword">value</span>));
+    } <span class="hljs-keyword">else</span> {
+        Ti.App.Properties.setString(<span class="hljs-string">'account_username'</span>,<span class="hljs-keyword">null</span>);
+        Ti.App.Properties.setString(<span class="hljs-string">'account_password'</span>,<span class="hljs-keyword">null</span>);
+    }
+});
+
+<span class="hljs-keyword">var</span> loginButton = Titanium.UI.createButton();
+
+<span class="hljs-comment">// Check user credentials against remote database ('POST' to server)</span>
+<span class="hljs-keyword">var</span> loginReq = Titanium.Network.createHTTPClient();
+
+loginButton.addEventListener(<span class="hljs-string">'click'</span>, function(e) {
+    <span class="hljs-comment">// set login strings to variables</span>
+    <span class="hljs-keyword">var</span> login_user = Ti.App.Properties.getString(<span class="hljs-string">'account_username'</span>);
+    <span class="hljs-keyword">var</span> login_pass = Ti.App.Properties.getString(<span class="hljs-string">'account_password'</span>);
+
+    <span class="hljs-comment">// check &amp; see if account info is stored under properties</span>
+    <span class="hljs-keyword">if</span> (login_user.length != <span class="hljs-number">0</span> &amp;&amp; login_pass.length != <span class="hljs-number">0</span>) {
+        loginReq.open(<span class="hljs-string">"POST"</span>, <span class="hljs-string">"http://example.com/post_auth.php"</span>);
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">params</span> = {
+            username: login_user,
+            password: login_pass
+        };
+        loginReq.send(<span class="hljs-keyword">params</span>);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-comment">// send credentials from form itself, for single user session</span>
+        <span class="hljs-keyword">if</span> (username.<span class="hljs-keyword">value</span> != <span class="hljs-string">''</span> &amp;&amp; password.<span class="hljs-keyword">value</span> != <span class="hljs-string">''</span>) {
+            loginReq.open(<span class="hljs-string">"POST"</span>, <span class="hljs-string">"http://example.com/post_auth.php"</span>);
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">params</span> = {
+                username: username.<span class="hljs-keyword">value</span>,
+                password: Ti.Utils.md5HexDigest(password.<span class="hljs-keyword">value</span>)
+            };
+            loginReq.send(<span class="hljs-keyword">params</span>);
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">"Username/Password are required"</span>);
+        }
+    }
+});
+
+<span class="hljs-comment">// add objects to window</span>
+loginWin.add(username,password,saveLogin,loginButton);
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 11th 2012, 4:07:05 pm">February 11th 2012</span>
+				by <span class='authorname'>Kyle Affolder</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>authentication</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>remember me</span></li>
+					
+						<li><span class='tagname'>user session</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-230073">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi Kyle Affolder,</p>
+<p>You missed e parameter of callback function in <code>change</code> event listener. You&#39;ll see <code>Can&amp;#39;t find variable: e</code> error message throws on Console of Titanium Studio. That&#39;s why user credentials have never been stored :)</p>
+<p>Your code should modify like this:</p>
+<pre><code class="hljs"><span class="hljs-tag">saveLogin</span><span class="hljs-class">.addEventListener</span>(<span class="hljs-string">'change'</span>, <span class="hljs-function">function</span>(e) {
+    <span class="hljs-tag">if</span> (e.value==true){
+        ...
+    } <span class="hljs-tag">else</span> {
+        ...
+    }
+}
+</code></pre><p>Another issue with below code:</p>
+<pre><code class="hljs">var login_user =<span class="hljs-function"> Ti.App.Properties.getString(</span>'account_username'<span class="hljs-function">)</span>;
+var login_pass =<span class="hljs-function"> Ti.App.Properties.getString(</span>'account_password'<span class="hljs-function">)</span>;
+
+//<span class="hljs-instruction"> check </span>&amp; see<span class="hljs-instruction"> if </span>account info is stored under properties<span class="hljs-instruction">
+if </span>(login_user.length != 0 &amp;&amp; login_pass.length != 0<span class="hljs-function">)</span>
+</code></pre><p>If account_username is not stored on Properties - it&#39;s null, then <code>login_user.length</code> will cause error. To fix it, you can use default value like this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> login_user = Ti.App.Properties.getString(<span class="hljs-string">'account_username'</span>, <span class="hljs-string">''</span>);
+</code></pre><p>Best,</p>
+<p>Minh</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 11th 2012, 8:20:21 pm">February 11th 2012</span>
+								by <span class='authorname'>Minh Nguyen</span><br>
+								<a class="icon-bg icon-link" href="question/132013/user-sessions--need-to-implement-remember-me-functionality#answer-230073" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>BTW - There&#39;s a tool called <a href="https:&#x2F;&#x2F;marketplace.appcelerator.com&#x2F;apps&#x2F;787">KeyChain</a> that helps to store sensitive information securely for iOS. It may be helpful for your case, take a look :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 11th 2012, 8:27:21 pm">February 11th 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Minh!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 12th 2012, 2:56:15 pm">February 12th 2012</span>
+											by <span class='authorname'>Kyle Affolder</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><a href="https:&#x2F;&#x2F;github.com&#x2F;aaronksaunders&#x2F;clearlyinnovative.keychain">https:&#x2F;&#x2F;github.com&#x2F;aaronksaunders&#x2F;clearlyinnovative.keychain</a> free module</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2012, 1:28:25 am">February 13th 2012</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for sharing! But I cannot find any module in your link beside README file.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2012, 1:36:40 am">February 13th 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Minh…thanks for your help on my couple of Q&amp;A posts. I found the download link to the module that Aaron posted. The zip file was buried in his github project. <a href="https:&#x2F;&#x2F;github.com&#x2F;downloads&#x2F;aaronksaunders&#x2F;clearlyinnovative.keychain&#x2F;clearlyinnovative.keychain-iphone-0.1.zip">Download &#39;clearlyinnovative.keychain&#39;</a> Hope that helps! Thanks for this Aaron!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2012, 2:47:48 am">February 13th 2012</span>
+											by <span class='authorname'>Kyle Affolder</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Oh great! Will try that soon :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2012, 3:08:35 am">February 13th 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

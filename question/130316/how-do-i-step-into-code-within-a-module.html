@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How do I &#34;step into&#34; code within a module? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How do I &#34;step into&#34; code within a module?</h1>
+		</header>
+		<section>
+			<p>Ever since I refactored my app into modules, I can&#39;t seem to set any breakpoints nor step into the code imported using &#39;require&#39;. This hinders development A LOT.<br>Is there any way to fix this?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 6th 2012, 11:53:23 am">January 6th 2012</span>
+				by <span class='authorname'>T L</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>breakpoint</span></li>
+					
+						<li><span class='tagname'>debugging</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>require</span></li>
+					
+						<li><span class='tagname'>step into</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Of course I mean javascript, not native modules.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 6th 2012, 12:28:30 pm">January 6th 2012</span>
+								by <span class='authorname'>T L</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-226908">
+				
+						<section>
+							<p>the only way to debug modules at this time - is Ti.API.[log, debug, etc]</p>
+<p><strong><em>yep… hate it myself.</em></strong></p>
+<p>my workaround (kinda) is: i do all the tracing in modules by calling one function which checks if there is a handler for the output in the main code, and if there is - calls this handler with the message. that way i can control later what i want to do with the trace in the main code.</p>
+<p>something like this:</p>
+<p><strong><em>in &#39;mymodule&#39; module:</em></strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> traceCallback = <span class="hljs-literal">null</span>;
+
+exports.captureTrace = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(handler)</span> </span>{
+   traceCallback = handler;
+}
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">trace</span> = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(type, message)</span> </span>{
+
+   Ti.App.log(type + <span class="hljs-string">': '</span> + message);
+
+   <span class="hljs-keyword">if</span> (traceCallback !== <span class="hljs-literal">null</span>)
+   {
+      traceCallback(type, message);
+   }
+}
+</code></pre><p><strong><em>in the main code:</em></strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> md = <span class="hljs-built_in">require</span>(<span class="hljs-string">'mymodule'</span>);
+
+md.captureTrace = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">type, message</span>) </span>{
+
+   <span class="hljs-keyword">if</span> (type == <span class="hljs-string">'breakpoint'</span>)
+   {
+      <span class="hljs-keyword">if</span> (message == <span class="hljs-string">'br1'</span>)
+      {
+         <span class="hljs-keyword">debugger</span>;   <span class="hljs-comment">// hit my br1 breakpoint</span>
+      }
+
+      <span class="hljs-keyword">if</span> (message == <span class="hljs-string">'br2'</span>)
+      {
+         <span class="hljs-keyword">debugger</span>;   <span class="hljs-comment">// hit my br2 breakpoint</span>
+      }
+   }
+   <span class="hljs-keyword">else</span>
+   {
+      Ti.API.log(type, message);
+   }
+}
+</code></pre><p>this way if i need to have a breakpoint in the module, i&#39;d put there: </p>
+<pre><code class="hljs"><span class="hljs-comment">// the 2nd parameter in the trace tells me what breakpoint this is for:</span>
+<span class="hljs-keyword">trace</span>(<span class="hljs-string">'breakpoint'</span>, <span class="hljs-string">'br1'</span>);
+....
+<span class="hljs-keyword">trace</span>(<span class="hljs-string">'breakpoint'</span>, <span class="hljs-string">'br2'</span>);
+...
+</code></pre><p>hope it helps.</p>
+<p>good luck!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 6th 2012, 1:39:53 pm">January 6th 2012</span>
+								by <span class='authorname'>yury bogomo</span><br>
+								<a class="icon-bg icon-link" href="question/130316/how-do-i-step-into-code-within-a-module#answer-226908" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-226907">
+				
+						<section>
+							<p>Good question, I would like to know this too.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 6th 2012, 1:28:02 pm">January 6th 2012</span>
+								by <span class='authorname'>Sharry Stowell</span><br>
+								<a class="icon-bg icon-link" href="question/130316/how-do-i-step-into-code-within-a-module#answer-226907" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

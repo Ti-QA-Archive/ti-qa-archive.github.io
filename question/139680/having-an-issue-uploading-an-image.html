@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Having an issue uploading an image » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Having an issue uploading an image</h1>
+		</header>
+		<section>
+			<p>This is working on the iPhone but for some reason with android the image uploads, it is the correct size but it is corrupted.</p>
+<p>What i do below is take the photo, resize it using image factory (the image is fine after resize. Im looking at it on the phone) and then upload it to the server. Any ideas on whats going wrong?</p>
+<pre><code class="hljs">tw.ui.takePhoto = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">vin</span>)</span>{
+
+
+        Titanium.Media.showCamera({
+            success:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">event</span>)
+            </span>{
+                <span class="hljs-keyword">var</span> cropRect = event.cropRect;
+                <span class="hljs-keyword">var</span> image = event.media;
+
+                Ti.API.debug(<span class="hljs-string">'Our type was: '</span>+event.mediaType);
+                <span class="hljs-keyword">if</span>(event.mediaType == Ti.Media.MEDIA_TYPE_PHOTO)
+                {
+                    Ti.App.fireEvent(<span class="hljs-string">'show_indicator'</span>);
+                    <span class="hljs-keyword">var</span> image = event.media
+
+                    <span class="hljs-keyword">var</span> newImage  = resizeKeepAspectRatioNewHeight(image, <span class="hljs-number">1937</span>, <span class="hljs-number">1937</span>, <span class="hljs-number">500</span>);
+                     <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,vin + <span class="hljs-string">'-'</span> + currentPhotos + <span class="hljs-string">'.png'</span>);
+                        f.write(newImage);
+                        <span class="hljs-keyword">var</span> data_to_send = { 
+                        <span class="hljs-string">"image"</span>: f.read(), 
+                        <span class="hljs-string">"name"</span>: vin + <span class="hljs-string">'-'</span> + currentPhotos + <span class="hljs-string">'.png'</span>
+                    };
+
+                    xhr = Ti.Network.createHTTPClient();
+
+                    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+                    </span>{
+                      <span class="hljs-keyword">if</span>(!isAndroid){
+                        <span class="hljs-keyword">var</span> a = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Object</span>;
+                        <span class="hljs-keyword">var</span> progress = e.progress;
+                        progress = progress * <span class="hljs-number">100</span>
+                        progress = <span class="hljs-built_in">parseInt</span>(progress)
+
+                        a.title = <span class="hljs-string">'Loading '</span> + progress + <span class="hljs-string">'%'</span> ;
+                           Ti.App.fireEvent(<span class="hljs-string">'change_title'</span>,a);
+                       }
+                    };
+
+                    xhr.open(<span class="hljs-string">"POST"</span>, siteurl + <span class="hljs-string">"app/uploadnew.html?name="</span> + vin + <span class="hljs-string">'-'</span> + currentPhotos + <span class="hljs-string">'.png'</span>);
+                    xhr.setRequestHeader(<span class="hljs-string">"enctype"</span>, <span class="hljs-string">"multipart/form-data"</span>);
+                    xhr.setRequestHeader(<span class="hljs-string">"Content-Type"</span>, <span class="hljs-string">"image/png"</span>);
+                    xhr.send(data_to_send); 
+                    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+                        <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText)
+                        <span class="hljs-keyword">if</span>(response.status == <span class="hljs-string">'error'</span>){
+                            Ti.App.fireEvent(<span class="hljs-string">'hide_indicator'</span>);
+                            showError(<span class="hljs-string">'Error'</span>,response.description);
+                        }<span class="hljs-keyword">else</span>{
+                            currentPhotos = currentPhotos + <span class="hljs-number">1</span>
+                            lblPhotos.text = <span class="hljs-string">'Photos Taken:'</span> + currentPhotos;
+                            Ti.App.fireEvent(<span class="hljs-string">'hide_indicator'</span>);
+                        }
+                    };
+
+
+
+
+                }
+                <span class="hljs-keyword">else</span>
+                {
+                    alert(<span class="hljs-string">"got the wrong type back ="</span>+event.mediaType);
+                }
+            },
+            cancel:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+            </span>{
+            },
+            error:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">error</span>)
+            </span>{
+                <span class="hljs-comment">// create alert</span>
+                <span class="hljs-keyword">var</span> a = Titanium.UI.createAlertDialog({title:<span class="hljs-string">'Camera'</span>});
+
+                <span class="hljs-comment">// set message</span>
+                <span class="hljs-keyword">if</span> (error.code == Titanium.Media.NO_CAMERA)
+                {
+                    a.setMessage(<span class="hljs-string">'Please run this test on device'</span>);
+                }
+                <span class="hljs-keyword">else</span>
+                {
+                    a.setMessage(<span class="hljs-string">'Unexpected error: '</span> + error.code);
+                }
+
+                <span class="hljs-comment">// show alert</span>
+                a.show();
+            },
+            saveToPhotoGallery:<span class="hljs-literal">false</span>,
+            allowEditing:<span class="hljs-literal">true</span>,
+            mediaTypes:[Ti.Media.MEDIA_TYPE_VIDEO,Ti.Media.MEDIA_TYPE_PHOTO]
+        });
+    }
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 13th 2012, 8:12:41 pm">July 13th 2012</span>
+				by <span class='authorname'>chris smashe</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>camera</span></li>
+					
+						<li><span class='tagname'>resize</span></li>
+					
+						<li><span class='tagname'>upload</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>more info. Found out is is because it is uploading the file as a jpeg file but its a incorrect encoded jpeg file. it will not show in a browser. It will open in photoshop (but i need to have it work without doing that), it will not open server side to modify it. I get the following error<br>Not a JPEG file: starts with 0x6e 0x74<br>Any ideas?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 13th 2012, 10:49:48 pm">July 13th 2012</span>
+								by <span class='authorname'>chris smashe</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>More into. The phone saves the images fine to the phone. The extension is .jpg. I can upload the image and it works fine in a browser. The image that gets uploaded with the above code (except i change it not to resize the image and the content type to .jpg and when the image gets uploaded it gets changed to .jpeg extension and the .jpeg file is not correctly encoded.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 14th 2012, 11:30:24 am">July 14th 2012</span>
+								by <span class='authorname'>chris smashe</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

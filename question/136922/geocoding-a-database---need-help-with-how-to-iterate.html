@@ -1,0 +1,225 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Geocoding a Database - need help with how to iterate » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Geocoding a Database - need help with how to iterate</h1>
+		</header>
+		<section>
+			<p>I have a relatively simple need, but for me it&#39;s become a wall banger.<br>I have a Titanium SQL database of addresses that I need to run a geocode lookup and populate the results of long&#x2F;lat back to the database records.</p>
+<p>My problem lies in understanding how to iterate through the database and call the geocode results knowing that the geocode procedure is done asynchronously.</p>
+<p>Currently I am thinking this but it obviously does not work.  I don&#39;t need the code written for me but could use help architecturally getting this right.</p>
+<p>My current challenge:<br>Open Database<br>While row is valid loop<br>Read record<br>Call geocode using address field<br>Get results and repost back to database record<br>repeat until end of database</p>
+<p>The above process won&#39;t work because when you call the geocode it is async and returns right away.  Can anyone help me re-arrange or re-structure my thought process to make this work for an async process?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 14th 2012, 2:53:47 pm">May 14th 2012</span>
+				by <span class='authorname'>Stephen Flournoy</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>geocode</span></li>
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+						<li><span class='tagname'>geolocation geocode</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-238550">
+				
+						<section>
+							<p>I use app level events to make asynchronous events perform more synchronously.  Aaron Saunders got my thinking this way after reading one of his articles on making using HTTPclient performing synchronous through nesting. </p>
+<p>In his case, at the end of a successful http call, he made a call to the function that launched the first.</p>
+<p>I would say that you have an app level event fire off your update function.  After a successful update, fire the event, passing it the next record that needs to be updated.</p>
+<p>In one of our apps, we do this to control the update speed of a database, pulling in remote json information in chunks instead of the entire db update at one time.</p>
+<p>App events carry a lot of power and control and are often overlooked.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 14th 2012, 3:51:25 pm">May 14th 2012</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/136922/geocoding-a-database---need-help-with-how-to-iterate#answer-238550" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238552">
+				
+						<section>
+							<p>All you need is to replace a regular loop through recursive call. That said:</p>
+<pre><code class="hljs">..
+<span class="hljs-keyword">var</span> rs = ..;
+
+<span class="hljs-keyword">var</span> getCoordinates = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(address, callback)</span> </span>{
+    Ti.Geolocation.forwardGeocoder(address, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">if</span>(e.success &amp;&amp; <span class="hljs-keyword">callback</span>) {
+            <span class="hljs-keyword">callback</span>.call(<span class="hljs-literal">null</span>, e.latitude, e.longitude);
+        }
+    }
+};
+<span class="hljs-keyword">var</span> geocoded = [];
+<span class="hljs-keyword">var</span> geocodeAll = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">if</span>(rs.isValidRow() {
+        <span class="hljs-keyword">var</span> address = rs.fieldByName(...);
+        getCoordinates(address, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(latitude, longitude)</span> </span>{
+            <span class="hljs-keyword">var</span> obj = {
+                id : rs.fieldByName(<span class="hljs-string">'id'</span>),
+                latitude : latitude,
+                longitude : longitude
+            };
+            geocoded.push(obj);
+            rs.next();
+            geocodeAll();
+        });
+    } <span class="hljs-keyword">else</span> {
+        rs.close();
+
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> idx <span class="hljs-keyword">in</span> gecoded) {
+            <span class="hljs-keyword">var</span> adr = gecoded[idx];
+            db.execute(... WHERE id = ?, adr.id); <span class="hljs-comment">// update address row</span>
+        }
+        db.close();
+    }
+}
+</code></pre><p>somewhat of that should do it</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 14th 2012, 3:57:12 pm">May 14th 2012</span>
+								by <span class='authorname'>Alexander Bauer</span><br>
+								<a class="icon-bg icon-link" href="question/136922/geocoding-a-database---need-help-with-how-to-iterate#answer-238552" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>As I see there are some typos, but thats more guide code than a production :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 14th 2012, 4:01:15 pm">May 14th 2012</span>
+											by <span class='authorname'>Alexander Bauer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thank you!  I&#39;ll try it.  I just needed some help with the logic.  Back to you if my version of the code doesn&#39;t work!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 14th 2012, 4:31:34 pm">May 14th 2012</span>
+											by <span class='authorname'>Stephen Flournoy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Alexander, if you don&#39;t mind, what does callback.call do?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 15th 2012, 10:49:35 pm">May 15th 2012</span>
+											by <span class='authorname'>Stephen Flournoy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>it executes a function, you can execute in 3 ways</p>
+<pre><code class="hljs"><span class="hljs-number">1</span>. callback(<span class="hljs-keyword">param</span>1, <span class="hljs-keyword">param</span>2);
+<span class="hljs-number">2</span>. callback.call(context, <span class="hljs-keyword">param</span>1, <span class="hljs-keyword">param</span>2);
+<span class="hljs-number">3</span>. callback.apply(context, [param1, <span class="hljs-keyword">param</span>2]);
+</code></pre><p>conext means the object which executes the function, this object is then avaible Inside the function through <code>this</code>. So in this we do not need the context, therefore its <code>null</code>.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 16th 2012, 4:05:35 am">May 16th 2012</span>
+											by <span class='authorname'>Alexander Bauer</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

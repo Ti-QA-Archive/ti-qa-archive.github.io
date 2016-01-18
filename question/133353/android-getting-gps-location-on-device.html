@@ -1,0 +1,449 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android: Getting GPS location on device » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android: Getting GPS location on device</h1>
+		</header>
+		<section>
+			<p>Hello.</p>
+<p>I can&#39;t get GPS location on Android (3.1) device that I use, a KitchenSink example does not work also.</p>
+<p>Here is error message:</p>
+<p>{&quot;message&quot;:&quot;location is currently unavailable.&quot;,&quot;code&quot;:2}</p>
+<p>I enabled GPS in &quot;Location &amp; security&quot;, I am using custom AndroidManifest.xml file located in &quot;platform&#x2F;android&quot; directory in which I added permissions:</p>
+<p>&lt;uses-permission android:name=&quot;android.permission.ACCESS_FINE_LOCATION&quot;&#x2F;&gt;</p>
+<p>(under &lt;manifest&gt;)</p>
+<p>It seems that GPS actually works because if I try to track GPS location all the time, a GPS icon is shown in bottom bar.</p>
+<pre><code class="hljs">Ti.Geolocation.ACCURACY_BEST;
+Ti.Geolocation.preferredProvider = Ti.Geolocation.PROVIDER_GPS;
+
+Ti.Geolocation.frequency = <span class="hljs-number">1</span>;
+
+//this works
+Ti.Geolocation.addEventListener(<span class="hljs-string">'location'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+    Ti.API.info(<span class="hljs-string">'Getting GPS location ...'</span>);
+    Ti.API.<span class="hljs-built_in">debug</span>(e);
+});
+
+//this always produces <span class="hljs-built_in">error</span>
+Ti.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+    <span class="hljs-keyword">if</span> (!e.success || e.<span class="hljs-built_in">error</span>) {
+        Ti.API.info(<span class="hljs-string">"Code translation: "</span> + translateErrorCode(e.code));
+        <span class="hljs-keyword">return</span>;
+    }
+    //<span class="hljs-keyword">do</span> something with GPS data
+});
+</code></pre><p>Am I missing something? How to get GPS location just once?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 7th 2012, 7:53:07 am">March 7th 2012</span>
+				by <span class='authorname'>Ivan Škugor</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>gps</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>It seems that &quot;getCurrentPosition&quot; works fine when location is once found (by using &quot;location&quot; event). But tracking user location all the time to get their location when necessary is awful. Any thoughts?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 7th 2012, 8:04:47 am">March 7th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>-1</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-233563">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>On Android getCurrentPosition always uses a cached position, as noted in the docs:</p>
+<p>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;latest&#x2F;Titanium.Geolocation.getCurrentPosition-method.html</p>
+<p>On iOS, the OS uses some magic to determine whether the cached position is recent enough, and automatically gets a new fix if not.</p>
+<p>On Android, you&#39;d have to do this yourself. Do a getCurrentPosition… If you get an error, or the timestamp on the location is old, turn on GPS (add the event listener) until you get a fix that&#39;s recent enough, then remove the event listener. A little more code, but it ensures that you get the quality of fix you want.</p>
+<p>If the user has been using maps, or has location turned on for other purposes, the cached location may already be good enough.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 16th 2012, 2:20:02 pm">March 16th 2012</span>
+								by <span class='authorname'>Arthur Evans</span><br>
+								<a class="icon-bg icon-link" href="question/133353/android-getting-gps-location-on-device#answer-233563" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I understand the problem now, thanks a lot. :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 17th 2012, 5:30:29 am">March 17th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Arthur, thanks for clarification. But do you know a example to achieve this? A code to check if the Android location cache is up-to-date or something like that? This issue about Android location it&#39;s quite arcane, nobody knows exactly how things are processed inside Android methods… Apparently neither Appcelerator.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 18th 2013, 10:30:51 pm">March 18th 2013</span>
+											by <span class='authorname'>tiago tecchio</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-258920">
+				
+						<section>
+							<p>Hey all,</p>
+<p>I know this question was asked 1 year back, so I am little late in answering it.</p>
+<p>Our team also faced similar issues with Titanium 3.0.2 on Android.<br>After trying multiple configurations along with location callback in Titanium,<br>we finally were able to find something that gives accurate location.</p>
+<p>You can find the module here, https:&#x2F;&#x2F;github.com&#x2F;Who828&#x2F;titanium-location-module</p>
+<p>I hope it helps people seeking for a better way to get accurate location on Android using Titanium.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 19th 2013, 1:53:50 pm">March 19th 2013</span>
+								by <span class='authorname'>Smit Shah</span><br>
+								<a class="icon-bg icon-link" href="question/133353/android-getting-gps-location-on-device#answer-258920" rel="permalink">permalink</a>
+							</div>
+
+							<h5>14 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi!<br>How do i use this with my code?  How would i call it in a scenario that i would like a start and a stop button for ex and get the Start lat&amp;lon and Stop lat&amp;lon?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 12:27:42 pm">March 23rd 2013</span>
+											by <span class='authorname'>Richard Harrysson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey,  here is a sample code to do what you have asked.</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> startButton = <span class="hljs-keyword">new</span> buttonView(<span class="hljs-string">"Start"</span>);
+<span class="hljs-keyword">var</span> stopButton = <span class="hljs-keyword">new</span> buttonView(<span class="hljs-string">"Stop"</span>);
+<span class="hljs-keyword">var</span> location = <span class="hljs-built_in">require</span>(<span class="hljs-string">'location.js'</span>);
+
+startButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  location.start(action: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">loc</span>) </span>{
+    alert(loc.longitude + <span class="hljs-string">" "</span> + loc.latitude);
+  });
+});
+
+stopButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  location.stop();
+});
+</code></pre><p>It will keep updating the location at every meter till you stop location updates.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 1:44:54 pm">March 23rd 2013</span>
+											by <span class='authorname'>Smit Shah</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok thanx! </p>
+<p>Will this also work for iOS?</p>
+<p>Would something like this give the current lat and lon at the position where Stop is clicked?? </p>
+<pre><code class="hljs">stopButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> {</span>
+alert(<span class="hljs-keyword">loc</span>.longitude + <span class="hljs-string">" "</span> + <span class="hljs-keyword">loc</span>.latitude);
+  location.<span class="hljs-keyword">stop</span>();
+});
+</code></pre><p>Thanx!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 3:18:15 pm">March 23rd 2013</span>
+											by <span class='authorname'>Richard Harrysson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>While we haven&#39;t tested the module with a iOS device explicitly, it should work without any issues.</p>
+<p>About your 2nd question, no it won&#39;t give you the location.<br> Location updates are  only achieved through action callback in location.start.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 3:46:33 pm">March 23rd 2013</span>
+											by <span class='authorname'>Smit Shah</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok so i have to do another location.start in the stopButton then?</p>
+<p>I have an issue with this line</p>
+<pre><code class="hljs">  location.start(<span class="hljs-keyword">action</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(loc)</span></span> {.........
+</code></pre><p> The : gives me an error and if i change it to a , it gives me : &#39;Cant find variable action in *.js&#39;</p>
+<p>Any ideas why?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 4:03:06 pm">March 23rd 2013</span>
+											by <span class='authorname'>Richard Harrysson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Btw do you have skype? If so you could add me if you like my Skype ID: appforcon</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 4:06:05 pm">March 23rd 2013</span>
+											by <span class='authorname'>Richard Harrysson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Apologies, I meant this</p>
+<pre><code class="hljs"><span class="hljs-tag">location</span><span class="hljs-class">.start</span>(<span class="hljs-rules">{ 
+    <span class="hljs-rule"><span class="hljs-attribute">action</span>:<span class="hljs-value"> <span class="hljs-function">function</span>(loc) {
+    <span class="hljs-function">alert</span>(loc.longitude + <span class="hljs-string">" "</span> + loc.latitude)</span></span>;
+  }</span>
+});
+</code></pre><p>Basically location.start takes hash an input with action and error being the two keys. So you can define an error callback in some cases where it fails to fetch a location.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 4:10:36 pm">March 23rd 2013</span>
+											by <span class='authorname'>Smit Shah</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ooops…… just missed a { in the location.start({action:  …..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 4:12:37 pm">3 years ago</span>
+											by <a href="/devlink/profile/1390602/richard-harrysson"><span class="">Richard Harrysson</span></a>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok.<br>I am trying to do this with iOS SDK 6 Ti. SDK 3.0.2.GA</p>
+<p>When i run it i get red screen with &#39;undefined&#39; is not an object (eveluating &#39;Ti.Geolocation.Android.manualMode=!1&#39;) at location.js </p>
+<p>Maybe something like if (Ti.Platform.osname === &#39;android&#39;) {  your stuff  } else { iOS stuff} would do the trick at location.js around line 48?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 4:27:35 pm">March 23rd 2013</span>
+											by <span class='authorname'>Richard Harrysson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Actually there is no need to set manualMode to false as that&#39;s the default setting.<br>(according to<br>http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Geolocation.Android-property-manualMode)</p>
+<p>I have removed that specific line from location.js (you can pull the changes), let me know if you run into any more issues.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 23rd 2013, 4:44:59 pm">March 23rd 2013</span>
+											by <span class='authorname'>Smit Shah</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>HI.</p>
+<p>I have tried it and it works great! </p>
+<p>But i have an issue.</p>
+<p>When i use it with my start button and then stop it works great but when i want to make a new &quot;drive&quot; and press start again it wont fire… </p>
+<p>Here is how i use it in my code.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> location = <span class="hljs-built_in">require</span>(<span class="hljs-string">'location'</span>);
+btnStart.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        location.start({action: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">loc</span>) </span>{
+
+            lat1 = loc.latitude;
+            log1 = loc.longitude;
+             }
+ });
+
+setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+location.stop();
+alert(lat1+<span class="hljs-string">'  '</span>+lat2);
+}, <span class="hljs-number">5000</span>);
+<span class="hljs-comment">//More stuff..........</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 25th 2013, 10:11:36 am">March 25th 2013</span>
+											by <span class='authorname'>Richard Harrysson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Can you change the code to following and see if it works or not,</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> location = <span class="hljs-built_in">require</span>(<span class="hljs-string">'location'</span>);
+btnStart.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        location.start({action: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">loc</span>) </span>{
+         alert(loc.latitude+ <span class="hljs-string">' '</span> + loc.longitude);
+            }
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        location.stop();
+    }, <span class="hljs-number">5000</span>);
+ });
+</code></pre><p>You want to create a new setTimeout every time you click the button,<br>which would stop the location location updates after 5 seconds.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 25th 2013, 11:39:39 am">March 25th 2013</span>
+											by <span class='authorname'>Smit Shah</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for this library, it appears to solve my issue nicely :-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 9th 2013, 3:19:19 pm">May 9th 2013</span>
+											by <span class='authorname'>David King</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Happy to hear that it helped, thanks for letting me know :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 9th 2013, 3:45:06 pm">May 9th 2013</span>
+											by <span class='authorname'>Smit Shah</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-232622">
+				
+						<section>
+							<p>Location is not available on the emulator. You need to use DDMS to poke a pretend location into the emulator</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 7th 2012, 8:54:46 am">March 7th 2012</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/133353/android-getting-gps-location-on-device#answer-232622" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I&#39;m trying to get location on device. You must have missed that part …</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 7th 2012, 9:05:41 am">March 7th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Doh! Sorry…. I have used <code>getCurrentPosition</code> successfully with only one caveat. It occasionally fires the callback more than once, so I just have to ensure I dont process the result twice.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 7th 2012, 9:08:08 am">March 7th 2012</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

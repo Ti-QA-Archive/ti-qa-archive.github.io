@@ -1,0 +1,484 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Managing memory with Instruments : question about TiUIWindow » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Managing memory with Instruments : question about TiUIWindow</h1>
+		</header>
+		<section>
+			<p>Hello,</p>
+<p>I can&#39;t modifiy my last post, so I&#39;m creating a new one with more explanations.</p>
+<p>Here is a screen capture of Instruments :</p>
+<p><img src="http:&#x2F;&#x2F;img338.imageshack.us&#x2F;img338&#x2F;5361&#x2F;capturedcran20120121152.png" alt="alt text"></p>
+<p>Could you tell me the difference between <strong>TiUiWindow</strong> and <strong>TiUIWindowProxy</strong> ?</p>
+<p>My problem is, when I remove and clear my window on exit window, the <strong>TiUiWindow</strong> value decrease, but not the <strong>TiUiWindowProxy</strong> value. Do you know why ?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 21st 2012, 12:34:49 pm">January 21st 2012</span>
+				by <span class='authorname'>Xavier C.</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>instruments</span></li>
+					
+						<li><span class='tagname'>memory leaks</span></li>
+					
+						<li><span class='tagname'>tiuiwindow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-228174">
+				
+						<section>
+							<p>Hi Xavier,<br>TiUIWindowProxy is the object you get returned when calling Ti.UI.createWindow(). This will hold a reference to a TiUIWindow object, which is directly responsible for the management of the onscreen view. You can see the same pattern with every view component, e.g. TiUIImageView &amp; TiUIImageViewProxy, etc.</p>
+<p>The proxy exposes the API of the UI component (all methods and properties you can invoke from Javascript), and it will create the view object when necessary. In particular, not all the methods you call on the proxy via JS are necessarily reflected to the view immediately. They may be deferred to when the view is actually visible onscreen. Moreover, if the view is not visible, it can be deallocated at any time and  the proxy will re-instantiate it when needed. So this is probably why you see this kind of behaviour. When you close the window the view object can be deallocated, but the proxy object is still in memory. This in turn will possibly be deallocated, but this highly depends on the structure of your code.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 21st 2012, 1:07:38 pm">January 21st 2012</span>
+								by <span class='authorname'>Olivier Morandi</span><br>
+								<a class="icon-bg icon-link" href="question/130971/managing-memory-with-instruments--question-about-tiuiwindow#answer-228174" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Ok I understand more or less how it works. The thing is I have a problem to remove the child window (nd what it contains) when I click on back button. I don&#39;t know which event to use to remove and clear the window. I tried the events &#39;blur&#39; and &#39;close&#39; but it didn&#39;t work. If it&#39;s a modal window, I&#39;ve no problem to remove it on close event. Here is my code :</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.currentWindow;
+
+<span class="hljs-keyword">var</span> data = [];
+
+<span class="hljs-comment">// TABLE VIEW</span>
+<span class="hljs-keyword">var</span> tableView = Titanium.UI.createTableView({
+    opacity:<span class="hljs-number">0</span>,
+    data: data
+});
+
+<span class="hljs-comment">// FONCTION</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">myFunction</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">// MY FUNCTION...</span>
+}
+
+win.add(tableView);
+
+myFunction();
+
+win.setRightNavButton(supprimerBtn);
+
+<span class="hljs-comment">// EMPTY MEMORY</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">viderMemoire</span><span class="hljs-params">()</span> </span>{
+    win.remove(tableView);
+    tableView = <span class="hljs-literal">null</span>;
+    <span class="hljs-comment">//</span>
+    win.close();
+    win = <span class="hljs-literal">null</span>;
+}
+
+
+<span class="hljs-comment">// WHAT KIND OF EVENT SHOULD I USE ? "blur" and "close" don't work if it'as not a modal window</span>
+Ti.UI.currentWindow.addEventListener(<span class="hljs-string">'blur'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    viderMemoire();
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2012, 2:04:48 pm">January 21st 2012</span>
+											by <span class='authorname'>Xavier C.</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>the child windows should be getting cleaned up close unless there is a reference to an object in the window being held somewhere else.</p>
+<p>can you post a complete example is a gist that demonstrates the behavior?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2012, 4:04:31 pm">January 21st 2012</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In fact, I rebuilt a new example to show you the problem, but I saw that the main problem was made by the suds client. I don&#39;t even know how to remove the suds client on window close. I show you 2 examples, I hope they&#39;ll talk.</p>
+<p>This page is working, when opened by a parent window (through tableView). All object are removed, no problem :</p>
+<pre><code class="hljs">Titanium.<span class="hljs-keyword">include</span>(<span class="hljs-string">'../../../lib/suds.js'</span>);
+
+<span class="hljs-keyword">var</span> win = Ti.UI.currentWindow;
+
+<span class="hljs-comment">// TABLE VIEW</span>
+<span class="hljs-keyword">var</span> tableView = Titanium.UI.createTableView({
+    opacity:<span class="hljs-number">0</span>
+});
+
+<span class="hljs-keyword">var</span> fadeIn = Ti.UI.createAnimation({
+    opacity:<span class="hljs-number">1</span>,
+    duration:<span class="hljs-number">400</span>
+});
+
+<span class="hljs-keyword">var</span> fadeOut = Ti.UI.createAnimation({
+    opacity:<span class="hljs-number">0</span>,
+    duration:<span class="hljs-number">400</span>
+});
+
+<span class="hljs-comment">// INDICATEUR DE CHARGEMENT</span>
+<span class="hljs-keyword">var</span> winContainer = Titanium.UI.createWindow({
+    height:<span class="hljs-number">60</span>,
+    width:<span class="hljs-number">260</span>
+});
+
+<span class="hljs-keyword">var</span> view = Titanium.UI.createView({
+    backgroundColor:<span class="hljs-string">'#000'</span>,
+    height:<span class="hljs-number">60</span>,
+    width:<span class="hljs-number">260</span>,
+    opacity:<span class="hljs-number">0.7</span>,
+    borderRadius:<span class="hljs-number">10</span>
+});
+winContainer.add(view);
+
+<span class="hljs-keyword">var</span> label = Titanium.UI.createLabel({
+    text:<span class="hljs-string">'Chargement en cours...'</span>,
+    color:<span class="hljs-string">'#fff'</span>,
+    textAlign:<span class="hljs-string">'center'</span>,
+    width:<span class="hljs-string">'auto'</span>,
+    height:<span class="hljs-string">'auto'</span>
+});
+winContainer.add(label);
+
+win.add(winContainer);
+
+<span class="hljs-comment">// MAGASIN</span>
+<span class="hljs-keyword">var</span> magasin = Ti.App.Properties.getString(<span class="hljs-string">"magasin"</span>);
+
+<span class="hljs-comment">// FILL TABLEVIEW</span>
+
+    <span class="hljs-keyword">var</span> customData = [];
+
+            <span class="hljs-comment">//</span>
+            customData.push({numeroCase:<span class="hljs-string">"1"</span>});
+            customData.push({numeroCase:<span class="hljs-string">"2"</span>});
+            customData.push({numeroCase:<span class="hljs-string">"3"</span>});
+            customData.push({numeroCase:<span class="hljs-string">"4"</span>});
+            customData.push({numeroCase:<span class="hljs-string">"5"</span>});
+            customData.push({numeroCase:<span class="hljs-string">"6"</span>});
+            customData.push({numeroCase:<span class="hljs-string">"7"</span>});
+            customData.push({numeroCase:<span class="hljs-string">"8"</span>});
+
+            <span class="hljs-keyword">var</span> data = [];
+
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; customData.length; i++) {
+                <span class="hljs-keyword">var</span> row = Titanium.UI.createTableViewRow({
+                    height:<span class="hljs-number">50</span>
+                });
+
+                <span class="hljs-keyword">var</span> numeroCase = Titanium.UI.createLabel({
+                    text:customData[i].numeroCase,
+                    font:{fontSize:<span class="hljs-number">20</span>,fontWeight:<span class="hljs-string">'bold'</span>},
+                    width:<span class="hljs-string">'auto'</span>,
+                    textAlign:<span class="hljs-string">'right'</span>,
+                    left:<span class="hljs-number">10</span>,
+                    height:<span class="hljs-number">50</span>
+                });
+
+                <span class="hljs-keyword">var</span> stock = Titanium.UI.createLabel({
+                    text:<span class="hljs-string">'Stock : épuisé'</span>,
+                    font:{fontSize:<span class="hljs-number">16</span>},
+                    width:<span class="hljs-string">'auto'</span>,
+                    textAlign:<span class="hljs-string">'left'</span>,
+                    left:<span class="hljs-number">90</span>,
+                    height:<span class="hljs-number">50</span>
+                });
+
+                row.add(numeroCase);
+                row.add(stock);
+
+                row.hasChild=customData[i].hasChild;
+
+                row.className = <span class="hljs-string">'vitrine_liste'</span>;
+
+                data.push(row);
+            };
+
+            suds = <span class="hljs-literal">null</span>;
+
+            tableView.setData(data);
+
+            win.add(tableView);
+
+            tableView.animate(fadeIn);
+
+            win.remove(winContainer);
+
+<span class="hljs-comment">// SUPPRIMER/TERMINER</span>
+<span class="hljs-keyword">var</span> supprimerBtn = Titanium.UI.createButton({
+    title:<span class="hljs-string">'Effacer'</span>
+});
+
+supprimerBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    win.setRightNavButton(annulerBtn);
+    tableView.editing = <span class="hljs-literal">true</span>;
+});
+
+<span class="hljs-keyword">var</span> terminerBtn = Titanium.UI.createButton({
+    title:<span class="hljs-string">'Terminer'</span>
+});
+terminerBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    win.setRightNavButton(terminerBtn);
+    tableView.editing = <span class="hljs-literal">false</span>;
+});
+
+win.setRightNavButton(supprimerBtn);
+
+<span class="hljs-comment">// MEMOIRE</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">viderMemoire</span><span class="hljs-params">()</span> </span>{
+    win.remove(tableView);
+    tableView = <span class="hljs-literal">null</span>;
+}
+
+Ti.UI.currentWindow.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    viderMemoire();
+});
+</code></pre><p>When I do a SOAP call with suds client, no objects are removed from the memory :</p>
+<pre><code class="hljs">Titanium.<span class="hljs-keyword">include</span>(<span class="hljs-string">'../../../lib/suds.js'</span>);
+
+<span class="hljs-keyword">var</span> win = Ti.UI.currentWindow;
+
+<span class="hljs-comment">// TABLE VIEW</span>
+<span class="hljs-keyword">var</span> tableView = Titanium.UI.createTableView({
+    opacity:<span class="hljs-number">0</span>
+});
+
+<span class="hljs-keyword">var</span> fadeIn = Ti.UI.createAnimation({
+    opacity:<span class="hljs-number">1</span>,
+    duration:<span class="hljs-number">400</span>
+});
+
+<span class="hljs-keyword">var</span> fadeOut = Ti.UI.createAnimation({
+    opacity:<span class="hljs-number">0</span>,
+    duration:<span class="hljs-number">400</span>
+});
+
+<span class="hljs-comment">// INDICATEUR DE CHARGEMENT</span>
+<span class="hljs-keyword">var</span> winContainer = Titanium.UI.createWindow({
+    height:<span class="hljs-number">60</span>,
+    width:<span class="hljs-number">260</span>
+});
+
+<span class="hljs-keyword">var</span> view = Titanium.UI.createView({
+    backgroundColor:<span class="hljs-string">'#000'</span>,
+    height:<span class="hljs-number">60</span>,
+    width:<span class="hljs-number">260</span>,
+    opacity:<span class="hljs-number">0.7</span>,
+    borderRadius:<span class="hljs-number">10</span>
+});
+winContainer.add(view);
+
+<span class="hljs-keyword">var</span> label = Titanium.UI.createLabel({
+    text:<span class="hljs-string">'Chargement en cours...'</span>,
+    color:<span class="hljs-string">'#fff'</span>,
+    textAlign:<span class="hljs-string">'center'</span>,
+    width:<span class="hljs-string">'auto'</span>,
+    height:<span class="hljs-string">'auto'</span>
+});
+winContainer.add(label);
+
+win.add(winContainer);
+
+<span class="hljs-comment">// MAGASIN</span>
+<span class="hljs-keyword">var</span> magasin = Ti.App.Properties.getString(<span class="hljs-string">"magasin"</span>);
+
+<span class="hljs-comment">// FONCTION</span>
+
+    <span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://localhost/Dnt_Webservice/Service.asmx?wsdl"</span>;
+    <span class="hljs-keyword">var</span> code = Ti.App.Properties.getString(<span class="hljs-string">"code"</span>);
+    <span class="hljs-keyword">var</span> callparams = {
+        Key: Ti.Utils.md5HexDigest(code),
+        Id_Dispenser: magasin,
+    };
+
+    <span class="hljs-keyword">var</span> suds = <span class="hljs-keyword">new</span> SudsClient({
+        endpoint: url,
+        targetNamespace: <span class="hljs-string">'http://tempuri.org/'</span>
+    });
+
+    <span class="hljs-keyword">var</span> customData = [];
+
+    <span class="hljs-keyword">try</span> {
+        suds.invoke(<span class="hljs-string">'Get_Stores_Php'</span>, callparams, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(xmlDoc)</span> </span>{
+            <span class="hljs-keyword">var</span> results = xmlDoc.documentElement.getElementsByTagName(<span class="hljs-string">"Get_Stores_PhpResult"</span>).item(<span class="hljs-number">0</span>).getElementsByTagName(<span class="hljs-string">"string"</span>);
+            <span class="hljs-comment">//</span>
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=<span class="hljs-number">0</span>; c&lt;results.length; c++) {
+                item = results.item(c).text;
+                <span class="hljs-keyword">var</span> table = item.split(<span class="hljs-string">';'</span>);
+                <span class="hljs-keyword">if</span> (table[<span class="hljs-number">4</span>]!=<span class="hljs-number">0</span>){
+                    <span class="hljs-keyword">var</span> numeroCase = table[<span class="hljs-number">0</span>];
+                    <span class="hljs-keyword">var</span> codeBarre = table[<span class="hljs-number">1</span>];
+                    <span class="hljs-keyword">var</span> active = table[<span class="hljs-number">4</span>];
+                    <span class="hljs-keyword">var</span> date = table[<span class="hljs-number">5</span>];
+                    <span class="hljs-keyword">var</span> freeze = table[<span class="hljs-number">6</span>];
+                    <span class="hljs-keyword">var</span> type = table[<span class="hljs-number">7</span>];
+                    <span class="hljs-keyword">var</span> codeSecret = table[<span class="hljs-number">8</span>];
+                    customData.push({numeroCase:numeroCase, className:<span class="hljs-string">"layout_one"</span>});
+                }
+            };
+            <span class="hljs-comment">//            </span>
+            <span class="hljs-keyword">var</span> data = [];
+
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; customData.length; i++) {
+                <span class="hljs-keyword">var</span> row = Titanium.UI.createTableViewRow({
+                    height:<span class="hljs-number">50</span>
+                });
+
+                <span class="hljs-keyword">var</span> numeroCase = Titanium.UI.createLabel({
+                    text:customData[i].numeroCase,
+                    font:{fontSize:<span class="hljs-number">20</span>,fontWeight:<span class="hljs-string">'bold'</span>},
+                    width:<span class="hljs-string">'auto'</span>,
+                    textAlign:<span class="hljs-string">'right'</span>,
+                    left:<span class="hljs-number">10</span>,
+                    height:<span class="hljs-number">50</span>
+                });
+
+                <span class="hljs-keyword">var</span> stock = Titanium.UI.createLabel({
+                    text:<span class="hljs-string">'Stock : épuisé'</span>,
+                    font:{fontSize:<span class="hljs-number">16</span>},
+                    width:<span class="hljs-string">'auto'</span>,
+                    textAlign:<span class="hljs-string">'left'</span>,
+                    left:<span class="hljs-number">90</span>,
+                    height:<span class="hljs-number">50</span>
+                });
+
+                row.add(numeroCase);
+                row.add(stock);
+
+                row.hasChild=customData[i].hasChild;
+
+                row.className = <span class="hljs-string">'vitrine_liste'</span>;
+
+                data.push(row);
+            };
+
+            suds = <span class="hljs-literal">null</span>;
+
+            tableView.setData(data);
+
+            win.add(tableView);
+
+            tableView.animate(fadeIn);
+
+            win.remove(winContainer);
+        });
+    } <span class="hljs-keyword">catch</span>(e) {
+        Ti.API.error(<span class="hljs-string">'Error: '</span> + e);
+    }
+
+<span class="hljs-comment">// SUPPRIMER/TERMINER</span>
+<span class="hljs-keyword">var</span> supprimerBtn = Titanium.UI.createButton({
+    title:<span class="hljs-string">'Effacer'</span>
+});
+
+supprimerBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    win.setRightNavButton(annulerBtn);
+    tableView.editing = <span class="hljs-literal">true</span>;
+});
+
+<span class="hljs-keyword">var</span> terminerBtn = Titanium.UI.createButton({
+    title:<span class="hljs-string">'Terminer'</span>
+});
+terminerBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    win.setRightNavButton(terminerBtn);
+    tableView.editing = <span class="hljs-literal">false</span>;
+});
+
+win.setRightNavButton(supprimerBtn);
+
+<span class="hljs-comment">// MEMOIRE</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">viderMemoire</span><span class="hljs-params">()</span> </span>{
+    win.remove(tableView);
+    tableView = <span class="hljs-literal">null</span>;
+}
+
+Ti.UI.currentWindow.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    viderMemoire();
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2012, 8:37:11 pm">January 21st 2012</span>
+											by <span class='authorname'>Xavier C.</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

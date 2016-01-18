@@ -1,0 +1,246 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Context issue with require() function on Android emulator » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Context issue with require() function on Android emulator</h1>
+		</header>
+		<section>
+			<p>Am running an app that is working fine in my iOS simulator, but it crashes con my Android emulator, cuz it says that I have not defined a variant.</p>
+<p>Here is my example code:</p>
+<pre><code class="hljs"><span class="hljs-comment">/*app.js*/</span>
+<span class="hljs-keyword">var</span> myApp = {};
+myApp.ui = <span class="hljs-built_in">require</span>(<span class="hljs-string">"ui"</span>);
+myApp.ui.createAppTabGroup.open();
+
+<span class="hljs-comment">/*ui.js*/</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createAppTabGroup</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> tabGroup = Titanium.UI.createTabGroup();
+    myApp.fugitivesTab = Titanium.UI.createTab({
+    title: L(<span class="hljs-string">'fugitives'</span>),
+        <span class="hljs-built_in">window</span>: fugitives
+    });
+};
+</code></pre><p>I&#39;m declaring &quot;var myApp&quot; before I make the require(&quot;ui&quot;), so it should works without problems, and in fact, it works on iOS simulator, but in Android says &quot;myApp is not defined in line xx myApp.fugitivesTab = Titanium.UI.createTab({&quot;<br>In stackoverflow somebody answer me that with require() I will loose the context, but Titanium peeps says that we should use CommonJs convention. And BTW, the same code works perfectly on iOS</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 30th 2012, 5:29:42 pm">May 30th 2012</span>
+				by <span class='authorname'>Felipe Hernandez</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android emulator</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>context</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-239758">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>This is caused by a lack in iOS. In fact the commonJS pattern (which you use by require();) creates different JavaScript contexts, therefore your <code>myApp</code> is declared in lets say context A and your <code>ui.js</code> has its own context B and has no idea of context A. Thats why it says &quot;undeclared&quot;.</p>
+<p>To achieve your requirement there are several ways, one possible is:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> tabGroup = <span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> getTabGroup = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">if</span>(!tabGroup) {
+        tabGroup = Ti.UI.createTabGroup(..);
+    }
+    <span class="hljs-keyword">return</span> tabGroup;
+};
+
+exports.getTabGroup = getTabGroup;
+</code></pre><p>you could call them then this way everytime you need the tabGroup</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> ui</span> = requrie('ui');
+<span class="hljs-variable"><span class="hljs-keyword">var</span> tabGroup</span> = ui.getTabGroup();
+</code></pre><p>or</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ui = requrie(<span class="hljs-string">'ui'</span>);
+myApp.ui.tabGroup = ui.getTabGroup();
+</code></pre><p>To sum up: android is right and as far as I know this is a known bug on iOS, you just did not understand the commonJS pattern properly.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 30th 2012, 6:39:22 pm">May 30th 2012</span>
+								by <span class='authorname'>Alexander Bauer</span><br>
+								<a class="icon-bg icon-link" href="question/137634/context-issue-with-require-function-on-android-emulator#answer-239758" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This is 100% correct. To add to this, my seggestion is to choose one pattern, either Ti.include() or require(). Using both can get confusing</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 31st 2012, 6:50:07 pm">May 31st 2012</span>
+											by <span class='authorname'>Pedro Enrique</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>And you should use require() as Ti.include is destined for deprecation…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 31st 2012, 8:19:12 pm">May 31st 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-239757">
+				
+						<section>
+							<p>In iOS the global variables can be seen within a module, so you can have a global namespace AND commonJS. </p>
+<p>On Android, commonJS cannot.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 30th 2012, 6:31:19 pm">May 30th 2012</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/137634/context-issue-with-require-function-on-android-emulator#answer-239757" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Besides that, your ui.js looks like a regular js file not a commonJS module.<br>Might want to take a look at a few of these links:</p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2012&#x2F;02&#x2F;building-the-community-app.html">Building the Community App</a></p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2011&#x2F;08&#x2F;forging-titanium-episode-1-commonjs-modules.html">Forging Titanium: CommonJS Modules</a></p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2011&#x2F;08&#x2F;forging-titanium-episode-2-a-cross-platform-navigation-controller.html">Forging Titanium: A Cross-Platform Navigation Controller</a></p>
+<p><a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;CommonJS+in+Titanium">CommonJS in Titanium</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 30th 2012, 6:35:29 pm">May 30th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>require !== Ti.include</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 30th 2012, 6:36:16 pm">May 30th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-241321">
+				
+						<section>
+							<p>25</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 19th 2012, 9:59:27 pm">June 19th 2012</span>
+								by <span class='authorname'>Bill Freedman</span><br>
+								<a class="icon-bg icon-link" href="question/137634/context-issue-with-require-function-on-android-emulator#answer-241321" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

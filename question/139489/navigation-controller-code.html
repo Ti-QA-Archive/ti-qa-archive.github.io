@@ -1,0 +1,262 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>navigation controller code » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>navigation controller code</h1>
+		</header>
+		<section>
+			<p>Not really a question, but thought i would share this piece of code. Modified and adapted from the blog video to provide a more powerful experience, written in the common JS format. A way of giving back to the community. Works with tabGroups and adds a few other features, such as preventing multiple instances of the same window from double clicks.</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> osName = Ti.Platform.osname;
+<span class="hljs-keyword">var</span> controller = <span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> windowOpening = <span class="hljs-literal">false</span>;
+
+NavigationController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">tabGroup</span>) </span>{
+    <span class="hljs-keyword">this</span>.windowStack = [];
+    <span class="hljs-keyword">this</span>.tabGroup = tabGroup;
+}
+
+NavigationController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>) </span>{
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">if</span>(!windowOpening){
+            windowOpening = <span class="hljs-literal">true</span>;
+
+            <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+            <span class="hljs-keyword">this</span>.windowStack.push(windowToOpen);
+
+            <span class="hljs-comment">//grab a copy of the current nav controller for use in the callback</span>
+            <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+            windowToOpen.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                that.windowStack.pop();
+            });
+
+            <span class="hljs-comment">//Disable windows opening until the window comes up.</span>
+            windowToOpen.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                windowOpening = <span class="hljs-literal">false</span>;
+            });
+
+            <span class="hljs-comment">//hack - setting this property ensures the window is "heavyweight" (associated with an Android activity)</span>
+            windowToOpen.navBarHidden = windowToOpen.navBarHidden || <span class="hljs-literal">false</span>;
+
+            <span class="hljs-comment">//This is the first window</span>
+            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.tabGroup){
+                <span class="hljs-keyword">if</span>(osName === <span class="hljs-string">'android'</span>) {
+                    windowToOpen.open();
+                } <span class="hljs-keyword">else</span> {
+                    <span class="hljs-keyword">this</span>.tabGroup.activeTab.open(windowToOpen);
+                }
+            }
+
+            <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.windowStack.length === <span class="hljs-number">1</span>) {
+                <span class="hljs-keyword">if</span>(osName === <span class="hljs-string">'android'</span>) {
+                    windowToOpen.exitOnClose = <span class="hljs-literal">true</span>;
+                    windowToOpen.open({animated:<span class="hljs-literal">false</span>});
+                } <span class="hljs-keyword">else</span> {
+                    <span class="hljs-keyword">this</span>.navGroup = Ti.UI.iPhone.createNavigationGroup({
+                        <span class="hljs-built_in">window</span> : windowToOpen
+                    });
+                    <span class="hljs-keyword">var</span> containerWindow = Ti.UI.createWindow();
+                    containerWindow.add(<span class="hljs-keyword">this</span>.navGroup);
+                    containerWindow.open();
+                }
+            }
+            <span class="hljs-comment">//All subsequent windows</span>
+            <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+                    windowToOpen.open();
+                } <span class="hljs-keyword">else</span> {
+                    <span class="hljs-keyword">this</span>.navGroup.open(windowToOpen);
+                }
+            }
+        }
+    } <span class="hljs-keyword">catch</span> (err) {
+        <span class="hljs-comment">//Need to free up the ability to open windows again.</span>
+        windowOpening = <span class="hljs-literal">false</span>;
+        <span class="hljs-keyword">throw</span>(err);
+    }
+};
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">1</span>, l = windows.length; i &lt; l; i++) {
+        <span class="hljs-keyword">if</span>(windows[i]){
+            (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[i]) : windows[i].close();
+        }
+    }
+    <span class="hljs-keyword">this</span>.windowStack = [<span class="hljs-keyword">this</span>.windowStack[<span class="hljs-number">0</span>]]; <span class="hljs-comment">//reset stack</span>
+};
+
+<span class="hljs-comment">//Close all windows NavigationController</span>
+NavigationController.prototype.closeAll = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = windows.length; i &lt; l; i++) {
+        <span class="hljs-keyword">if</span>(windows[i]){
+            (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[i]) : windows[i].close();
+        }
+    }
+    <span class="hljs-keyword">this</span>.windowStack = [<span class="hljs-keyword">this</span>.windowStack[<span class="hljs-number">0</span>]]; <span class="hljs-comment">//reset stack</span>
+};
+
+<span class="hljs-comment">//call this whenever you need to setup the controller, takes an optional tabgroup if so used</span>
+exports.createNew = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">tabGroup</span>)</span>{
+    controller = <span class="hljs-keyword">new</span> NavigationController((tabGroup || <span class="hljs-literal">null</span>));
+};
+
+<span class="hljs-comment">//called subsequently to open windows</span>
+exports.navControl = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> controller;
+};
+</code></pre><p>usage example:</p>
+<pre><code class="hljs">require(<span class="hljs-string">"NavigationController"</span>).createNew();<span class="hljs-comment">//only called once at start</span>
+var navController = require(<span class="hljs-string">"NavigationController"</span>).navControl();<span class="hljs-comment">//called on every page needed</span>
+
+var winHome = Ti.UI.createWindow({
+    title : <span class="hljs-string">"Home"</span>,
+    backgroundColor: <span class="hljs-string">'white'</span>
+});
+
+var label1 = Titanium.UI.createLabel({
+    <span class="hljs-built_in">color</span>:<span class="hljs-string">'#999'</span>,
+    <span class="hljs-built_in">text</span>:<span class="hljs-string">'Hello World'</span>,
+    font:{fontSize:<span class="hljs-number">20</span>,fontFamily:<span class="hljs-string">'Helvetica Neue'</span>},
+    <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'center'</span>,
+    <span class="hljs-variable">width</span>:Ti.UI.FILL,
+    <span class="hljs-variable">height</span>:Ti.UI.SIZE
+});
+
+winHome.<span class="hljs-built_in">add</span>(label1);
+
+navController.<span class="hljs-built_in">open</span>(winHome);
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 10th 2012, 12:45:34 am">July 10th 2012</span>
+				by <span class='authorname'>Paul Hamilton</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>controller</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+						<li><span class='tagname'>tabgroup</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>great, thanks for sharing!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 10th 2012, 4:12:45 am">July 10th 2012</span>
+								by <span class='authorname'>George Georgiou</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>the great, I like it,<br>keep it Up.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 10th 2012, 4:39:28 am">July 10th 2012</span>
+								by <span class='authorname'>Abdus Sattar</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-242835">
+				
+						<section>
+							<p>IMHO, it would be better if you implemented navigation controller as singleton object. ;)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 10th 2012, 5:22:45 am">July 10th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/139489/navigation-controller-code#answer-242835" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

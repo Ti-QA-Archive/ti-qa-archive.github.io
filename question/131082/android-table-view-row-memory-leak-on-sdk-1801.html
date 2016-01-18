@@ -1,0 +1,373 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android: Table View Row Memory Leak on SDK 1.8.0.1 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android: Table View Row Memory Leak on SDK 1.8.0.1</h1>
+		</header>
+		<section>
+			<p>I can&#39;t find a way to use a tableView on Android and then free the memory when I&#39;m done with it.</p>
+<p>I found a closed bug posted on the Appcelerator Issue Tracker here: <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-4367?page=com.xiplink.jira.git.jira-git-plugin:git-commits-tabpanel#issue-tabs">TIMOB-4367</a> which claims this problem is fixed in 1.8.0.1.</p>
+<p>I can&#39;t verify this claim on the Android Emulator or on my Galaxy Player. </p>
+<p>The code below is taken directly from that bug report:</p>
+<p>The instructions say:</p>
+<ol>
+<li>Drop the following in an app.js</li>
+<li>Load up DDMS and watch the Allocations or Sysinfo &#x2F; Memory usage.</li>
+<li>Touch the &quot;Create big table view&quot; button in the app; a table view with 1500 rows will be created.</li>
+<li>Refresh the sysinfo and see how the memory footprint has grown.</li>
+<li>Hit the &quot;Back&quot; button in the app; the window is closed and the variables nullified.</li>
+<li>Refresh the sysinfo and see that the memory footprint hasn&#39;t changed.</li>
+<li>Repeat steps 3-7 and the memory footprint will only continue to grow.</li>
+</ol>
+<pre><code class="hljs"><span class="hljs-comment">/*
+* This code was taken directly from a closed 'resolved' issue Titanium Mobile TIMOB-4367
+* found here: http://jira.appcelerator.org/browse/TIMOB-4367?page=com.xiplink.jira.git.jira-git-plugin:git-commits-tabpanel#issue-tabs
+*
+* I had to comment out one line to keep it from crashing
+*/</span>
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({ backgroundColor:<span class="hljs-string">'#fff'</span> });
+
+<span class="hljs-keyword">var</span> btn = Ti.UI.createButton({
+    color: <span class="hljs-string">'black'</span>, layout:<span class="hljs-string">'center'</span>,
+    title: <span class="hljs-string">'Create big table view'</span>
+});
+win.add(btn);
+win.open();
+btn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    Ti.API.info(<span class="hljs-string">'click btn'</span>);
+    <span class="hljs-keyword">var</span> newWin = Ti.UI.createWindow({
+        backgroundColor: <span class="hljs-string">'#fff'</span>,
+        layout:<span class="hljs-string">'vertical'</span>
+    });
+    <span class="hljs-keyword">var</span> back = Ti.UI.createButton({
+        backgroundColor : <span class="hljs-string">'green'</span>,
+        color: <span class="hljs-string">'black'</span>, top: <span class="hljs-number">40</span>,
+        title: <span class="hljs-string">'Back'</span>
+    });
+    newWin.add(back);
+
+    <span class="hljs-keyword">var</span> tv = createBigTableView();
+    newWin.add(tv);
+    newWin.open();
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">clickListener</span><span class="hljs-params">()</span> </span>{
+        back.removeEventListener(<span class="hljs-string">'click'</span>, clickListener);
+        Ti.API.info(<span class="hljs-string">'click back'</span>);
+        newWin.close();
+<span class="hljs-comment">//      tv.data = null;</span>
+        tv = <span class="hljs-literal">null</span>;
+        newWin = <span class="hljs-literal">null</span>;
+        back = <span class="hljs-literal">null</span>;
+    }
+
+    back.addEventListener(<span class="hljs-string">'click'</span>, clickListener);
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createBigTableView</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> data = [];
+    <span class="hljs-keyword">for</span> (i = <span class="hljs-number">1</span>; i &lt;= <span class="hljs-number">1500</span>; i++) { 
+        data.push(createCustomTableViewRow(<span class="hljs-string">'RowsNMore'</span>, i));
+    }
+    <span class="hljs-keyword">return</span> Ti.UI.createTableView({
+        top:<span class="hljs-number">50</span>, bottom:<span class="hljs-number">0</span>, left:<span class="hljs-number">0</span>, right:<span class="hljs-number">0</span>,
+        separatorColor: <span class="hljs-string">'white'</span>,
+        data: data
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createCustomTableViewRow</span><span class="hljs-params">(label1text, label2text)</span> </span>{
+    <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({ className: <span class="hljs-string">'customTVRow'</span> });
+    <span class="hljs-keyword">var</span> vw = Ti.UI.createView({layout: <span class="hljs-string">'vertical'</span>});
+    row.add(vw);
+    vw.add(Ti.UI.createLabel({
+        text: label1text, color: <span class="hljs-string">'black'</span>,
+        font: {fontSize: <span class="hljs-string">'9pt'</span>, fontWeight: <span class="hljs-string">'bold'</span>}
+    }));
+    vw.add(Ti.UI.createLabel({
+        text: label2text, color: <span class="hljs-string">'gray'</span>,
+        font: {fontSize: <span class="hljs-string">'7pt'</span>, fontWeight: <span class="hljs-string">'normal'</span>}
+    }));
+    <span class="hljs-keyword">return</span> row;
+}
+</code></pre><p>I built this code using SDK 1.8.0.1 and ran it on the Android emulator using APIs 2.2, 2.31. and 2.33 and also on a Smamsung Galaxy player 5.0 running 2.6.25.7. In every case, memory was not released when I pressed the back button.</p>
+<p>Can anyone verify my findings? Or better yet give an example of tableView code that will release its memory on Android.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 23rd 2012, 11:05:06 pm">January 23rd 2012</span>
+				by <span class='authorname'>Frank Cox</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android memory leak</span></li>
+					
+						<li><span class='tagname'>tableview memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>5 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello,</p>
+<p>the GC won&#39;t run right away after you pressed back button. Can you please take a look with <a href="http:&#x2F;&#x2F;developer.android.com&#x2F;guide&#x2F;developing&#x2F;debugging&#x2F;ddms.html">DDMS</a>?</p>
+<p>Best, </p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 23rd 2012, 11:16:37 pm">January 23rd 2012</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hello Mauro,</p>
+<p>Do you mean GC on the &#39;VM Heap&#39; tab in DDMS? Did you select the app from the list under the emulator and then click &#39;Show heap updates&#39; button in the upper left?</p>
+<p>It works for me when I do that.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 23rd 2012, 11:25:47 pm">January 23rd 2012</span>
+								by <span class='authorname'>Frank Cox</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Maybe I wasn&#39;t clear in my last answer. Using DDMS, I go to the &#39;VM Heap&#39; tab. I select the app from the list under the emulator and click the little &#39;Show heap updates&#39; button in the upper left and then click the &#39;Cause GC&#39; button. </p>
+<p>It stats out with about 2.6MB allocated. I click the &#39;Create big table view&#39; button in the app. After a GC 11.6 MB are allocated. I click &#39;Back&#39; and after GC 11.4 MB are allocated. I can wait half and hour and click Cause GC again. The memory still isn&#39;t released.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 23rd 2012, 11:43:37 pm">January 23rd 2012</span>
+								by <span class='authorname'>Frank Cox</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi.. frank cox.. have you tried to alter the code?? some like.. tableview.setData(data);.. instead of data: data…</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 23rd 2012, 11:57:06 pm">January 23rd 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Ken, </p>
+<p>I haven&#39;t tried any variations, but this code is supposed to work as is according to <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-4367?page=com.xiplink.jira.git.jira-git-plugin:git-commits-tabpanel#issue-tabs">TIMOB-4367</a>.</p>
+<p>I&#39;m hopping that someone can post an example of a leak proof tableView. I&#39;ve never seen one on Android</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 24th 2012, 12:18:42 am">January 24th 2012</span>
+								by <span class='authorname'>Frank Cox</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-228333">
+				
+						<section>
+							<p>Hi Frank.. i just noticed something… as far as my understanding is concerned.. tableview is created in new window.. </p>
+<p>but.. when the back button is pressed.. there is no info in the log that says.. tag name = TiBaseActivity, Message = (main) [numbers,numbers] Layout cleanup… and in that.. </p>
+<p>i conclude that window is not closed properly.. In my app.. i create windows.. but when i close it.. it always say.. layout cleanup.. </p>
+<p>so far i dont know whats the cause why its not clearing the memory.. </p>
+<p>i guess its because they are coded in same JS file.. the &quot;app.js&quot;.. i hope you get my point..</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 24th 2012, 1:08:52 am">January 24th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span><br>
+								<a class="icon-bg icon-link" href="question/131082/android-table-view-row-memory-leak-on-sdk-1801#answer-228333" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Ken, Thanks for looking at this. I do think I get your point although I&#39;m not sure where to go with it either.</p>
+<p>I was wondering about the call to newWin.close() in the clickListener() function. I think the point of clickListener is to remove the calling eventListener before closing the window and nulling all all the windows contents. These are many of the recommendations I&#39;ve seen, and, I&#39;ve seen the statement many times that calling close() alone on a window will free the memory of contained objects.</p>
+<p>I just tried moving newWin.close() into the event listener but that didn&#39;t change things at all.</p>
+<p>Do you have any examples in your own code where you&#39;re sure memory is released from a tableView on Android? I&#39;d love to know it&#39;s possible.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 24th 2012, 2:36:34 am">January 24th 2012</span>
+											by <span class='authorname'>Frank Cox</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>As you see now.. it don&#39;t right?? .. i use other approach.. try to see this post on how i create my windows.. <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;130927&#x2F;guide-windowcontroller-applying-commonjs">here</a>… </p>
+<p>now i want you to try this.. without tableview.. just look at the logs you will see the layout clean up that i&#39;ve been telling you…. </p>
+<p>remember i dont null anything in my window.. i just recreate them everytime i open it.. meaning to say.. it is always new…</p>
+<p>then if you are already set.. then apply now the tableview in the windowcontroller i made.. </p>
+<p>I hope this could help you..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 24th 2012, 3:06:43 am">January 24th 2012</span>
+											by <span class='authorname'>Ken Crucillo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Ken, I left a comment on your guide.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 24th 2012, 6:12:16 am">January 24th 2012</span>
+											by <span class='authorname'>Frank Cox</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>No problem Frank.. does it resolve your problem?? also.. about ur android problem.. please post a snippet code how u did it.. thanks so we can check.. also mark this as resolve if it really solves your question.. :).. happy coding..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 24th 2012, 6:24:53 am">January 24th 2012</span>
+											by <span class='authorname'>Ken Crucillo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-228552">
+				
+						<section>
+							<p>I&#39;ve tried many variations on the above code but it still leaks memory, no mater what I do. I&#39;ve also spent days of my life unsuccessfully trying to create Android apps using Titanium that include a tableView and doesn&#39;t leak memory.</p>
+<p>This leaves me with the question:</p>
+<h2 id="is-a-leak-proof-titanium-tableview-possible-on-android-">Is a leak-proof Titanium tableView possible on Android?</h2>
+<p>If it&#39;s not possible, I can redesigning my apps, instead or wasting my time on an impossible quest.</p>
+<p>If anyone thinks they have written an app with a tableView that is leak-proof on Android, please share your technique.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 25th 2012, 7:02:17 pm">January 25th 2012</span>
+								by <span class='authorname'>Frank Cox</span><br>
+								<a class="icon-bg icon-link" href="question/131082/android-table-view-row-memory-leak-on-sdk-1801#answer-228552" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey, if you think that&#39;s an issue, please report it to JIRA: <a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;How+to+Submit+a+Bug+Report">https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;How+to+Submit+a+Bug+Report</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 26th 2012, 6:38:07 am">January 26th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-229448">
+				
+						<section>
+							<h2 id="the-issue-has-been-reopened-in-jira-">The issue has been reopened in JIRA </h2>
+<p>It&#39;s now being actively worked on. See: <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-4367">Android: Table View Row Memory Leak TIMOB-4367</a></p>
+<p>Hopefully this will be fixed soon. In the mean time I need to redesign my current app in progress to work with Titanium as it is now. That means accepting that when I add data rows to a tableView on Android, I can never get the memory back while the app is running. </p>
+<p>My current app uses tabelViews all over the place to display data. The biggest one doesn&#39;t change, and I can hide it when they navigate away, and show it again when they come back. The other ones need to change, and I&#39;ll just have to try to minimize memory growth. Hopefully, the typical use case will have the user close the app before is slows down and crashes. I already have the home screen table data saved so I restore it when the app starts. It&#39;s not very painful to close the app and come back (or come back after a crash).</p>
+<p>This is galling because I don&#39;t have a memory problem on the iOS version…</p>
+<p>Hope this bug gets killed soon…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 4th 2012, 9:14:48 pm">February 4th 2012</span>
+								by <span class='authorname'>Frank Cox</span><br>
+								<a class="icon-bg icon-link" href="question/131082/android-table-view-row-memory-leak-on-sdk-1801#answer-229448" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to manage memory leaks with view transitions / animations? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to manage memory leaks with view transitions / animations?</h1>
+		</header>
+		<section>
+			<p>###Where does Titanium add a view opened via a transition from another view ?<br>I was guessing that Titanium would add it to the window or the previous view’s children, but this is not the case. </p>
+<pre><code class="hljs"><span class="hljs-tag">loginView</span><span class="hljs-class">.animate</span>(<span class="hljs-rules">{<span class="hljs-rule"><span class="hljs-attribute">view</span>:<span class="hljs-value">menuView, transition:Ti.UI.iPhone.AnimationStyle.FLIP_FROM_RIGHT</span></span></span>});
+</code></pre><p>In the example above, &quot;menuView&quot; does not appear in the children (getChildren()) of the window or loginView. Where is it added? I would like to know, so I can remove it when the user logs out (so everything can be garbage collected).</p>
+<h3 id="transition-and-memory-management">Transition and memory management</h3>
+<p>When I avoid transitions, the iOS&#x2F;xCode instruments show that the garbage collection works great. When I use transitions, elements opened with animate are never garbage collected which creates a memory nightmare. (and yes, I would like to use transitions).</p>
+<h3 id="full-example">Full example</h3>
+<p>Here is an example that shows in the log that once the second view is opened, it is not attached to the window or the previous view.</p>
+<p>Well I look at the kitchen sink transition example; the behavior is similar (i.e. it adds multiple windows to the memory that are not garbage collected).</p>
+<p>Please place the following code in <strong>app.js</strong> to see the behavior:</p>
+<pre><code class="hljs">var win1 = Titanium.UI.createWindow({ <span class="hljs-string">backgroundColor:</span><span class="hljs-string">'#000'</span>, <span class="hljs-string">fullscreen:</span> <span class="hljs-literal">true</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'win1'</span>});
+var loginView = Ti.UI.createView({<span class="hljs-string">top:</span><span class="hljs-number">0</span>, <span class="hljs-string">left:</span><span class="hljs-number">0</span>, <span class="hljs-string">widht:</span>Ti.UI.FULL, <span class="hljs-string">height:</span>Ti.UI.FULL, <span class="hljs-string">background:</span> <span class="hljs-string">'#111'</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'loginView'</span>});
+var button = Titanium.UI.createButton({<span class="hljs-string">title:</span> <span class="hljs-string">'Login'</span>, <span class="hljs-string">width:</span> <span class="hljs-number">100</span>, <span class="hljs-string">height:</span> <span class="hljs-number">50</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'login Button'</span>});
+loginView.add(button);
+
+var menuView = Ti.UI.createView({<span class="hljs-string">backgroundColor:</span><span class="hljs-string">'#004'</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'menuView'</span>});
+
+button.addEventListener(<span class="hljs-string">'click'</span>,function(e)
+{
+    loginView.animate({<span class="hljs-string">view:</span>menuView, <span class="hljs-string">transition:</span>Ti.UI.iPhone.AnimationStyle.FLIP_FROM_RIGHT});
+    displayChildren(win1);
+});
+
+
+win1.add(loginView);
+win1.open();
+
+function displayChildren(anObject, aPrefix){
+    <span class="hljs-keyword">if</span> (!aPrefix){
+        aPrefix = <span class="hljs-string">'- '</span>;
+    }
+    <span class="hljs-keyword">if</span> (anObject) {
+        var title = anObject._title;
+        var children = anObject.getChildren();
+        <span class="hljs-keyword">if</span> (children) {
+            var il=children.length;
+            Ti.API.warn(aPrefix + title + <span class="hljs-string">' has '</span> + il + <span class="hljs-string">' child(ren)'</span>);
+            <span class="hljs-keyword">for</span> (var i=<span class="hljs-number">0</span>; i&lt;il; i++) {
+                Ti.API.warn(aPrefix + title + <span class="hljs-string">' contains '</span>+children[i]._title + <span class="hljs-string">' '</span>+JSON.stringify(children[i]));
+                displayChildren(children[i],aPrefix+<span class="hljs-string">'- '</span>);
+            }
+        }
+    }
+}
+</code></pre><p>The log shows:</p>
+<pre><code class="hljs"><span class="hljs-list">[<span class="hljs-keyword">WARN</span>] - win1 has <span class="hljs-number">1</span> child<span class="hljs-list">(<span class="hljs-keyword">ren</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] - win1 contains loginView {<span class="hljs-string">"left"</span>:0,<span class="hljs-string">"top"</span>:0,<span class="hljs-string">"_title"</span>:<span class="hljs-string">"loginView"</span>,<span class="hljs-string">"background"</span>:<span class="hljs-string">"#111"</span>}
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] - - loginView has <span class="hljs-number">1</span> child<span class="hljs-list">(<span class="hljs-keyword">ren</span>)</span>
+<span class="hljs-list">[<span class="hljs-keyword">WARN</span>] - - loginView contains login Button {<span class="hljs-string">"title"</span>:<span class="hljs-string">"Login"</span>,<span class="hljs-string">"width"</span>:100,<span class="hljs-string">"enabled"</span>:true,<span class="hljs-string">"_title"</span>:<span class="hljs-string">"login Button"</span>,<span class="hljs-string">"height"</span>:50}</span></span></span></span>
+</code></pre><p>Where is menuView? Any ideas on how to mark it for garbage collection (e.g. remove, null, etc)? I was hoping to do win1.remove(menuView), but obviously that won&#39;t work.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 4th 2012, 11:48:12 am">July 4th 2012</span>
+				by <span class='authorname'>Gregori Faroux</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>animation</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>transition</span></li>
+					
+						<li><span class='tagname'>view</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-242671">
+				
+						<section>
+							<h3 id="windows-instead-of-views-as-an-alternative">Windows instead of Views as an alternative</h3>
+<p>When using windows instead of views and the open() and close() functions (with transitions), the garbage collection works well. I tried with complex views, but here is a short example. Each time the close button is pressed, the sub-window and its content are “marked” for collection for the garbage collector (after up to 20 seconds or so.)</p>
+<h3 id="app-js">app.js</h3>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> <span class="hljs-collection">{
+    var self = Ti.UI.createWindow<span class="hljs-list">(<span class="hljs-collection">{ backgroundColor:'#999', }</span>)</span><span class="hljs-comment">;</span>
+
+    var open = Ti.UI.createButton<span class="hljs-list">(<span class="hljs-collection">{ title:'open', }</span>)</span><span class="hljs-comment">;</span>
+
+    open.addEventListener<span class="hljs-list">(<span class="hljs-keyword">'click'</span>, function<span class="hljs-list">()</span> <span class="hljs-collection">{
+        var subWindow = Ti.UI.createWindow<span class="hljs-list">(<span class="hljs-collection">{backgroundColor:'00f', }</span>)</span><span class="hljs-comment">;</span>
+        var close = Ti.UI.createButton<span class="hljs-list">(<span class="hljs-collection">{ title:'close' }</span>)</span><span class="hljs-comment">;</span>
+        subWindow.add<span class="hljs-list">(<span class="hljs-keyword">close</span>)</span><span class="hljs-comment">;</span>
+        close.addEventListener<span class="hljs-list">(<span class="hljs-keyword">'click'</span>, function<span class="hljs-list">()</span>
+        <span class="hljs-collection">{
+            subWindow.close<span class="hljs-list">(<span class="hljs-collection">{transition:Titanium.UI.iPhone.AnimationStyle.FLIP_FROM_LEFT}</span>)</span><span class="hljs-comment">;</span>
+        }</span>)</span><span class="hljs-comment">;</span>
+
+        subWindow.open<span class="hljs-list">(<span class="hljs-collection">{transition:Titanium.UI.iPhone.AnimationStyle.FLIP_FROM_RIGHT}</span>)</span><span class="hljs-comment">;</span>
+    }</span>)</span><span class="hljs-comment">;</span>
+    self.add<span class="hljs-list">(<span class="hljs-keyword">open</span>)</span><span class="hljs-comment">;</span>
+    self.open<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>Not as great as an answer, but this sounds like a good alternative.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 7th 2012, 3:31:54 am">July 7th 2012</span>
+								by <span class='authorname'>Gregori Faroux</span><br>
+								<a class="icon-bg icon-link" href="question/139228/how-to-manage-memory-leaks-with-view-transitions--animations#answer-242671" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-243091">
+				
+						<section>
+							<p>So I believe the reason the view is not being seen as a child of the window (win1) is that it is not being &#39;add&#39;ed to the window.</p>
+<p>I modified your full example to add menuView to win1 before adding loginView to win1 so that the loginView is shown on top of menuView. I also added a backgroundColor to loginView so that it completely covers menuView when the window is first opened.</p>
+<p><em>From your original example, It is interesting that one can animate a transition to another view without adding explicitly adding the view to the window.</em></p>
+<pre><code class="hljs">var win1 = Titanium.UI.createWindow({ <span class="hljs-string">backgroundColor:</span><span class="hljs-string">'#000'</span>, <span class="hljs-string">fullscreen:</span> <span class="hljs-literal">true</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'win1'</span>});
+var loginView = Ti.UI.createView({<span class="hljs-string">top:</span><span class="hljs-number">0</span>, <span class="hljs-string">left:</span><span class="hljs-number">0</span>, <span class="hljs-string">widht:</span>Ti.UI.FULL, <span class="hljs-string">height:</span>Ti.UI.FULL, <span class="hljs-string">background:</span> <span class="hljs-string">'#111'</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'loginView'</span>, <span class="hljs-string">backgroundColor:</span><span class="hljs-string">'#080'</span>});
+var button = Titanium.UI.createButton({<span class="hljs-string">title:</span> <span class="hljs-string">'Login'</span>, <span class="hljs-string">width:</span> <span class="hljs-number">100</span>, <span class="hljs-string">height:</span> <span class="hljs-number">50</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'login Button'</span>});
+loginView.add(button);
+
+var menuView = Ti.UI.createView({<span class="hljs-string">backgroundColor:</span><span class="hljs-string">'#008'</span>, <span class="hljs-string">_title:</span><span class="hljs-string">'menuView'</span> });
+win1.add(menuView);
+
+button.addEventListener(<span class="hljs-string">'click'</span>,function(e)
+{
+    loginView.animate({<span class="hljs-string">view:</span>menuView, <span class="hljs-string">transition:</span>Ti.UI.iPhone.AnimationStyle.FLIP_FROM_RIGHT});
+    displayChildren(win1);
+});
+
+
+win1.add(loginView);
+win1.open();
+
+function displayChildren(anObject, aPrefix){
+    <span class="hljs-keyword">if</span> (!aPrefix){
+        aPrefix = <span class="hljs-string">'- '</span>;
+    }
+    <span class="hljs-keyword">if</span> (anObject) {
+        var title = anObject._title;
+        var children = anObject.getChildren();
+        <span class="hljs-keyword">if</span> (children) {
+            var il=children.length;
+            Ti.API.warn(aPrefix + title + <span class="hljs-string">' has '</span> + il + <span class="hljs-string">' child(ren)'</span>);
+            <span class="hljs-keyword">for</span> (var i=<span class="hljs-number">0</span>; i&lt;il; i++) {
+                Ti.API.warn(aPrefix + title + <span class="hljs-string">' contains '</span>+children[i]._title + <span class="hljs-string">' '</span>+JSON.stringify(children[i]));
+                displayChildren(children[i],aPrefix+<span class="hljs-string">'- '</span>);
+            }
+        }
+    }
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 13th 2012, 2:53:13 pm">July 13th 2012</span>
+								by <span class='authorname'>Laurence Kirchmeier</span><br>
+								<a class="icon-bg icon-link" href="question/139228/how-to-manage-memory-leaks-with-view-transitions--animations#answer-243091" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

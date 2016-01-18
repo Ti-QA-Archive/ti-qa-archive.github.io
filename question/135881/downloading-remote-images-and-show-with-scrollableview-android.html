@@ -1,0 +1,299 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Downloading remote images and show with scrollableview [Android] » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Downloading remote images and show with scrollableview [Android]</h1>
+		</header>
+		<section>
+			<p>Hey,</p>
+<p>I want to download images to the filesystem. When the download is complete, I want to open them with an ScrollableView. But it doesn&#39;t show the first two images.  When I scroll to the third image and then back to image number one it is visible. So it seems that my scrollable view skips the first two images. Someone any idea what I can do.  </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> gallery = Titanium.UI.currentWindow;
+
+<span class="hljs-keyword">var</span> actInd = Titanium.UI.createActivityIndicator({
+    bottom:<span class="hljs-number">10</span>, 
+    height:<span class="hljs-number">50</span>,
+    width:<span class="hljs-number">10</span>,
+    message:<span class="hljs-string">'Loading...'</span>
+});
+
+<span class="hljs-keyword">var</span> downloading = Titanium.UI.createView({
+    height:<span class="hljs-number">100</span>,
+    width:<span class="hljs-number">100</span>,
+    backgroundColor:<span class="hljs-string">'black'</span>
+});
+
+gallery.barColor = <span class="hljs-string">'#c02000'</span>;
+
+gallery.orientationModes = [
+    Titanium.UI.PORTRAIT,
+    Titanium.UI.UPSIDE_PORTRAIT,
+    Titanium.UI.LANDSCAPE_LEFT,
+    Titanium.UI.LANDSCAPE_RIGHT
+    ]; 
+
+<span class="hljs-keyword">var</span> get_remote_file =  <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(filename, url, fn_end, fn_progress )</span> </span>{
+    <span class="hljs-keyword">var</span> file_obj = {file:filename, url:url, path: <span class="hljs-literal">null</span>};
+
+    <span class="hljs-keyword">var</span> file = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory+<span class="hljs-string">'/images/imageview_android/'</span>+Titanium.UI.currentWindow.landmarkphoto,filename);
+    <span class="hljs-keyword">if</span> ( file.exists() ) {
+        file_obj.path = Titanium.Filesystem.applicationDataDirectory+<span class="hljs-string">'/images/imageview_android/'</span>+Titanium.UI.currentWindow.landmarkphoto+<span class="hljs-string">'/'</span>;
+        fn_end(file_obj);
+    }
+
+    <span class="hljs-keyword">else</span>
+    {        
+        gallery.add(downloading);
+        downloading.add(actInd);
+
+        <span class="hljs-keyword">if</span> ( Titanium.Network.online ) {
+            actInd.show();
+
+            <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+
+            xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>            
+            </span>{
+                <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span> ) {
+                     <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory+<span class="hljs-string">'/images/imageview_android/'</span>+Titanium.UI.currentWindow.landmarkphoto,filename);
+                    f.write(<span class="hljs-keyword">this</span>.responseData);
+                    file_obj.path = Titanium.Filesystem.applicationDataDirectory+<span class="hljs-string">'/images/imageview_android/'</span>+Titanium.UI.currentWindow.landmarkphoto+<span class="hljs-string">'/'</span>;
+                }
+                <span class="hljs-keyword">else</span> {
+                    file_obj.error = <span class="hljs-string">'file not found'</span>; <span class="hljs-comment">// to set some errors codes</span>
+                }
+                fn_end(file_obj);
+            };
+            xhr.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+            </span>{
+                <span class="hljs-keyword">if</span> ( fn_progress ) fn_progress(e.progress);
+            };
+            xhr.error = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+            </span>{
+                file_obj.error = e.error;
+                fn_end(file_obj);
+            };
+        file_obj.path = Titanium.Filesystem.applicationDataDirectory+<span class="hljs-string">'/images/imageview_android/'</span>+Titanium.UI.currentWindow.landmarkphoto+<span class="hljs-string">'/'</span>;
+        fn_end(file_obj);
+
+            xhr.open(<span class="hljs-string">'GET'</span>,url+filename);
+            xhr.send();
+        }
+        <span class="hljs-keyword">else</span> {
+            file_obj.error = <span class="hljs-string">'no internet'</span>;
+            fn_end(file_obj);
+        }
+    }
+};
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">create_directory</span><span class="hljs-params">(path)</span> </span>{
+    <span class="hljs-keyword">if</span>( !path.exists() )
+    {
+       path.createDirectory();
+    }
+}
+
+create_directory(Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'/images'</span>));
+create_directory(Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'/images/imageview_android'</span>));
+create_directory(Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'/images/imageview_android/'</span>+Titanium.UI.currentWindow.landmarkphoto));
+
+    <span class="hljs-keyword">var</span> images = [];
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">show_image</span><span class="hljs-params">(fileobj)</span> </span>{
+    <span class="hljs-keyword">var</span> iv = Ti.UI.createImageView({
+        backgroundColor:<span class="hljs-string">'black'</span>,
+        backgroundImage:<span class="hljs-string">'../images/extra_logo.png'</span>,
+        width:<span class="hljs-string">'auto'</span>,
+        height:<span class="hljs-string">'auto'</span>,defaultImage:<span class="hljs-string">'../images/extra_logo.png'</span>,
+
+    });
+
+    iv.image = fileobj.path+fileobj.file;
+
+    images[photocount]=iv;
+    <span class="hljs-keyword">if</span> (photocount == Titanium.UI.currentWindow.landmarkphoto_count)
+        actInd.hide();
+}    
+
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> photocount=<span class="hljs-number">0</span>;photocount &lt; Titanium.UI.currentWindow.landmarkphoto_count;photocount++)
+    {  
+        get_remote_file(photocount+<span class="hljs-string">".jpg"</span>, <span class="hljs-string">'[my_online_source]'</span>+Titanium.UI.currentWindow.landmarkphoto+<span class="hljs-string">'/'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(fileobj)</span></span>{show_image(fileobj)}, <span class="hljs-literal">null</span>);
+    }
+
+   <span class="hljs-keyword">var</span> scrollView = <span class="hljs-literal">null</span>;
+
+   scrollView = Titanium.UI.createScrollableView({
+        views:images,
+        showPagingControl:<span class="hljs-literal">true</span>,
+        pagingControlTimeout:<span class="hljs-number">0</span>,
+        backgroundColor:<span class="hljs-string">'black'</span>
+    });
+
+    gallery.add(scrollView);
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 23rd 2012, 3:53:27 pm">April 23rd 2012</span>
+				by <span class='authorname'>Jens Posert</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>remote image</span></li>
+					
+						<li><span class='tagname'>scrollview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I forget to mention, that when I close the window and open it again, so there is no download needed, it works perfect.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 23rd 2012, 3:58:06 pm">April 23rd 2012</span>
+								by <span class='authorname'>Jens Posert</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-236980">
+				
+						<section>
+							<p>Hello,</p>
+<p>there a small code <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;1557003">here</a> that will solve your issues. Check the &quot;Cached image function&quot;.</p>
+<p>Best,</p>
+<p>Mauro</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 23rd 2012, 9:46:45 pm">April 23rd 2012</span>
+								by <span class='authorname'>Mauro Parra</span><br>
+								<a class="icon-bg icon-link" href="question/135881/downloading-remote-images-and-show-with-scrollableview-android#answer-236980" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-237192">
+				
+						<section>
+							<p>Thanks for your answer Mauro! With a few modifications I got it working. But now I have another problem or maybe a result. I have about 25 windows and each window has a link to to a new window in which the user can see the downloaded pictures in a scrollview.  I want to use the same function every time to avoid redundancy! I think for the first 4 or 5 windows it works fine and after that it shows me that it has download the images but after that I just get an black screen. So no Image displayed. Maybe I have to close the httpclient connection when the download is complete. Would this fix my problem?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 25th 2012, 2:22:11 pm">April 25th 2012</span>
+								by <span class='authorname'>Jens Posert</span><br>
+								<a class="icon-bg icon-link" href="question/135881/downloading-remote-images-and-show-with-scrollableview-android#answer-237192" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-237879">
+				
+						<section>
+							<p>Any ideas so far?<br>Problem still open.<br>Jens</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 4th 2012, 9:07:37 pm">May 4th 2012</span>
+								by <span class='authorname'>Jens Posert</span><br>
+								<a class="icon-bg icon-link" href="question/135881/downloading-remote-images-and-show-with-scrollableview-android#answer-237879" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

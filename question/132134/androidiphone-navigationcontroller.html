@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>[Android/iPhone] NavigationController » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>[Android/iPhone] NavigationController</h1>
+		</header>
+		<section>
+			<p>Still with lots of bugs with the github one and problems with my Android emulator I decided to create my own one. In this version (still new, please patience if something goes wrong :P) the priority before making any operation I decided to get wich OS is running the application, so I can easily see what piece of code will run (maybe it&#39;s a little bit redundant but I did it in order to make it clearer).</p>
+<p>It has 3 basic operations:</p>
+<ul>
+<li>Open</li>
+<li>Back</li>
+<li>Home</li>
+</ul>
+<p>The way to make Android Activities (fullscreen: false, navBarHidden: true…) must be implemented in the window declaration (just for now)</p>
+<p>The concept is simple: A stack containing windows. In android, after opening a window the controller closes the last one. In iOS all is managed by the navigation group.</p>
+<p>When you want to go back&#x2F;home, the controller extracts the window to close, opens the last one (in Android), closes the actual window and sets it&#39;s reference to null for future GC and save some memory.</p>
+<p>I&#39;ll say it again: It&#39;s an early version.</p>
+<p>Knowing that CommonJS will be the future with Titanium the code implements the same design.</p>
+<pre><code class="hljs">exports.NavigationController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">this</span>.ventanas = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>();
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+}
+
+exports.NavigationController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">abrirVentana</span>)
+</span>{
+    <span class="hljs-keyword">this</span>.ventanas.push(abrirVentana);
+
+    <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>)
+    {
+        <span class="hljs-comment">//Android only</span>
+        abrirVentana.open();
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.ventanas.length &gt; <span class="hljs-number">1</span>)
+        {
+            <span class="hljs-comment">//Si hay más de una ventana cargada se cierra la anterior</span>
+            <span class="hljs-keyword">var</span> ventanaActual = <span class="hljs-keyword">this</span>.ventanas.pop();
+            <span class="hljs-keyword">var</span> ventanaAnterior = <span class="hljs-keyword">this</span>.ventanas.pop();
+
+            ventanaAnterior.close();
+
+            <span class="hljs-keyword">this</span>.ventanas.push(ventanaAnterior);
+            <span class="hljs-keyword">this</span>.ventanas.push(ventanaActual);
+        }
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        <span class="hljs-comment">//iOS only</span>
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.ventanas.length === <span class="hljs-number">1</span>)
+        {
+            <span class="hljs-keyword">this</span>.navGroup = Ti.UI.iPhone.createNavigationGroup({
+                <span class="hljs-built_in">window</span> : abrirVentana,
+            });
+            <span class="hljs-keyword">var</span> containerWindow = Ti.UI.createWindow();
+            containerWindow.add(<span class="hljs-keyword">this</span>.navGroup);
+            containerWindow.open();
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            <span class="hljs-keyword">this</span>.navGroup.open(abrirVentana);
+        }
+    }
+}
+
+exports.NavigationController.prototype.back = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>)
+    {
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.ventanas.length &gt; <span class="hljs-number">1</span>)
+        {
+            <span class="hljs-keyword">var</span> ventanaActual = <span class="hljs-keyword">this</span>.ventanas.pop();
+            <span class="hljs-keyword">var</span> ventanaAnterior = <span class="hljs-keyword">this</span>.ventanas.pop();
+
+            ventanaAnterior.open();
+            ventanaActual.close();
+            ventanaActual = <span class="hljs-literal">null</span>;
+
+            <span class="hljs-keyword">this</span>.ventanas.push(ventanaAnterior);
+        }
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.ventanas.length &gt; <span class="hljs-number">1</span>)
+        {
+            <span class="hljs-keyword">var</span> ventanaActual = <span class="hljs-keyword">this</span>.ventanas.pop();
+            <span class="hljs-keyword">this</span>.navGroup.close(ventanaActual);
+            ventanaActual = <span class="hljs-literal">null</span>;
+        }
+    }
+}
+
+exports.NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>)
+    {
+        <span class="hljs-keyword">while</span>(<span class="hljs-keyword">this</span>.ventanas.length &gt; <span class="hljs-number">1</span>)
+        {
+            <span class="hljs-keyword">var</span> cerrar = <span class="hljs-keyword">this</span>.ventanas.pop();
+            cerrar.close();
+            cerrar = <span class="hljs-literal">null</span>;
+        }
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        <span class="hljs-keyword">while</span>(<span class="hljs-keyword">this</span>.ventanas.length &gt; <span class="hljs-number">1</span>)
+        {
+            <span class="hljs-keyword">var</span> cerrar = <span class="hljs-keyword">this</span>.ventanas.pop();
+            <span class="hljs-keyword">this</span>.navGroup.close(cerrar);
+            cerrar = <span class="hljs-literal">null</span>;
+        }
+    }
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 14th 2012, 4:04:29 pm">February 14th 2012</span>
+				by <span class='authorname'>Juan Manuel Pedraza</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>custom</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I might suggest you post this is git hub where other can review, post comments, fork and make suggestions?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 14th 2012, 4:06:14 pm">February 14th 2012</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I was thinking on that but there is a war between my ubuntu and github, and due to I don&#39;t have too much free time to configure it I decided to post it here for all the people who uses twitter. I&#39;ll try to post it on github :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 14th 2012, 4:23:10 pm">February 14th 2012</span>
+								by <span class='authorname'>Juan Manuel Pedraza</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

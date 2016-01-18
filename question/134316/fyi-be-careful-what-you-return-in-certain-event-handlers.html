@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>FYI: Be careful what you return in certain event handlers... » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>FYI: Be careful what you return in certain event handlers...</h1>
+		</header>
+		<section>
+			<p>I thought I&#39;d share an experience I had recently, in the hopes it might save others time, and also in the hope that perhaps someone has seen this before and has a better explanation.</p>
+<p>I&#39;ll start with a simple example. In the Kitchen Sink sample, modify the &quot;event_one&quot; event listener in &quot;base_ui.js&quot; to return something - how &#39;bout an integer? Before this modification, there was no explicit &quot;return&quot; in the function:</p>
+<pre><code class="hljs">Titanium.<span class="hljs-keyword">App</span>.addEventListener('event_one', function(<span class="hljs-keyword">e</span>)
+{
+        <span class="hljs-keyword">label</span>.text = 'base_ui.js: event <span class="hljs-keyword">one</span>, array length = ' + <span class="hljs-keyword">e</span>.data.length;
+        <span class="hljs-keyword">win</span>.<span class="hljs-keyword">open</span>();
+        setTimeout(function()
+        {
+             <span class="hljs-keyword">win</span>.<span class="hljs-keyword">close</span>({opacity:0,duration:500});
+        },1000);
+
+          <span class="hljs-keyword">return</span> 1;   <span class="hljs-comment">//  MODIFICATION: RETURN AN INTEGER                                                                     </span>
+});
+</code></pre><p>Now, fire up Kitchen Sink, select &quot;Base UI&quot; and &quot;Custom Events&quot;, and touch the &quot;Fire Event 1&quot; button. You&#39;ll see some debugging output - no problem.</p>
+<p>Now, modify it to return an object:</p>
+<pre><code class="hljs">          o1 = {a: <span class="hljs-number">1</span>, b: <span class="hljs-number">2</span>}
+
+          <span class="hljs-keyword">return</span> o1; <span class="hljs-comment">//  MODIFICATION: RETURN A SIMPLE OBJECT</span>
+</code></pre><p>Run the test again - no problem.</p>
+<p>Finally, modify the object in what might seem a weird way - make it point to itself:</p>
+<pre><code class="hljs">          o1 = {a: <span class="hljs-number">1</span>, b: <span class="hljs-number">2</span>}
+        o1.c = o1                                                                                                       
+
+          <span class="hljs-keyword">return</span> o1; <span class="hljs-comment">//  MODIFICATION: RETURN AN LESS SIMPLE OBJECT</span>
+</code></pre><p>This time, the test fails: it appears that the app hangs for a bit and then exits.</p>
+<p>From what I can tell in stepping thought the XCode debugger, Appcelerator is trying to more or less serialize the value (o1) returned by the event handler. In the first two tests, it serializes the &quot;1&quot; and &quot;o1&quot; without incident, but in the third test, it goes into an infinite loop trying to serialize o1… because, of course, there&#39;s a cycle: the object contains a reference to itself.</p>
+<p>A very reasonable thing to ask at this point: Why are you returning something from an event handler in the first place, and why would you create a pathological case where an object points to itself? Good questions! </p>
+<p>In my case, I had been refactoring my code and ended up with a new arrangement of functions where the event handler just so happened to be returning a value (an object). I just assumed that Appcelerator would ignore it, since it was an event handler.</p>
+<p>And it just so happened that the object returned by the event handler function was a complex object which contained references to other objects, one of which just so happened to contain a reference back to the original object. In any reasonably complex app, this isn&#39;t so strange a situation.</p>
+<p>So… mark it up to sloppiness on my part, but maybe someone out there could make the case that:</p>
+<p>1: Appcelerator runtime should explicitly ignore return values from event handlers.</p>
+<p>(Unless, of course, there&#39;s a reason for wanting that value - would love to know?)</p>
+<p>2: Appcelerator runtime should somehow realize that it&#39;s chasing its tail when trying to serialize a cyclic data structure such as &quot;o1&quot;. I realize there&#39;d be a cost to doing this. </p>
+<p>Just for grins, I added this to the screw-case test:</p>
+<pre><code class="hljs">    o1 = {a: <span class="hljs-number">1</span>, b: <span class="hljs-number">2</span>}
+        o1.c = o1
+
+        var s = JSON.stringify(o1); <span class="hljs-comment">// CURIOUS ABOUT WHAT WILL HAPPEN HERE</span>
+
+          <span class="hljs-keyword">return</span> o1; <span class="hljs-comment">//  MODIFICATION: RETURN AN LESS SIMPLE OBJECT</span>
+</code></pre><p>And got this runtime error in return for my efforts:</p>
+<pre><code class="hljs">[WARN] Exception in event callback. {
+
+    line = 136<span class="hljs-comment">;</span>
+
+    message = "JSON.stringify cannot serialize cyclic structures."<span class="hljs-comment">;</span>
+
+    name = TypeError<span class="hljs-comment">;</span>
+
+    sourceId = <span class="hljs-number">266070200</span><span class="hljs-comment">;</span>
+
+    sourceURL = "...main_windows/base_ui.js"<span class="hljs-comment">;</span>
+
+}
+</code></pre><p>Admittedly - this was a simple test. I wonder how hard JSON.stringify tries to detect cycles?</p>
+<p>I don&#39;t know whether the Appcelerator runtime is doing this just for &quot;custom&quot; events (those fired by &quot;Ti.App.fireEvent&quot; or &quot;Ti.API.fireEvent&quot;) or those fired across module&#x2F;thread boundaries (as is the case here), or whether it does this for every event handler (such as View events).</p>
+<p>Any feedback or corrections&#x2F;amplifications&#x2F;other would appreciated, especially if I&#39;ve mis-diagnosed the situation. As I said above, I&#39;m sharing this experience in the hope that it might help some other folks who may also have cut-and-pasted themselves into what I found to be a tricky problem to diagnose.</p>
+<p>Anyone from Appcelerator-land care to comment?</p>
+<ul>
+<li>Steve</li>
+</ul>
+<p>Appcelerator 1.8.2, iOS</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 23rd 2012, 2:46:52 pm">March 23rd 2012</span>
+				by <span class='authorname'>Steve Cellini</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Difficult to call seeing as you admit that you shouldnt be trying to return a value from adding an eventListener in the first place. Its probably the sort of edge case that wont get fixed unless enough people complain and a JIRA is raised with a reproducable testcase</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 23rd 2012, 2:51:39 pm">March 23rd 2012</span>
+								by <span class='authorname'>Nick Milner</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Thanks, Nick - Agreed!</p>
+<p>It&#39;s an edge case, albeit one that can cause real havoc the first time you hit it (which was my primary reason for sharing: education).</p>
+<p>Still - just to explore this a bit further: I wonder if a stronger case for lobbying for a change in the runtime could be made based on an &quot;efficiency&quot; argument: the runtime should &quot;optimize&quot; by explicitly ignoring return values in these situations, just to speed up event handling? I have no data to back this up :)</p>
+<p>Thanks again - Steve</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 23rd 2012, 3:38:46 pm">March 23rd 2012</span>
+								by <span class='authorname'>Steve Cellini</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>XHR causes memory leaks, object can&#39;t be removed/nulled. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>XHR causes memory leaks, object can&#39;t be removed/nulled.</h1>
+		</header>
+		<section>
+			<p>Here you can download my project archive : <a href="http:&#x2F;&#x2F;dl.free.fr&#x2F;mwrbry68m">http:&#x2F;&#x2F;dl.free.fr&#x2F;mwrbry68m</a></p>
+<p>Each time I use an RSS client or a SOAP client, object don&#39;t want to be removed&#x2F;nulled from the window. I&#39;ve uploaded an archive with the entire project. It&#39;s very small, just enough to show you the problem. Once you use the SOAP client and you wanna left the window, you can&#39;t removed buttons, views and window. I think it&#39;s a real problem, and it would be nice to get a real solution.</p>
+<p>Please, use Apple Instruments in order to follow the Proxy creation and how they stay in Living column (even when you remove&#x2F;null window).</p>
+<p>The code is quite simple. Just click on the top button to call SOAP and watch Instruments. Repeat the procedure many times and see how the memory grows up…</p>
+<p>When I went into the suds.js file, I saw that the problem was from this part of code :</p>
+<pre><code class="hljs"><span class="hljs-comment">//POST XML document to service endpoint</span>
+<span class="hljs-keyword">var</span> xhr = getXHR();
+xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+  _callback.call(<span class="hljs-keyword">this</span>, xmlDomFromString(<span class="hljs-keyword">this</span>.responseText));
+};
+xhr.open(<span class="hljs-string">'POST'</span>,config.endpoint);
+xhr.setRequestHeader(<span class="hljs-string">'Content-Type'</span>, <span class="hljs-string">'text/xml'</span>);
+xhr.setRequestHeader(<span class="hljs-string">'SOAPAction'</span>, soapAction);
+xhr.send(config.envelopeBegin+body+config.envelopeEnd);
+</code></pre><p>When this code is called from a window loaded from the <strong>&quot;url:&quot;</strong> param in the  <strong>createWindow</strong> function it always retains objects (buttons, window, etc…) in the window they live (even if you ry to remove and&#x2F;or null them).</p>
+<p>Here is a screenshot of Instruments after six open&#x2F;close &quot;SOAP Call&quot; window :</p>
+<p><img src="http:&#x2F;&#x2F;img820.imageshack.us&#x2F;img820&#x2F;3792&#x2F;capturedcran20120203003.png" alt="alt text"></p>
+<p>So it seems when xhr is kept open, it produces memory leaks. I hope you&#39;ll test my code and understand what I mean. In case not, please ask me more.</p>
+<p>If you know a good technique to bypass this problem you&#39;ll make me happy ! Thanks ! ;-)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 2nd 2012, 9:38:23 pm">February 2nd 2012</span>
+				by <span class='authorname'>Xavier C.</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>memory leaks</span></li>
+					
+						<li><span class='tagname'>soap</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-229290">
+				
+						<section>
+							<p>There&#39;s one issue in your code I can see now:</p>
+<pre><code class="hljs"><span class="hljs-comment">//currency.js</span>
+win.<span class="hljs-keyword">remove</span>(testBtn);
+</code></pre><p>It&#39;ll throw warning <code>[WARN] called remove for [object TiUIButton] on [object TiUIWindow], but [object TiUIButton] isn&amp;#39;t a child or has already been removed</code></p>
+<p>Reason is testBtn is not a child of win, you can check by log it out <code>Ti.API.info(win.children.length);</code>.</p>
+<p>Here&#39;s my correction - And I&#39;ll use that to do below tests:</p>
+<pre><code class="hljs"><span class="hljs-comment">// correction in currency.js</span>
+<span class="hljs-comment">// win.remove(testBtn);</span>
+win.rightNavButton = <span class="hljs-literal">null</span>;
+</code></pre><ul>
+<li><p>Test with SDK 1.8.0.1 ( I see this sdk in your project )<br>See <a href="https:&#x2F;&#x2F;skitch.com&#x2F;minhnc&#x2F;g6kgt&#x2F;1.8.0.1">here</a>.</p>
+</li>
+<li><p>Test with SDK 1.8.1<br>See <a href="https:&#x2F;&#x2F;skitch.com&#x2F;minhnc&#x2F;g6kg5&#x2F;1.8.1">here</a>.</p>
+</li>
+</ul>
+<p>You can see with SDK 1.8.1 it works better.. So I&#39;d suggest you to upgrade to SDK 1.8.1</p>
+<p>Hope that help,</p>
+<p>Minh</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 3rd 2012, 2:18:50 am">February 3rd 2012</span>
+								by <span class='authorname'>Minh Nguyen</span><br>
+								<a class="icon-bg icon-link" href="question/131573/xhr-causes-memory-leaks-object-cant-be-removednulled#answer-229290" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Notice that you need to wait Instrument for a while to see it affects.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2012, 2:20:22 am">February 3rd 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>And monkeypatch is not needed anymore since SDK 1.8.x :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2012, 2:22:55 am">February 3rd 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;d also suggest using the tab controller template now in Studio for new projects.  That&#39;s the latest version of my original Tab controller for a single context.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2012, 2:41:28 am">February 3rd 2012</span>
+											by <span class='authorname'>Kevin Whinnery</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Minh and Kevin for your help, it was very useful ! I switched to SDK 1.8.1 and it&#39;s much better. ;-)</p>
+<p>Kevin, I now use your tab controller template and I have a question. When I wanna load a js file in a new window, then when I close it (using Home button) it&#39;s still living (I see in Instruments). Could you tell me how to remove&#x2F;null it on close ?</p>
+<p>Here is my code for AppWindow.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">AppWindow</span><span class="hljs-params">(title,url)</span> </span>{
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+        title:title,
+        backgroundColor:<span class="hljs-string">'white'</span>
+    });
+
+    <span class="hljs-keyword">var</span> button = Ti.UI.createButton({
+        height:<span class="hljs-number">44</span>,
+        width:<span class="hljs-number">200</span>,
+        title:L(<span class="hljs-string">'openWindow'</span>),
+        top:<span class="hljs-number">20</span>
+    });
+    <span class="hljs-keyword">self</span>.add(button);
+
+    button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-comment">//containingTab attribute must be set by parent tab group on</span>
+        <span class="hljs-comment">//the window for this work</span>
+        <span class="hljs-keyword">self</span>.containingTab.open(Ti.UI.createWindow({
+            title: title,
+            backgroundColor: <span class="hljs-string">'white'</span>,
+            url:url
+        }));
+    });
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+
+module.exports = AppWindow;
+</code></pre><p>My code for AppTabGroup.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">AppTabGroup</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">//declare module dependencies</span>
+    <span class="hljs-keyword">var</span> AppWindow = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/AppWindow'</span>);
+
+    <span class="hljs-comment">//create module instance</span>
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createTabGroup();
+
+    <span class="hljs-comment">//create app tabs</span>
+    <span class="hljs-keyword">var</span> win1 = <span class="hljs-keyword">new</span> AppWindow(L(<span class="hljs-string">'home'</span>),<span class="hljs-string">'ajouter.js'</span>),
+        win2 = <span class="hljs-keyword">new</span> AppWindow(L(<span class="hljs-string">'settings'</span>,<span class="hljs-string">'ajouter.js'</span>));
+
+    <span class="hljs-keyword">var</span> tab1 = Ti.UI.createTab({
+        title: L(<span class="hljs-string">'home'</span>),
+        icon: <span class="hljs-string">'/images/KS_nav_ui.png'</span>,
+        window: win1
+    });
+    win1.containingTab = tab1;
+
+    <span class="hljs-keyword">var</span> tab2 = Ti.UI.createTab({
+        title: L(<span class="hljs-string">'settings'</span>),
+        icon: <span class="hljs-string">'/images/KS_nav_views.png'</span>,
+        window: win2
+    });
+    win2.containingTab = tab2;
+
+    <span class="hljs-keyword">self</span>.addTab(tab1);
+    <span class="hljs-keyword">self</span>.addTab(tab2);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+
+module.exports = AppTabGroup;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2012, 7:12:01 am">February 3rd 2012</span>
+											by <span class='authorname'>Xavier C.</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Then, my code for ajouter.js</p>
+<pre><code class="hljs">var win = Ti.UI.currentWindow;
+win.backgroundColor = <span class="hljs-string">'stripped'</span>;
+
+var scrollView = Ti.UI.createScrollView({
+    contentWidth:<span class="hljs-string">'auto'</span>, 
+    contentHeight:<span class="hljs-string">'auto'</span>,
+    top:<span class="hljs-number">0</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-string">'100%'</span>,
+    <span class="hljs-variable">height</span>:<span class="hljs-string">'100%'</span>,
+    showVerticalScrollIndicator:<span class="hljs-keyword">true</span>,
+    showHorizontalScrollIndicator:<span class="hljs-keyword">true</span> 
+});
+
+win.<span class="hljs-built_in">add</span>(scrollView);
+
+var civiliteText = Ti.UI.createTextField({
+    hintText:<span class="hljs-string">'Civilité'</span>,
+    <span class="hljs-comment">//borderStyle:Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,</span>
+    borderWidth:<span class="hljs-number">1</span>,
+    borderColor:<span class="hljs-string">'#bbb'</span>,
+    borderRadius:<span class="hljs-number">5</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    paddingLeft:<span class="hljs-number">6</span>,
+    returnKeyType:Titanium.UI.RETURNKEY_NEXT,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">30</span>,
+    enabled : <span class="hljs-keyword">false</span>,
+    font: {fontSize:<span class="hljs-number">13</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+    left:<span class="hljs-number">10</span>,
+    right:<span class="hljs-number">10</span>,
+    top:<span class="hljs-number">10</span>
+});
+
+var nomText = Ti.UI.createTextField({
+    hintText:<span class="hljs-string">'Nom'</span>,
+    <span class="hljs-comment">//borderStyle:Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,</span>
+    borderWidth:<span class="hljs-number">1</span>,
+    borderColor:<span class="hljs-string">'#bbb'</span>,
+    borderRadius:<span class="hljs-number">5</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    paddingLeft:<span class="hljs-number">6</span>,
+    clearButtonMode:Ti.UI.INPUT_BUTTONMODE_ALWAYS,
+    returnKeyType:Titanium.UI.RETURNKEY_NEXT,
+    autocapitalization:Ti.UI.TEXT_AUTOCAPITALIZATION_ALL,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">30</span>,
+    font: {fontSize:<span class="hljs-number">13</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+    left:<span class="hljs-number">10</span>,
+    right:<span class="hljs-number">10</span>,
+    top:<span class="hljs-number">50</span>
+});
+
+var prenomText = Ti.UI.createTextField({
+    hintText:<span class="hljs-string">'Prénom'</span>,
+    <span class="hljs-comment">//borderStyle:Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,</span>
+    borderWidth:<span class="hljs-number">1</span>,
+    borderColor:<span class="hljs-string">'#bbb'</span>,
+    borderRadius:<span class="hljs-number">5</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    paddingLeft:<span class="hljs-number">6</span>,
+    clearButtonMode:Ti.UI.INPUT_BUTTONMODE_ALWAYS,
+    returnKeyType:Titanium.UI.RETURNKEY_NEXT,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">30</span>,
+    font: {fontSize:<span class="hljs-number">13</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+    left:<span class="hljs-number">10</span>,
+    right:<span class="hljs-number">10</span>,
+    top:<span class="hljs-number">90</span>
+});
+
+var telephoneText = Ti.UI.createTextField({
+    hintText:<span class="hljs-string">'Téléphone'</span>,
+    <span class="hljs-comment">//borderStyle:Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,</span>
+    borderWidth:<span class="hljs-number">1</span>,
+    borderColor:<span class="hljs-string">'#bbb'</span>,
+    borderRadius:<span class="hljs-number">5</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    paddingLeft:<span class="hljs-number">6</span>,
+    clearButtonMode:Ti.UI.INPUT_BUTTONMODE_ALWAYS,
+    keyboardType:Titanium.UI.KEYBOARD_PHONE_PAD,
+    returnKeyType:Titanium.UI.RETURNKEY_NEXT,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">30</span>,
+    font: {fontSize:<span class="hljs-number">13</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+    left:<span class="hljs-number">10</span>,
+    right:<span class="hljs-number">10</span>,
+    top:<span class="hljs-number">130</span>
+});
+
+var emailText = Ti.UI.createTextField({
+    hintText:<span class="hljs-string">'Email'</span>,
+    <span class="hljs-comment">//borderStyle:Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,</span>
+    borderWidth:<span class="hljs-number">1</span>,
+    borderColor:<span class="hljs-string">'#bbb'</span>,
+    borderRadius:<span class="hljs-number">5</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    paddingLeft:<span class="hljs-number">6</span>,
+    clearButtonMode:Ti.UI.INPUT_BUTTONMODE_ALWAYS,
+    keyboardType:Titanium.UI.KEYBOARD_EMAIL,
+    returnKeyType:Titanium.UI.RETURNKEY_NEXT,
+    autocapitalization:Ti.UI.TEXT_AUTOCAPITALIZATION_NONE,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">30</span>,
+    font: {fontSize:<span class="hljs-number">13</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+    left:<span class="hljs-number">10</span>,
+    right:<span class="hljs-number">10</span>,
+    top:<span class="hljs-number">170</span>
+});
+
+var commentaireText = Ti.UI.createTextArea({
+    borderWidth:<span class="hljs-number">1</span>,
+    borderColor:<span class="hljs-string">'#bbb'</span>,
+    borderRadius:<span class="hljs-number">5</span>,
+    clearButtonMode:Ti.UI.INPUT_BUTTONMODE_ALWAYS,
+    returnKeyType:Titanium.UI.RETURNKEY_DONE,
+    autocapitalization:Ti.UI.TEXT_AUTOCAPITALIZATION_NONE,
+    font: {fontSize:<span class="hljs-number">13</span>},
+    <span class="hljs-variable">height</span>:<span class="hljs-number">150</span>,
+    left:<span class="hljs-number">10</span>,
+    right:<span class="hljs-number">10</span>,
+    top:<span class="hljs-number">210</span>,
+    bottom:<span class="hljs-number">10</span>,
+    value:<span class="hljs-string">''</span>
+});
+
+var hintCommentaire = Ti.UI.createLabel({
+    font: {fontSize:<span class="hljs-number">13</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+    opacity:<span class="hljs-number">0.6</span>,
+    <span class="hljs-built_in">text</span>:<span class="hljs-string">'Commentaire'</span>,
+    <span class="hljs-built_in">color</span>:<span class="hljs-string">'gray'</span>,
+    <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'left'</span>,
+    left:<span class="hljs-number">8</span>,
+    top:<span class="hljs-number">8</span>,
+    <span class="hljs-variable">height</span>:<span class="hljs-string">'auto'</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-string">'auto'</span>,
+    backgroundColor:<span class="hljs-string">'transparent'</span>,
+    touchEnabled:<span class="hljs-keyword">true</span>
+});
+
+commentaireText.<span class="hljs-built_in">add</span>(hintCommentaire);
+
+<span class="hljs-keyword">if</span> (commentaireText.value.length &gt; <span class="hljs-number">0</span>) {
+    hintCommentaire.hide();
+}
+
+scrollView.<span class="hljs-built_in">add</span>(civiliteText);
+scrollView.<span class="hljs-built_in">add</span>(nomText);
+scrollView.<span class="hljs-built_in">add</span>(prenomText);
+scrollView.<span class="hljs-built_in">add</span>(telephoneText);
+scrollView.<span class="hljs-built_in">add</span>(emailText);
+scrollView.<span class="hljs-built_in">add</span>(commentaireText);
+</code></pre><pre><code class="hljs"><span class="hljs-keyword">var</span> ajouterBtn = Ti.UI.createButton({
+    systemButton:Titanium.UI.iPhone.SystemButton.ADD,
+});
+
+win.rightNavButton = ajouterBtn;
+
+civiliteText.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.autocorrect = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">var</span> newWin = Ti.UI.createWindow({
+        modal:<span class="hljs-literal">true</span>,
+        title:<span class="hljs-string">'Civilité'</span>,
+        url:<span class="hljs-string">'civilite.js'</span>
+    });
+    newWin.civilite = civiliteText.value;
+    newWin.open();
+});
+
+nomText.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.autocorrect = <span class="hljs-literal">false</span>;
+});
+nomText.addEventListener(<span class="hljs-string">'return'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    prenomText.focus();
+});
+
+prenomText.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.autocorrect = <span class="hljs-literal">false</span>;
+});
+prenomText.addEventListener(<span class="hljs-string">'return'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    telephoneText.focus();
+});
+
+telephoneText.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.autocorrect = <span class="hljs-literal">false</span>;
+});
+telephoneText.addEventListener(<span class="hljs-string">'return'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    emailText.focus();
+});
+
+emailText.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.autocorrect = <span class="hljs-literal">false</span>;
+});
+emailText.addEventListener(<span class="hljs-string">'return'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    commentaireText.focus();
+});
+
+commentaireText.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.value.length &gt; <span class="hljs-number">0</span>) {
+        hintCommentaire.hide();
+    } <span class="hljs-keyword">else</span> {
+        hintCommentaire.show();
+    }
+});
+
+hintCommentaire.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    commentaireText.focus();
+    <span class="hljs-comment">//this.hide();</span>
+});
+
+<span class="hljs-comment">// RAPATRIER LA VALEUR CIVILITÉ</span>
+Ti.App.addEventListener(<span class="hljs-string">'getCivilite'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    civiliteText.value = e.laCivilite;
+});
+
+<span class="hljs-comment">// MEMOIRE</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">viderMemoire</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">//</span>
+    scrollView.remove(civiliteText);
+    civiliteText = <span class="hljs-literal">null</span>;
+    scrollView.remove(nomText);
+    nomText = <span class="hljs-literal">null</span>;
+    scrollView.remove(prenomText);
+    prenomText = <span class="hljs-literal">null</span>;
+    scrollView.remove(telephoneText);
+    telephoneText = <span class="hljs-literal">null</span>;
+    scrollView.remove(emailText);
+    emailText = <span class="hljs-literal">null</span>;
+    commentaireText.remove(hintCommentaire);
+    hintCommentaire = <span class="hljs-literal">null</span>;
+    scrollView.remove(commentaireText);
+    commentaireText = <span class="hljs-literal">null</span>;
+    <span class="hljs-comment">//</span>
+    win.remove(scrollView);
+    scrollView = <span class="hljs-literal">null</span>;
+    ajouterBtn = <span class="hljs-literal">null</span>;
+    win.rightNavButton = <span class="hljs-literal">null</span>;
+    <span class="hljs-comment">//</span>
+}
+
+win.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    viderMemoire();
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2012, 7:13:53 am">February 3rd 2012</span>
+											by <span class='authorname'>Xavier C.</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

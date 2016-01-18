@@ -1,0 +1,481 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>[GUIDE] WindowController Applying CommonJS » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>[GUIDE] WindowController Applying CommonJS</h1>
+		</header>
+		<section>
+			<p>Hello guys.. i just would like to share some codes that i develop to create CommonJS.. I hope others can enhance it.. You are free to USE, MODIFY this code.. as long as you share the updates to community..</p>
+<p>save it as &quot;WindowController.js&quot;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> AppWin = <span class="hljs-built_in">require</span>(<span class="hljs-string">"AppWindow"</span>);
+
+<span class="hljs-keyword">var</span> windowStack=[];
+
+<span class="hljs-comment">//get array of windows</span>
+exports.appWindows = windowStack;
+
+<span class="hljs-comment">//create window</span>
+exports.createWindow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">instance</span>)</span>{
+    instance.title = <span class="hljs-string">"Window "</span> + windowStack.length;    <span class="hljs-comment">//for you to see the windows movement</span>
+
+    <span class="hljs-comment">//hack - setting this property ensures the window is "heavyweight" (associated with an Android activity)</span>
+    instance.navBarHidden = <span class="hljs-literal">false</span>;
+    <span class="hljs-comment">//hack - setting this property ensures the window gesture is only PORTRAIT</span>
+    instance.orientationModes = [Titanium.UI.PORTRAIT];
+
+    <span class="hljs-comment">//This is the first/root window</span>
+    <span class="hljs-keyword">if</span>(!windowStack.length) {
+        instance.exitOnClose = <span class="hljs-literal">true</span>;
+    }
+
+    <span class="hljs-keyword">var</span> win = <span class="hljs-keyword">new</span> AppWin.windowList(instance);
+    windowStack.push(win);
+
+
+    win.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-comment">//Window Manager... manipulates the array of windows</span>
+        windowStack.concat([]);
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; windowStack.length; i++) {
+            <span class="hljs-keyword">if</span>(windowStack[i].winName == win.winName){
+                windowStack.splice(i,<span class="hljs-number">1</span>);
+               }
+        }
+    });
+    <span class="hljs-keyword">return</span> win;
+}
+
+<span class="hljs-comment">//go back to the initial window of the WindowController</span>
+exports.windowHome = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = windowStack.length; i &gt; <span class="hljs-number">1</span>; i--) {
+        windowStack[i-<span class="hljs-number">1</span>].close();
+    }
+};
+
+<span class="hljs-comment">//Close window</span>
+exports.closeWindow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">thisWindow</span>) </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = windowStack.length; i &gt; <span class="hljs-number">1</span>; i--) {
+        <span class="hljs-keyword">if</span>(windowStack[i-<span class="hljs-number">1</span>].winName == thisWindow){
+            windowStack[i-<span class="hljs-number">1</span>].close();
+           }
+    }
+};
+
+<span class="hljs-comment">//Redirect to window</span>
+<span class="hljs-comment">//only existing windows are shown</span>
+exports.winLocation = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">thisWindow, args</span>) </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; windowStack.length; i++){
+        <span class="hljs-keyword">if</span>(windowStack[i].winName == thisWindow){
+            windowStack[i].close();
+           }
+    }
+    args.concat({
+        backgroundColor: <span class="hljs-string">'#ffffff'</span>,
+        winName: thisWindow
+    });
+    <span class="hljs-keyword">var</span> win = exports.createWindow(args);
+    win.open();
+};
+
+<span class="hljs-comment">//Close Group Window</span>
+exports.closeWinGroup = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">thisGroup</span>) </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = windowStack.length; i &gt; <span class="hljs-number">1</span>; i--) {
+        <span class="hljs-keyword">if</span>(windowStack[i-<span class="hljs-number">1</span>].winGroup == thisGroup){
+            windowStack[i-<span class="hljs-number">1</span>].close();
+           }
+    }
+};
+</code></pre><p>optionall.. save it as &quot;AppWindows.js&quot;</p>
+<pre><code class="hljs">exports.windowList = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">instance</span>)</span>{
+    <span class="hljs-keyword">var</span> win = Titanium.UI.createWindow(instance);
+    <span class="hljs-keyword">switch</span>(instance.winName){
+        <span class="hljs-keyword">case</span> <span class="hljs-string">"HomePage"</span>:
+            win = <span class="hljs-built_in">require</span>(<span class="hljs-string">"homepage"</span>).thisPage(win);    
+            <span class="hljs-comment">//your other JS to minimize Space and organize the coding per window</span>
+        <span class="hljs-keyword">break</span>;
+    }
+    <span class="hljs-keyword">return</span> win;
+}
+</code></pre><p>&quot;app.js&quot; looks like this</p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span><span class="hljs-collection">{
+    // this sets the background color of the master UIView <span class="hljs-list">(<span class="hljs-keyword"><span class="hljs-built_in">when</span></span> there are no windows/tab groups on it)</span>
+    Titanium.App.controller = require<span class="hljs-list">(<span class="hljs-keyword">'WindowController'</span>)</span><span class="hljs-comment">;</span>
+    var win = Titanium.App.controller.createWindow<span class="hljs-list">(<span class="hljs-collection">{
+        backgroundColor: '#ffffff',
+        winName: <span class="hljs-string">"HomePage"</span>
+    }</span>)</span><span class="hljs-comment">;</span>
+    win.open<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>save this as &quot;homepage.js&quot;</p>
+<pre><code class="hljs">exports.thisPage = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(win)</span></span>{
+    <span class="hljs-keyword">var</span> btn = Ti.UI.createWindow({
+        title: <span class="hljs-string">"Open New Window"</span>
+    });
+    btn.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">var</span> newWin = Titanium.App.controller.createWindow({
+        backgroundColor: <span class="hljs-string">'#ffffff'</span>,
+        winName: <span class="hljs-string">"Window"</span> + Titanium.App.controller.appWindows.length
+        });
+        newWin.open();
+    });
+    win.add(btn);
+    <span class="hljs-keyword">return</span> win;
+}
+</code></pre><p>I know it is just simple but.. everyone can use it as a start in creating their own commonJS patter… :) hope you like it guys.. CodeStrong =)..</p>
+<p>PS: &quot;It&#39;s not about the length, it&#39;s about the content.&quot; -Ken</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 20th 2012, 4:49:07 am">January 20th 2012</span>
+				by <span class='authorname'>Ken Crucillo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>controller</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>23 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I forgot about the other function on how to use :)..</p>
+<pre><code class="hljs"><span class="hljs-comment">//if you want to go back HOME/ROOT window use..</span>
+Titanium.<span class="hljs-keyword">App</span>.controller.windowHome();
+
+<span class="hljs-comment">//If you want to close a window you need to close it by its "winName" property</span>
+Titanium.<span class="hljs-keyword">App</span>.controller.closeWindow(<span class="hljs-string">"ThisWindow"</span>);
+
+<span class="hljs-comment">//If you want to open a window which already exsist..</span>
+<span class="hljs-comment">//<span class="hljs-doctag">Note:</span> the window you show will be top of the window..</span>
+<span class="hljs-comment">//So when you close it.. you will not see the window anymore</span>
+<span class="hljs-comment">//For example</span>
+<span class="hljs-comment">//Open Win1 -&gt; Open Win2 -&gt; Open Win3 -&gt; Use the winLocation function to Open win2... the structure would be</span>
+<span class="hljs-comment">//Open Win1 -&gt; Open Win3 -&gt; Open Win2</span>
+Titanium.<span class="hljs-keyword">App</span>.controller.winLocation(<span class="hljs-string">"ThisWindow"</span>, {
+    fullscreen: true,
+    other: <span class="hljs-string">"Others"</span> <span class="hljs-comment">//window additional property.</span>
+});
+
+<span class="hljs-comment">//If you want to close a group of Windows</span>
+<span class="hljs-comment">//1st - The window should have a winGroup property</span>
+<span class="hljs-comment">//2nd - Those who have same winGroup will be closed</span>
+Titanium.<span class="hljs-keyword">App</span>.controller.closeWinGroup(<span class="hljs-string">"WindowGroupName"</span>);
+</code></pre><p>Just play around with it…</p>
+<p>So far.. my known error for this is… when the Root window is closed.. It can&#39;t be replaced by other root window.. you will see the error when you close the root window and open new window.. and place a &quot;MapView&quot; it will result to error.. saying RootWindow doesnt exsist..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 6:36:07 am">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Ti.App … hm, that&#39;s dangerous, why do you use it?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 11:36:32 am">January 20th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi ivan.. why it is dangerous?? i use it to be accessible to every window.. and every JS in my app..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 11:46:47 am">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Because future Titanium version might not allow adding properties to Ti.App.</p>
+<p>Why don&#39;t you write &quot;controller&quot; as CommonJS module?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 11:53:28 am">January 20th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Really?? oh thats bad.. Could you give example for that Ivan.. sorry.. im still new in this kind of approach..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 11:55:44 am">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Write in same manner as you did. Nothing new is needed.</p>
+<p>Something like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//controller.js</span>
+
+<span class="hljs-keyword">var</span> controller = <span class="hljs-comment">{}</span>;
+
+controller.windowHome = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> <span class="hljs-comment">{ ... }</span>;</span>
+
+controller.closeWindow = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(win)</span><span class="hljs-comment">{ ... }</span>;</span>
+
+controller.winLocation = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(win, options)</span> <span class="hljs-comment">{ ... }</span>;</span>
+
+controller.closeWinGroup = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(win)</span><span class="hljs-comment">{ ... }</span>;</span>
+
+module.<span class="hljs-keyword">exports</span> = controller;
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+
+<span class="hljs-keyword">var</span> controller = <span class="hljs-built_in">require</span>(<span class="hljs-string">'controller'</span>);
+<span class="hljs-comment">//etc</span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:01:32 pm">January 20th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>ohh.. i get it now.. that module.exports is like a global scope for all JS files?? right? thanks for this ivan its a huge help</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:03:31 pm">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>No, it&#39;s similar to &quot;exports&quot; variable, the difference is that you can export API directly to it:</p>
+<pre><code class="hljs"><span class="hljs-keyword">exports</span> = myAPI; <span class="hljs-comment">//wrong</span>
+module.<span class="hljs-keyword">exports</span> = myAPI; <span class="hljs-comment">//OK</span>
+</code></pre><p>You need to &quot;require&quot; module everywhere you want to use it since there are no global variables in CommonJS standard.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:13:29 pm">January 20th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>will my windowStack variable will not be affected by it?? coz it plays important role in my controller..managing the window arrays..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:16:01 pm">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>No, every module is context for it self and it has its own &quot;module&quot; and &quot;exports&quot; variables.</p>
+<p>You can imagine module like this:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span></span> <span class="hljs-keyword">Module</span>(<span class="hljs-keyword">module</span>, exports, require) {
+    //<span class="hljs-keyword">module</span> code
+}
+</code></pre><p>When you require module:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-built_in">module</span> = <span class="hljs-built_in">require</span>(<span class="hljs-string">'module'</span>);
+</code></pre><p>Into that module, from outside, all function parameters are passed.</p>
+<p>&quot;exports&quot; is empty object, &quot;module&quot; is object that has &quot;exports&quot; property (and others defined in CommonJS standard) and &quot;require&quot; is a function that includes other modules:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> <span class="hljs-built_in">require</span> = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    ...
+    <span class="hljs-keyword">var</span> m = { exports: {}, ... };
+    <span class="hljs-keyword">var</span> e = {};
+    Module(m, e, <span class="hljs-built_in">require</span>);
+    <span class="hljs-comment">//in "Module" you attach API to "module" variable, because it's named that way because of convention</span>
+    <span class="hljs-keyword">return</span> m.exports; <span class="hljs-comment">//or just "exports"</span>
+
+};
+</code></pre><p>&quot;Module2&quot; will be new function&#x2F;context, that will have its own variables and they won&#39;t have anything to do with variables from &quot;Module&quot;.</p>
+<p>Hope it&#39;s clearer now. :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:32:12 pm">January 20th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>It&#39;s a bit confusing still to me.. but ill try to modify now the code and see what it does.. you know ivan u are a great help to me :)… acctually i use some of ur tips in creating window manager.. thanks for that… :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:39:15 pm">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Yeah, try to experiment to see how things work.</p>
+<p>Just remember that modules are separate units and that their variables (module, exports) does not have anything in common. Create several modules to see that.</p>
+<p>No problem man, glad you found them useful. I hope one day they will be implemented in Titanium framework, because I find that functionality very useful.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:48:37 pm">January 20th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>if there is a like here i would like ur last post hahaha. :) ok ill try it now.. and post some updates… more functionality you need??</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 12:53:55 pm">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I don&#39;t understand your question. What I miss in TiFramework is cross-platform navigation controller so I can create windows, group them, close groups, close all and so on. Basically, Tabgroup component is basic navigation controller, but it&#39;s pretty stupid. :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 1:13:23 pm">January 20th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>sorry im not good english..<br>haha.. i agree with you.. i use tabgroup but i went back to windows… i hope Appcelerator team can have the module for windows and xhr management :)..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 20th 2012, 1:16:58 pm">January 20th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Ken, This works for me on iOS but I can&#39;t get this to work on the Android. I see the home screen for a second and then it crashes with Applications &#39;has stopped unexpectedly&#39;.</p>
+<p>Not much in the logs… is says: Cannot create view on TiBaseWindowProxy…</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 24th 2012, 6:07:15 am">January 24th 2012</span>
+								by <span class='authorname'>Frank Cox</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#39;m developing application for android.. and it works fine with me.. @_@.. maybe you miss something.. show me how u do it..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 24th 2012, 6:09:24 am">January 24th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I copied your code as you have it above. I put the 4 .js files in the Resources dir of a new project. It works, as I said, on iOS and crashed on the Android emulator using APIs 2.2 and 2.3.1 and SDK 1.8.0.1</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 24th 2012, 6:37:10 am">January 24th 2012</span>
+								by <span class='authorname'>Frank Cox</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>hmmmm maybe the AppWindow.. i write &quot;AppWindows.js&quot; -&gt; it should be &quot;AppWindow.js&quot; …. please try to check it.. sorry i have typo in the top..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 24th 2012, 6:42:25 am">January 24th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I did have to fix that typo. After that it worked on iOS and started on Android. It would then crash on Android as I said. I&#39;m building on a Mac if that makes any difference.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 24th 2012, 2:27:51 pm">January 24th 2012</span>
+								by <span class='authorname'>Frank Cox</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I dont know frank.. i haven&#39;t mac :(.. im just using xp.. sorry..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 24th 2012, 11:40:45 pm">January 24th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>this might be better getting moved to a blog post or something? it is difficult to even follow what is the final solution here</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 25th 2012, 3:45:21 am">January 25th 2012</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi sir.. i havent code yet the final.. coz im doing something.. sorry again.. ill try my best to post an update about this..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 25th 2012, 5:27:08 am">January 25th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

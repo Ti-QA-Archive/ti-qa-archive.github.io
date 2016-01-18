@@ -1,0 +1,306 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to refresh Table rows from database » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to refresh Table rows from database</h1>
+		</header>
+		<section>
+			<p>Hi, I have an app that part of it pulls data from a local database to populate the table. This data is added via an add incident page. The problem I am having is that When I add an incident via add_incident.js, when I then go to view_incidents.js the incident isn&#39;t there. I have to restart the app to then get it to re-populate the rows which is not ideal obviously. </p>
+<p>How can I get the app to refresh the table every time I go onto that page? I have done some searching but I have not found much to help me, so any help is much appreciated. </p>
+<p>Cheers,<br>Matt</p>
+<pre><code class="hljs"><span class="hljs-comment">// create var for the currentWindow</span>
+<span class="hljs-keyword">var</span> currentWin = Ti.UI.currentWindow;
+
+<span class="hljs-comment">// set the data from the database to the array</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setArray</span><span class="hljs-params">()</span> </span>{    
+
+    <span class="hljs-keyword">var</span> db = Ti.Database.install(<span class="hljs-string">'../fa5.sqlite'</span>,<span class="hljs-string">'fa5'</span>);
+
+    <span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT * FROM incidents'</span>);
+
+    <span class="hljs-comment">// create the array</span>
+    <span class="hljs-keyword">var</span> dataArray = [];
+
+    <span class="hljs-keyword">while</span> (rows.isValidRow())
+    {
+        dataArray.push({title:<span class="hljs-string">''</span> + rows.fieldByName(<span class="hljs-string">'date'</span>) + <span class="hljs-string">' - '</span> + rows.fieldByName(<span class="hljs-string">'time'</span>) + <span class="hljs-string">''</span>, hasChild:<span class="hljs-literal">true</span>, id:rows.fieldByName(<span class="hljs-string">'id'</span>), path:<span class="hljs-string">'incident.js'</span>});
+        rows.next();    
+    };
+
+    <span class="hljs-comment">// set the array to the tableView</span>
+    tableview.setData(dataArray);
+    rows.close();
+    db.close();
+};
+
+<span class="hljs-comment">// create table view</span>
+<span class="hljs-keyword">var</span> tableview = Ti.UI.createTableView({
+    deleteButtonTitle:<span class="hljs-string">'Delete Incident'</span>
+});
+
+
+tableview.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (e.rowData.path)
+    {
+        <span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+            url:e.rowData.path,
+            title:e.rowData.title,
+            id:e.rowData.id
+        });
+
+        Ti.UI.currentTab.open(win);
+    }
+});
+
+<span class="hljs-comment">// add the tableView to the current window</span>
+currentWin.add(tableview);
+
+<span class="hljs-comment">// call the setArray function to attach the database results to the array</span>
+setArray();
+
+tableview.addEventListener(<span class="hljs-string">'delete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">var</span> id = e.row.id;
+
+    <span class="hljs-keyword">var</span> db = Ti.Database.install(<span class="hljs-string">'../fa5.sqlite'</span>,<span class="hljs-string">'fa5'</span>);
+    db.execute(<span class="hljs-string">'DELETE FROM incidents WHERE id =?'</span>, id);
+    db.execute(<span class="hljs-string">'DELETE FROM data WHERE inid =?'</span>, id);    
+    db.close();
+
+});
+
+<span class="hljs-keyword">var</span> edit = Ti.UI.createButton({
+    title:<span class="hljs-string">'Edit'</span>
+});
+<span class="hljs-keyword">var</span> cancel = Ti.UI.createButton({
+    title:<span class="hljs-string">'Cancel'</span>
+});
+edit.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    currentWin.setRightNavButton(cancel);
+    tableview.editing = <span class="hljs-literal">true</span>;
+});
+cancel.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    currentWin.setRightNavButton(edit);
+    tableview.editing = <span class="hljs-literal">false</span>;
+});
+currentWin.setRightNavButton(edit);
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 6th 2012, 1:38:24 pm">April 6th 2012</span>
+				by <span class='authorname'>Matt Hale</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>local</span></li>
+					
+						<li><span class='tagname'>refresh</span></li>
+					
+						<li><span class='tagname'>table</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-235417">
+				
+						<section>
+							<p>Hi matt,</p>
+<p>On focus of window call setarray function and clear tableview.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 6th 2012, 1:54:21 pm">April 6th 2012</span>
+								by <span class='authorname'>Nitin Chavda</span><br>
+								<a class="icon-bg icon-link" href="question/135029/how-to-refresh-table-rows-from-database#answer-235417" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Can you explain this more please,<br>Thanks Matt</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 6th 2012, 2:13:22 pm">April 6th 2012</span>
+											by <span class='authorname'>Matt Hale</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>hi matt, just replace this method and try it.</p>
+<pre><code class="hljs">tableview.addEventListener('<span class="hljs-operator"><span class="hljs-keyword">delete</span><span class="hljs-string">', function(e){
+    var id = e.row.id;
+
+    var db = Ti.Database.install('</span>../fa5.sqlite<span class="hljs-string">','</span>fa5<span class="hljs-string">');
+    db.execute('</span><span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> incidents <span class="hljs-keyword">WHERE</span> <span class="hljs-keyword">id</span> =?<span class="hljs-string">', id);
+    db.execute('</span><span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> <span class="hljs-keyword">data</span> <span class="hljs-keyword">WHERE</span> inid =?<span class="hljs-string">', id);   
+    db.close();
+    tableview.setData([]);
+    setArray();
+
+});</span></span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 6th 2012, 3:00:50 pm">April 6th 2012</span>
+											by <span class='authorname'>Nitin Chavda</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorted, thanks for helping me.<br>Matt</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 6th 2012, 4:46:32 pm">April 6th 2012</span>
+											by <span class='authorname'>Matt Hale</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-235418">
+				
+						<section>
+							<p>see this from training materials <a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;td&#x2F;250+Working+With+Local+Data">https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;td&#x2F;250+Working+With+Local+Data</a></p>
+<p>basic idea is to fire an event to refresh the table on database update</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 6th 2012, 1:54:43 pm">April 6th 2012</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/135029/how-to-refresh-table-rows-from-database#answer-235418" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Where does it say about how to do this? I cannot find it, sorry Javascript is not my best language<br>Thanks,<br>Matt</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 6th 2012, 2:13:14 pm">April 6th 2012</span>
+											by <span class='authorname'>Matt Hale</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><a href="http:&#x2F;&#x2F;assets.appcelerator.com.s3.amazonaws.com&#x2F;app_u&#x2F;code&#x2F;250.zip">download this file</a> then take a look in the db.js for where they fire the event and in ui.js where they are listening for the update</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 6th 2012, 2:17:50 pm">April 6th 2012</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>So if I added <code>Ti.App.fireEvent(&amp;#39;databaseUpdated&amp;#39;);</code> to the add_incident file when the button is clicked and then added this code somewhere in my view incident file?</p>
+<pre><code class="hljs">Ti.App.addEventListener(<span class="hljs-string">'databaseUpdated'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    setArray();
+)};
+</code></pre><p>Thanks,<br>Matt</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 6th 2012, 3:20:45 pm">April 6th 2012</span>
+											by <span class='authorname'>Matt Hale</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorted, thanks for helping me.<br>Matt</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 6th 2012, 4:46:19 pm">April 6th 2012</span>
+											by <span class='authorname'>Matt Hale</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

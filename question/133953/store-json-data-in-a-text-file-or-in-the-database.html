@@ -1,0 +1,419 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Store (json) data in a text file or in the database? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Store (json) data in a text file or in the database?</h1>
+		</header>
+		<section>
+			<p>This question came up for my new mobile app with Titanium 1.8.2:</p>
+<p>Should I store my data (mostly JSON strings or text strings) in text files or in the database?</p>
+<p>I wrote a small test to find out which technique is faster!</p>
+<p>For me the result was unexpected:<br>To store and load content from a text file is faster!</p>
+<p>But what matters is, that the app crashes with a memory warning during my text file test.</p>
+<p>iPhone 4S  (iOS 5.1):  write &amp; load  1000 text files —-&gt; app crashed<br>iPhone 3GS (iOS 5.0):  write &amp; load   300 text files —-&gt; app crashed</p>
+<p>To store the same amount of data in the database passed off without any problems.</p>
+<p>So here is my code:</p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> <span class="hljs-collection">{
+    app = app || <span class="hljs-collection">{}</span><span class="hljs-comment">;</span>
+    app.ui = <span class="hljs-collection">{}</span><span class="hljs-comment">;</span>
+
+    var ROOT_DIR = Ti.Filesystem.applicationDataDirectory;
+    var SEP = Titanium.Filesystem.getSeparator<span class="hljs-list">()</span><span class="hljs-comment">;    </span>
+
+    // Initialize database
+    var db = Titanium.Database.install<span class="hljs-list">(<span class="hljs-keyword">'contentTest.sqlite'</span>,'contentTest')</span><span class="hljs-comment">;    </span>
+    db.execute<span class="hljs-list">(<span class="hljs-keyword">'DROP</span> TABLE IF EXISTS test')</span><span class="hljs-comment">;</span>
+    db.execute<span class="hljs-list">(<span class="hljs-keyword">'CREATE</span> TABLE IF NOT EXISTS test <span class="hljs-list">(<span class="hljs-keyword">test_id</span> INTEGER PRIMARY KEY, test_content BLOB)</span>')</span><span class="hljs-comment">;  </span>
+    db.close<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+
+
+    var countTest = <span class="hljs-number">100</span><span class="hljs-comment">;</span>
+
+
+    app.ui.createDBFileTestWindow = function<span class="hljs-list">()</span><span class="hljs-collection">{
+        var win = Titanium.UI.createWindow<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+
+        var view = Titanium.UI.createView<span class="hljs-list">(<span class="hljs-collection">{backgroundColor:'#fff', layout: 'vertical'}</span>)</span><span class="hljs-comment">;</span>
+
+        var content = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+
+        var TestFileCallback = function<span class="hljs-list">(<span class="hljs-keyword"><span class="hljs-built_in">count</span></span>)</span><span class="hljs-collection">{
+
+               var filePath = ROOT_DIR + SEP + 'testFile-' + count + '.txt';
+            var f = Titanium.Filesystem.getFile<span class="hljs-list">(<span class="hljs-keyword">filePath</span>)</span><span class="hljs-comment">;</span>
+
+               f.write<span class="hljs-list">(<span class="hljs-keyword">content</span>)</span><span class="hljs-comment">;                   </span>
+            f = null;
+
+            f = Titanium.Filesystem.getFile<span class="hljs-list">(<span class="hljs-keyword">filePath</span>)</span><span class="hljs-comment">;</span>
+            var blob = f.read<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+            var readText = blob.text;
+
+               f = null;
+               blob = null;        
+
+               return readText;
+        }</span>
+
+
+
+        var testDBCallback = function<span class="hljs-list">(<span class="hljs-keyword"><span class="hljs-built_in">count</span></span>)</span><span class="hljs-collection">{
+
+           var db = Titanium.Database.open<span class="hljs-list">(<span class="hljs-keyword">'contentTest'</span>)</span><span class="hljs-comment">;</span>
+           var theData = db.execute<span class="hljs-list">(<span class="hljs-keyword">'INSERT</span> INTO test <span class="hljs-list">(<span class="hljs-keyword">test_id</span>, test_content)</span> VALUES<span class="hljs-list">(<span class="hljs-keyword">?</span>,?)</span>',count,content)</span><span class="hljs-comment">;  </span>
+
+             var resultset = db.execute<span class="hljs-list">(<span class="hljs-keyword">'SELECT</span> test_content FROM test WHERE test_id = ' + count)</span><span class="hljs-comment">;    </span>
+             var readText = resultset.fieldByName<span class="hljs-list">(<span class="hljs-string">"test_content"</span>)</span><span class="hljs-comment">;</span>
+
+           resultset.close<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+
+           db = null;
+           theData = null;
+           resultset = null;
+
+
+          return readText;
+
+        }</span>
+
+        var buttonFile = Titanium.UI.createButton<span class="hljs-list">(<span class="hljs-collection">{title: 'Test File',top: <span class="hljs-number">10</span>,width: <span class="hljs-number">100</span>,height: <span class="hljs-number">50</span>}</span>)</span><span class="hljs-comment">;</span>
+        buttonFile.addEventListener<span class="hljs-list">(<span class="hljs-keyword">'click'</span>,function<span class="hljs-list">(<span class="hljs-keyword">e</span>)</span><span class="hljs-collection">{
+               Titanium.API.info<span class="hljs-list">(<span class="hljs-string">"You clicked the File button"</span>)</span><span class="hljs-comment">;</span>
+               var startTime = new Date<span class="hljs-list">()</span>.getTime<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+               var content = null;
+
+               var fileCounter = <span class="hljs-number">0</span><span class="hljs-comment">;</span>
+               for <span class="hljs-list">(<span class="hljs-keyword">i=0;i&lt;countTest;i++</span>)</span><span class="hljs-collection">{
+                   var content = TestFileCallback<span class="hljs-list">(<span class="hljs-keyword">i</span>)</span><span class="hljs-comment">;</span>
+                   fileCounter++;
+               }</span>
+
+               var endTime = new Date<span class="hljs-list">()</span>.getTime<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+               var diffTime = endTime - startTime;
+
+             for <span class="hljs-list">(<span class="hljs-keyword">i=0;i&lt;countTest;i++</span>)</span><span class="hljs-collection">{
+                 var filePath = ROOT_DIR + SEP + 'testFile-' + i + '.txt';
+                var f = Titanium.Filesystem.getFile<span class="hljs-list">(<span class="hljs-keyword">filePath</span>)</span><span class="hljs-comment">;</span>
+                 f.deleteFile<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                 f = null;
+             }</span>
+
+               alert<span class="hljs-list">(<span class="hljs-keyword">'Count:</span> ' + fileCounter + ' Duration: ' + diffTime + ' ms' + ' Content-Length: ' + content.length)</span><span class="hljs-comment">;                   </span>
+
+         }</span>)</span><span class="hljs-comment">;</span>
+
+        var buttonDatabase = Titanium.UI.createButton<span class="hljs-list">(<span class="hljs-collection">{title: 'Test Database',top: <span class="hljs-number">10</span>,width: <span class="hljs-number">100</span>,height: <span class="hljs-number">50</span>}</span>)</span><span class="hljs-comment">;</span>
+        buttonDatabase.addEventListener<span class="hljs-list">(<span class="hljs-keyword">'click'</span>,function<span class="hljs-list">(<span class="hljs-keyword">e</span>)</span><span class="hljs-collection">{
+               Titanium.API.info<span class="hljs-list">(<span class="hljs-string">"You clicked the Database button"</span>)</span><span class="hljs-comment">;</span>
+               var startTime = new Date<span class="hljs-list">()</span>.getTime<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+               var content = null;
+               var dbCounter = <span class="hljs-number">0</span><span class="hljs-comment">;</span>
+               for <span class="hljs-list">(<span class="hljs-keyword">i=0;i&lt;countTest;i++</span>)</span><span class="hljs-collection">{
+                   content = testDBCallback<span class="hljs-list">(<span class="hljs-keyword">i</span>)</span><span class="hljs-comment">;</span>
+                   dbCounter++;
+               }</span>
+
+               var endTime = new Date<span class="hljs-list">()</span>.getTime<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+               var diffTime = endTime - startTime;
+
+               var db = Titanium.Database.open<span class="hljs-list">(<span class="hljs-keyword">'contentTest'</span>)</span><span class="hljs-comment">;</span>
+               for <span class="hljs-list">(<span class="hljs-keyword">i=0;i&lt;countTest;i++</span>)</span><span class="hljs-collection">{
+                   theData = db.execute<span class="hljs-list">(<span class="hljs-keyword">'DELETE</span> FROM test WHERE test_id = ' + i)</span><span class="hljs-comment">;</span>
+               }</span>
+               db.close<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+
+               alert<span class="hljs-list">(<span class="hljs-keyword">'Count:</span> ' + dbCounter + ' Duration: ' + diffTime + ' ms' + ' Content-Length: ' + content.length)</span><span class="hljs-comment">;                   </span>
+        }</span>)</span><span class="hljs-comment">;</span>
+
+        view.add<span class="hljs-list">(<span class="hljs-keyword">buttonFile</span>)</span><span class="hljs-comment">;</span>
+        view.add<span class="hljs-list">(<span class="hljs-keyword">buttonDatabase</span>)</span><span class="hljs-comment">;</span>
+
+        win.add<span class="hljs-list">(<span class="hljs-keyword">view</span>)</span><span class="hljs-comment">;</span>
+
+        return win;
+    }</span>
+
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>So my questions are:<br> What is the best practise?<br> Why does my test crash the app? Is there a bug in my code?</p>
+<p>Thanks for your help</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 17th 2012, 10:36:03 am">March 17th 2012</span>
+				by <span class='authorname'>Markus Eschenbach</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>file</span></li>
+					
+						<li><span class='tagname'>practise</span></li>
+					
+						<li><span class='tagname'>store data</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-233644">
+				
+						<section>
+							<p>There&#39;re many ways to improve your DB queries:</p>
+<ul>
+<li><p>Dont open&#x2F;close DB many times. It&#39;d be better if you <code>open</code> db before <code>for</code> loop starts, and <code>close</code> it when the loop end.</p>
+</li>
+<li><p>Use transactions to speed batch inserts - Refer <a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Working+with+a+SQLite+Database#WorkingwithaSQLiteDatabase-Usetransactionstospeedbatchinserts">here</a></p>
+</li>
+</ul>
+<p>Try this sample code - it takes about 25ms for 100 records :)</p>
+<pre><code class="hljs">        <span class="hljs-keyword">var</span> testDBCallback = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">count, db</span>)</span>{
+        <span class="hljs-comment">// var db = Titanium.Database.open('contentTest');</span>
+           <span class="hljs-keyword">var</span> theData = db.execute(<span class="hljs-string">'INSERT INTO test (test_id, test_content) VALUES(?,?)'</span>,count,content);  
+
+           <span class="hljs-keyword">var</span> resultset = db.execute(<span class="hljs-string">'SELECT test_content FROM test WHERE test_id = '</span> + count);    
+           <span class="hljs-keyword">var</span> readText = resultset.fieldByName(<span class="hljs-string">"test_content"</span>);
+
+           resultset.close();
+
+           <span class="hljs-comment">// db = null;</span>
+           theData = <span class="hljs-literal">null</span>;
+           resultset = <span class="hljs-literal">null</span>;
+
+
+          <span class="hljs-keyword">return</span> readText;
+
+        }
+
+
+        buttonDatabase.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            Titanium.API.info(<span class="hljs-string">"You clicked the Database button"</span>);
+            <span class="hljs-keyword">var</span> startTime = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime();
+            <span class="hljs-keyword">var</span> content = <span class="hljs-literal">null</span>;
+            <span class="hljs-keyword">var</span> dbCounter = <span class="hljs-number">0</span>;
+
+            <span class="hljs-keyword">var</span> db = Titanium.Database.open(<span class="hljs-string">'contentTest'</span>);
+            db.execute(<span class="hljs-string">'BEGIN'</span>); <span class="hljs-comment">// Begin Transaction</span>
+
+            <span class="hljs-keyword">for</span> (i=<span class="hljs-number">0</span>;i&lt;countTest;i++){
+                content = testDBCallback(i, db);
+                dbCounter++;
+            }
+            db.execute(<span class="hljs-string">'COMMIT'</span>); <span class="hljs-comment">// Commit Transaction</span>
+
+            <span class="hljs-keyword">var</span> endTime = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime();
+            <span class="hljs-keyword">var</span> diffTime = endTime - startTime;
+
+            <span class="hljs-comment">// var db = Titanium.Database.open('contentTest');</span>
+            <span class="hljs-keyword">for</span> (i=<span class="hljs-number">0</span>;i&lt;countTest;i++){
+                theData = db.execute(<span class="hljs-string">'DELETE FROM test WHERE test_id = '</span> + i);
+            }
+            db.close();
+
+            alert(<span class="hljs-string">'Count: '</span> + dbCounter + <span class="hljs-string">' Duration: '</span> + diffTime + <span class="hljs-string">' ms'</span> + <span class="hljs-string">' Content-Length: '</span> + content.length);             
+        });
+</code></pre><p>So I think you can find your answer now :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 17th 2012, 11:18:37 am">March 17th 2012</span>
+								by <span class='authorname'>Minh Nguyen</span><br>
+								<a class="icon-bg icon-link" href="question/133953/store-json-data-in-a-text-file-or-in-the-database#answer-233644" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>If your data are mostly in JSON string then you should take a look at <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2012&#x2F;01&#x2F;jsondb-nosql-db-for-your-mobile-apps.html">JSONDB noSQL</a>.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 17th 2012, 11:22:48 am">March 17th 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-233645">
+				
+						<section>
+							<p>If you need to have non-persistant content, just hardcode JSON data as CommonJS module:</p>
+<pre><code class="hljs"><span class="hljs-comment">//json_data.js</span>
+<span class="hljs-keyword">var</span> myJson = {
+    something: <span class="hljs-string">'Blala'</span>
+};
+
+<span class="hljs-built_in">module</span>.exports = myJson;
+</code></pre><p>Otherwise, I would use whatever is semantically right.</p>
+<p>And, btw, if you need to use multiple inserts to database, use transaction, it&#39;s faster.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 17th 2012, 11:24:25 am">March 17th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/133953/store-json-data-in-a-text-file-or-in-the-database#answer-233645" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-233654">
+				
+						<section>
+							<p>Hi<br>thanks for the tips.</p>
+<p>The reason why I don&#39;t use transactions in my test is, that I normally not write the json data and read the same data consecutively (or rather in the same transaction)</p>
+<p>When I opened the database just once it is faster. &lt;– was my mistake</p>
+<hr>
+<p>But why crashes my app when I write &amp; read textfiles?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 17th 2012, 1:42:24 pm">March 17th 2012</span>
+								by <span class='authorname'>Markus Eschenbach</span><br>
+								<a class="icon-bg icon-link" href="question/133953/store-json-data-in-a-text-file-or-in-the-database#answer-233654" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>hint: If I remember rightly I open the database many times in my test, because I think it is more realistic. In a app you don&#39;t open the database connection uniquely and don&#39;t close it as long as the app is closed</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 17th 2012, 1:58:31 pm">March 17th 2012</span>
+											by <span class='authorname'>Markus Eschenbach</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Write&#x2F;Read files many times is much memory consumption.. it may cause memory leaks and scrash your app.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 17th 2012, 2:08:29 pm">March 17th 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-263609">
+				
+						<section>
+							<p>An alternative to SQLite is NoSQL for Titanium:<br><a href="https:&#x2F;&#x2F;marketplace.appcelerator.com&#x2F;apps&#x2F;5735">https:&#x2F;&#x2F;marketplace.appcelerator.com&#x2F;apps&#x2F;5735</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 30th 2013, 11:14:06 am">May 30th 2013</span>
+								by <span class='authorname'>Gilberto Avalos Osuna</span><br>
+								<a class="icon-bg icon-link" href="question/133953/store-json-data-in-a-text-file-or-in-the-database#answer-263609" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

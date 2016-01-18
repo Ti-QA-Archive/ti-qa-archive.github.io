@@ -1,0 +1,249 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HttpClient returns null if web response to large (iOS) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HttpClient returns null if web response to large (iOS)</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I am developing an application for both Android and IOS. I am using a web service to obtain a user information from a database. This data is transmitted in a large JSON file (~40kb). </p>
+<p>On Android, this works perfectly. However, on iOS, as soon as the web server returns more than about 20 records (about 20kb of JSON), the httpClients response text just returns null, with a status of 200 (OK).</p>
+<p>My code is below </p>
+<pre><code class="hljs">exports.getProfileData = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(profileID, callback, failure)</span>
+</span>{
+    <span class="hljs-keyword">var</span> queryString = WebServiceURL + <span class="hljs-string">'/user?action=getProfile&amp;ID='</span>+profileID;
+
+    Ti.API.info(<span class="hljs-string">"Requesting profile: "</span>+ queryString);
+
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient({
+        timeout: <span class="hljs-number">30000</span>,
+        onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">"Response text: "</span>+ <span class="hljs-keyword">this</span>.getResponseText()+<span class="hljs-string">", Status: "</span>+ <span class="hljs-keyword">this</span>.status);
+            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.responseText == <span class="hljs-literal">null</span>)
+            {
+                failure();
+                <span class="hljs-keyword">return</span>;
+            }
+
+            <span class="hljs-keyword">var</span> returnData = JSON.parse(<span class="hljs-keyword">this</span>.getResponseText());
+            <span class="hljs-keyword">if</span>(returnData.success)
+            { 
+                 <span class="hljs-keyword">callback</span>(returnData);
+            }
+            <span class="hljs-keyword">else</span>
+            {
+                failure();
+            }
+
+       },
+       onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.error(e);
+        failure();
+        }
+    });
+
+    xhr.open(<span class="hljs-string">"GET"</span>,queryString);    
+    xhr.send(); 
+}
+</code></pre><p>(this.responseText and this.getResponseText() both return null in the onload function when the web service responds with too much data, but only on iOS, not Android)</p>
+<p>40Kb of JSON doesn&#39;t seem to be an unreasonably large chunk of data for the HTTPClient to be handling does it?</p>
+<p>I&#39;ve tested that it isn&#39;t the web service (putting the request URL into a browser returns the JSON with no problem). Is there some enableLargeWebResponses property somewhere that I&#39;m missing or something? Any help on this would be appreciated!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 16th 2012, 12:27:11 pm">May 16th 2012</span>
+				by <span class='authorname'>Lawrence Webley</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>null</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-238840">
+				
+						<section>
+							<p>Found the issue! It wasn&#39;t to do with the length of the response at all, it was to do with a particular unrecognized character the web service was sending in some responses. </p>
+<p>&quot;â??s&quot;  &lt;- that character sequence broke the HTTPClient in Appcelerator, but only on IOS, not on Android.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2012, 6:37:36 am">May 17th 2012</span>
+								by <span class='authorname'>Lawrence Webley</span><br>
+								<a class="icon-bg icon-link" href="question/137045/httpclient-returns-null-if-web-response-to-large-ios#answer-238840" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Great, This is also helpful to me also…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 7:34:01 am">May 17th 2012</span>
+											by <span class='authorname'>Gaurang Chhatbar</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238770">
+				
+						<section>
+							<p>Hi Lawrence,</p>
+<p>try <code>this.getResponseData()</code> rather than <code>this.getResponseText()</code>, </p>
+<p>response text returns null when it get an error or there is no response from web service call <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.0&#x2F;index.html#!&#x2F;api&#x2F;Titanium.Network.HTTPClient-property-responseData">see this link</a>.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 16th 2012, 12:48:12 pm">May 16th 2012</span>
+								by <span class='authorname'>Gaurang Chhatbar</span><br>
+								<a class="icon-bg icon-link" href="question/137045/httpclient-returns-null-if-web-response-to-large-ios#answer-238770" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Using this.getResponseData() seems to work the same as this.getResponseText() if things are successful. However, when this.getResponsText() fails and returns null, then this.getResponseData() returns </p>
+<p>Response text: [object TiBlob], Status: 200</p>
+<p>And this.getResponseText().text returns</p>
+<p>Response text: undefined, Status: 200</p>
+<p>(When the normal call was successful, this.getResponseData printed out as a string of the actual JSON, so presumably something must have changed?)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 16th 2012, 3:18:39 pm">May 16th 2012</span>
+											by <span class='authorname'>Lawrence Webley</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Here is the actual URL request that is being sent, in case you would like to test for yourself:</p>
+<p><a href="http:&#x2F;&#x2F;pashashtest.elasticbeanstalk.com&#x2F;user?action=getProfile&amp;ID=100003715546149">http:&#x2F;&#x2F;pashashtest.elasticbeanstalk.com&#x2F;user?action=getProfile&amp;ID=100003715546149</a></p>
+<p>It definitely not an issue with the web server. And here is a call to a different (smaller) profile that works perfectly using exactly the same code.</p>
+<p><a href="http:&#x2F;&#x2F;pashashtest.elasticbeanstalk.com&#x2F;user?action=getProfile&amp;ID=100003700708703">http:&#x2F;&#x2F;pashashtest.elasticbeanstalk.com&#x2F;user?action=getProfile&amp;ID=100003700708703</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 16th 2012, 3:28:57 pm">May 16th 2012</span>
+											by <span class='authorname'>Lawrence Webley</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238976">
+				
+						<section>
+							<p>Lawrence Webley,<br>I have the same problem with some services. But in my case, iOS works perfect and in Android one WS returns unrecognized characters at the begining of the response (a JSON text).<br>Do you (or anybody) knows why this is happening?<br>Thanx.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 18th 2012, 2:59:07 pm">May 18th 2012</span>
+								by <span class='authorname'>Santiago Blason</span><br>
+								<a class="icon-bg icon-link" href="question/137045/httpclient-returns-null-if-web-response-to-large-ios#answer-238976" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

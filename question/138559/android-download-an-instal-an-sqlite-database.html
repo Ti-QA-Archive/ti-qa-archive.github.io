@@ -1,0 +1,304 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android download an instal an sqlite database » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android download an instal an sqlite database</h1>
+		</header>
+		<section>
+			<p>Hi there guys,</p>
+<p>I&#39;ve searched my ass off for this challenge.</p>
+<p>What i want to do (And it&#39;s working on IOS) is the following:</p>
+<pre><code class="hljs">1. On first <span class="hljs-operator"><span class="hljs-keyword">start</span> <span class="hljs-keyword">of</span> the app download an compleet sqllite <span class="hljs-keyword">database</span> &lt;<span class="hljs-comment">-- is going ok</span>
+<span class="hljs-number">2.</span> remove all <span class="hljs-keyword">old</span> <span class="hljs-keyword">databases</span> &lt;<span class="hljs-comment">-- is going ok</span>
+<span class="hljs-number">3.</span> remove <span class="hljs-keyword">current</span> <span class="hljs-keyword">database</span> &lt;<span class="hljs-comment">-- is going ok</span>
+<span class="hljs-number">4.</span> instal the <span class="hljs-keyword">new</span> one. 
+<span class="hljs-number">5.</span> <span class="hljs-keyword">go</span> <span class="hljs-keyword">on</span>... <span class="hljs-keyword">to</span> the app.</span>
+</code></pre><p>I&#39;ve wrote an class for this but i can&#39;t get it to work on Android here is some code:</p>
+<pre><code class="hljs">
+ <span class="hljs-comment">/*
+    <span class="hljs-doctag">@function</span> onError
+    <span class="hljs-doctag">@function</span> onSucces
+*/</span>
+this.startDownload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(onError,onSucces)</span></span>{
+        <span class="hljs-keyword">if</span>(Titanium.Network.networkType == Titanium.Network.NETWORK_NONE){
+            onError();
+        }<span class="hljs-keyword">else</span>{
+            <span class="hljs-keyword">var</span> url = <span class="hljs-keyword">self</span>.App.config.webserviceUrl + <span class="hljs-string">'getDb/?v='</span> + <span class="hljs-keyword">self</span>.App.config.databaseVersion.name;    
+
+            <span class="hljs-keyword">self</span>.updateProgressBar(<span class="hljs-string">'Download database.'</span>);
+            <span class="hljs-keyword">self</span>.updateDownloadBar(<span class="hljs-number">0</span>,<span class="hljs-string">'Preparing database.'</span>);
+
+            c = Titanium.Network.createHTTPClient();
+            c.setTimeout(<span class="hljs-number">10000</span>);
+
+            c.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                <span class="hljs-keyword">self</span>.downloadSucces(this.responseData,onSucces);
+            };
+            c.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                <span class="hljs-keyword">self</span>.downloadStreaming(e);
+            };
+            c.onreadystatechange = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                <span class="hljs-keyword">self</span>.downloadStateChange(this);
+            };
+
+            c.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                onError(e);
+            };
+            Ti.API.debug(url);
+            c.open(<span class="hljs-string">'GET'</span>, url);
+            c.send();
+            <span class="hljs-keyword">self</span>.updateDownloadBar(<span class="hljs-number">0</span>,<span class="hljs-string">'Connecting to server.'</span>);
+        }
+    }
+
+
+ <span class="hljs-comment">/*
+    <span class="hljs-doctag">@param</span> data = responceData XHR
+    <span class="hljs-doctag">@function</span> onSucces
+*/</span>
+
+this.installNewDatabase = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data, onSucces)</span></span>{
+        <span class="hljs-keyword">self</span>.updateProgressBar(<span class="hljs-string">'Install database.'</span>);
+
+        <span class="hljs-keyword">var</span> dbName = <span class="hljs-keyword">self</span>.App.config.database.name;
+        <span class="hljs-keyword">var</span> dbPath;
+        <span class="hljs-keyword">var</span> dbFile;
+        <span class="hljs-keyword">var</span> tempdbName = <span class="hljs-keyword">self</span>.App.config.database.name;
+        <span class="hljs-keyword">var</span> tempDbPath;
+        <span class="hljs-keyword">var</span> tempdbFile;
+
+        <span class="hljs-keyword">if</span> ( Titanium.Platform.name == <span class="hljs-string">'android'</span> ) {
+
+            tempDbPath = <span class="hljs-string">'file:///data/data/'</span> + Titanium.App.getID() + <span class="hljs-string">'/cache/'</span>;
+            tempdbFile = Titanium.Filesystem.getFile( tempDbPath + dbName);
+
+            dbPath = <span class="hljs-string">'file:///data/data/'</span> + Titanium.App.getID() + <span class="hljs-string">'/databases/'</span>;
+            dbFile = Titanium.Filesystem.getFile( dbPath + dbName ); 
+        }<span class="hljs-keyword">else</span>{
+            tempDbPath = Titanium.Filesystem.applicationDataDirectory;
+            tempdbFile = Titanium.Filesystem.getFile( tempDbPath + dbName + <span class="hljs-string">'.sql'</span> );
+            tempdbName = tempdbName + <span class="hljs-string">'.sql'</span>;
+            dbPath = Titanium.Filesystem.applicationDataDirectory; 
+            dbPath = dbPath.replace(<span class="hljs-string">'Documents'</span>, <span class="hljs-string">'Library'</span>);
+            dbPath = dbPath + <span class="hljs-string">'Private%20Documents/'</span>;
+            dbFile = Titanium.Filesystem.getFile( dbPath + dbName + <span class="hljs-string">'.sql'</span> );
+        }
+        <span class="hljs-keyword">self</span>.Db.remove();
+
+        tempdbFile.write(data);
+        <span class="hljs-keyword">self</span>.Db.connectInstallDatabase(tempDbPath + tempdbName, dbName);
+
+        <span class="hljs-keyword">var</span> sql = <span class="hljs-string">"SELECT * FROM splash"</span>;
+        <span class="hljs-keyword">var</span> rows = <span class="hljs-keyword">self</span>.Db.conn.execute(sql);
+        <span class="hljs-keyword">while</span> (rows.isValidRow()){
+            Titanium.API.log(rows.fieldByName(<span class="hljs-string">'date_online'</span>));
+            rows.next();
+        }
+
+        <span class="hljs-keyword">self</span>.updateProgressBar(<span class="hljs-string">'Done'</span>);
+        onSucces();
+    }
+</code></pre><p>Everything seems to work ok. The files are deleted and the new database is installed but if i do a select statement (See this.installNewDatabase at the bottom of the function) i get this error:</p>
+<pre><code class="hljs">W/TiDB    (15618): (KrollRuntimeThread) [20096,20392] Attempt to remove open database. Closing then removing db_2.0.sqlite
+
+Above is ok removing the old DB
+then her is the <span class="hljs-operator"><span class="hljs-keyword">select</span> <span class="hljs-keyword">statement</span>:
+
+<span class="hljs-keyword">I</span>/ALERT   (<span class="hljs-number">15618</span>): (KrollRuntimeThread) [<span class="hljs-number">4150</span>,<span class="hljs-number">24542</span>] <span class="hljs-keyword">Wait</span> <span class="hljs-keyword">for</span> it.
+<span class="hljs-keyword">E</span>/<span class="hljs-keyword">Database</span>(<span class="hljs-number">15618</span>): Removing corrupt <span class="hljs-keyword">database</span>: /<span class="hljs-keyword">data</span>/<span class="hljs-keyword">data</span>/com.horseapp.horseapp/<span class="hljs-keyword">databases</span>/db_2<span class="hljs-number">.0</span>.sqlite
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>): (KrollRuntimeThread) [<span class="hljs-number">3814</span>,<span class="hljs-number">28356</span>] <span class="hljs-keyword">Error</span> executing <span class="hljs-keyword">sql</span>: <span class="hljs-keyword">database</span> disk image <span class="hljs-keyword">is</span> malformed
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>): android.<span class="hljs-keyword">database</span>.sqlite.SQLiteDatabaseCorruptException: <span class="hljs-keyword">database</span> disk image <span class="hljs-keyword">is</span> malformed
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteQuery.native_fill_window(<span class="hljs-keyword">Native</span> Method)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteQuery.fillWindow(SQLiteQuery.<span class="hljs-keyword">java</span>:<span class="hljs-number">73</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteCursor.fillWindow(SQLiteCursor.<span class="hljs-keyword">java</span>:<span class="hljs-number">297</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteCursor.getCount(SQLiteCursor.<span class="hljs-keyword">java</span>:<span class="hljs-number">270</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.AbstractCursor.isAfterLast(AbstractCursor.<span class="hljs-keyword">java</span>:<span class="hljs-number">280</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> ti.modules.titanium.<span class="hljs-keyword">database</span>.TiResultSetProxy.isValidRow(TiResultSetProxy.<span class="hljs-keyword">java</span>:<span class="hljs-number">266</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> ti.modules.titanium.<span class="hljs-keyword">database</span>.TiDatabaseProxy.<span class="hljs-keyword">execute</span>(TiDatabaseProxy.<span class="hljs-keyword">java</span>:<span class="hljs-number">134</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function.nativeInvoke(<span class="hljs-keyword">Native</span> Method)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function.callSync(V8Function.<span class="hljs-keyword">java</span>:<span class="hljs-number">62</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function.<span class="hljs-keyword">call</span>(V8Function.<span class="hljs-keyword">java</span>:<span class="hljs-number">48</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function$<span class="hljs-number">1.</span>run(V8Function.<span class="hljs-keyword">java</span>:<span class="hljs-number">75</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.os.<span class="hljs-keyword">Handler</span>.handleCallback(<span class="hljs-keyword">Handler</span>.<span class="hljs-keyword">java</span>:<span class="hljs-number">587</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.os.<span class="hljs-keyword">Handler</span>.dispatchMessage(<span class="hljs-keyword">Handler</span>.<span class="hljs-keyword">java</span>:<span class="hljs-number">92</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.os.Looper.<span class="hljs-keyword">loop</span>(Looper.<span class="hljs-keyword">java</span>:<span class="hljs-number">123</span>)
+<span class="hljs-keyword">E</span>/TiDB    (<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.KrollRuntime$KrollRuntimeThread.run(KrollRuntime.<span class="hljs-keyword">java</span>:<span class="hljs-number">104</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>): android.<span class="hljs-keyword">database</span>.sqlite.SQLiteDatabaseCorruptException: <span class="hljs-keyword">database</span> disk image <span class="hljs-keyword">is</span> malformed
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteQuery.native_fill_window(<span class="hljs-keyword">Native</span> Method)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteQuery.fillWindow(SQLiteQuery.<span class="hljs-keyword">java</span>:<span class="hljs-number">73</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteCursor.fillWindow(SQLiteCursor.<span class="hljs-keyword">java</span>:<span class="hljs-number">297</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.sqlite.SQLiteCursor.getCount(SQLiteCursor.<span class="hljs-keyword">java</span>:<span class="hljs-number">270</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.<span class="hljs-keyword">database</span>.AbstractCursor.isAfterLast(AbstractCursor.<span class="hljs-keyword">java</span>:<span class="hljs-number">280</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> ti.modules.titanium.<span class="hljs-keyword">database</span>.TiResultSetProxy.isValidRow(TiResultSetProxy.<span class="hljs-keyword">java</span>:<span class="hljs-number">266</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> ti.modules.titanium.<span class="hljs-keyword">database</span>.TiDatabaseProxy.<span class="hljs-keyword">execute</span>(TiDatabaseProxy.<span class="hljs-keyword">java</span>:<span class="hljs-number">134</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function.nativeInvoke(<span class="hljs-keyword">Native</span> Method)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function.callSync(V8Function.<span class="hljs-keyword">java</span>:<span class="hljs-number">62</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function.<span class="hljs-keyword">call</span>(V8Function.<span class="hljs-keyword">java</span>:<span class="hljs-number">48</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.runtime.v8.V8Function$<span class="hljs-number">1.</span>run(V8Function.<span class="hljs-keyword">java</span>:<span class="hljs-number">75</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.os.<span class="hljs-keyword">Handler</span>.handleCallback(<span class="hljs-keyword">Handler</span>.<span class="hljs-keyword">java</span>:<span class="hljs-number">587</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.os.<span class="hljs-keyword">Handler</span>.dispatchMessage(<span class="hljs-keyword">Handler</span>.<span class="hljs-keyword">java</span>:<span class="hljs-number">92</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> android.os.Looper.<span class="hljs-keyword">loop</span>(Looper.<span class="hljs-keyword">java</span>:<span class="hljs-number">123</span>)
+W/<span class="hljs-keyword">System</span>.err(<span class="hljs-number">15618</span>):     <span class="hljs-keyword">at</span> org.appcelerator.kroll.KrollRuntime$KrollRuntimeThread.run(KrollRuntime.<span class="hljs-keyword">java</span>:<span class="hljs-number">104</span>)
+<span class="hljs-keyword">E</span>/TiJSError(<span class="hljs-number">15618</span>): (<span class="hljs-keyword">main</span>) [<span class="hljs-number">52</span>,<span class="hljs-number">28408</span>] <span class="hljs-comment">----- Titanium Javascript Runtime Error -----</span>
+<span class="hljs-keyword">E</span>/TiJSError(<span class="hljs-number">15618</span>): (<span class="hljs-keyword">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">28408</span>] - <span class="hljs-keyword">In</span> /mvc/models/<span class="hljs-keyword">install</span>.js:<span class="hljs-number">107</span>,<span class="hljs-number">27</span>
+<span class="hljs-keyword">E</span>/TiJSError(<span class="hljs-number">15618</span>): (<span class="hljs-keyword">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">28408</span>] - Message: Uncaught <span class="hljs-keyword">Error</span>: <span class="hljs-keyword">database</span> disk image <span class="hljs-keyword">is</span> malformed
+<span class="hljs-keyword">E</span>/TiJSError(<span class="hljs-number">15618</span>): (<span class="hljs-keyword">main</span>) [<span class="hljs-number">0</span>,<span class="hljs-number">28408</span>] - <span class="hljs-keyword">Source</span>:         <span class="hljs-keyword">var</span> <span class="hljs-keyword">rows</span> = <span class="hljs-keyword">self</span>.Db.<span class="hljs-keyword">conn</span>.<span class="hljs-keyword">execute</span>(<span class="hljs-keyword">sql</span>);</span>
+E/V8Exception(15618): Exception occurred at /mvc/models/<span class="hljs-operator"><span class="hljs-keyword">install</span>.js:<span class="hljs-number">107</span>: Uncaught <span class="hljs-keyword">Error</span>: <span class="hljs-keyword">database</span> disk image <span class="hljs-keyword">is</span> malformed</span>
+</code></pre><p>i&#39;ve tryed several things and what I sayed i&#39;ve been searching for a week now and i can&#39;t find the solution.</p>
+<p>More information:<br>Sqlite file is about 19 MB<br>Sqlite file is generated by php pdo (i can open the file in IOS and SQLite database browser)</p>
+<p>Application type: mobile<br>Titanium SDK:<br>Platform &amp; version: iOS x.x, Android x.x, Blackberry x.x, OSX x.x, Windows x, Ubuntu x.x<br>Device: Android physical device model<br>Host Operating System: OSX 10.7<br>Titanium Studio: Latest</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 19th 2012, 5:47:11 pm">June 19th 2012</span>
+				by <span class='authorname'>Maarten Dreves</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>download</span></li>
+					
+						<li><span class='tagname'>install</span></li>
+					
+						<li><span class='tagname'>removing corrupt</span></li>
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Necromancer @ work. What was the problem after all, did you manage to fix this?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 28th 2015, 8:06:13 pm">July 28th 2015</span>
+								by <span class='authorname'>John Kokkin</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>@John, Yes we did. It was all about closing the connection with the sql database. Then reopen it to do the select query. </p>
+<p>Try that!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 28th 2015, 9:18:32 pm">July 28th 2015</span>
+								by <span class='authorname'>C Walker</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-241434">
+				
+						<section>
+							<p>for giggles, try downloading your large file to the externalstorage on android and installing from there.  I know that not all devices have externalstorage, so isn&#39;t optimal, but I vaguely remember there being a problem downloading large files to internal storage.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 20th 2012, 2:45:23 am">June 20th 2012</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/138559/android-download-an-instal-an-sqlite-database#answer-241434" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Using DDMS, can you pull the downloaded file from the download location and open THAT file in your sqlite editor?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 20th 2012, 2:48:55 am">June 20th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I don&#39;t know. Never used DDMS, going to try it! Thnx for the help so far!</p>
+<p>If i download it directily to my desktop it works all fine, on IOS it&#39;s working like a charm!</p>
+<p>It feels like the file is downloading correctly because the error appears when i want to acces the db with a select statement. And i get no error on the createHTTPClient. And the file is large enough to be the sqlite db.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 20th 2012, 9:38:13 am">June 20th 2012</span>
+											by <span class='authorname'>Maarten Dreves</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

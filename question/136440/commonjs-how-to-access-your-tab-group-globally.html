@@ -1,0 +1,283 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>CommonJS: How to access your tab group globally? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>CommonJS: How to access your tab group globally?</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been watching this video over and over: <a href="http:&#x2F;&#x2F;vimeopro.com&#x2F;appcelerator&#x2F;forging-titanium&#x2F;video&#x2F;29059611">Forging Titanium Episode 6: A Single Context Tab Group Template</a>.</p>
+<p>At 3:35 while looking at app.js he says, &quot;In our case we want a reference to the application&#39;s tab group to be globally available.&quot;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> globals = {};
+
+<span class="hljs-comment">//create a private scope to prevent further polluting the global object</span>
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> AppTabGroup = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/AppTabGroup'</span>),
+        AppWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/AppWindow'</span>);
+
+    <span class="hljs-comment">//create our global tab group    </span>
+    globals.tabs = <span class="hljs-keyword">new</span> AppTabGroup(
+        {
+            title: <span class="hljs-string">'Home'</span>,
+            icon: <span class="hljs-string">'images/KS_nav_ui.png'</span>,
+            <span class="hljs-built_in">window</span>: <span class="hljs-keyword">new</span> AppWindow({title:<span class="hljs-string">'Home'</span>,backgroundColor:<span class="hljs-string">'white'</span>})
+        },
+        {
+            title: <span class="hljs-string">'Settings'</span>,
+            icon: <span class="hljs-string">'images/KS_nav_views.png'</span>,
+            <span class="hljs-built_in">window</span>: <span class="hljs-keyword">new</span> AppWindow({title:<span class="hljs-string">'Settings'</span>,backgroundColor:<span class="hljs-string">'white'</span>})
+        }
+    );
+
+    globals.tabs.open();
+})();
+</code></pre><p>Then at 5:01 while looking at AppTabGroup.js he says, &quot;… we create an instance variable called currentTab which will be globally accessible by the rest of our app.</p>
+<pre><code class="hljs">exports.AppTabGroup = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> instance = Ti.UI.createTabGroup();
+
+    <span class="hljs-comment">//loop through tab objects and add them to the tab group</span>
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = <span class="hljs-built_in">arguments</span>.length; i &lt; l; i++) {
+        <span class="hljs-keyword">var</span> tab = Ti.UI.createTab(<span class="hljs-built_in">arguments</span>[i]);
+        <span class="hljs-comment">//on initialization, we track the current tab as the first one added</span>
+        <span class="hljs-keyword">if</span> (i === <span class="hljs-number">0</span>) {
+            instance.currentTab = tab;
+        }
+        instance.addTab(tab);
+    }
+
+    <span class="hljs-comment">//track the current tab for the tab group</span>
+    instance.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        instance.currentTab = e.tab;
+    });
+
+    <span class="hljs-keyword">return</span> instance;
+};
+</code></pre><p>Ok, so here&#39;s my question: HOW do I access instance.currentTab or globals.tabs elsewhere in the application. I&#39;ve tried many ways, but I&#39;m not grasping it.  I have a few of my own modules which deliver views, and within one of those views I need to open a new window.  So I need something like this:</p>
+<pre><code class="hljs"><span class="hljs-tag">Ti</span><span class="hljs-class">.UI</span><span class="hljs-class">.currentTab</span><span class="hljs-class">.open</span>(<span class="hljs-tag">myNewWindow</span>);
+</code></pre><p>But from within my own modules I can not seem to access either instance.currentTab or globals.tabs, which are supposed to be globally available.</p>
+<p>For example, this is from one of my modules:</p>
+<pre><code class="hljs"><span class="hljs-built_in">table</span>View.addEventListener('click', function(e)  
+{  
+    if (e.rowData.path)  
+    {  
+        var <span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span> = Ti.UI.createWindow({  
+            url:e.rowData.path,  
+            title:'Add Contacts',
+            backgroundColor:'white',
+            barColor: 'orange'
+        });  
+        <span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span>.<span class="hljs-keyword">group</span>Name = e.rowData.title;  
+        <span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span>.<span class="hljs-keyword">group</span>ID = e.rowData.myid;
+        //instance.open(<span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span>); // <span class="hljs-variable">&lt;&lt;------- WHAT GOES HERE?
+    }
+});</span>
+</code></pre><p>Any ideas?</p>
+<p><em>Application type: mobile. Titanium SDK: 1.8.2. Platform &amp; version: iOS 5.x. Device: iOS simulator. Host Operating System: OSX 10.7.3. Titanium Studio: 2.0.1</em></p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 4th 2012, 1:49:48 am">May 4th 2012</span>
+				by <span class='authorname'>Casey Crookston</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>global</span></li>
+					
+						<li><span class='tagname'>tabgroup</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-237821">
+				
+						<section>
+							<p>Hi Casey.</p>
+<p>I am a little confused on what the video is trying to show you. Guess I should watch it.</p>
+<p>if as I suspect you have declared globals in your app.js file then globals.tabs will contain the returned object. in this case the tab group.</p>
+<p>However my confusion comes in that actually declaring global variables in commonJS should not be supported, and what you are trying to do is not the way to do it.</p>
+<p>In commonJS there is no global scope, however if you want to bring that into a variable which is included in its own module and require that module where needed then you can pass the values around. Have a look here … http:&#x2F;&#x2F;www.thewarpedcoder.net&#x2F;2011&#x2F;12&#x2F;apccelrator-titanium-commonjs-global-variables&#x2F;</p>
+<p>Also may I suggest that you upgrade to the 2.0.1 sdk, which conforms to the commonJs specification even more tightly than 1.8</p>
+<p>Hope this helps </p>
+<p>T…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 4th 2012, 5:18:52 am">May 4th 2012</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/136440/commonjs-how-to-access-your-tab-group-globally#answer-237821" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-237885">
+				
+						<section>
+							<p>Thanks Trevor.  I actually have upgraded to sdk 2.0.1, I just forgot to update my little copy-paste thing I use to post questions here.  Thanks for the heads-up on this.</p>
+<p>I figured out how to do what I needed…. maybe you can tell me if I am doing this right.  I modified the delivered AppWindow.js file to read as follows:</p>
+<pre><code class="hljs">exports.AppWindow =<span class="hljs-function"> function(</span>args<span class="hljs-function">)</span> {
+    var rqr = 'lib/tab' + args.title;
+    var tabSend =<span class="hljs-function"> require(</span>rqr<span class="hljs-function">)</span>;
+    var<span class="hljs-instruction"> instance </span>=<span class="hljs-instruction"> new </span>tabSend(args<span class="hljs-function">)</span>;
+   <span class="hljs-instruction"> return </span>instance;
+};
+</code></pre><p>each require returns a window, which gets returned to app.js and added into globals.tabs.  So, then from within tabGroups.js, and inside exports.tabGroups = function(args) {…}  I include this:</p>
+<pre><code class="hljs"><span class="hljs-built_in">table</span>View.addEventListener('click', function(e)  
+{  
+    if (e.rowData.path)  
+    {  
+        var <span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span> = Ti.UI.createWindow({  
+            url:e.rowData.path,  
+            title:'Add Contacts',
+            backgroundColor:'white',
+            barColor: 'orange'
+        });  
+        <span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span>.<span class="hljs-keyword">group</span>Name = e.rowData.title;  
+        <span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span>.<span class="hljs-keyword">group</span>ID = e.rowData.myid;
+        globals.tabs.currentTab.open(<span class="hljs-keyword">group</span>W<span class="hljs-keyword">in</span>); // <span class="hljs-variable">&lt;--- access to currentTab that was declared in AppTabGroup.js
+    }
+});</span>
+</code></pre><p>In the last line of the code above, I can access global.tabs, which allows me to open a new window.</p>
+<p>How am I doing?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 5th 2012, 12:35:16 am">May 5th 2012</span>
+								by <span class='authorname'>Casey Crookston</span><br>
+								<a class="icon-bg icon-link" href="question/136440/commonjs-how-to-access-your-tab-group-globally#answer-237885" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238422">
+				
+						<section>
+							<p>I would recommend taking a look at the Tabbed Template from Appcelerator. Basically you create the Window, then create the Tab, and then assign the Window the Tab you created. That way in the Window you can use that Tab to open new windows in that navigation group.</p>
+<p><a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator-developer-relations&#x2F;Template.Tabbed&#x2F;blob&#x2F;master&#x2F;Resources&#x2F;ui&#x2F;common&#x2F;ApplicationTabGroup.js">https:&#x2F;&#x2F;github.com&#x2F;appcelerator-developer-relations&#x2F;Template.Tabbed&#x2F;blob&#x2F;master&#x2F;Resources&#x2F;ui&#x2F;common&#x2F;ApplicationTabGroup.js</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 11th 2012, 7:49:22 pm">May 11th 2012</span>
+								by <span class='authorname'>Matt Berg</span><br>
+								<a class="icon-bg icon-link" href="question/136440/commonjs-how-to-access-your-tab-group-globally#answer-238422" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-241335">
+				
+						<section>
+							<p>25</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 19th 2012, 10:02:28 pm">June 19th 2012</span>
+								by <span class='authorname'>Bill Freedman</span><br>
+								<a class="icon-bg icon-link" href="question/136440/commonjs-how-to-access-your-tab-group-globally#answer-241335" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

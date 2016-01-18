@@ -1,0 +1,303 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>App has trouble waking up on Android ...? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>App has trouble waking up on Android ...?</h1>
+		</header>
+		<section>
+			<p>Hi!</p>
+<p>I&#39;ve got an android app out on the market: https:&#x2F;&#x2F;market.android.com&#x2F;details?id=dk.miracleas.appchoir.mow.mmxii</p>
+<p>All windows are created as CommonJS modules</p>
+<p>The problem is that when the app has been in the background for a while, it becomes very difficult to resume it. I get a black non-responsive screen and after a good deal of time the &#39;not responding, should I kill or wait?&#39; message appears. However it seems like you have to provoke it by clicking the &#39;back&#39; button, otherwise nothing at all seems to happen.</p>
+<p>When I choose &#39;kill&#39; only the window that is hanging seems to be killed, or rather closed, and I&#39;m taken to the previous window in the window stack - that window is black as well, and I can keep on doing this until the window stack is emptied (click back and wait for a loong time until the kill msg appears). If the window stack is 4-5 windows deep, this becomes a very lengthy and very annoying thing. I&#39;m really baffled that the app is not killed by Android, but maybe I am misunderstanding what is going on? However the no. of times you have to do the kill thing seems to correspond with the size of the windows stack.</p>
+<p>Finally, the app can be started and function normally again - until it has been in the background for a while of course.</p>
+<p>I&#39;m using Kevin Innerys &#39;navigation_control&#39; that I had to modify, it doesn&#39;t seem to work with SDK 1.8. So this is my modified version of Kev&#39;s navigation_controller.js</p>
+<p>There is no secrets in the code of my app, and I&#39;ve uploaded it here: http:&#x2F;&#x2F;dl.dropbox.com&#x2F;u&#x2F;776614&#x2F;Resources.zip</p>
+<p>If anyone would take a peek and maybe clue me in on what is wrong should definitely do so, any advice is very welcome. This project is the official android app for a convention hosted by my company, and if the app doesn&#39;t do well, it might very well be the end of Titanium as dev-tool in my company.</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * by Kevin Innery
+ * from https://github.com/appcelerator-developer-relations/Forging-Titanium/tree/master/ep-002/Resources
+ *THIS IS A MODIFIED VERSION
+ * Instantiate:
+ * var NavigationController = require('NavigationController').NavigationController,
+ */</span>
+exports.windowStack = [];
+exports.NavigationController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+</span>{
+};
+
+exports.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>)
+</span>{
+    <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+    exports.windowStack.push(windowToOpen);
+
+    <span class="hljs-comment">//grab a copy of the current nav controller for use in the callback</span>
+    <span class="hljs-keyword">var</span> that = exports;
+    windowToOpen.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+    </span>{
+        that.windowStack.pop();
+    });
+
+    <span class="hljs-comment">//hack - setting exports property ensures the window is "heavyweight" (associated with an Android activity)</span>
+    windowToOpen.navBarHidden = windowToOpen.navBarHidden || <span class="hljs-literal">false</span>;
+
+    <span class="hljs-comment">//exports is the first window</span>
+    <span class="hljs-keyword">if</span>(exports.windowStack.length === <span class="hljs-number">1</span>)
+    {
+        <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>)
+        {
+            windowToOpen.exitOnClose = <span class="hljs-literal">true</span>;
+            windowToOpen.open();
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            exports.navGroup = Ti.UI.iPhone.createNavigationGroup(
+            {
+                <span class="hljs-built_in">window</span> : windowToOpen
+            });
+            <span class="hljs-keyword">var</span> containerWindow = Ti.UI.createWindow();
+            containerWindow.add(exports.navGroup);
+            containerWindow.open();
+        }
+    }
+    <span class="hljs-comment">//All subsequent windows</span>
+    <span class="hljs-keyword">else</span>
+    {
+        <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>)
+        {
+            windowToOpen.open();
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            exports.navGroup.open(windowToOpen);
+        }
+    }
+};
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+exports.NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+</span>{
+
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    <span class="hljs-keyword">var</span> windows = exports.windowStack.concat([]);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">1</span>, l = windows.length; i &lt; l; i++)
+    {
+        <span class="hljs-comment">//</span>
+        (exports.navGroup) ? exports.navGroup.close(windows[i]) : windows[i].close();
+    }
+    exports.windowStack = [exports.windowStack[<span class="hljs-number">0</span>]];
+    <span class="hljs-comment">//reset stack</span>
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 27th 2012, 9:04:44 pm">February 27th 2012</span>
+				by <span class='authorname'>Esben Maaløe</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>zombie</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Kevin Whinnery - not Innery, sorry</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 27th 2012, 9:08:07 pm">February 27th 2012</span>
+								by <span class='authorname'>Esben Maaløe</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>using V8 and 1.8.1 - not 1.8</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 27th 2012, 9:38:41 pm">February 27th 2012</span>
+								by <span class='authorname'>Esben Maaløe</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-231719">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>There is a known bug regarding this. <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-652">TC-652</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 27th 2012, 9:34:08 pm">February 27th 2012</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/132843/app-has-trouble-waking-up-on-android-#answer-231719" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Looks like it was fixed for 1.8.2 release <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-1911">TIMOB-1911</a></p>
+<p>Looks like the patch went into SDK 1.8.2.v20120221114636 (<br><a href="http:&#x2F;&#x2F;builds.appcelerator.com.s3.amazonaws.com&#x2F;mobile&#x2F;1_8_X&#x2F;mobilesdk-1.8.2.v20120221114636-osx.zip">osx</a>, <a href="http:&#x2F;&#x2F;builds.appcelerator.com.s3.amazonaws.com&#x2F;mobile&#x2F;1_8_X&#x2F;mobilesdk-1.8.2.v20120221114636-win32.zip">windows</a>)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2012, 9:38:05 pm">February 27th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The behaviour when an error occurs seems to be the same as in that bug, but I don&#39;t have random (although some of my users already do :&#x2F; ) - I experience this when the app has been in the background … I&#39;ll try to get 1.8.2 tho … if only I could remember where to pull it :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2012, 9:41:49 pm">February 27th 2012</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><a href="http:&#x2F;&#x2F;builds.appcelerator.com.s3.amazonaws.com&#x2F;mobile&#x2F;1_8_X&#x2F;mobilesdk-1.8.2.v20120221114636-linux.zip">Linux</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2012, 9:49:21 pm">February 27th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Already compiled with the win version - tables are way smoother :)</p>
+<p>For best results I&#39;ll compile with the Linux version now …</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2012, 9:51:53 pm">February 27th 2012</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>tables are not smoother - that must have been placebo. My bug is somewhat difficult to trigger - I tried with the win version (still on linux) again, and they chop a long. But my the conditions that trigger my bug seems to be time&#x2F;activity related, so it&#39;s difficult to judge if it helped.</p>
+<p>But thanks a lot (a lot a lot)! I&#39;ll return with a report later when I have either seen the bug again, or have a good feeling that it is gone!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2012, 10:01:57 pm">February 27th 2012</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>TIMOB-1911 is exactly my bug - so it&#39;s fixed</p>
+<p>THANK YOU STEPHEN!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2012, 10:43:02 pm">February 27th 2012</span>
+											by <span class='authorname'>Esben Maaløe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-231720">
+				
+						<section>
+							<p>ah - you gave me the link. I&#39;m on Linux tho … I&#39;ll try it anyway</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 27th 2012, 9:42:44 pm">February 27th 2012</span>
+								by <span class='authorname'>Esben Maaløe</span><br>
+								<a class="icon-bg icon-link" href="question/132843/app-has-trouble-waking-up-on-android-#answer-231720" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

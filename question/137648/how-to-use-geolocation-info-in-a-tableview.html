@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to use geolocation info in a TableView » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to use geolocation info in a TableView</h1>
+		</header>
+		<section>
+			<p>I have a mapping app which it&#39;s first view is a TableView of University campuses. The first table row, however, is one labelled &#39;This Campus&#39; which I want to link to the campus they are nearest (could be one of the other listed campuses).</p>
+<p>I have attempted to use Ti&#39;s Geolocation service in working out the nearest campus, however, it looks like the <code>getCurrentLocation()</code> function is similar to HttpClient&#39;s onload function, in that it executes AFTER everything else has loaded.</p>
+<p>My code:</p>
+<pre><code class="hljs">locationList = csu.<span class="hljs-built_in">module</span>.maps.dbGetMaps();
+<span class="hljs-keyword">if</span> (Ti.Geolocation.locationServicesEnabled === <span class="hljs-literal">true</span>) {
+    <span class="hljs-keyword">var</span> nearestCampusRow = Ti.UI.createTableViewRow({
+        <span class="hljs-attribute">height</span>: m_Config.tableViewRowHeight,
+        <span class="hljs-attribute">hasChild</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attribute">custom</span>: <span class="hljs-literal">true</span>
+    });
+
+    <span class="hljs-keyword">var</span> nearestCampusLabel = Ti.UI.createLabel(m_Styles.locationLabel);
+    nearestCampusLabel.text = <span class="hljs-string">'This Campus'</span>;
+    nearestCampusRow.add(nearestCampusLabel);
+    tableData.push(nearestCampusRow);
+}
+
+mainTableView.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-keyword">function</span> (e) {
+    <span class="hljs-keyword">var</span> location;
+    <span class="hljs-keyword">var</span> mapWin;
+    <span class="hljs-keyword">var</span> custom = e.rowData.custom;
+
+    <span class="hljs-keyword">if</span> (custom) {
+        <span class="hljs-keyword">var</span> nearestCampus = csu.<span class="hljs-built_in">module</span>.maps.findNearestCampus(locationList);
+        mapWin = csu.<span class="hljs-built_in">module</span>.maps.createMapView(nearestCampus);
+    } <span class="hljs-keyword">else</span> {
+        mapWin = csu.<span class="hljs-built_in">module</span>.maps.createMapView(e.rowData.location);
+    }
+
+    <span class="hljs-keyword">if</span> (a_Config.isApple()) {
+        csu.<span class="hljs-built_in">module</span>.maps.navGroup.open(mapWin);
+    } <span class="hljs-keyword">else</span> {
+        mapWin.open();
+    }
+});
+
+csu.<span class="hljs-built_in">module</span>.maps.findNearestCampus = <span class="hljs-keyword">function</span> (locationList) {
+    Ti.Geolocation.purpose = <span class="hljs-string">"GPS user coordinates"</span>;
+    Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_BEST;
+    Ti.Geolocation.distanceFilter = <span class="hljs-number">10</span>;
+    <span class="hljs-keyword">var</span> len = locationList.length;
+    <span class="hljs-keyword">var</span> currentPos;
+    <span class="hljs-keyword">var</span> closestLocation;
+
+    Ti.Geolocation.getCurrentPosition(<span class="hljs-keyword">function</span> (e) {
+        <span class="hljs-keyword">if</span> (!e.success || e.error) {
+            Ti.UI.createAlertDialog({
+                <span class="hljs-attribute">message</span>: <span class="hljs-string">'Unable to determine current location.'</span>
+            }).show();
+            <span class="hljs-keyword">return</span>;
+        } <span class="hljs-keyword">else</span> {
+            currentPos = {
+                <span class="hljs-attribute">longitude</span>: e.coords.longitude,
+                <span class="hljs-attribute">latitude</span>: e.coords.latitude
+            };
+
+            <span class="hljs-keyword">var</span> currentShortest = <span class="hljs-literal">null</span>;
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; len; i++) {
+                <span class="hljs-keyword">var</span> location = locationList[i];
+                <span class="hljs-keyword">var</span> distance = csu.<span class="hljs-built_in">module</span>.maps.getDistance(location.latitude, location.longitude, currentPos.latitude, currentPos.longitude);
+                <span class="hljs-keyword">if</span> ((currentShortest == <span class="hljs-literal">null</span>) || (distance &lt; currentShortest)){ 
+                    currentShortest = distance;
+                    closestLocation = location;
+                }
+            }
+        }
+    });
+
+    <span class="hljs-keyword">return</span> closestLocation;
+};
+</code></pre><p>When the code executes and the user clicks on the &#39;This Campus&#39; row. I&#39;ve double checked that <code>locationList</code> is initialised with an array of locations and passed to the <code>findNearestCampus()</code> function however, the function returns null into <code>nearestCampus</code>.</p>
+<p>Using the debugger, it seems to skip straight over the <code>Ti.Geolocation.getCurrentLocation()</code> function.</p>
+<p>Any suggestions on how I might be able to get that info into the table click event at the time of the click?</p>
+<p>I&#39;m currently using Ti. 1.8.2 and it&#39;s for iOS (initially).</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 31st 2012, 12:14:14 am">May 31st 2012</span>
+				by <span class='authorname'>Chris Dunstall</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+						<li><span class='tagname'>gps</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-239774">
+				
+						<section>
+							<p>Here my code:</p>
+<pre><code class="hljs">Ti.Geolocation.purpose = <span class="hljs-string">"Recieve User Location"</span>;
+            Ti.Geolocation.preferredProvider = Ti.Geolocation.PROVIDER_GPS;
+            Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_BEST;
+            Ti.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-keyword">if</span>(e.error) {
+                    <span class="hljs-keyword">var</span> mylat = <span class="hljs-number">53.5</span>;
+                    <span class="hljs-keyword">var</span> mylng = <span class="hljs-number">10</span>;
+                } <span class="hljs-keyword">else</span> {
+                    <span class="hljs-keyword">var</span> mylat = e.coords.latitude;
+                    <span class="hljs-keyword">var</span> mylng = e.coords.longitude;
+                }
+                <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; stations.length; i++) {
+                    stations[i].dist = getDistance(stations[i].latlng.split(<span class="hljs-string">','</span>)[<span class="hljs-number">0</span>], stations[i].latlng.split(<span class="hljs-string">','</span>)[<span class="hljs-number">1</span>], mylat, mylng);
+                }
+                stations.sort(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(a, b)</span> </span>{
+                    <span class="hljs-keyword">if</span>(a.dist &lt; b.dist) {
+                        <span class="hljs-keyword">return</span> -<span class="hljs-number">1</span>;
+                    }
+                    <span class="hljs-keyword">if</span>(a.dist &gt; b.dist) {
+                        <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;
+                    }
+                    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+                });
+                Ti.App.fireEvent(<span class="hljs-string">'stations_ready'</span>, {
+                    <span class="hljs-string">"stations"</span> : stations
+                });
+</code></pre><p>In the view you can resort the tableview via setData(),</p>
+<p>Hope this helps</p>
+<p>Rainer</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 31st 2012, 3:39:27 am">May 31st 2012</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/137648/how-to-use-geolocation-info-in-a-tableview#answer-239774" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

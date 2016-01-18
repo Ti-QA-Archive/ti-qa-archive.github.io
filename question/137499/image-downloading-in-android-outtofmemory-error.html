@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Image Downloading in Android. OuttOfMemory Error » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Image Downloading in Android. OuttOfMemory Error</h1>
+		</header>
+		<section>
+			<p>Hi, i have a problem with downloading au images on android.<br>my app have to download a lot of images (over 1000) but when i download it after 100th app give me java.OutOfMerory error:(<br>I tried to verify available mamory at the error point but it was like 18% free.<br>I tried also to change maxBuffersize in tiapp.xml but i still get the same error.<br>Can you advice me somethink?<br>this is my code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> _callBack_DownloadOneFileFinished = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(download_result)</span> </span>{
+            <span class="hljs-keyword">if</span>( <span class="hljs-keyword">typeof</span> (download_result) !== <span class="hljs-string">'undefined'</span>) {
+                Ti.API.info(<span class="hljs-string">'downloaded : '</span> + download_result.path);
+
+            }
+        };
+
+        <span class="hljs-keyword">var</span> _callBack_DownloadMultipleFileFinished = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            <span class="hljs-keyword">if</span>(ds.length&gt;<span class="hljs-number">10</span>)
+            {
+                ds.splice(<span class="hljs-number">0</span>,<span class="hljs-number">10</span>);
+                utility.downloadMultiFile(ds, _callBack_DownloadOneFileFinished, _callBack_DownloadMultipleFileFinished);
+            }
+            <span class="hljs-keyword">else</span>
+              Ti.App.winActInd.close();
+        };
+
+        <span class="hljs-comment">//this datasource contain 1000 images...</span>
+        <span class="hljs-keyword">var</span> ds = Ti.App.dsFunc.selectAllImages();
+
+        utility.downloadMultiFile(ds, _callBack_DownloadOneFileFinished, _callBack_DownloadMultipleFileFinished);
+</code></pre><p>and this is utility file:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> utility = {};
+utility.downloadOneFile = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(url, localFilepath, callBack_DownloadOneFileFinished)</span> </span>{
+
+    <span class="hljs-keyword">var</span> c = Titanium.Network.createHTTPClient();
+
+    <span class="hljs-keyword">if</span>(<span class="hljs-literal">null</span> != callBack_DownloadOneFileFinished) {
+        c.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">'---------------------------ERROR---------------- url= '</span> + url + <span class="hljs-string">' Error='</span> + e.error);
+            alert(e.error);
+            callBack_DownloadOneFileFinished({
+                status : e.error,
+                path : <span class="hljs-string">''</span>
+            });
+        };
+
+        c.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+
+
+                <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(localFilepath);
+                f.write(c.responseData);
+
+            callBack_DownloadOneFileFinished({
+                status : c.status,
+                path : localFilepath
+            });
+        };
+    }
+
+    c.open(<span class="hljs-string">'GET'</span>, url);
+
+    c.send();
+};
+
+utility.downloadMultiFile = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(downloadQueue, callBack_DownloadOneFileFinished, callBack_DownloadMultipleFileFinished)</span> </span>{
+
+    <span class="hljs-keyword">var</span> queueIndex = <span class="hljs-number">0</span>;
+
+    <span class="hljs-keyword">var</span> processQueue = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(download_result)</span> </span>{
+
+
+        <span class="hljs-keyword">if</span>( <span class="hljs-keyword">typeof</span> (download_result) !== <span class="hljs-string">'undefined'</span>) {
+            callBack_DownloadOneFileFinished(download_result);
+        }
+    <span class="hljs-keyword">var</span> min = downloadQueue.length&gt;<span class="hljs-number">10</span> ? <span class="hljs-number">10</span> : downloadQueue.length;
+        <span class="hljs-keyword">if</span>(queueIndex &lt; min) {
+            Ti.API.info(<span class="hljs-string">'---------------- url : '</span> + downloadQueue[queueIndex].url);
+            utility.downloadOneFile(downloadQueue[queueIndex].url, downloadQueue[queueIndex].filepath, processQueue);
+            queueIndex++;
+
+        } <span class="hljs-keyword">else</span> {
+            callBack_DownloadMultipleFileFinished();
+        }
+
+    };
+    processQueue();
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 28th 2012, 7:12:59 am">May 28th 2012</span>
+				by <span class='authorname'>Maksym Sukholovyy</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android error</span></li>
+					
+						<li><span class='tagname'>download</span></li>
+					
+						<li><span class='tagname'>download images</span></li>
+					
+						<li><span class='tagname'>out of memory</span></li>
+					
+						<li><span class='tagname'>outofmemory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>can you paste the error from DDMS (start of red to end of red) here in a formatted fashion so we can see the context of the java error (i.e.: was it in AbstractSessionInputBuffer, was it a file write error, etc)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 28th 2012, 10:37:31 pm">May 28th 2012</span>
+								by <span class='authorname'>Stephen Feather</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-239506">
+				
+						<section>
+							<p>Hi Maksym,</p>
+<p>First you check your internal memory space may be it&#39;s have low and your images have high memory because of more images using <strong>spaceAvailable()</strong> function.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 28th 2012, 7:21:43 am">May 28th 2012</span>
+								by <span class='authorname'>Nitin Chavda</span><br>
+								<a class="icon-bg icon-link" href="question/137499/image-downloading-in-android-outtofmemory-error#answer-239506" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Nitin, thanks for answer but my images occupy only 60 mB, and there is enough of free space.I already tried it….</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 28th 2012, 11:35:36 am">May 28th 2012</span>
+											by <span class='authorname'>Maksym Sukholovyy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If downloading via HTTPClient, you need 2x the size of the request free.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 28th 2012, 10:35:26 pm">May 28th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

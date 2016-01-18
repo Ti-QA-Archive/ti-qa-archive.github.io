@@ -1,0 +1,303 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>CommonJS / Require -&gt; Problems with &#34;new&#34; operator. Works on iOS, fails on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>CommonJS / Require -&gt; Problems with &#34;new&#34; operator. Works on iOS, fails on Android</h1>
+		</header>
+		<section>
+			<p>Hello folks,<br>I try to set up a clean app-structure and thus decided to use the &quot;require&quot; &#x2F; commonJS pattern -&gt; create a kind of specialized classes for each tab&#x2F;window&#x2F;custom control I need.</p>
+<p>When I execute my code on iOS (simulator) it works perfect.<br>Emulating on Android throws the following errors:</p>
+<p>1) Global variables defined in myApp.js are not available within the required module. Correct?</p>
+<p>2) Instantiation with &quot;new&quot; does not work:</p>
+<pre><code class="hljs">I/TiApplication(  <span class="hljs-number">551</span>): (main) [<span class="hljs-number">186</span>,<span class="hljs-number">186</span>] Titanium <span class="hljs-number">1.8</span><span class="hljs-number">.0</span><span class="hljs-number">.1</span> (<span class="hljs-number">2011</span>/<span class="hljs-number">12</span>/<span class="hljs-number">22</span> <span class="hljs-number">13</span>:<span class="hljs-number">09</span> fbdc96f)
+I/TiApplication(  <span class="hljs-number">551</span>): (main) [<span class="hljs-number">818</span>,<span class="hljs-number">1004</span>] Titanium Javascript runtime: rhino {same problem with V8}
+...
+E/TiJSError(  <span class="hljs-number">347</span>): (main) [<span class="hljs-number">4056</span>,<span class="hljs-number">5036</span>] ----- Titanium Javascript Runtime Error -----
+E/TiJSError(  <span class="hljs-number">347</span>): (main) [<span class="hljs-number">0</span>,<span class="hljs-number">5036</span>] - In ui/MyWindow.js:<span class="hljs-number">7</span>,<span class="hljs-number">0</span>
+E/TiJSError(  <span class="hljs-number">347</span>): (main) [<span class="hljs-number">0</span>,<span class="hljs-number">5036</span>] - Message: TypeError: [object Object] is not a function, it is object. (ui/MyWindow.js<span class="hljs-preprocessor">#<span class="hljs-number">7</span>)</span>
+E/TiJSError(  <span class="hljs-number">347</span>): (main) [<span class="hljs-number">1</span>,<span class="hljs-number">5037</span>] - Source: null
+</code></pre><p>The files are:<br>app.js(includes myApp.js(requires AppTabGroup, requires MyWindow(requires AppWindow))</p>
+<p>-&gt;assumtion: are nested requires a problem?</p>
+<p>This is the code I use:</p>
+<p>app.js</p>
+<pre><code class="hljs">require(<span class="hljs-symbol">'lib</span>/require_patch').monkeypatch(this);
+<span class="hljs-type">Titanium</span>.<span class="hljs-keyword">include</span>(<span class="hljs-symbol">'myApp</span>.js');
+</code></pre><p>myApp.js</p>
+<pre><code class="hljs"><span class="hljs-comment">//Create main namespace</span>
+sx = {};
+
+<span class="hljs-comment">//create a private scope to prevent further polluting the global object</span>
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> MyWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/MyWindow'</span>);
+    <span class="hljs-keyword">var</span> AppTabGroup = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/AppTabGroup'</span>);
+
+    <span class="hljs-comment">//create our global tab group    </span>
+    <span class="hljs-keyword">var</span> tabs = <span class="hljs-keyword">new</span> AppTabGroup(
+        {
+            title: L(<span class="hljs-string">'tab_1'</span>),
+            icon: <span class="hljs-string">'images/icons/tabs/icon_1.png'</span>,
+            <span class="hljs-built_in">window</span>: <span class="hljs-keyword">new</span> MyWindow()
+        }
+    );
+
+    tabs.open();
+})();
+</code></pre><p>ui&#x2F;AppTabGroup.js (sample code of Appcelerator team)</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">AppTabGroup</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> instance = Ti.UI.createTabGroup();
+
+    <span class="hljs-comment">//loop through tab objects and add them to the tab group</span>
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = <span class="hljs-built_in">arguments</span>.length; i &lt; l; i++) {
+        <span class="hljs-keyword">var</span> tab = Ti.UI.createTab(<span class="hljs-built_in">arguments</span>[i]);
+        <span class="hljs-comment">//on initialization, we track the current tab as the first one added</span>
+        <span class="hljs-keyword">if</span> (i === <span class="hljs-number">0</span>) {
+            instance.currentTab = tab;
+        }
+        instance.addTab(tab);
+    }
+
+    <span class="hljs-comment">//track the current tab for the tab group</span>
+    instance.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        instance.currentTab = e.tab;
+    });
+
+    <span class="hljs-keyword">return</span> instance;
+};
+
+exports.AppTabGroup = AppTabGroup;
+</code></pre><p>ui&#x2F;MyWindow.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MyWindow</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-keyword">var</span> AppWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/AppWindow'</span>);
+    <span class="hljs-keyword">var</span> mainWin = <span class="hljs-keyword">new</span> AppWindow({             <span class="hljs-comment">// Line 7, the error occurs here!</span>
+        navBarHidden: <span class="hljs-literal">true</span>,
+        title: L(<span class="hljs-string">'tab_1'</span>)
+    });
+
+    <span class="hljs-comment">//some code</span>
+
+    mainWin.add(some stuff);
+
+    <span class="hljs-keyword">return</span> mainWin;
+};
+
+<span class="hljs-comment">// provide public interfaces</span>
+exports.MyWindow = MyWindow;
+</code></pre><p>ui&#x2F;AppWindow.js</p>
+<pre><code class="hljs">function<span class="hljs-function"> AppWindow(</span>args<span class="hljs-function">)</span> {
+    var<span class="hljs-instruction"> instance </span>=<span class="hljs-function"> Ti.UI.createWindow(</span>args<span class="hljs-function">)</span>;
+   <span class="hljs-instruction"> return </span>instance;
+};
+
+// make<span class="hljs-keyword"> public</span>
+exports.AppWindow = AppWindow;
+</code></pre><p>Thanks for your help!<br>Ben</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 5th 2012, 7:26:42 am">January 5th 2012</span>
+				by <span class='authorname'>Ben Krebs</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>globals</span></li>
+					
+						<li><span class='tagname'>require</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-226806">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>hi if ur using 1.8.1<br>try this</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> AppWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">"/ui/AppWindow"</span>); <span class="hljs-comment">// see the "/" before ui</span>
+</code></pre><p>AppWindow.js</p>
+<p>dont name ur export same as ur filename.. </p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_AppWindow</span>(<span class="hljs-params"></span>)</span>{
+<span class="hljs-comment">//..some code here</span>
+}
+exports.newWindow = _AppWindow;
+</code></pre><p>i hope these helps..</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 5th 2012, 2:14:24 pm">January 5th 2012</span>
+								by <span class='authorname'>Ken Crucillo</span><br>
+								<a class="icon-bg icon-link" href="question/130243/commonjs--require---problems-with-new-operator-works-on-ios-fails-on-android#answer-226806" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>i forgot.. this is how u will access the function</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> AppWindow</span> = require(<span class="hljs-string">"/ui/AppWindow"</span>); <span class="hljs-comment">// see the "/" before ui</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> = AppWindow.newWindow({
+<span class="hljs-comment">//..arguments for ur window</span>
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="January 5th 2012, 2:17:16 pm">January 5th 2012</span>
+											by <span class='authorname'>Ken Crucillo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-226805">
+				
+						<section>
+							<p>1) Global variables defined in myApp.js are not available within the required module. Correct?</p>
+<p>No. Global variable - sx - is available within required module. You can check by logging it in ui&#x2F;MyWindow.js</p>
+<p>2) This&#39;s not problem of <strong>new</strong>. And your code does not work on both ios &amp; android (you might run successfully with cached code). Modify code like this would help:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-type">AppTabGroup</span> = require('ui/<span class="hljs-type">AppTabGroup</span>');
+<span class="hljs-keyword">var</span> tabs = <span class="hljs-type">AppTabGroup</span>.<span class="hljs-type">AppTabGroup</span>(<span class="hljs-decorator">{...}</span>);// <span class="hljs-type">Since</span> <span class="hljs-type">AppTabGroup</span>() <span class="hljs-keyword">return</span> a <span class="hljs-type">TabGroup</span> so **new** <span class="hljs-keyword">is</span> <span class="hljs-keyword">not</span> needed.
+</code></pre><p>Holp it help.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 5th 2012, 2:07:19 pm">January 5th 2012</span>
+								by <span class='authorname'>Minh Nguyen</span><br>
+								<a class="icon-bg icon-link" href="question/130243/commonjs--require---problems-with-new-operator-works-on-ios-fails-on-android#answer-226805" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-226903">
+				
+						<section>
+							<p>Thank you all for your helpful answers!</p>
+<p>By the way: I learned the pattern with &quot;new&quot; from The Forging Titanium Episode 6 &quot;A Single Context Tab Group Template&quot;:</p>
+<p>app.js</p>
+<pre><code class="hljs">...
+
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> AppTabGroup = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/AppTabGroup'</span>);
+
+    <span class="hljs-comment">//create our global tab group    </span>
+    globals.tabs = <span class="hljs-keyword">new</span> AppTabGroup(
+        {
+            title: <span class="hljs-string">'Home'</span>,
+            icon: <span class="hljs-string">'images/KS_nav_ui.png'</span>,
+            <span class="hljs-built_in">window</span>: <span class="hljs-keyword">new</span> AppWindow({title:<span class="hljs-string">'Home'</span>,backgroundColor:<span class="hljs-string">'white'</span>})
+        }
+    ...
+})();
+</code></pre><p>ui&#x2F;AppTabGroup.js</p>
+<pre><code class="hljs">exports.AppTabGroup =<span class="hljs-function"> function(</span><span class="hljs-function">)</span> {
+    var<span class="hljs-instruction"> instance </span>=<span class="hljs-function"> Ti.UI.createTabGroup(</span><span class="hljs-function">)</span>;
+
+<span class="hljs-keyword">    .</span>..
+
+   <span class="hljs-instruction"> return </span>instance;
+};
+</code></pre><p>Did I adopt that in a wrong way or is that example not working anymore?<br>Anyway, my modified code is working now thanks to your helpful posts. Thanks again!<br>Ben</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 6th 2012, 12:40:03 pm">January 6th 2012</span>
+								by <span class='authorname'>Ben Krebs</span><br>
+								<a class="icon-bg icon-link" href="question/130243/commonjs--require---problems-with-new-operator-works-on-ios-fails-on-android#answer-226903" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

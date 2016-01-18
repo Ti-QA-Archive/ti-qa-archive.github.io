@@ -1,0 +1,381 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Opening detail window, Exception in tab.js: interface not implemented » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Opening detail window, Exception in tab.js: interface not implemented</h1>
+		</header>
+		<section>
+			<p><strong>Application type:</strong> mobile<br><strong>Titanium SDK:</strong> version 2.0.2 (05&#x2F;30&#x2F;12 10:21 2ff31a3)<br><strong>Platform:</strong> Google APIs Android 2.2, HVGA screen<br><strong>Device:</strong> Android emulator<br><strong>Host OS:</strong> Windows 7<br><strong>Titanium Studio:</strong> build 2.1.0.201206251749, jenkins-titanium-rcp-master-218 (origin&#x2F;master)</p>
+<p>As far as the code itself goes … I&#39;m still really new at trying to program anything, much less apps, so if this turns out to be something really basic, my apologies. Also let me know if I forgot to include something crucial to figuring this out ..</p>
+<p>I&#39;m trying to put together a restaurant menu app, similar in structure to the TiBountyHunter app&#39;s basic build (ApplicationTabGroup opens various ApplicationWindow objects, with menus where each menu item opens a DetailWindow with more information about it). I expanded the tab group to a switch case, thus:</p>
+<pre><code class="hljs"><span class="hljs-comment">// Excerpt from ApplicationTabGroup.js //</span>
+
+<span class="hljs-keyword">var</span> win1 = <span class="hljs-keyword">new</span> Window(<span class="hljs-string">'Meats'</span>,<span class="hljs-number">1</span>),
+        win2 = <span class="hljs-keyword">new</span> Window(<span class="hljs-string">'Main Dishes'</span>,<span class="hljs-number">2</span>),
+        win3 = <span class="hljs-keyword">new</span> Window(<span class="hljs-string">'Sides - Salads'</span>,<span class="hljs-number">3</span>),
+        win4 = <span class="hljs-keyword">new</span> Window(<span class="hljs-string">'Dessert'</span>,<span class="hljs-number">4</span>);
+
+    <span class="hljs-keyword">var</span> tab1 = Ti.UI.createTab({
+        title: <span class="hljs-string">'Meats'</span>,
+        icon: <span class="hljs-string">'images/KS_nav_ui.png'</span>,
+        <span class="hljs-built_in">window</span>: win1
+    });
+    win1.containingTab = tab1;
+
+<span class="hljs-comment">// etc. //</span>
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//Excerpt from ApplicationWindow.js //</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ApplicationWindow</span><span class="hljs-params">(title, _order)</span> </span>{
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+        title:title,
+        order:_order,
+        backgroundColor:<span class="hljs-string">'transparent'</span>
+    });
+
+
+    <span class="hljs-keyword">switch</span> (<span class="hljs-keyword">self</span>.order) {
+        <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
+        <span class="hljs-keyword">var</span> MeatsTable = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/common/MeatsTable'</span>);
+        <span class="hljs-keyword">var</span> meatsTable = <span class="hljs-keyword">new</span> MeatsTable();
+        meatsTable.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(_e)</span></span>{
+            <span class="hljs-keyword">var</span> DetailWindow = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/common/DetailWindow'</span>);
+            <span class="hljs-keyword">self</span>.containingTab.open(<span class="hljs-keyword">new</span> DetailWindow(_e.RowData, <span class="hljs-keyword">self</span>.containingTab));
+        });
+        <span class="hljs-keyword">self</span>.add(meatsTable);
+        <span class="hljs-keyword">break</span>;
+
+<span class="hljs-comment">// etc. //</span>
+</code></pre><p>… and then set up the eventListener in each table to call up a DetailWindow:</p>
+<pre><code class="hljs"><span class="hljs-comment">// DetailWindow.js //</span>
+
+<span class="hljs-keyword">var</span> DetailWindow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"> _menu_item, containingTab</span>)</span>{
+    <span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({
+        title: <span class="hljs-string">'Menu Details'</span>,  <span class="hljs-comment">/* Originally I had used _menu_item.title */</span>
+        barColor:<span class="hljs-string">'#ef3829'</span>,
+        backgroundColor:<span class="hljs-string">'transparent'</span>,
+        backgroundImage:<span class="hljs-string">'images/DarkWood.jpg'</span>,
+        layout: <span class="hljs-string">'vertical'</span>
+    });
+
+    win.add(Titanium.UI.createLabel({
+        text: <span class="hljs-string">''</span>,
+        top:<span class="hljs-number">10</span>,
+        textAlign:<span class="hljs-string">'center'</span>,
+        font:{
+            fontWeight:<span class="hljs-string">'bold'</span>,fontSize:<span class="hljs-number">18</span>
+        },
+        height:Ti.UI.SIZE
+    }));
+
+}
+
+
+<span class="hljs-built_in">module</span>.exports = DetailWindow;
+</code></pre><p>Each of the tables was set up like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">// MeatsTable.js, truncated //</span>
+
+function MeatsTableView(){
+
+    var meatsData = [
+        {<span class="hljs-string">title:</span><span class="hljs-string">'Texas Style Chopped Beef Brisket'</span>, <span class="hljs-string">color:</span><span class="hljs-string">'#000'</span>, <span class="hljs-string">hasChild:</span><span class="hljs-literal">true</span>},
+        {<span class="hljs-string">title:</span><span class="hljs-string">'Sliced Beef Brisket'</span>, <span class="hljs-string">color:</span><span class="hljs-string">'#000'</span>, <span class="hljs-string">hasChild:</span><span class="hljs-literal">true</span>},
+    <span class="hljs-comment">/* etc. */</span>
+    ]
+
+    var tv = Titanium.UI.createTableView({
+<span class="hljs-label">        headerTitle:</span> <span class="hljs-string">'Barbecue Meats'</span>,
+<span class="hljs-label">        data:</span>meatsData
+    });
+
+    <span class="hljs-keyword">return</span> tv;
+};
+
+module.exports = MeatsTableView;
+</code></pre><p>When I used _menu_item.title to define win in DetailWindow.js (which I thought I was passing as an argument from the eventListener), I&#39;d get these errors:</p>
+<pre><code class="hljs">
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  333)</span>] (main) [2893,85472] ----- Titanium Javascript Runtime Error -----
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  333)</span>] (main) [1,85473] - In ui/common/DetailWindow.js:6,26
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  333)</span>] (main) [1,85474] - Message: Uncaught TypeError: Cannot read property 'title' of undefined
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  333)</span>] (main) [0,85474] - Source:         title: <span class="hljs-emphasis">_menu_</span>item.title,
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">V8Exception(  333)</span>] Exception occurred at ui/common/DetailWindow.js:6: Uncaught TypeError: Cannot read property 'title' of undefined
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">JNIUtil (  333)</span>] !!! Unable to convert unknown Java object class 'org.appcelerator.kroll.KrollRuntime$1' to Js value !!!
+// This last line is repeated something like 10 times. //
+</code></pre><p>So I switched from saying _menu_item.title and tried setting the window&#39;s title to a string … and got these errors instead:</p>
+<pre><code class="hljs">
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>] java.lang.IncompatibleClassChangeError: interface not implemented
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at java.util.HashMap.putAll(HashMap.java:510)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at ti.modules.titanium.ui.TabProxy.setWindow(TabProxy.java:78)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at org.appcelerator.kroll.runtime.v8.V8Object.nativeFireEvent(Native Method)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at org.appcelerator.kroll.runtime.v8.V8Object.fireEvent(V8Object.java:60)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at org.appcelerator.kroll.KrollProxy.doFireEvent(KrollProxy.java:494)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at org.appcelerator.kroll.KrollProxy.handleMessage(KrollProxy.java:675)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at org.appcelerator.titanium.proxy.TiViewProxy.handleMessage(TiViewProxy.java:398)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at ti.modules.titanium.ui.TableViewProxy.handleMessage(TableViewProxy.java:580)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at android.os.Handler.dispatchMessage(Handler.java:95)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at android.os.Looper.loop(Looper.java:123)
+[<span class="hljs-link_label">WARN</span>][<span class="hljs-link_reference">System.err(  365)</span>]     at org.appcelerator.kroll.KrollRuntime$KrollRuntimeThread.run(KrollRuntime.java:104)
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  365)</span>] (main) [2696,274816] ----- Titanium Javascript Runtime Error -----
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  365)</span>] (main) [1,274817] - In ti:/tab.js:22,8
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  365)</span>] (main) [0,274817] - Message: Uncaught Error: interface not implemented
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">TiJSError(  365)</span>] (main) [2,274819] - Source:         this.setWindow(window);
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">V8Exception(  365)</span>] Exception occurred at ti:/tab.js:22: Uncaught Error: interface not implemented
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">JNIUtil (  365)</span>] !!! Unable to convert unknown Java object class 'org.appcelerator.kroll.KrollRuntime$1' to Js value !!!
+/<span class="hljs-bullet">* Again, last line repeated about 10 times.*</span>/
+</code></pre><p>I&#39;m a bit out of my depth from here, and I&#39;d appreciate any tips you can offer as far as getting the DetailWindow to load instead of throwing errors. Thanks.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 9th 2012, 5:04:18 pm">July 9th 2012</span>
+				by <span class='authorname'>Simon Shepherd</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>error</span></li>
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+						<li><span class='tagname'>tab</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>do your require strings need a <code>.js</code> after the filename? I would assume so, I&#39;ve always added the extension.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 9th 2012, 6:07:32 pm">July 9th 2012</span>
+								by <span class='authorname'>Ronnie Swietek</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>commonjs module paths <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;index.html#!&#x2F;guide&#x2F;CommonJS_Modules_in_Titanium-section-29004791_CommonJSModulesinTitanium-JavaScriptModules">don&#39;t use</a> the .js extension.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 9th 2012, 6:58:26 pm">July 9th 2012</span>
+								by <span class='authorname'>Adam Paxton</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-242803">
+				
+						<section>
+							<p>The event property should be <code>_e.rowData</code>, lowercase &#39;r&#39;.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 9th 2012, 6:51:07 pm">July 9th 2012</span>
+								by <span class='authorname'>Adam Paxton</span><br>
+								<a class="icon-bg icon-link" href="question/139476/opening-detail-window-exception-in-tabjs-interface-not-implemented#answer-242803" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I changed the event property as you mentioned, but so far it&#39;s throwing the same &quot;interface not implemented&quot; error from ti:&#x2F;tab.js … thanks for catching the capitalization error, though. Does anything else stand out as likely to cause errors?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2012, 1:39:17 pm">July 10th 2012</span>
+											by <span class='authorname'>Simon Shepherd</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Looks like that error is related to something else.  Can you post tab.js?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2012, 2:07:51 pm">July 10th 2012</span>
+											by <span class='authorname'>Adam Paxton</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>tab.js isn&#39;t anything that I wrote. I think it&#39;s a Titanium file, because when I did a quick computer search, all it turned up was a Tab.js in TiBountyHunter&#39;s build\mobileweb folder. (build\mobileweb\titanium\Ti\UI\Tab.js) I&#39;ll post that, at least …</p>
+<pre><code class="hljs">define([<span class="hljs-string">"Ti/_/declare"</span>, <span class="hljs-string">"Ti/UI/View"</span>, <span class="hljs-string">"Ti/_/dom"</span>, <span class="hljs-string">"Ti/Locale"</span>, <span class="hljs-string">"Ti/UI"</span>],
+    <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(declare, View, dom, Locale, UI)</span> </span>{
+
+    <span class="hljs-keyword">var</span> postTitle = {
+        post: <span class="hljs-string">"_setTitle"</span>
+    };
+
+    <span class="hljs-keyword">return</span> declare(<span class="hljs-string">"Ti.UI.Tab"</span>, View, {
+
+        constructor: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(args)</span> </span>{
+            <span class="hljs-keyword">var</span> container = <span class="hljs-keyword">this</span>._contentContainer = dom.create(<span class="hljs-string">"div"</span>, {
+                className: <span class="hljs-string">"TiUITabContentContainer"</span>,
+                style: {
+                    display: [<span class="hljs-string">"-webkit-box"</span>, <span class="hljs-string">"-moz-box"</span>],
+                    boxOrient: <span class="hljs-string">"vertical"</span>,
+                    boxPack: <span class="hljs-string">"center"</span>,
+                    boxAlign: <span class="hljs-string">"center"</span>
+                }
+            }, <span class="hljs-keyword">this</span>.domNode);
+
+            <span class="hljs-keyword">this</span>._tabIcon = dom.create(<span class="hljs-string">"img"</span>, {
+                className: <span class="hljs-string">"TiUITabImage"</span>
+            }, container);
+
+            <span class="hljs-keyword">this</span>._tabTitle = dom.create(<span class="hljs-string">"div"</span>, {
+                className: <span class="hljs-string">"TiUITabTitle"</span>,
+                style: {
+                    whiteSpace: <span class="hljs-string">"nowrap"</span>,
+                    pointerEvents: <span class="hljs-string">"none"</span>,
+                    userSelect: <span class="hljs-string">"none"</span>
+                }
+            }, container);
+
+            <span class="hljs-keyword">var</span> self = <span class="hljs-keyword">this</span>;
+            <span class="hljs-keyword">this</span>.addEventListener(<span class="hljs-string">"singletap"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                self._tabGroup &amp;&amp; self._tabGroup.setActiveTab(self);
+            });
+        },
+
+        _defaultWidth: UI.FILL,
+
+        _defaultHeight: UI.FILL,
+
+        _tabGroup: <span class="hljs-literal">null</span>,
+
+        _tabNavigationGroup: <span class="hljs-literal">null</span>,
+
+        open: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(win, options)</span> </span>{
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>._tabNavigationGroup) {
+                <span class="hljs-keyword">this</span>._tabNavigationGroup.open(win, options);
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">this</span>.window = win;
+            }
+        },
+
+        close: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(win, options)</span> </span>{
+            <span class="hljs-keyword">this</span>._tabNavigationGroup.close(win, options);
+        },
+
+        _setTitle: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            <span class="hljs-keyword">this</span>._tabTitle.innerHTML = Locale._getString(<span class="hljs-keyword">this</span>.titleid, <span class="hljs-keyword">this</span>.title);
+        },
+
+        properties: {
+            active: {
+                <span class="hljs-keyword">get</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(value)</span> </span>{
+                    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._tabGroup &amp;&amp; <span class="hljs-keyword">this</span>._tabGroup.activeTab === <span class="hljs-keyword">this</span>;
+                }
+            },
+
+            icon: {
+                <span class="hljs-keyword">set</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(value)</span> </span>{
+                    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._tabIcon.src = value;
+                }
+            },
+
+            title: postTitle,
+
+            titleid: postTitle,
+
+            window: {
+                <span class="hljs-keyword">set</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(value)</span> </span>{
+                    <span class="hljs-keyword">var</span> tabGroup = <span class="hljs-keyword">this</span>._tabGroup;
+                    <span class="hljs-keyword">this</span>._tabNavigationGroup = UI.MobileWeb.createNavigationGroup({
+                        window: value,
+                        navBarAtTop: tabGroup &amp;&amp; tabGroup.tabsAtTop
+                    });
+                    <span class="hljs-keyword">this</span>.active &amp;&amp; tabGroup &amp;&amp; tabGroup.setActiveTab(<span class="hljs-keyword">this</span>); <span class="hljs-comment">// Force the new nav group to get attached</span>
+                    <span class="hljs-keyword">return</span> value;
+                }
+            }
+        }
+
+    });
+
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2012, 3:26:42 pm">July 10th 2012</span>
+											by <span class='authorname'>Simon Shepherd</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

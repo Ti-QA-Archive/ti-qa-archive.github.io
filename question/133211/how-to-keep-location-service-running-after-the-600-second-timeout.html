@@ -1,0 +1,257 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to keep location service running after the 600 second timeout » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to keep location service running after the 600 second timeout</h1>
+		</header>
+		<section>
+			<p>I am developing an app for iOS that is supposed to record a users movements in the background to be able to show the route on a map. My problem here is that there seems to be a timeout after 600 seconds, shutting the background service off. After looking through some posts here I have figured out that a solution could be to set a timer in bg.js to keep it alive. However, I haven&#39;t been able to do this.</p>
+<p>My code looks like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">// app.js</span>
+<span class="hljs-comment">// ...</span>
+
+<span class="hljs-keyword">var</span> service;
+
+<span class="hljs-comment">// fired when an app resumes for suspension</span>
+Ti.App.addEventListener(<span class="hljs-string">'resume'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(<span class="hljs-string">"app is resuming from the background"</span>);
+});
+
+Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">if</span> (service != <span class="hljs-literal">null</span>){
+        service.stop();
+        service.unregister();
+    }
+});
+
+Ti.App.addEventListener(<span class="hljs-string">'pause'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    service = Ti.App.iOS.registerBackgroundService({url:<span class="hljs-string">'scripts/bg.js'</span>});
+});
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//bg.js</span>
+
+Ti.Geolocation.distanceFilter = <span class="hljs-number">10</span>;
+Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_BEST;
+
+<span class="hljs-keyword">var</span> locationCallback = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    Ti.API.info(e.coords);
+
+    <span class="hljs-comment">// More stuff here</span>
+
+};
+
+Ti.Geolocation.addEventListener(<span class="hljs-string">'location'</span>,locationCallback);
+
+<span class="hljs-comment">// Timer to reset the callback every minute</span>
+setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+</span>{
+    Ti.Geolocation.removeEventListener(<span class="hljs-string">'location'</span>,locationCallback);
+    Ti.Geolocation.addEventListener(<span class="hljs-string">'location'</span>,locationCallback);
+},<span class="hljs-number">6000</span>);
+</code></pre><p>What happens is that it runs perfectly, recording every location, but just for 10 minutes, then it stops. I have made sure that &#39;location&#39; is set as a BackgroundMode in tiapp.xml.</p>
+<p>Does anyone have a solution to this problem?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 5th 2012, 11:08:00 am">March 5th 2012</span>
+				by <span class='authorname'>Kristoffer Hultgren</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+						<li><span class='tagname'>gps</span></li>
+					
+						<li><span class='tagname'>location</span></li>
+					
+						<li><span class='tagname'>timeout</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello,</p>
+<p>Short story: You can&#39;t, and it&#39;s not a Titanium limitation. </p>
+<p>Long version: You can&#39;t run this background service longer than 10 minutes. Read the apple&#39;s limitation in background services <a href="https:&#x2F;&#x2F;developer.apple.com&#x2F;library&#x2F;ios&#x2F;#DOCUMENTATION&#x2F;iPhone&#x2F;Conceptual&#x2F;iPhoneOSProgrammingGuide&#x2F;ManagingYourApplicationsFlow&#x2F;ManagingYourApplicationsFlow.html">here</a>. </p>
+<p>You are able to run some services longer than that, but not for tracking purposes. </p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 5th 2012, 10:33:36 pm">March 5th 2012</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Mauro, I&#39;m not sure if you have read the document yourself? Here&#39;s an extract of the text:</p>
+<p><em>An app that provides continuous location updates to the user (even when in the background) can enable background location services by including the UIBackgroundModes key (with the location value) in its Info.plist file. The inclusion of this value in the UIBackgroundModes key does not preclude the system from suspending the app, but it does tell the system that it should wake up the app whenever there is new location data to deliver. Thus, this key effectively lets the app run in the background to process location updates whenever they occur.</em></p>
+<p>In other words, Franks post below is correct.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 6th 2012, 7:26:19 am">March 6th 2012</span>
+								by <span class='authorname'>Kristoffer Hultgren</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-232404">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>I believe you need to add this to your info.plist file:</p>
+<pre><code class="hljs">        <span class="hljs-tag">&lt;<span class="hljs-title">key</span>&gt;</span>UIBackgroundModes<span class="hljs-tag">&lt;/<span class="hljs-title">key</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">array</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">string</span>&gt;</span>location<span class="hljs-tag">&lt;/<span class="hljs-title">string</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">array</span>&gt;</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 5th 2012, 11:54:15 am">March 5th 2012</span>
+								by <span class='authorname'>Frank A</span><br>
+								<a class="icon-bg icon-link" href="question/133211/how-to-keep-location-service-running-after-the-600-second-timeout#answer-232404" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>That actually works! Thanks! It even looks like I don&#39;t have to use bg.js since the callback keeps going in the background.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 5th 2012, 5:45:30 pm">March 5th 2012</span>
+											by <span class='authorname'>Kristoffer Hultgren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Can you please markt his as the correct answer so others can quickly find it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 5th 2012, 6:09:13 pm">March 5th 2012</span>
+											by <span class='authorname'>Frank A</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-232408">
+				
+						<section>
+							<p>may be you know or not, i do not know but you comment that <strong>&#x2F;&#x2F; Timer to reset the callback every minute</strong> and in timer you set <strong>6000</strong>….so</p>
+<p> 1000 = 1 sec.</p>
+<p>and you set 6000</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 5th 2012, 12:27:11 pm">March 5th 2012</span>
+								by <span class='authorname'>Mitul Bhalia</span><br>
+								<a class="icon-bg icon-link" href="question/133211/how-to-keep-location-service-running-after-the-600-second-timeout#answer-232408" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>That&#39;s a type-o, but thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 5th 2012, 5:46:03 pm">March 5th 2012</span>
+											by <span class='authorname'>Kristoffer Hultgren</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

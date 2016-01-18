@@ -1,0 +1,285 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to go back in a Navigation Group? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to go back in a Navigation Group?</h1>
+		</header>
+		<section>
+			<p>I have some functionality which uses a navigation group which has 3 levels of windows:</p>
+<p>Mailbox -&gt; Message List -&gt; Message Detail.</p>
+<p>When a message is selected from the list, it retrieves the info from a server. If there&#39;s an error, the app displays a dialog saying the message isn&#39;t available and attempts to close the detail window.</p>
+<p>However, the detail window disappears and reveals the app&#39;s home screen (not the base window of the nav group) and displays this message in the console:</p>
+<p><strong>Finishing up a navigation transition in an unexpected state. Navigation Bar subview tree might get corrupted.</strong></p>
+<p>I also notice that on the blank nav bar at the top, if I click in the vacinity of where the back button was, it does actually go back to the previous window!</p>
+<p>I&#39;ve tested numerous demos with <code>navGroup.close()</code> and they all work fine, so this is really perplexing me as to why it&#39;s not working. </p>
+<p>Here&#39;s excerpts from my code:</p>
+<ul>
+<li><code>csu.module.messages.navGroup</code> is my Navigation Group. Each window is opened by using <code>csu.module.messages.navGroup.open(windowObj)</code></li>
+</ul>
+<p>Message.js:</p>
+<pre><code class="hljs"><span class="hljs-comment">// A table row holds the message listing and an event listener is created to open a message if selected:</span>
+tableView.addEventListener('click', <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> {</span>
+    var messageHeader = e.rowData.messageHeader;
+    csu.<span class="hljs-keyword">module</span>.messages.detailWindow = csu.<span class="hljs-keyword">module</span>.messages.createMessageDetailWindow(messageHeader);
+
+    <span class="hljs-keyword">if</span> (a_Config.isApple()) {
+        csu.<span class="hljs-keyword">module</span>.messages.navGroup.open(csu.<span class="hljs-keyword">module</span>.messages.detailWindow);
+    } <span class="hljs-keyword">else</span> {
+        messageView.open({modal:<span class="hljs-literal">true</span>});
+    }
+});
+
+<span class="hljs-comment">// Event listener to force close the window on an error.</span>
+Ti.App.addEventListener('app:messagesForceCloseDetailWindow', <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> {</span>
+    <span class="hljs-keyword">if</span> (a_Config.isApple()) csu.<span class="hljs-keyword">module</span>.messages.navGroup.close(csu.<span class="hljs-keyword">module</span>.messages.detailWindow);
+    <span class="hljs-keyword">else</span> csu.<span class="hljs-keyword">module</span>.messages.detailWindow.close();
+    csu.<span class="hljs-keyword">module</span>.messages.detailWindow = '';
+});
+</code></pre><p>MessageXhr.js:</p>
+<pre><code class="hljs"><span class="hljs-comment">// XHR object gets content...</span>
+
+xhr.onload = function () {
+    try {
+        <span class="hljs-keyword">var</span> jsonResult = JSON.<span class="hljs-keyword">parse</span>(this.responseText);
+        <span class="hljs-keyword">var</span> data = jsonResult[<span class="hljs-string">"return"</span>];
+        <span class="hljs-keyword">var</span> message = data.message;
+        csu.module.messages.saveMessageContent(message);
+    } catch (<span class="hljs-keyword">e</span>) {
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-keyword">e</span>);
+        Ti.API.debug('<span class="hljs-keyword">An</span> <span class="hljs-keyword">error</span> has occurred. Response Text: ' + this.responseText);
+        <span class="hljs-keyword">var</span> errorResult = JSON.<span class="hljs-keyword">parse</span>(this.responseText);
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">error</span> = errorResult.<span class="hljs-keyword">error</span>;
+        Ti.UI.createAlertDialog({message: m_Config.errors[<span class="hljs-keyword">error</span>.errorType]}).show();
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">error</span>.errorType === 'noUserMessage') {
+            csu.module.messages.dbDeleteMessage(messageHeader.msg_id, messageHeader.system);
+        } 
+
+        <span class="hljs-comment">// Force close the window.</span>
+        Ti.<span class="hljs-keyword">App</span>.fireEvent('<span class="hljs-keyword">app</span>:messagesForceCloseDetailWindow');
+    }
+    Ti.<span class="hljs-keyword">App</span>.fireEvent('<span class="hljs-keyword">app</span>:hideIndicator');
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 17th 2012, 4:47:45 am">May 17th 2012</span>
+				by <span class='authorname'>Chris Dunstall</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>close</span></li>
+					
+						<li><span class='tagname'>navbar</span></li>
+					
+						<li><span class='tagname'>navgroups</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+						<li><span class='tagname'>navigation-group</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-238828">
+				
+						<section>
+							<p>hi,</p>
+<pre><code class="hljs">csu.module.<span class="hljs-keyword">messages</span>.detailWindow = csu.module.<span class="hljs-keyword">messages</span>.createMessageDetailWindow(messageHeader);
+
+csu.module.<span class="hljs-keyword">messages</span>.detailWindow.navGroup = navGroup;
+
+csu.module.<span class="hljs-keyword">messages</span>.navGroup.<span class="hljs-keyword">open</span>(csu.module.<span class="hljs-keyword">messages</span>.detailWindow);
+
+<span class="hljs-built_in">and</span> you <span class="hljs-keyword">an</span> <span class="hljs-keyword">close</span> it by 
+
+
+csu.module.<span class="hljs-keyword">messages</span>.detailWindow.navGroup.<span class="hljs-keyword">close</span>(csu.module.<span class="hljs-keyword">messages</span>.detailWindow);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2012, 5:03:12 am">May 17th 2012</span>
+								by <span class='authorname'>Mitul Bhalia</span><br>
+								<a class="icon-bg icon-link" href="question/137070/how-to-go-back-in-a-navigation-group#answer-238828" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi,</p>
+<p>Can you clarify this a little better? To me, it seems you&#39;re only shifting the navGroup object around? What difference does it make if the navGroup I&#39;m working with is a member of the detailWindow object?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 5:13:10 am">May 17th 2012</span>
+											by <span class='authorname'>Chris Dunstall</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>when you open window with navigation group then it adds a window in stack of navigation group<br>and when you close window then it delete that window from the stack</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 5:17:45 am">May 17th 2012</span>
+											by <span class='authorname'>Mitul Bhalia</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry but what you&#39;re suggesting is no different to what I already have and it&#39;s not working.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 11:29:42 pm">May 17th 2012</span>
+											by <span class='authorname'>Chris Dunstall</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve just come back to this and tried your suggestion. As I suspected, it&#39;s not helped, I still get the error &#39;Finishing up a navigation transition in an unexpected state. Navigation Bar subview tree might get corrupted.&#39; and losing the previous screen.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 12th 2012, 5:08:09 am">June 12th 2012</span>
+											by <span class='authorname'>Chris Dunstall</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238829">
+				
+						<section>
+							<p>Hi,</p>
+<p>The probable solution would be to open the Message detail window as a modal, so when you close this detail window, the message detail window is visible.</p>
+<p>The sample could be found in kitchen sink application:<br>https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;KitchenSink&#x2F;blob&#x2F;master&#x2F;Resources&#x2F;examples&#x2F;navgroup.js</p>
+<p>Hope it helps!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2012, 5:05:20 am">May 17th 2012</span>
+								by <span class='authorname'>Abhitesh Das</span><br>
+								<a class="icon-bg icon-link" href="question/137070/how-to-go-back-in-a-navigation-group#answer-238829" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Sorry that&#39;s not what I&#39;m after. Changing the window mode to modal changes the flow of the navigation.  What I&#39;m saying is that the detail window being opened in the nav group SHOULD work, but it&#39;s not.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 17th 2012, 11:30:38 pm">May 17th 2012</span>
+											by <span class='authorname'>Chris Dunstall</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-238832">
+				
+						<section>
+							<p><em>** the message </em>list* window is visible.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 17th 2012, 5:11:18 am">May 17th 2012</span>
+								by <span class='authorname'>Abhitesh Das</span><br>
+								<a class="icon-bg icon-link" href="question/137070/how-to-go-back-in-a-navigation-group#answer-238832" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

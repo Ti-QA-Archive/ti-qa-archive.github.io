@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>TCP Socket disables button listener on client side while connection established » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>TCP Socket disables button listener on client side while connection established</h1>
+		</header>
+		<section>
+			<p>Hi All,</p>
+<p>I am trying to develop a small chat system using Titanium Socket.<br>I am successful establishing connection between server and client,But on successful connection all the button events on the client side are disabled.<br>Once the connection disconnects i am able to see the alerts raised on button click event.</p>
+<p>Sender TCPConnect:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">TcpClientCon</span><span class="hljs-params">(host, port, data)</span> </span>{
+        <span class="hljs-keyword">if</span> (connectingSocket == <span class="hljs-literal">null</span>) {
+            <span class="hljs-keyword">try</span> {
+                connectingSocket = Ti.Network.Socket.createTCP({
+                    host : host,
+                    port : port,
+                    connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                        e.socket.write(Ti.createBuffer({
+                            value : <span class="hljs-string">"Well, hello there! and the msg is "</span> + data
+                        }));
+                        Ti.Stream.pump(e.socket, pumpCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+                        view.showAlertButton.show();
+                        postConnect();
+                    },
+                    error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                        Titanium.API.info(<span class="hljs-string">'ERROR ('</span> + e.errorCode + <span class="hljs-string">'); '</span> + e.error);
+                    },
+                    closed : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                        Titanium.API.info(<span class="hljs-string">'CLOSED CONNECTION TO: '</span> + e.socket.host + <span class="hljs-string">':'</span> + e.socket.port);
+                    }
+                });
+                connectingSocket.connect();
+            } <span class="hljs-keyword">catch</span> (e) {
+                Titanium.API.info(<span class="hljs-string">'EXCEPTION (connect): '</span> + e.toString());
+            }
+        } <span class="hljs-keyword">else</span> {
+            Titanium.API.info(<span class="hljs-string">'!!!!!Already created: '</span> + connectingSocket.host + <span class="hljs-string">':'</span> + connectingSocket.port + <span class="hljs-string">' and writable status '</span> + connectingSocket.isWritable());
+            <span class="hljs-keyword">if</span> (connectingSocket != <span class="hljs-literal">null</span> &amp;&amp; data !== <span class="hljs-string">'alert'</span>) {
+                Titanium.API.info(<span class="hljs-string">' connectingSocket is not null and connectingSocket is writable'</span>);
+                connectingSocket.write(Ti.createBuffer({
+                    value : data
+                }));
+            } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (connectingSocket != <span class="hljs-literal">null</span> &amp;&amp; data === <span class="hljs-string">'alert'</span>) {
+                Titanium.API.info(<span class="hljs-string">' connectingSocket is not null and alert has been raised'</span>);
+                connectingSocket.write(Ti.createBuffer({
+                    value : data
+                }));
+            }
+        }
+    }
+</code></pre><p>Receiver TCP Code:</p>
+<hr>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> listenSocket = Ti.Network.Socket.createTCP({
+        host : Ti.Platform.address,
+        port : 40404,
+        accepted : function(<span class="hljs-keyword">e</span>) {
+           <span class="hljs-keyword">var</span> readBuffer = Ti.createBuffer({
+                length : 1024
+            });
+            <span class="hljs-keyword">var</span> bytesRead = 0;
+            <span class="hljs-keyword">while</span> (( bytesRead = <span class="hljs-keyword">e</span>.inbound.<span class="hljs-keyword">read</span>(readBuffer)) &gt; -1) {
+                <span class="hljs-keyword">var</span> stringData = Ti.Codec.decodeString({
+                    source : readBuffer,
+                    length : bytesRead,
+
+                });
+              <span class="hljs-keyword">view</span>.receivingTextArea.value = stringData;
+
+                <span class="hljs-keyword">if</span> (stringData === 'alert')
+                    alertCom.show();
+
+                <span class="hljs-keyword">if</span> (stringData === 'dismiss') {
+                    Ti.API.info(<span class="hljs-string">"Hide Alert from List"</span>);
+                    alertCom.hide();
+                }
+                 <span class="hljs-keyword">e</span>.inbound.write(Ti.createBuffer({
+                value : <span class="hljs-string">"From RECV"</span> + <span class="hljs-keyword">view</span>.sendingTextArea.value
+            }));
+                readBuffer.<span class="hljs-keyword">clear</span>();
+
+
+            }
+            Ti.API.info(<span class="hljs-string">"socket has closed"</span>);
+
+            <span class="hljs-keyword">e</span>.inbound.<span class="hljs-keyword">close</span>();
+            <span class="hljs-keyword">e</span>.socket.<span class="hljs-keyword">close</span>();
+
+            listenSocket.accept();
+
+        },
+
+        <span class="hljs-keyword">error</span> : function(<span class="hljs-keyword">e</span>) {
+            Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">"Socket &lt;"</span> + <span class="hljs-keyword">e</span>.socket + <span class="hljs-string">"&gt; encountered error when listening"</span>);
+            Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">" error code &lt;"</span> + <span class="hljs-keyword">e</span>.errorCode + <span class="hljs-string">"&gt;"</span>);
+            Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">" error description &lt;"</span> + <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span> + <span class="hljs-string">"&gt;"</span>);
+        }
+    });
+
+    listenSocket.listen();
+    listenSocket.accept();
+</code></pre><p>i am new bie to titanium, so please let me know where do i go wrong.</p>
+<p>Thanks in Advance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 5th 2012, 8:13:33 am">June 5th 2012</span>
+				by <span class='authorname'>clive klugman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>socket</span></li>
+					
+						<li><span class='tagname'>tcp</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Twitter-like swipe on tableview » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Twitter-like swipe on tableview</h1>
+		</header>
+		<section>
+			<p>Ok, so I have been trying to do this various different ways for months now, and I think it&#39;s time I ask for help. </p>
+<p>What I&#39;m trying to do is set a tableview row to be &quot;swipable&quot; so that when you swipe it it displays a view underneath it with action buttons.</p>
+<p><img src="http:&#x2F;&#x2F;i45.tinypic.com&#x2F;2884duh.png &quot;Twitter Swiped View -- The End Goal&quot;" alt="Twitter swipe view"></p>
+<p>I&#39;ve tried everything I can think of to do it, but for one reason or another it never works!</p>
+<p>The biggest issue is that the content is dynamic, so I have no idea how tall the message is going to be. So for that reason (Using Titanium 2.0.2 and iOS 5) I have to use &quot;Ti.UI.SIZE&quot; for the height of the row. </p>
+<p>I threw together a quick example of what I last tried, although this is only one of the probably dozen ways I&#39;ve tried to hack it together (including counting characters and setting the height that way, which didn&#39;t work because 10 &quot;W&#39;s&quot; is a lot longer than 10 &quot;i&#39;s&quot;) it does lead to some interesting questions that might help find the right direction.</p>
+<p>Example: Creating a row_visible and row_hidden view and placing those in the row, and setting the swipe on those instead of the row itself.</p>
+<pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+
+<span class="hljs-keyword">var</span> isSwiping = <span class="hljs-literal">false</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setSwipe</span><span class="hljs-params">(element, leftFunction, rightFunction)</span></span>{isSwiping = <span class="hljs-literal">false</span>;
+    element.addEventListener(<span class="hljs-string">'swipe'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">if</span> (isSwiping) { <span class="hljs-keyword">return</span>; } <span class="hljs-comment">//make sure it only fires once</span>
+        isSwiping = <span class="hljs-literal">true</span>;        
+        <span class="hljs-keyword">if</span> (e.direction === <span class="hljs-string">'right'</span>) {
+            rightFunction(e);
+            isSwiping = <span class="hljs-literal">false</span>;
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (e.direction === <span class="hljs-string">'left'</span>) {
+            leftFunction(e);
+            isSwiping = <span class="hljs-literal">false</span>;
+        }
+    });
+};
+
+<span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Tab 1'</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>
+});
+
+<span class="hljs-keyword">var</span> tableView = Titanium.UI.createTableView({
+    top:<span class="hljs-number">0</span>,
+    height:Ti.Platform.displayCaps.platformHeight,
+    width:Ti.Platform.displayCaps.platformWidth
+});
+
+<span class="hljs-keyword">var</span> row_1 = Ti.UI.createTableViewRow({height:Ti.UI.SIZE,hasChild:<span class="hljs-literal">false</span>});
+<span class="hljs-keyword">var</span> row_1_label = Titanium.UI.createLabel({height:Ti.UI.SIZE, text:<span class="hljs-string">"This is the first rows content. Not sure how long this will be so I'm just filling it with content."</span>});
+
+<span class="hljs-keyword">var</span> row_1_visible = Ti.UI.createView({backgroundColor:<span class="hljs-string">'#ddd'</span>,height:Ti.UI.SIZE,width:Ti.UI.FILL,layout:<span class="hljs-string">'vertical'</span>});
+<span class="hljs-keyword">var</span> row_1_hidden = Ti.UI.createView({top:<span class="hljs-number">0</span>,height:Ti.UI.FILL, width:Ti.UI.FILL,backgroundColor:<span class="hljs-string">'#ff0000'</span>});    
+
+row_1_visible.add(row_1_label); <span class="hljs-comment">//Add my text to the visible view</span>
+row_1.add(row_1_hidden); <span class="hljs-comment">// Add this one first so it's below the visible view</span>
+row_1.add(row_1_visible);
+
+setSwipe(row_1_visible, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    row_1_visible.animate({opacity:<span class="hljs-number">0.0</span>, duration:<span class="hljs-number">200</span>}, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        row_1_visible.hide();
+    });
+    Ti.API.info(<span class="hljs-string">'Row Visible Swiped Left'</span>);
+}, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    row_1_visible.animate({opacity:<span class="hljs-number">0.0</span>, duration:<span class="hljs-number">200</span>}, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        row_1_visible.hide();
+    });
+    Ti.API.info(<span class="hljs-string">'Row Visible Swiped Right'</span>);
+});
+
+setSwipe(row_1_hidden, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    row_1_visible.show();
+    row_1_visible.animate({opacity:<span class="hljs-number">1.0</span>, duration:<span class="hljs-number">200</span>});
+    Ti.API.info(<span class="hljs-string">'Row Hidden Swiped Left'</span>);
+}, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    row_1_visible.show();
+    row_1_visible.animate({opacity:<span class="hljs-number">1.0</span>, duration:<span class="hljs-number">200</span>});
+    Ti.API.info(<span class="hljs-string">'Row Hidden Swiped Right'</span>);
+});
+
+<span class="hljs-keyword">var</span> data = [row_1];
+tableView.setData(data);
+
+win.add(tableView);
+
+win.open();
+</code></pre><p>What happens in the above example is first the row_1_hidden stretches the entire height of the app, which also makes the row stretch the entire height of the app. This tells me that Ti.UI.FILL takes precedence over the Ti.UI.SIZE and means its not bounded to any parent size (ie the height of the row because of the height of the label). That kind of makes sense, as the row has no fixed size so Ti.UI.FILL probably has no bounding area to fill other than the last one with a fixed height (The tableView) which it fills. That&#39;s unfortunate, but ok, I get it.</p>
+<p>The next issue in the above example, is that when you swipe that row, the row_1_visible disappears (PERFECT). Unfortunately, as soon as you swipe the row_1_hidden it disappears and the row_1_visible appears. That would make sense and is what I wanted, but oddly… the row_1_hidden is gone for good (kind of…). It is technically still there as future swipe events on it still work, but the actual red background on it is gone! So it&#39;s no longer visible at all. Why would that be? If you take a look at that code above, at no point did I specify or say that row_1_hidden should go away! It should just go behind the now-visible row_1_visible, shouldn&#39;t it?</p>
+<p>So I guess the main two questions are:</p>
+<ol>
+<li>Where is row_1_hidden going when I swipe it to make row_1_visible appear again?</li>
+<li>The big one… how do you make a view stretch to the height of its parent view… which has a dynamic height? Or is that not possible.</li>
+</ol>
+<p>Sorry about the long-winded-ness of this post!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 2nd 2012, 5:07:01 pm">July 2nd 2012</span>
+				by <span class='authorname'>Michael Fogg</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>row</span></li>
+					
+						<li><span class='tagname'>swipe</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>twitter</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Apparently the image is not showing, must have done it wrong (and can&#39;t seem to edit it…). Anyways not a huge deal, it&#39;s just a picture of the twitter swipe view. </p>
+<p>http:&#x2F;&#x2F;oi45.tinypic.com&#x2F;2884duh.jpg</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 2nd 2012, 5:09:41 pm">July 2nd 2012</span>
+								by <span class='authorname'>Michael Fogg</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Interesting, it seems like the first issue is solved by using views in a scrollview instead of tableview rows in a tableview… So it looks like maybe the tableview row is trying to optimize it by &quot;removing&quot; views that wouldn&#39;t be visible?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 3rd 2012, 6:55:40 am">July 3rd 2012</span>
+								by <span class='authorname'>Michael Fogg</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-242698">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Here you go ;)</p>
+<p><a href="https:&#x2F;&#x2F;github.com&#x2F;rborn&#x2F;TiSwipeToReveal">Twitter like swipe to reveal implemented in Titanium</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 7th 2012, 6:18:40 pm">July 7th 2012</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/139133/twitter-like-swipe-on-tableview#answer-242698" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Really cool! Thanks for taking the time. I&#39;m going to take a deeper look at it a little bit later this weekend but it seems to work perfectly!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 7th 2012, 6:40:01 pm">July 7th 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I have used this code but I get the following error with the android version…</p>
+<p>Message: Uncaught TypeError: Cannot read property &#39;v2&#39; of undefined.<br>Source: current_row.v2.animate({</p>
+<p>any idea?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 15th 2012, 2:33:09 am">August 15th 2012</span>
+											by <span class='authorname'>Sergio Cabral</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Sergio, I haven&#39;t tried it on android yet but, does it mention what line (or which &quot;current_row.v2.animate({&quot;) the error is in? It seems like the current_row is not being set, so knowing where in the code that&#39;s happening may help find the source of the issue.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 15th 2012, 2:38:14 am">August 15th 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Updated the code to work on android.</p>
+<p>https:&#x2F;&#x2F;github.com&#x2F;rborn&#x2F;TiSwipeToReveal&#x2F;tree&#x2F;master&#x2F;Resources</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 15th 2012, 6:56:53 am">August 15th 2012</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Well, that works too. Thanks Dan, nice work again!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 15th 2012, 7:04:51 am">August 15th 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-242379">
+				
+						<section>
+							<p>What about setting the &quot;opening&quot; view as a different row that animates it&#39;s height from 0 to whatever you need next below the row u just swiped to ?<br>So a &quot;floating&quot; row that you insert after the swiped row.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 3rd 2012, 6:57:59 am">July 3rd 2012</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/139133/twitter-like-swipe-on-tableview#answer-242379" rel="permalink">permalink</a>
+							</div>
+
+							<h5>10 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey Dan, thanks for chiming in! I was actually just about to post something that I just did, although it isn&#39;t the answer to my question, it&#39;s a test to see what CAN be done. So my thought was, if it&#39;s not possible to do the swipe and hiding&#x2F;showing a view behind it, can a row be placed right after it? Then it  would act more as a drawer that drops down below it than the original swipe affect that I&#39;m going for… but is better than nothing! What I just did as a test was (excuse the hackyness):</p>
+<pre><code class="hljs">var open_drawer =  -<span class="hljs-number">1</span>;
+
+var row = <span class="hljs-keyword">new</span> TestRow({test_var:e.row.test_var}); 
+var scroll_to = <span class="hljs-literal">true</span>; <span class="hljs-comment">// set it to scroll to that row unless i tell it not to</span>
+this_index = e.index; <span class="hljs-comment">// store this so it doesnt change when deleting a row, just incase</span>
+<span class="hljs-keyword">if</span>(open_drawer &gt;= <span class="hljs-number">0</span>){ <span class="hljs-comment">// do this if there is an open drawer</span>
+    <span class="hljs-keyword">if</span> (this_index+<span class="hljs-number">1</span> == open_drawer){ <span class="hljs-comment">//your clicking the open item...</span>
+           tableView.deleteRow(open_drawer); <span class="hljs-comment">//swiped row plus 1 should be the row under it!</span>
+           open_drawer = -<span class="hljs-number">1</span>; <span class="hljs-comment">// remove the swiped row as none are open</span>
+           scroll_to = <span class="hljs-literal">false</span>; <span class="hljs-comment">//dont bother scrolling to rows their already on</span>
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (this_index &lt; open_drawer){ <span class="hljs-comment">// you clicked a row above the drawer</span>
+          tableView.deleteRow(open_drawer);
+          tableView.insertRowAfter(this_index,row);
+          open_drawer = this_index+<span class="hljs-number">1</span>;
+         } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (this_index &gt; open_drawer){ <span class="hljs-comment">// you clicked a row below the drawer</span>
+          tableView.deleteRow(open_drawer);
+          tableView.insertRowAfter(this_index-<span class="hljs-number">1</span>,row);
+          open_drawer = this_index;
+         };
+} <span class="hljs-keyword">else</span>{ <span class="hljs-comment">// no open drawers so just throw it under whichever one you click</span>
+          tableView.insertRowAfter(this_index,row);
+          open_drawer = this_index+<span class="hljs-number">1</span>;
+};
+
+<span class="hljs-keyword">if</span>(scroll_to){
+    tableView.scrollToIndex(open_drawer-<span class="hljs-number">1</span>,{animated:<span class="hljs-literal">true</span>,position:Ti.UI.iPhone.TableViewScrollPosition.TOP});
+};
+
+Ti.API.info(open_drawer); <span class="hljs-comment">// lets just see which row index is currently the open one</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2012, 7:20:38 am">July 3rd 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>WOw that looks horrible… sorry! I&#39;d erase it if I could, the comments are useful but apparently look like a mess…</p>
+<pre><code class="hljs">var open_drawer =  -<span class="hljs-number">1</span>;
+
+var row = <span class="hljs-keyword">new</span> TestRow({test_var:e.row.test_var}); 
+var scroll_to = <span class="hljs-literal">true</span>; 
+this_index = e.index; 
+<span class="hljs-keyword">if</span>(open_drawer &gt;= <span class="hljs-number">0</span>){
+ <span class="hljs-keyword">if</span> (this_index+<span class="hljs-number">1</span> == open_drawer){
+   tableView.deleteRow(open_drawer);
+   open_drawer = -<span class="hljs-number">1</span>; 
+   scroll_to = <span class="hljs-literal">false</span>;
+ } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (this_index &lt; open_drawer){
+   tableView.deleteRow(open_drawer);
+   tableView.insertRowAfter(this_index,row);
+   open_drawer = this_index+<span class="hljs-number">1</span>;
+ } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (this_index &gt; open_drawer){
+   tableView.deleteRow(open_drawer);
+   tableView.insertRowAfter(this_index-<span class="hljs-number">1</span>,row);
+   open_drawer = this_index;
+ };
+} <span class="hljs-keyword">else</span>{
+   tableView.insertRowAfter(this_index,row);
+   open_drawer = this_index+<span class="hljs-number">1</span>;
+};
+
+<span class="hljs-keyword">if</span>(scroll_to){
+ tableView.scrollToIndex(open_drawer-<span class="hljs-number">1</span>,{animated:<span class="hljs-literal">true</span>,position:Ti.UI.iPhone.TableViewScrollPosition.TOP});
+};
+
+Ti.API.info(open_drawer);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2012, 7:23:12 am">July 3rd 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>so is working?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2012, 10:42:22 am">July 3rd 2012</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry, I may have been a little confusing with my last answer. The above code still does not achieve the swiping effect that I&#39;m after. It just adds a new row below the clicked row to add more information to (info that I&#39;m trying to add to the swiped row). It&#39;s something I will probably use in the meantime while I try to figure out how to do the swiping effect that I want.</p>
+<p><a href="http:&#x2F;&#x2F;idevrecipes.com&#x2F;category&#x2F;uitableview&#x2F;">http:&#x2F;&#x2F;idevrecipes.com&#x2F;category&#x2F;uitableview&#x2F;</a> is pretty much what the end goal is. You can see there are many resources out there for people who have implimented it (<a href="https:&#x2F;&#x2F;github.com&#x2F;thermogl&#x2F;TISwipeableTableView">https:&#x2F;&#x2F;github.com&#x2F;thermogl&#x2F;TISwipeableTableView</a> for example)  with native iOS app building, but I haven&#39;t seen an appcelerator take on it yet. It&#39;s something that I&#39;ve wanted for a few apps for a while now so I&#39;m determined to find out if it&#39;s possible or not.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2012, 10:54:20 am">July 3rd 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Gimme a little time to see if I can come with something, you made me curious :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2012, 10:58:57 am">July 3rd 2012</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The help is VERY much appreciated! No rush, the above code works for me for now until we figure this one out.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2012, 11:03:15 am">July 3rd 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>No luck yet, I&#39;ll have to stop for now and try sometimes later&#x2F;tomorrow.<br>indeed it behaves weird :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2012, 2:16:29 pm">July 3rd 2012</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve been trying a few more things myself, I can&#39;t get it to have consistant behavior! One thought was to make the entire tableview have the swiping effect (vs having it on every row). Seems to work sometimes… but it&#39;s still only showing that one time. So once I swipe the visible view out of the way it seems to get rid of the other view (although again, technically its still there as it receives swipe events but just isn&#39;t visible)… This has got to be possible ha.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 6th 2012, 6:00:37 pm">July 6th 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This is what u&#39;re looking for?</p>
+<p>https:&#x2F;&#x2F;dl.dropbox.com&#x2F;u&#x2F;7744051&#x2F;twitterswipe.mov</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 7th 2012, 8:57:01 am">July 7th 2012</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>YES! That&#39;s exactly it! Dare I even begin to ask how you managed to get it…?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 7th 2012, 3:27:49 pm">July 7th 2012</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

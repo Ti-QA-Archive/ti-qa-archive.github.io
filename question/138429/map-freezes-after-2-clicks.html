@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Map Freezes After 2 Clicks » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Map Freezes After 2 Clicks</h1>
+		</header>
+		<section>
+			<p>I&#39;m making an app using a map. It reads locations from the local database and puts them in an array so I can easily make 2 annotations for the first 2 locations. When you click an annotation you get information about that location. When you click the second annotation, the first one disappears, the next annotation from the array comes on the map and the route is adjusted to.</p>
+<p>This is what it needs to do, but currently when I click the second annotation, my app &quot;freezes&quot;. I can&#39;t click on anything.<br>I just added an eventListener to the map view itself, and then I&#39;m able to move and click after the second annotation is clicked, but it again freezes when I click the third annotation.</p>
+<p>So I obviously do something wrong and I wonder what.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> annoArray = [];
+
+<span class="hljs-keyword">var</span> windowPopup;
+
+<span class="hljs-keyword">var</span> gd = require(<span class="hljs-string">'de.codewire.google.directions'</span>);
+<span class="hljs-keyword">var</span> punten = [];
+<span class="hljs-keyword">var</span> mapview;
+
+<span class="hljs-keyword">var</span> activeRoutes = [];
+<span class="hljs-keyword">var</span> origin;
+<span class="hljs-keyword">var</span> destination;
+
+<span class="hljs-keyword">var</span> uitleg;
+
+<span class="hljs-keyword">var</span> plaatsen = <span class="hljs-literal">false</span>;
+
+exports.createLocationView = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(id)</span> </span>{
+
+    <span class="hljs-keyword">var</span> Db = require(<span class="hljs-string">'data/database'</span>);
+    <span class="hljs-keyword">var</span> puntjes = Db.getPunten(id);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; puntjes.length; i++) {
+       uitleg = puntjes[i].uitleg;
+       punten.push({
+            latitude: puntjes[i].latitude,
+            longitude: puntjes[i].longitude,
+            naam: puntjes[i].naam,
+            uitleg: puntjes[i].uitleg,
+            keuze: puntjes[i].keuze,
+            keuze1: puntjes[i].keuze1,
+            keuze2: puntjes[i].keuze2
+       })
+    }
+
+    <span class="hljs-keyword">var</span> viewLocation = Ti.UI.createView({
+        backgroundColor : <span class="hljs-string">'white'</span>,
+        width : <span class="hljs-string">'100%'</span>,
+        height : <span class="hljs-string">'100%'</span>
+    });
+
+    mapview = Titanium.Map.createView({
+        mapType : Titanium.Map.STANDARD_TYPE,
+        region : {
+            latitude : <span class="hljs-number">50.8349006</span>,
+            longitude : <span class="hljs-number">3.267607</span>,
+            latitudeDelta : <span class="hljs-number">0.015</span>,
+            longitudeDelta : <span class="hljs-number">0.015</span>
+        },
+        animate : <span class="hljs-literal">true</span>,
+        regionFit : <span class="hljs-literal">false</span>,
+        userLocation: <span class="hljs-literal">true</span>,
+   });
+
+
+      <span class="hljs-keyword">var</span> anno = Titanium.Map.createAnnotation({
+            latitude : punten[<span class="hljs-number">0</span>].latitude,
+            longitude : punten[<span class="hljs-number">0</span>].longitude,
+            image: <span class="hljs-string">'images/annotatie.png'</span>,
+            title : punten[<span class="hljs-number">0</span>].naam,
+            animate : <span class="hljs-literal">true</span>
+      }); 
+     mapview.addAnnotation(anno);
+     annoArray.push(anno)
+
+     <span class="hljs-comment">// MAKES IT POSSIBLE TO MOVE TO 3TH ANNOTATION, FREEZES AFTER THAT IS CLICKED</span>
+     mapview.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+         Ti.API.log(<span class="hljs-string">"OP MAP GEKLIKT"</span>)
+     })
+
+
+     annoArray[<span class="hljs-number">0</span>].addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(evt)</span> </span>{
+               Ti.App.fireEvent(<span class="hljs-string">'app:nieuwVenster'</span>, {naam:evt.title, uitleg:punten[<span class="hljs-number">0</span>].uitleg, keuze:punten[<span class="hljs-number">0</span>].keuze, keuze1:punten[<span class="hljs-number">0</span>].keuze1, keuze2:punten[<span class="hljs-number">0</span>].keuze2});
+    });
+
+    <span class="hljs-keyword">var</span> anno2 = Titanium.Map.createAnnotation({
+            latitude : punten[<span class="hljs-number">1</span>].latitude,
+            longitude : punten[<span class="hljs-number">1</span>].longitude,
+            image: <span class="hljs-string">'images/annotatie.png'</span>,
+            title : punten[<span class="hljs-number">1</span>].naam,
+            animate : <span class="hljs-literal">true</span>
+      }); 
+     mapview.addAnnotation(anno2);
+     annoArray.push(anno2)
+     annoArray[<span class="hljs-number">1</span>].addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(evt)</span> </span>{
+               Ti.App.fireEvent(<span class="hljs-string">'app:nieuwVenster'</span>, {naam:evt.title, uitleg:punten[<span class="hljs-number">1</span>].uitleg, keuze:punten[<span class="hljs-number">1</span>].keuze, keuze1:punten[<span class="hljs-number">1</span>].keuze1, keuze2:punten[<span class="hljs-number">1</span>].keuze2});
+
+           punten.splice(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>)
+           plaatsen = <span class="hljs-literal">true</span>;
+           routeTekenen();
+
+    });
+    viewLocation.add(mapview);
+
+     routeTekenen();
+
+    <span class="hljs-keyword">return</span> viewLocation;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">plaatsTweedeAnnotatie</span><span class="hljs-params">()</span></span>{
+
+        annoArray.splice(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>)
+
+        <span class="hljs-keyword">var</span> annotje = Titanium.Map.createAnnotation({
+            latitude : punten[<span class="hljs-number">1</span>].latitude,
+            longitude : punten[<span class="hljs-number">1</span>].longitude,
+            image: <span class="hljs-string">'images/annotatie.png'</span>,
+            title : punten[<span class="hljs-number">1</span>].naam,
+            animate : <span class="hljs-literal">true</span>
+        });
+        annoArray.push(annotje)
+         mapview.addAnnotation(annotje);
+         annoArray[<span class="hljs-number">1</span>].addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(evt)</span> </span>{
+           Ti.App.fireEvent(<span class="hljs-string">'app:nieuwVenster'</span>, {naam:evt.title, uitleg:punten[<span class="hljs-number">1</span>].uitleg, keuze:punten[<span class="hljs-number">1</span>].keuze, keuze1:punten[<span class="hljs-number">1</span>].keuze1, keuze2:punten[<span class="hljs-number">1</span>].keuze2});
+           punten.splice(<span class="hljs-number">0</span>,<span class="hljs-number">1</span>)
+           routeTekenen();
+    });
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">routeTekenen</span><span class="hljs-params">()</span></span>{
+    removeAllRoutes();
+    <span class="hljs-keyword">if</span>(plaatsen){
+        plaatsTweedeAnnotatie();    
+    }
+
+    origin = annoArray[<span class="hljs-number">0</span>].latitude+<span class="hljs-string">','</span>+annoArray[<span class="hljs-number">0</span>].longitude
+       destination = annoArray[<span class="hljs-number">1</span>].latitude+<span class="hljs-string">','</span>+annoArray[<span class="hljs-number">1</span>].longitude
+
+   gd.getRoute({
+        origin : origin, <span class="hljs-comment">// required</span>
+        destination : destination, <span class="hljs-comment">// required</span>
+        color : <span class="hljs-string">'red'</span>, <span class="hljs-comment">// defaults to '#FF0000'</span>
+        width: <span class="hljs-number">5</span>,
+        mode : gd.travelModes.walking, <span class="hljs-comment">// defaults to driving</span>
+        name : <span class="hljs-string">'single'</span>,
+        <span class="hljs-keyword">callback</span> : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(response)</span> </span>{
+            <span class="hljs-keyword">if</span>(response.status == <span class="hljs-string">'OK'</span>) {
+                mapview.setRegion({
+                    latitude : punten[<span class="hljs-number">0</span>].latitude,
+                    longitude : punten[<span class="hljs-number">0</span>].longitude,
+                    longitudeDelta : <span class="hljs-number">.001</span>,
+                    latitudeDelta : <span class="hljs-number">.001</span>
+                });
+
+                mapview.addRoute(response.route);
+                activeRoutes.push(response.route);
+
+            } <span class="hljs-keyword">else</span> {
+                alert(response.msg);
+            }
+        }
+    })
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">nieuweRoute</span><span class="hljs-params">()</span></span>{
+    removeAllRoutes();
+
+    origin = annoArray[<span class="hljs-number">0</span>].latitude+<span class="hljs-string">','</span>+annoArray[<span class="hljs-number">0</span>].longitude
+       destination = annoArray[<span class="hljs-number">1</span>].latitude+<span class="hljs-string">','</span>+annoArray[<span class="hljs-number">1</span>].longitude
+
+    gd.getRoutes({
+        origin : origin,
+        destination : destination,
+        color : <span class="hljs-string">'red'</span>, <span class="hljs-comment">// if there are not enough colors, 'red' will be the default</span>
+        width: <span class="hljs-number">5</span>,
+        <span class="hljs-keyword">callback</span> : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(response)</span> </span>{
+            <span class="hljs-keyword">if</span>(response.status == <span class="hljs-string">'OK'</span>) {
+                <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> idx <span class="hljs-keyword">in</span> response.routes) {
+                    mapview.addRoute(response.routes[idx]);
+                    activeRoutes.push(response.routes[idx]);
+                }
+
+            } <span class="hljs-keyword">else</span> {
+                alert(response.msg);
+            }
+        }
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">removeAllRoutes</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> idx <span class="hljs-keyword">in</span> activeRoutes) {
+        <span class="hljs-keyword">var</span> route = activeRoutes[idx];
+        mapview.removeRoute(route);
+    }
+    activeRoutes = [];
+};
+
+
+Ti.App.addEventListener(<span class="hljs-string">'app:Omlopen'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    nieuweRoute();
+});
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 16th 2012, 9:25:50 am">June 16th 2012</span>
+				by <span class='authorname'>wannes Verelst</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>annotation</span></li>
+					
+						<li><span class='tagname'>clicked</span></li>
+					
+						<li><span class='tagname'>freeze</span></li>
+					
+						<li><span class='tagname'>map</span></li>
+					
+						<li><span class='tagname'>mapview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>What platform? iOS? Android? Mobile Web?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 16th 2012, 4:57:08 pm">June 16th 2012</span>
+								by <span class='authorname'>Chris Barber</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>iOS.<br>I&#39;ve been testing for ages and now I think the structure of my app is just all messed up so it has nothing to do with the code I gave here.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 16th 2012, 5:02:09 pm">June 16th 2012</span>
+								by <span class='authorname'>wannes Verelst</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hmm, changing your app around a bit might do the trick. I&#39;m on the Mobile Web team, so I&#39;m not much help on iOS. Hopefully someone else on the Q&amp;A with iOS experience can help you better. Best of luck.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 16th 2012, 5:06:06 pm">June 16th 2012</span>
+								by <span class='authorname'>Chris Barber</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>thanks, I hope someone can help me to ^^</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 16th 2012, 5:09:13 pm">June 16th 2012</span>
+								by <span class='authorname'>wannes Verelst</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

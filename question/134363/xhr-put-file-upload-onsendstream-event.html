@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>XHR PUT file upload onsendstream event » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>XHR PUT file upload onsendstream event</h1>
+		</header>
+		<section>
+			<p>Hi,<br>I don&#39;t seem to be getting any onsendstream event being properly fired while uploading a file using the PUT method (as opposed to the POST method). </p>
+<p>I just seem to get a &#39;whoosh&#39; of it from 0 to 100 just before the onload (success) event. The files upload fine. </p>
+<p>I&#39;m trying a quite simple test on the app and also on the server side with PHP. </p>
+<p>It&#39;s quite possible it&#39;s how the server is responding to it. Using the POST method, the progress works fine (despite rarely hitting 100% before &#39;onload&#39; is fired) </p>
+<p>Has anyone else come across this issue? </p>
+<p>The basic parts of the code are : </p>
+<p>Titanium JS : </p>
+<pre><code class="hljs">
+<span class="hljs-comment">// where we already have the var 'media_file' (a blob) from the camera or album for example</span>
+
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+    xhr.setTimeout(<span class="hljs-number">10000</span>);
+
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        <span class="hljs-keyword">var</span> errorDetails = e.error + <span class="hljs-string">'\n'</span>;
+        errorDetails += xhr.responseText;
+        alert(<span class="hljs-string">'error'</span>);
+        Ti.API.info(errorDetails);
+    };
+    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">'ONSENDSTREAM - PROGRESS: '</span> + e.progress+<span class="hljs-string">' '</span>+<span class="hljs-keyword">this</span>.status+<span class="hljs-string">' '</span>+<span class="hljs-keyword">this</span>.readyState);
+    };
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.info(<span class="hljs-string">'onload event : got my response, http status code '</span> + <span class="hljs-keyword">this</span>.status);
+        Ti.API.info(<span class="hljs-keyword">this</span>.responseText);
+    };
+    xhr.open(<span class="hljs-string">'PUT'</span>, put_service, <span class="hljs-literal">false</span>);
+    xhr.setRequestHeader(<span class="hljs-string">'Content-Type'</span>, media_file.mimeType);
+    xhr.setRequestHeader(<span class="hljs-string">'Content-Length'</span>, media_file.size);
+    xhr.setRequestHeader(<span class="hljs-string">'X-File-Name'</span>, <span class="hljs-built_in">Math</span>.floor(<span class="hljs-built_in">Math</span>.random()*<span class="hljs-number">9999</span>)+<span class="hljs-string">'mobods.jpg'</span>);
+    xhr.send(media_file);
+</code></pre><p>And the PHP end : </p>
+<pre><code class="hljs">
+<span class="hljs-variable">$upload</span>_path = <span class="hljs-string">'/SOME/WRITABLE/PATH'</span>;
+
+<span class="hljs-keyword">if</span>(!isset($_SERVER[<span class="hljs-string">'HTTP_X_FILE_NAME'</span>])){
+    <span class="hljs-variable">$reply</span> = Array();
+    <span class="hljs-variable">$reply</span>[<span class="hljs-string">'status'</span>] = <span class="hljs-string">'fail'</span>;
+    <span class="hljs-variable">$reply</span>[<span class="hljs-string">'error'</span>] = <span class="hljs-string">'no file name'</span>;
+    echo json_encode(<span class="hljs-variable">$reply</span>);
+    exit;
+}
+
+<span class="hljs-keyword">if</span>(!isset($_SERVER[<span class="hljs-string">'CONTENT_LENGTH'</span>])){
+    <span class="hljs-variable">$reply</span> = Array();
+    <span class="hljs-variable">$reply</span>[<span class="hljs-string">'status'</span>] = <span class="hljs-string">'fail'</span>;
+    <span class="hljs-variable">$reply</span>[<span class="hljs-string">'error'</span>] = <span class="hljs-string">'no file size sent'</span>;
+    echo json_encode(<span class="hljs-variable">$reply</span>);
+    exit;
+}
+
+// accept a PUT request file upload
+<span class="hljs-variable">$putdata</span> = fopen(<span class="hljs-string">"php://input"</span>, <span class="hljs-string">"r"</span>);
+<span class="hljs-variable">$fp</span> = fopen(<span class="hljs-variable">$upload</span>_path.<span class="hljs-string">"/"</span>.$_SERVER[<span class="hljs-string">'HTTP_X_FILE_NAME'</span>], <span class="hljs-string">"w"</span>);
+<span class="hljs-keyword">while</span> (<span class="hljs-variable">$data</span> = fread(<span class="hljs-variable">$putdata</span>, <span class="hljs-number">1024</span>)){
+    fwrite(<span class="hljs-variable">$fp</span>, <span class="hljs-variable">$data</span>);
+}
+fclose(<span class="hljs-variable">$fp</span>);
+fclose(<span class="hljs-variable">$putdata</span>);
+
+// respond <span class="hljs-keyword">to</span> the app
+<span class="hljs-variable">$reply</span> = Array();
+<span class="hljs-variable">$reply</span>[<span class="hljs-string">'status'</span>] = <span class="hljs-string">'ok'</span>;
+echo json_encode(<span class="hljs-variable">$reply</span>);
+exit;
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 24th 2012, 8:04:39 pm">March 24th 2012</span>
+				by <span class='authorname'>Kosso</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>event</span></li>
+					
+						<li><span class='tagname'>onsendstream</span></li>
+					
+						<li><span class='tagname'>put</span></li>
+					
+						<li><span class='tagname'>upload</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>btw.. Here&#39;s some other PHP code I&#39;ve also tried also uploaded the file fine (and works fine for an AJAX-based file upload progress bar I use on the web) , but also gives the same result : no progress during the file upload from the app. </p>
+<pre><code class="hljs"><span class="hljs-variable">$upload</span>_path = <span class="hljs-string">'/SOME/WRITABLE/PATH'</span>;
+
+class File_Streamer{
+    private $_fileName;
+    private $_contentLength;
+    private $_destination;
+
+    public function __construct(){
+        if (!isset($_SERVER[<span class="hljs-string">'HTTP_X_FILE_NAME'</span>]) 
+            &amp;&amp; !isset($_SERVER[<span class="hljs-string">'CONTENT_LENGTH'</span>])) {
+            throw new Exception(<span class="hljs-string">"No headers found!"</span>);
+        }
+        <span class="hljs-variable">$this-</span>&gt;_fileName = $_SERVER[<span class="hljs-string">'HTTP_X_FILE_NAME'</span>];
+        <span class="hljs-variable">$this-</span>&gt;_contentLength = $_SERVER[<span class="hljs-string">'CONTENT_LENGTH'</span>];
+    }
+    public function isValid(){
+        if ((<span class="hljs-variable">$this-</span>&gt;_contentLength &gt; <span class="hljs-number">0</span>)) {
+            return true;
+        }
+        return false;
+    }
+    public function setDestination(<span class="hljs-variable">$destination</span>){
+        <span class="hljs-variable">$this-</span>&gt;_destination = <span class="hljs-variable">$destination</span>;
+    }
+    public function receive(){
+        if (!<span class="hljs-variable">$this-</span>&gt;isValid()) {
+            throw new Exception(<span class="hljs-string">'No file uploaded!'</span>);
+        }
+        file_put_contents(    
+            <span class="hljs-variable">$this-</span>&gt;_destination . <span class="hljs-string">"/"</span> . <span class="hljs-variable">$this-</span>&gt;_fileName, 
+            file_get_contents(<span class="hljs-string">"php://input"</span>)
+        );
+
+        // respond to the app
+        <span class="hljs-variable">$reply</span> = Array();
+        <span class="hljs-variable">$reply</span>[<span class="hljs-string">'status'</span>] = <span class="hljs-string">'ok'</span>;
+        echo json_encode(<span class="hljs-variable">$reply</span>);
+        exit;
+
+    }
+}
+
+<span class="hljs-variable">$ft</span> = new File_Streamer();
+<span class="hljs-variable">$ft-</span>&gt;setDestination(<span class="hljs-variable">$upload</span>_path);
+<span class="hljs-variable">$ft-</span>&gt;receive();
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="March 24th 2012, 8:11:03 pm">March 24th 2012</span>
+								by <span class='authorname'>Kosso</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-234341">
+				
+						<section>
+							<p>Kosso,</p>
+<p>I have implemented a file upload and used <code>ondatastream</code> instead of <code>onsendstream</code> to get the progress. However, my implementation uses POST. Not sure if <code>ondatastream</code> would work with PUT.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 25th 2012, 1:58:02 pm">March 25th 2012</span>
+								by <span class='authorname'>Henning Glatter-Gotz</span><br>
+								<a class="icon-bg icon-link" href="question/134363/xhr-put-file-upload-onsendstream-event#answer-234341" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>yes, I have a method working fine for a POST, but need some progress events when using PUT. </p>
+<p>It should (be able to) work, since I do have some JS-based progress bars working on a web page, using the same PUT methods.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 27th 2012, 3:52:35 pm">March 27th 2012</span>
+											by <span class='authorname'>Kosso</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-272428">
+				
+						<section>
+							<p>I had the same problem with uploading to Amazon S3. </p>
+<p>I got the <code>onsendstream</code> working with this change</p>
+<p>Set async to true: <code>xhr.open(&amp;#39;PUT&amp;#39;, put_service, false);</code> to <code>xhr.open(&amp;#39;PUT&amp;#39;, put_service, true);</code></p>
+<p>And change content type to <code>multipart&amp;#x2F;form-data</code></p>
+<p>More info about async: https:&#x2F;&#x2F;developer.mozilla.org&#x2F;en-US&#x2F;docs&#x2F;Web&#x2F;API&#x2F;XMLHttpRequest#open()</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 11th 2013, 3:26:35 pm">December 11th 2013</span>
+								by <span class='authorname'>Adriaan -</span><br>
+								<a class="icon-bg icon-link" href="question/134363/xhr-put-file-upload-onsendstream-event#answer-272428" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Clickable link: <a href="https:&#x2F;&#x2F;developer.mozilla.org&#x2F;en-US&#x2F;docs&#x2F;Web&#x2F;API&#x2F;XMLHttpRequest#open(">https:&#x2F;&#x2F;developer.mozilla.org&#x2F;…</a>)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 11th 2013, 3:28:48 pm">December 11th 2013</span>
+											by <span class='authorname'>Adriaan -</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Socket and Hec conversion » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Socket and Hec conversion</h1>
+		</header>
+		<section>
+			<p>Hi</p>
+<p>I am trying to send Hex data to a server via socket but has been partially successfully so far.</p>
+<p>I am stuck with a problem for weeks without solution..</p>
+<p>Basically, I am able to send across hex data to the server but the server receives the hex data wrong with certain hex data.</p>
+<p>Here is the code:</p>
+<p>buffer = Ti.createBuffer({ length: 1 }); &#x2F;&#x2F; 1</p>
+<p>var data = &quot;FE&quot;;</p>
+<p>Ti.Codec.encodeString({<br>        source: data,<br>        sourceLength: 1,<br>        dest: buffer,<br>        charset: Ti.Codec.CHARSET_ISO_LATIN_1<br>        });</p>
+<p>Ti.Stream.write(socket, buffer, writeCallback);</p>
+<p>Assuming variable data contains the hex string, how do I get it to the buffer and send it accross via sockets?</p>
+<p>It seems that certain values are ok but once the hex value is above 1D, things go haywire….</p>
+<p>HELP!!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 25th 2012, 6:58:48 am">June 25th 2012</span>
+				by <span class='authorname'>Peter Lum</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>hex</span></li>
+					
+						<li><span class='tagname'>server</span></li>
+					
+						<li><span class='tagname'>sockets</span></li>
+					
+						<li><span class='tagname'>stream</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-241843">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>I&#39;m a little confused as to what you&#39;re trying to accomplish here.</p>
+<p>Your variable <code>data</code> is simply a string consisting of the characters &#39;F&#39; and &#39;E&#39;.  It&#39;s not actually any sort of hex value.</p>
+<p>If you wanted to store the hex value FE, you would do this:</p>
+<pre><code class="hljs"><span class="hljs-title">var</span> <span class="hljs-typedef"><span class="hljs-keyword">data</span> = 0xfe;</span>
+</code></pre><p>And then you would see that data contains the number 254, which of course, is what hex FE evaluates to.  I think that this is more what you are trying to do:</p>
+<pre><code class="hljs">var buffer = Ti.createBuffer({ length: <span class="hljs-number">1</span> });
+Ti.Codec.encodeNumber({  
+     source: <span class="hljs-number">0xfe</span>,  
+     dest: buffer,  
+     position: <span class="hljs-number">0</span>,  
+     type: Ti.Codec.TYPE_BYTE  
+});
+</code></pre><p>As soon as I tested that, I found that it was very hard to extract the value back out of the buffer.  Ti.Codec.decodeNumber() wants to interpret the byte as a signed char value, which gives you a value of -2.  So just to be sure that the 0xfe was in the buffer as I expected, I decided to send it over a socket:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">writeCallback</span><span class="hljs-params">(e)</span></span> {
+    Ti.API.info(<span class="hljs-string">'Successfully wrote to socket.'</span>);
+}
+
+var socket = Ti.Network.Socket.createTCP({
+        host: <span class="hljs-string">'YOURIPADDRESSHERE'</span>, 
+        port: <span class="hljs-number">10001</span>,
+        connected: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span></span> {
+            Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+            Ti.Stream.write(socket, buffer, writeCallback);
+        },
+        <span class="hljs-built_in">error</span>: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span></span> {
+            Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.<span class="hljs-built_in">error</span>);
+        }
+});
+socket.connect();
+</code></pre><p>On the other end of this connection, I have a simple PHP script listening.  Note – this script is very minimal; I have omitted a TON of error checking that needs to be in any production code:</p>
+<pre><code class="hljs">&lt;?php
+
+<span class="hljs-variable">$sock</span> = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+socket_bind(<span class="hljs-variable">$sock</span>, <span class="hljs-string">'172.16.40.168'</span>, <span class="hljs-number">10001</span>);
+socket_listen(<span class="hljs-variable">$sock</span>, <span class="hljs-number">5</span>);
+
+<span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>)
+{
+    <span class="hljs-variable">$msgsock</span> = socket_accept(<span class="hljs-variable">$sock</span>);
+    <span class="hljs-variable">$buf</span> = socket_read(<span class="hljs-variable">$msgsock</span>, <span class="hljs-number">1</span>, PHP_NORMAL_READ);
+    <span class="hljs-variable">$val</span> = unpack (<span class="hljs-string">'C'</span>, <span class="hljs-variable">$buf</span>);
+    print <span class="hljs-string">"val: "</span>  . print_r (<span class="hljs-variable">$val</span>, true) . <span class="hljs-string">"\n"</span>;
+    socket_close(<span class="hljs-variable">$msgsock</span>);
+}
+
+socket_close(<span class="hljs-variable">$sock</span>);
+</code></pre><p>The output indicates that the 0xfe was in fact transmitted properly over the socket:</p>
+<pre><code class="hljs">val: Array
+(
+    [<span class="hljs-number">1</span>] =&gt; <span class="hljs-number">254</span>
+)
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 25th 2012, 1:31:28 pm">June 25th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/138778/socket-and-hec-conversion#answer-241843" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-242110">
+				
+						<section>
+							<p>Thanks, Jason.<br>How do I convert a string, say &#39;FE&#39; to 0xfe ?<br>I tried with parseint(&quot;0x&quot;+data, 16) but it does not work.<br>Help!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 28th 2012, 6:29:25 am">June 28th 2012</span>
+								by <span class='authorname'>Peter Lum</span><br>
+								<a class="icon-bg icon-link" href="question/138778/socket-and-hec-conversion#answer-242110" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Sorry for the delay - I was on vacation.</p>
+<p>Why do you have hex data in strings anyway?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 5th 2012, 12:02:22 pm">July 5th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-242364">
+				
+						<section>
+							<p>I followed exactly the codes and tried to send 0x40 0xFE 0x00 0x01 0x00 0xBF across but when I receive it, it became 00 19 00 00 00 1F 1F</p>
+<p>What is going on?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 3rd 2012, 12:03:42 am">July 3rd 2012</span>
+								by <span class='authorname'>Peter Lum</span><br>
+								<a class="icon-bg icon-link" href="question/138778/socket-and-hec-conversion#answer-242364" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-242597">
+				
+						<section>
+							<p>Hi Jason</p>
+<p>I realised what was going on…. Mac OSX or CoolTerm software. If I use CoolTerm on OSX to monitor, I get erroneous results. When I use a PC software for monitoring, the same setup gave correct results. So, all the while it was working. It is the monitoring software that tripped me :-(</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 5th 2012, 11:32:23 pm">July 5th 2012</span>
+								by <span class='authorname'>Peter Lum</span><br>
+								<a class="icon-bg icon-link" href="question/138778/socket-and-hec-conversion#answer-242597" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

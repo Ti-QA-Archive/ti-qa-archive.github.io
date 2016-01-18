@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>scheduling local notifications with a toggle switch » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>scheduling local notifications with a toggle switch</h1>
+		</header>
+		<section>
+			<p>been struggling with this for awhile.  read most every forums on scheduling location notifications.  no problems running the kitchen sink code, but when I try to schedule the time based on &#39;anything else other than getTime() + someNumber&#39; it doesn&#39;t work.</p>
+<p>my most recent iteration uses <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;124787&#x2F;appproperties-value-to-a-date-value">this</a> approach, storing the date in a system variable in *nix epoch time format.</p>
+<p>to compare, this works fine (modified from kitchen sink example):</p>
+<pre><code class="hljs">switch1.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span>(e.value){
+        Ti.App.Properties.setString(<span class="hljs-string">'notifications'</span>,<span class="hljs-literal">true</span>);
+        <span class="hljs-keyword">var</span> c = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() + <span class="hljs-number">5000</span>;
+        <span class="hljs-keyword">var</span> d = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(c);
+        <span class="hljs-keyword">var</span> notification = Ti.App.iOS.scheduleLocalNotification({
+            alertBody:<span class="hljs-string">"Alert..."</span>,
+            alertAction:<span class="hljs-string">"Launch!"</span>,
+            userInfo:{<span class="hljs-string">"Hello"</span>:<span class="hljs-string">"World"</span>},
+            date:d,
+            repeat:<span class="hljs-string">'daily'</span>
+        });
+        Ti.API.info(<span class="hljs-string">'Reminder should be set for: '</span> + d);
+    }<span class="hljs-keyword">else</span>{
+        Ti.App.Properties.setString(<span class="hljs-string">'notifications'</span>,<span class="hljs-literal">false</span>);
+        Ti.App.iOS.cancelAllLocalNotifications();
+    }
+});
+</code></pre><p>Boom. 5 seconds from clicking the toggle, notification fires (I have the &#39;notification&#39; event in app.js).</p>
+<p>However, this does not work:</p>
+<pre><code class="hljs">switch1.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span>(e.value){
+        Ti.App.Properties.setString(<span class="hljs-string">'notifications'</span>,<span class="hljs-literal">true</span>);
+        <span class="hljs-keyword">var</span> c = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(Ti.App.Properties.getInt(<span class="hljs-string">'nextAlarm'</span>)*<span class="hljs-number">1000</span>);
+        <span class="hljs-keyword">var</span> d = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(c);
+        <span class="hljs-keyword">var</span> notification = Ti.App.iOS.scheduleLocalNotification({
+            alertBody:<span class="hljs-string">"Alert..."</span>,
+            alertAction:<span class="hljs-string">"Launch!"</span>,
+            userInfo:{<span class="hljs-string">"Hello"</span>:<span class="hljs-string">"World"</span>},
+            date:d,
+            repeat:<span class="hljs-string">'daily'</span>
+        });
+        Ti.API.info(<span class="hljs-string">'Reminder should be set for: '</span> + d);
+    }<span class="hljs-keyword">else</span>{
+        Ti.App.Properties.setString(<span class="hljs-string">'notifications'</span>,<span class="hljs-literal">false</span>);
+        Ti.App.iOS.cancelAllLocalNotifications();
+    }
+});
+</code></pre><p>Same code, notification is scheduled in the future (I set it for 1 or 2 minutes ahead of the current time)…</p>
+<p>I have tried using almost every other form of the data() property, manually setting hours&#x2F;minutes with setHours() and setMinutes(), etc…</p>
+<p>This is how I store the system data value:</p>
+<pre><code class="hljs">picker.addEventListener('change', function(<span class="hljs-keyword">e</span>){
+    label2.text = getNotifTime(<span class="hljs-keyword">e</span>.value.getHours(),<span class="hljs-keyword">e</span>.value.getMinutes());
+    <span class="hljs-keyword">d</span>.setHours(<span class="hljs-keyword">e</span>.value.getHours());
+    <span class="hljs-keyword">d</span>.setMinutes(<span class="hljs-keyword">e</span>.value.getMinutes());
+    <span class="hljs-keyword">d</span>.setSeconds(00);
+    Ti.<span class="hljs-keyword">App</span>.Properties.setInt('nextAlarm',<span class="hljs-keyword">d</span>.getTime() / 1000);    
+    Ti.API.info('<span class="hljs-keyword">d</span> is: ' + <span class="hljs-keyword">d</span> + ', <span class="hljs-keyword">d</span>-getTime is: '+ <span class="hljs-keyword">d</span>.getTime() / 1000);
+});
+</code></pre><p>Thoughts?</p>
+<p>Many thanks, it is, as you can imagine, frustrating for it to work one way then seemingly not work, &#39;the same way!&#39;</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 30th 2012, 12:46:36 am">March 30th 2012</span>
+				by <span class='authorname'>Logan Ramirez</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>date milliseconds</span></li>
+					
+						<li><span class='tagname'>local notifications</span></li>
+					
+						<li><span class='tagname'>schedule notificatio</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Sorry.  I left off the environment:</p>
+<p>Titanium Mobile 1.8.0.1, developing app for iOS (SDK 4.3) and Android (API 2.2), but only using the iOS simulator right now.</p>
+<p>Snow Leopard environment with Titanium Studio, build: 1.0.7.201112281340</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 30th 2012, 12:07:28 pm">March 30th 2012</span>
+								by <span class='authorname'>Logan Ramirez</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-234887">
+				
+						<section>
+							<p>update - the &#39;not working&#39; approach I mention above (grabbing the notification time from the system variables) works fine when placed in bg.js and launched from </p>
+<pre><code class="hljs">var <span class="hljs-class"><span class="hljs-keyword">service</span> = <span class="hljs-title">Ti</span>.App.iOS.registerBackgroundService(</span>{url:'bg.js'});
+</code></pre><p>That is, &quot;the kitchen sink&quot; method works &#39;every&#39; way I try (launching the notification from a background service) and it works &quot;only 1&quot; way when I submit the notification from any other function.</p>
+<p>So confused…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 31st 2012, 12:46:58 am">March 31st 2012</span>
+								by <span class='authorname'>Logan Ramirez</span><br>
+								<a class="icon-bg icon-link" href="question/134638/scheduling-local-notifications-with-a-toggle-switch#answer-234887" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-260898">
+				
+						<section>
+							<p>This is what I am searching on… still works on Ti 3.x?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 17th 2013, 8:05:10 am">April 17th 2013</span>
+								by <span class='authorname'>Peter Lum</span><br>
+								<a class="icon-bg icon-link" href="question/134638/scheduling-local-notifications-with-a-toggle-switch#answer-260898" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

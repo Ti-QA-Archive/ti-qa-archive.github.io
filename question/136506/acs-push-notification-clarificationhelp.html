@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>ACS Push Notification clarification/help » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>ACS Push Notification clarification/help</h1>
+		</header>
+		<section>
+			<p>I was able to get ACS Push Notifications working (iOS), using the example code that came with the SDK update. Something I don&#39;t quite understand, how would I go about avoiding the create user process, and having them have to be logged in as the user to receive notifications. My perfect scenario would be, when they open app prompted if they want to receive notifications without logging in or creating an account. Is this not possible? Suggestions?</p>
+<p>Also, I don&#39;t quite grasp the channel concept. I understand you could send different notifications to different channels; however, I don&#39;t see an option in push notification admin where you can select the channel the notifications go to. </p>
+<p>I looked for documentation on this, and couldn&#39;t find what I needed. If it exists, could someone point me to this info. Thanks so much!</p>
+<p>Jim</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 5th 2012, 2:52:21 pm">May 5th 2012</span>
+				by <span class='authorname'>Jim Nilson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>channel</span></li>
+					
+						<li><span class='tagname'>notifications</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-267658">
+				
+						<section>
+							<p>I had the same question about whether I needed to create a user and login every time. Finally figured out I could subscribe with just a device token and no user at all. The following worked for me.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+<span class="hljs-keyword">var</span> user_device_token     = Ti.App.Properties.getString(<span class="hljs-string">"device_token"</span>,<span class="hljs-literal">null</span>);
+
+<span class="hljs-comment">//REGISTER LOCAL PUSH NOTIFICATION HERE</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getDeviceToken</span>(<span class="hljs-params"></span>)</span>{
+    Titanium.Network.registerForPushNotifications({
+        types: [
+            Titanium.Network.NOTIFICATION_TYPE_BADGE,
+            Titanium.Network.NOTIFICATION_TYPE_ALERT,
+            Titanium.Network.NOTIFICATION_TYPE_SOUND
+        ],
+        success:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            user_device_token = e.deviceToken;
+            Ti.App.Properties.setString(<span class="hljs-string">"device_token"</span>,user_device_token);
+            <span class="hljs-comment">//alert(user_device_token);</span>
+            subscribeToServerPushToken();    
+        },
+        error:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            alert(<span class="hljs-string">"Error during registration: "</span>+e.error);
+        },
+        callback:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            <span class="hljs-comment">// called when a push notification is received while app is open.</span>
+            <span class="hljs-keyword">var</span> a = Ti.UI.createAlertDialog({
+              title:<span class="hljs-string">'New Message'</span>,
+              ok: <span class="hljs-string">'Close'</span>,
+              message:e.data.alert
+            });
+            a.show();
+        }
+    });
+}
+<span class="hljs-comment">//REGISTER SERVER PUSH TOKEN</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">subscribeToServerPushToken</span>(<span class="hljs-params"></span>)</span>{
+    Cloud.PushNotifications.subscribeToken({
+        channel: <span class="hljs-string">'app'</span>,
+        type:<span class="hljs-string">'ios'</span>,
+        device_token: user_device_token
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            <span class="hljs-comment">//alert('Success'+((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">'Error: '</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+        }
+    });
+}
+
+getDeviceToken();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 25th 2013, 9:12:48 pm">August 25th 2013</span>
+								by <span class='authorname'>Peter Wiley</span><br>
+								<a class="icon-bg icon-link" href="question/136506/acs-push-notification-clarificationhelp#answer-267658" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>just one thing i can not understand is the channel part . how do I create a push channel ? can you please describe this part . thanks in advance</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 25th 2014, 7:44:39 am">February 25th 2014</span>
+											by <span class='authorname'>touhidur rahman</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-237916">
+				
+						<section>
+							<p>You could create a user in the <a href="https:&#x2F;&#x2F;my.appcelerator.com&#x2F;apps">My Apps control panel</a> and use that account to log in in your app.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 5th 2012, 3:38:31 pm">May 5th 2012</span>
+								by <span class='authorname'>Dennis First</span><br>
+								<a class="icon-bg icon-link" href="question/136506/acs-push-notification-clarificationhelp#answer-237916" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Also, to send a message to a channel you use the Advanced link in the control panel Push Notification section, and construct a custom message, eg:</p>
+<pre><code class="hljs">{ "<span class="hljs-attribute">channel</span>" : <span class="hljs-value"><span class="hljs-string">"your_channel"</span></span>, "<span class="hljs-attribute">alert</span>" : <span class="hljs-value"><span class="hljs-string">"hello, world"</span> </span>}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="May 5th 2012, 3:42:53 pm">May 5th 2012</span>
+											by <span class='authorname'>Dennis First</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello! for me it does not work. Subscription is successful. Where to find an error?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 8th 2012, 1:26:47 pm">May 8th 2012</span>
+											by <span class='authorname'>Andrew Vesel4ak</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If you&#39;re currently in the app, you have to handle the messages manually by adding a callback function to Titanium.Network.registerForPushNotifications, eg:</p>
+<pre><code class="hljs">Titanium.Network.registerForPushNotifications({
+    ...
+    callback: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+        alert(JSON.stringify(e.<span class="hljs-type">data</span>));
+    }
+})
+</code></pre><p>When you&#39;re not in the app, push notifications are displayed automatically.</p>
+<p>Also check if you&#39;re using the same environment on both ends (either production, or more probably, development). The link is in the upper right corner in the control panel, so be sure to switch to the right environment.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 8th 2012, 1:36:51 pm">May 8th 2012</span>
+											by <span class='authorname'>Dennis First</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi!</p>
+<pre><code class="hljs">{ "<span class="hljs-attribute">channel</span>" : <span class="hljs-value"><span class="hljs-string">"your_channel"</span></span>, "<span class="hljs-attribute">alert</span>" : <span class="hljs-value"><span class="hljs-string">"hello, world"</span> </span>}
+</code></pre><ul>
+<li>this does not work for me…<br>I sign the application on two hand channel and the channel &quot;friends.&quot;<pre><code class="hljs">app.acs.<span class="hljs-keyword">pc</span>.acsUserSubscribing(hp.device.udid);
+app.acs.<span class="hljs-keyword">pc</span>.acsUserSubscribing(resultObject.venueid);
+app.acs.<span class="hljs-keyword">pc</span>.acsUserSubscribing(<span class="hljs-string">'friends'</span>);
+</code></pre>Then, using <a href="https:&#x2F;&#x2F;my.appcelerator.com&#x2F;apps"> My Apps control panel</a> I can send a notification using the &quot;standard&quot; method (<a href="https:&#x2F;&#x2F;dl.dropbox.com&#x2F;u&#x2F;3914830&#x2F;12.061.png">image</a>), but it comes only when I subscribed to the channel &quot;friends&quot;. </li>
+</ul>
+<p>But when I try to send a pushnotification in the &quot;custom channel&quot; using &quot;advanced&quot; method (<a href="https:&#x2F;&#x2F;dl.dropbox.com&#x2F;u&#x2F;3914830&#x2F;12.06.png">image</a>) - the application does not receive this push.</p>
+<p> What did I go wrong?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 12th 2012, 9:39:10 am">June 12th 2012</span>
+											by <span class='authorname'>Andrew Vesel4ak</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-237917">
+				
+						<section>
+							<p>Fantastic, Dennis. Thanks I will try that.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 5th 2012, 3:46:00 pm">May 5th 2012</span>
+								by <span class='authorname'>Jim Nilson</span><br>
+								<a class="icon-bg icon-link" href="question/136506/acs-push-notification-clarificationhelp#answer-237917" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-237920">
+				
+						<section>
+							<p>Dennis, how do you subscribe (in admin) a created user to a channel manually?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 5th 2012, 4:22:19 pm">May 5th 2012</span>
+								by <span class='authorname'>Jim Nilson</span><br>
+								<a class="icon-bg icon-link" href="question/136506/acs-push-notification-clarificationhelp#answer-237920" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>You can&#39;t do it via admin, you have to do it in your app when subscribing for notifications. <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.0&#x2F;#!&#x2F;api&#x2F;Titanium.Cloud.PushNotifications">See here.</a></p>
+<p>Of course, you have to have the deviceToken from <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.0&#x2F;#!&#x2F;api&#x2F;Titanium.Network-method-registerForPushNotifications">Titanium.Network.registerForPushNotifications</a> and you have to log the user in with <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.0&#x2F;#!&#x2F;api&#x2F;Titanium.Cloud.Users">Cloud.Users.login</a> before you can do this.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 5th 2012, 4:27:42 pm">May 5th 2012</span>
+											by <span class='authorname'>Dennis First</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

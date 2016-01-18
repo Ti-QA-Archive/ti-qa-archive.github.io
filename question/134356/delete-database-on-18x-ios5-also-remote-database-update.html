@@ -1,0 +1,310 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Delete Database on 1.8x iOS5 also Remote Database Update » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Delete Database on 1.8x iOS5 also Remote Database Update</h1>
+		</header>
+		<section>
+			<p>Can anyone tell me where&#x2F;how to delete the existing installed database on SDK 1.8 and iOS5? I have been working on a system to update the database from the web by downloading a new one and deleting the old but its still not working. I get so far as getting the new database on launch, but if an existing database is there it says its been downloaded but does not update the data.</p>
+<p>I am assuming the problem is with this line below since that is how I am calling the path to delete.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> dbFile = Ti.Filesystem.getFile(Ti.Filesystem.applicationSupportDirectory, <span class="hljs-string">'../Private Documents/'</span> + <span class="hljs-string">'kwlocal.sql'</span>);
+</code></pre><p>Below is the full code for the update if you can help with that. Its &#39;mostly&#39; working. Except for the update as mentioned.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> loadDatabase2;
+<span class="hljs-keyword">var</span> data;
+<span class="hljs-keyword">var</span> dbSettings = Ti.Database.install(<span class="hljs-string">'kwlocal.sql'</span>, <span class="hljs-string">'kwlocal'</span>);
+dbSettings.close();
+<span class="hljs-keyword">var</span> dbPath = dbSettings.getFile().path;
+Ti.API.info(<span class="hljs-string">"Database Path:"</span> + dbPath);
+<span class="hljs-keyword">var</span> dbFile = Ti.Filesystem.getFile(Ti.Filesystem.applicationSupportDirectory, <span class="hljs-string">'../Private Documents/'</span> + <span class="hljs-string">'kwlocal.sql'</span>);
+<span class="hljs-keyword">var</span> TEMP_FILE = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory, <span class="hljs-string">'kwlocal.sql'</span>);
+<span class="hljs-keyword">var</span> c = Ti.Network.createHTTPClient();
+<span class="hljs-keyword">var</span> nc = Ti.Network.createHTTPClient();
+nc.setTimeout(<span class="hljs-number">10000</span>);
+c.setTimeout(<span class="hljs-number">10000</span>);
+<span class="hljs-keyword">var</span> flg = <span class="hljs-literal">null</span>
+
+c.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+
+    Ti.API.info(<span class="hljs-string">"Connection Opened"</span>);
+
+    <span class="hljs-keyword">var</span> fileSizeonServer = <span class="hljs-keyword">this</span>.responseXML;
+    Ti.API.info(<span class="hljs-string">"fileSizeonServer:"</span> + fileSizeonServer.text);
+
+    <span class="hljs-keyword">if</span>(fileSizeonServer.text &gt; databaseID) {
+
+        <span class="hljs-keyword">var</span> alertDialog = Titanium.UI.createAlertDialog({
+            message : <span class="hljs-string">'You would like to download the updated database?'</span>,
+            buttonNames : [<span class="hljs-string">'Yes'</span>, <span class="hljs-string">'Cancel'</span>],
+            cancel: <span class="hljs-number">1</span>
+        });
+        alertDialog.show();
+
+        alertDialog.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            <span class="hljs-keyword">if</span>(e.index == <span class="hljs-number">0</span>) {
+                Ti.API.info(<span class="hljs-string">"Clicked Yes Updating"</span>);
+                Ti.App.Properties.setString(<span class="hljs-string">'updated'</span>, fileSizeonServer.text); 
+                databaseID = fileSizeonServer.text;
+                flg = <span class="hljs-literal">null</span>;
+                Ti.API.info(<span class="hljs-string">"Deleting Database"</span>);
+                dbFile.deleteFile();
+                Ti.API.info(<span class="hljs-string">"Open WriteFile"</span>);
+                fileWrite();
+                } <span class="hljs-keyword">else</span> {
+                Ti.API.info(<span class="hljs-string">"Clicked No"</span>);
+                catagories();
+
+            }
+
+        });
+    } <span class="hljs-keyword">else</span> {
+        catagories();
+    }
+
+};
+
+
+c.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+
+};
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkDB</span><span class="hljs-params">()</span> </span>{
+    Ti.API.info(<span class="hljs-string">"Checking Database"</span>);
+    <span class="hljs-keyword">if</span>(dbFile.exists() == <span class="hljs-literal">true</span>) {
+                Ti.API.info(<span class="hljs-string">"Database Exists:"</span> + dbFile.nativePath);
+                dbFile.deleteFile();
+                c.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">"http://keywestlocalguide.com/version.xml"</span>);
+                c.send();
+                Ti.API.info(<span class="hljs-string">"Open Connection"</span>);
+        } <span class="hljs-keyword">else</span> { 
+            Ti.API.info(<span class="hljs-string">"Loading Catagories"</span>);
+            catagories(); }
+};
+
+checkDB();
+
+currwin.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    checkDB();
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fileWrite</span><span class="hljs-params">()</span> </span>{
+    Ti.App.fireEvent(<span class="hljs-string">'show_indicator'</span>);
+    nc.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'-- Download finished '</span> + <span class="hljs-keyword">this</span>.getStatus());
+        Ti.App.fireEvent(<span class="hljs-string">'hide_indicator'</span>);
+        Ti.API.info(<span class="hljs-string">"New Database Saved"</span>);
+        <span class="hljs-keyword">var</span> db = Titanium.Database.install(TEMP_FILE.nativePath, <span class="hljs-string">'kwlocal'</span>);
+        db.close();
+        catagories();        
+    };
+
+    nc.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">"ERROR "</span> + e.error);
+        alert(<span class="hljs-string">'Error | No internet connection detected.'</span>);
+    };
+    dbFile.deleteFile();
+    nc.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">"http://www.KeyWestLocalGuide.com/kwlocal.db"</span>);
+    nc.file = TEMP_FILE;
+    nc.send();
+    Ti.API.info(<span class="hljs-string">"Saving Database from Web"</span>);
+
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 24th 2012, 2:31:51 pm">March 24th 2012</span>
+				by <span class='authorname'>Grant Wolz</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>1.8x</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>delete database</span></li>
+					
+						<li><span class='tagname'>ios5</span></li>
+					
+						<li><span class='tagname'>remote update</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Database and Version on server have been removed since I can&#39;t edit the question.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 24th 2012, 2:34:20 pm">March 24th 2012</span>
+								by <span class='authorname'>Grant Wolz</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-234297">
+				
+						<section>
+							<pre><code class="hljs"><span class="hljs-keyword">var</span> dbFile = Ti.Filesystem.getFile(Ti.Filesystem.applicationSupportDirectory, <span class="hljs-string">'../Private%20Documents/'</span> + <span class="hljs-string">'kwlocal.sql'</span>);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 24th 2012, 3:42:27 pm">March 24th 2012</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/134356/delete-database-on-18x-ios5-also-remote-database-update#answer-234297" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Wait, thats wrong, should be applicationDataDirectory and add the %20 for the space:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> dbFile = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, <span class="hljs-string">'../Private%20Documents/'</span> + <span class="hljs-string">'kwlocal.sql'</span>);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 24th 2012, 3:44:00 pm">March 24th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry, should have just pasted my code to begin with instead of modifying yours&#x2F;<br>This is the code to access a cache directory we store disposable data in for an app:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> fDir = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory+<span class="hljs-string">'../Library/Private%20Documents/'</span>, <span class="hljs-string">"cache"</span>);
+</code></pre><p>Your database will be in <code>Private Documents</code> so:</p>
+<pre><code class="hljs">Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory+<span class="hljs-string">'../Library/Private%20Documents/'</span>, <span class="hljs-string">"databasefilename.sql"</span>);
+</code></pre><p>We use the DataDirectory as a reference simply because is was android+ipad originally.  Going forward, you should be able to open a database, use the  <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;latest&#x2F;Titanium.Database.DB.getFile-method.html">Titanium.Database.DB.getFile</a> property to get the file handle, close the database, delete the file.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 24th 2012, 4:02:09 pm">March 24th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-234394">
+				
+						<section>
+							<p>hi Grant,</p>
+<p>i got something..</p>
+<pre><code class="hljs"> nc.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'-- Download finished '</span> + <span class="hljs-keyword">this</span>.getStatus());
+        Ti.App.fireEvent(<span class="hljs-string">'hide_indicator'</span>);
+        Ti.API.info(<span class="hljs-string">"New Database Saved"</span>);
+    TEMP_FILE.write(<span class="hljs-keyword">this</span>.responseData);
+    <span class="hljs-comment">//or</span>
+    TEMP_FILE.write(<span class="hljs-keyword">this</span>.responseText);
+        <span class="hljs-keyword">var</span> db = Titanium.Database.install(TEMP_FILE.nativePath, <span class="hljs-string">'kwlocal'</span>);
+        db.close();
+        catagories();       
+    };
+</code></pre><p>in the above code you have not write any file after getting response..</p>
+<p>good luck</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 26th 2012, 8:35:45 am">March 26th 2012</span>
+								by <span class='authorname'>Mitul Bhalia</span><br>
+								<a class="icon-bg icon-link" href="question/134356/delete-database-on-18x-ios5-also-remote-database-update#answer-234394" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>second thing remember that private document is accessible from 1.8.2 sdk</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2012, 10:04:36 am">March 26th 2012</span>
+											by <span class='authorname'>Mitul Bhalia</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

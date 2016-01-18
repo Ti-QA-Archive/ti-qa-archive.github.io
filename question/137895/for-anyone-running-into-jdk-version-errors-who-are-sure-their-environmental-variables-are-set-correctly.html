@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>For anyone running into JDK version errors who are sure their environmental variables are set correctly » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>For anyone running into JDK version errors who are sure their environmental variables are set correctly</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been getting <code>&amp;#39;JDK version  detected, but 1.6 is required&amp;#39;</code> today after installing a few eclipse plugins; for some reason <code>javac -version</code> was returning nothing for Titanium Studio (even though it was returning &quot;javac 1.6.0_32&quot; in cmd.exe).  </p>
+<p>The quick and hacky fix is :</p>
+<ul>
+<li>Go to your mobile sdk&#39;s android directory (mine was &quot;C:\Users\Cheapsteak\AppData\Roaming\Titanium\mobilesdk\win32\2.0.2.GA\android&quot;)  </li>
+<li>Make a backup of <code>prereq.py</code></li>
+<li>Delete <code>prereq.pyc</code>  </li>
+<li><p>open <code>prereq.py</code> in an editor and delete or comment out the lines</p>
+<pre><code class="hljs"><span class="hljs-keyword">try</span>:
+   <span class="hljs-keyword">if</span> <span class="hljs-built_in">platform</span>.<span class="hljs-keyword">system</span>() == <span class="hljs-string">"Windows"</span>:
+       (out,err) = subprocess.Popen([<span class="hljs-string">'cmd.exe'</span>,<span class="hljs-string">'/C'</span>,<span class="hljs-string">'javac'</span>,<span class="hljs-string">'-version'</span>], <span class="hljs-keyword">stdout</span>=subprocess.PIPE, <span class="hljs-keyword">stderr</span>=subprocess.PIPE).communicate()
+   <span class="hljs-keyword">else</span>:
+       (out,err) = subprocess.Popen([<span class="hljs-string">'javac'</span>,<span class="hljs-string">'-version'</span>], <span class="hljs-keyword">stdout</span>=subprocess.PIPE, <span class="hljs-keyword">stderr</span>=subprocess.PIPE).communicate()
+
+   <span class="hljs-comment"># javac prints its version on stderr</span>
+   <span class="hljs-built_in">version</span> = err.<span class="hljs-built_in">replace</span>(<span class="hljs-string">"javac "</span>, <span class="hljs-string">""</span>).strip()
+   <span class="hljs-keyword">if</span> <span class="hljs-operator">not</span> <span class="hljs-built_in">version</span>.startswith(<span class="hljs-string">"1.6"</span>):
+       <span class="hljs-comment">#status = "JDK version %s detected, but 1.6 is required" % version</span>
+       status = out
+       failed = True
+except Exception,e:
+   status = <span class="hljs-string">"Missing Java SDK. Please make sure Java SDK is on your PATH (exception: %s)"</span> % e
+   failed = True
+</code></pre></li>
+<li><p>The contents of check_java should now be   </p>
+</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">check_java</span><span class="hljs-params">()</span>:</span>
+    failed = <span class="hljs-keyword">False</span>
+    status = <span class="hljs-string">"OK"</span>
+    <span class="hljs-keyword">return</span> (failed, status)
+</code></pre><ul>
+<li>Save, close, make a backup of builder.py and open it  </li>
+<li>Find all instances where values are assigned to <code>self.jarsigner</code>, <code>self.javac</code>, <code>self.java</code></li>
+<li>Replace <code>os.path.join(path, &amp;#39;jarsigner.exe&amp;#39;)</code>,  <code>os.path.join(path, &amp;#39;javac.exe&amp;#39;)</code> ,  <code>os.path.join(path, &amp;#39;java.exe&amp;#39;)</code>  with <code>os.path.abspath(&amp;#39;absolute path&amp;#39;)</code>,  </li>
+<li><p>for example mine: </p>
+<pre><code class="hljs">self<span class="hljs-class">.jarsigner</span> = os<span class="hljs-class">.path</span><span class="hljs-class">.abspath</span>(<span class="hljs-string">"E:\\Program Files\\Java\\jdk1.6.0_32\\bin\\jarsigner.exe"</span>)  
+self<span class="hljs-class">.javac</span> = os<span class="hljs-class">.path</span><span class="hljs-class">.abspath</span>(<span class="hljs-string">"E:\\Program Files\\Java\\jdk1.6.0_32\\bin\\javac.exe"</span>)  
+self<span class="hljs-class">.java</span> = os<span class="hljs-class">.path</span><span class="hljs-class">.abspath</span>(<span class="hljs-string">"E:\\Program Files\\Java\\jdk1.6.0_32\\bin\\java.exe"</span>)
+</code></pre><p><strong>(make sure to edit this so it reflects where the jdk is actually installed on your computer)</strong> </p>
+</li>
+<li><p>Replace all 6 of them just to be safe   </p>
+</li>
+<li>Restart Titanium Studio</li>
+</ul>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 5th 2012, 4:46:35 am">June 5th 2012</span>
+				by <span class='authorname'>chang wang</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>build</span></li>
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>error</span></li>
+					
+						<li><span class='tagname'>titanium studio</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-240176">
+				
+						<section>
+							<p>Sometimes setting environmental variables in Windows is not reflected until machine reboot.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 5th 2012, 5:06:50 am">June 5th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/137895/for-anyone-running-into-jdk-version-errors-who-are-sure-their-environmental-variables-are-set-correctly#answer-240176" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

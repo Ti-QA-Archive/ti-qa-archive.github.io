@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>regression error on httpclient » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>regression error on httpclient</h1>
+		</header>
+		<section>
+			<p>Several months ago, I learned how to use the http client in mobile iOS apps (primarily iPhone apps). Last week, I upgraded from Titanium mobile SDK 1.7.3 to 1.8.1 and now the code fails. Today, I boiled down the problem to the example below. </p>
+<p>It is a real problem because I was going to direct some students of mine (I am a professor) to learn Titanium for making mobile apps that could talk to a server. Considering this problem, however, I am now considering whether to just tell them to ditch Appcelerator&#x2F;Titanium and code everything in HTML5 instead. </p>
+<p>Here&#39;s the simplified example to reproduce the problem…</p>
+<p>I am using jetty&#x2F;GAE to host the server-side code, which is a jsp that just outputs &quot;ok&quot;:</p>
+<p>&lt;%= &quot;ok&quot; %&gt;</p>
+<p>Here is the code that I am using (in app.js) on the client side:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win1 = Titanium.UI.createWindow();
+<span class="hljs-keyword">var</span> btn = Titanium.UI.createButton({
+    title : <span class="hljs-string">'test'</span>,
+    width : <span class="hljs-string">'200'</span>
+});
+
+win1.add(btn);
+btn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://192.168.1.7:8888/test.jsp"</span>;
+    <span class="hljs-keyword">var</span> client = Ti.Network.createHTTPClient({
+        <span class="hljs-comment">// function called when the response data is available</span>
+        onload : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">"Received text: "</span> + <span class="hljs-keyword">this</span>.responseText);
+            alert(<span class="hljs-string">'success'</span>);
+        },
+        <span class="hljs-comment">// function called when an error occurs, including a timeout</span>
+        onerror : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            alert(<span class="hljs-string">'error:'</span> + e.error);
+        },
+        timeout : <span class="hljs-number">5000</span>  <span class="hljs-comment">/* in milliseconds */</span>
+    });
+    <span class="hljs-comment">// Prepare the connection.</span>
+    client.open(<span class="hljs-string">"GET"</span>, url);
+    <span class="hljs-comment">// Send the request.</span>
+    client.send();
+});
+win1.open();
+</code></pre><p>In this example above, I have just copied and pasted the code for using the http client directly from the Titanium documentation (http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;latest&#x2F;Titanium.Network.HTTPClient-object), except that I am using my own jsp&#39;s URL. The IP address is the IP address of this machine where I am running both Titanium Studio and jetty. This machine is MacOSX 10.7.3. The device is iOS Simulator 5.0. Titanium Studio is 1.0.8.201201262211.</p>
+<p>When I execute the code above (and click the button), I get the error message:</p>
+<p><em>Error Domain=ASIHTTPRequestErrorDomain Code=1 &quot;A connection failure occurred&quot; UserInfo=0x9cb4b10 {NSUnderlyingError=0x9c3ee10 &quot;The operation couldn’t be completed. Connection reset by peer&quot;, NSLocalizedDescription=A connection failure occurred}</em></p>
+<p>###<strong>The error above appears only in recent SDKs. It appears when I run the code with 1.7.6, 1.8.1, 1.8.2, and 2.0.0. The error does NOT appear with SDK 1.7.3.</strong></p>
+<p>I have tried several workarounds that have not worked: (1) trying a wifi connection instead of a ethernet connection, (2) setting timeout=0, (3) setting timeout=10000, (4) setting enableKeepAlive=true, (5) setting enableKeepAlive=false. </p>
+<p>I also have tried using the Charles proxy, which oddly made the problem go away. So when the app is talking to Charles, and Charles talks to the server, then the problem goes away. But when the app talks directly to the server, the problem is present. I haven&#39;t been able to pin down any interesting differences in the headers involved with&#x2F;without Charles that might cause the problem. I used Charles to record the headers that were being sent by a browser (which can indeed successfully retrieve the jsp content), then turned off Charles and used client.setRequestHeader() to set exactly the same headers (so the app talked to the server as did the browser), but that did not make the problem go away.</p>
+<p>The problem also does not appear when trying to access remote servers (i.e., servers located on other machines), only when attempting to access this local machine.</p>
+<p>To sum up, when I use the code shown by the documentation to access a local jsp (via its IP address), I get an error in SDKs 1.7.6+    </p>
+<p>Can anybody suggest what to try next? I would prefer to direct my students to use Appcelerator, but the choices right now are somewhat unpalatable:</p>
+<p>(1) tell everybody to buy a copy of Charles</p>
+<p>(2) tell everybody to abandon Titanium on this particular project</p>
+<p>(3) tell everybody to use a remote server for development</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 3rd 2012, 3:12:32 am">April 3rd 2012</span>
+				by <span class='authorname'>Chris Professor</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>appcelerator</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>First, try browsing to the url using normal browser on Iphone: http:&#x2F;&#x2F;192.168.1.7:8888&#x2F;test.jsp. If it is a success, then I have no idea other than probably to check for your permission.</p>
+<p>One thing is just in case you are actually using android (but you did mention ios) is android mobile browser cannot browse into local server such as 192.168.xx.xx or 10.x.x.x so if you are using iphone, it should be fine.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 3rd 2012, 3:18:46 am">April 3rd 2012</span>
+								by <span class='authorname'>Syed Setia Pernama Syed Idris</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Yep, I can hit it on the iphone&#39;s safari at http:&#x2F;&#x2F;192.168.1.7:8888&#x2F;test.jsp   So it&#39;s just the Titanium-created app that is failing. I appreciate any and all suggestions.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 3rd 2012, 2:43:13 pm">April 3rd 2012</span>
+								by <span class='authorname'>Chris Professor</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-235985">
+				
+						<section>
+							<p>Error Domain=ASIHTTPRequestErrorDomain Code=1 &quot;A connection failure occurred&quot; UserInfo=0x7b4d900 {NSUnderlyingError=0x9048c30 &quot;The operation couldn’t be completed. Connection reset by peer&quot;, NSLocalizedDescription=A connection failure occurred}</p>
+<p>it’s found that the development server is not compatible for direct access, once it’s bridge by other network device or proxy, then everything is solved.</p>
+<p>for me, i run the application with jetty server, when iphone client directly connect to it (via internal ip address), always returns fail result, in either simulator or real physical device.</p>
+<p>however, if the jetty is run behind a firewall, or via using apache ProxyPass, then everything just work like a charm… scratching my head for whole day already, hope this will help someone :-)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 13th 2012, 7:52:34 am">April 13th 2012</span>
+								by <span class='authorname'>Russell Kwok</span><br>
+								<a class="icon-bg icon-link" href="question/134830/regression-error-on-httpclient#answer-235985" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Chris, is your problem resolved. I&#39;m getting the same error while doing a simple http post</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 21st 2012, 4:31:58 pm">July 21st 2012</span>
+											by <span class='authorname'>gk reddy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m using the GAE local dev server (Jetty) and this is the issue I&#39;m seeing with the HTTPClient on the iOS simulator. Massive pain.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 2nd 2012, 8:21:08 pm">September 2nd 2012</span>
+											by <span class='authorname'>Pete Cornish</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>hi Pete,</p>
+<p>you can try to do the same as i did in apache vhost config to see if it works</p>
+<pre><code class="hljs">&lt;VirtualHost *:<span class="hljs-number">80</span>&gt;
+    ServerAdmin webmaster@dummy-host2<span class="hljs-class">.example</span><span class="hljs-class">.com</span>
+    ServerName devlocal<span class="hljs-class">.somewhere</span><span class="hljs-class">.org</span>
+    ProxyPass / http:<span class="hljs-comment">//192.168.8.67:8888/</span>
+    ProxyPassReverse / http:<span class="hljs-comment">//192.168.8.67:8888/</span>
+&lt;/VirtualHost&gt;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="September 3rd 2012, 1:32:31 am">September 3rd 2012</span>
+											by <span class='authorname'>Russell Kwok</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I just encountered the exact same issue connecting to IIS 7.5 using <code>HTTPClient</code>. When I connect directly, I get the same error. When I connect via a proxy (I was using Fiddler as a proxy to debug the issue by observing the traffic to the server), the error goes away.</p>
+<p>For me, the error always happens with large POST requests (image uploads, in this case) but doesn&#39;t seem to occur with smaller requests.</p>
+<p>Anyone ever figure out what was going on here and a solution that doesn&#39;t involve a proxy?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 22nd 2013, 4:19:53 pm">May 22nd 2013</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I wonder if it&#39;s an issue with the Content-length: header being incorrect - that could cause a reset to the server and it&#39;s one of the headers that a proxy is likely to rewrite.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 22nd 2013, 4:23:44 pm">May 22nd 2013</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>&gt; I wonder if it&#39;s an issue with the Content-length: header being incorrect - that could cause a reset to the server and it&#39;s one of the headers that a proxy is likely to rewrite.</p>
+<p>This doesn&#39;t appear to be the case - I compared the Content-Length the server is receiving both directly from Titanium and through the proxy. They are the same.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 22nd 2013, 4:38:42 pm">May 22nd 2013</span>
+											by <span class='authorname'>smaccona smaccona</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

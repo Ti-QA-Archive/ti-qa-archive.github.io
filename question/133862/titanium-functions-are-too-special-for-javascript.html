@@ -1,0 +1,287 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium-Functions are too special for JavaScript » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium-Functions are too special for JavaScript</h1>
+		</header>
+		<section>
+			<p>I&#39;d like to wrap a Titanium function within another function to get rid of potential error cases (i.e. not cleaning up result sets). Think of this example:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Titanium.Database.<span class="hljs-keyword">open</span>('default');
+<span class="hljs-keyword">db</span>.<span class="hljs-keyword">query</span> = function () {
+  <span class="hljs-keyword">var</span> <span class="hljs-keyword">args</span> = Array.prototype.slice.apply(arguments); <span class="hljs-comment">/* JavaScript, Y U no have arguments as proper Array */</span>
+  <span class="hljs-keyword">var</span> callback = function () {};
+  <span class="hljs-keyword">var</span> rs;
+
+  <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> <span class="hljs-keyword">args</span>[<span class="hljs-keyword">args</span>.length - 1] === <span class="hljs-string">"function"</span>) {
+    callback = <span class="hljs-keyword">args</span>.pop();
+  }
+
+  try {
+    rs = <span class="hljs-keyword">db</span>.execute.apply(<span class="hljs-keyword">db</span>, <span class="hljs-keyword">args</span>); <span class="hljs-comment">/* this line breaks, see below */</span>
+    callback(rs, null);
+    <span class="hljs-keyword">if</span>(rs) {
+      rs.<span class="hljs-keyword">close</span>();
+    }
+  } catch (<span class="hljs-keyword">ex</span>) {
+    callback(null, <span class="hljs-keyword">ex</span>);
+  }
+};
+
+<span class="hljs-keyword">db</span>.<span class="hljs-keyword">query</span>(<span class="hljs-string">"SELECT * FROM stuff WHERE size = ?"</span>, 'xxl', function (resultSet, <span class="hljs-keyword">error</span>) {
+  <span class="hljs-keyword">if</span> (<span class="hljs-keyword">error</span>) {
+    <span class="hljs-keyword">return</span> Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">"Got error in stuff query: "</span> + <span class="hljs-keyword">error</span>.message);
+  }
+
+  <span class="hljs-keyword">for</span> (; resultSet.isValidRow(); resultSet.next()) {
+    <span class="hljs-comment">/* handle 'stuff' */</span>
+  }
+});
+</code></pre><p>However, this results in warnings about <code>db.execute</code> not having an <code>apply</code> member. Right now, I have to replace the line assigning to resultSet with this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">switch</span> (args.length) {
+<span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
+  rs = db.execute(args[<span class="hljs-number">0</span>]);
+  <span class="hljs-keyword">break</span>;
+<span class="hljs-keyword">case</span> <span class="hljs-number">2</span>:
+  rs = db.execute(args[<span class="hljs-number">0</span>], args[<span class="hljs-number">1</span>]);
+  <span class="hljs-keyword">break</span>;
+<span class="hljs-comment">/* you get the idea */</span>
+<span class="hljs-keyword">default</span>:
+  <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> Error(String.format(<span class="hljs-string">"%d arguments are not supported yet"</span>,
+                                args.length));
+}
+</code></pre><p>Other JavaScript environments don&#39;t separate between &quot;JavaScript functions&quot; and &quot;Framework functions&quot;, I think Titanium shouldn&#39;t separate either.</p>
+<p>Does anyone have an idea how to get rid of the error-prone <code>switch&amp;#x2F;case</code> when using Titanium functions?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 15th 2012, 12:46:35 pm">March 15th 2012</span>
+				by <span class='authorname'>Sven Herzberg</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-233456">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Welcome to the world of JS host objects. :)</p>
+<p>You can&#39;t rely on host objects, using them along standard JS techniques often throws errors.</p>
+<p>The catch here is how to wrap Titanium functionality. The best is to avoid using Titanium objects in any way that is unknown and undocumented. </p>
+<p>So …</p>
+<p>By doing this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">db</span>.execute.apply(<span class="hljs-keyword">db</span>, <span class="hljs-keyword">args</span>)
+</code></pre><p>you are using Titanium host object in a way that might work in world of native JS objects, but might not work in world of host objects. You need to remember that host objects are not specified in ECMAScript specification, except the part that they can behave in any way (same functionality in native JS world can be different in world of host objects by the specification). Because of that, we write wrappers, that are native JS object. They provide controlled access to host objects.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Titanium.Database.<span class="hljs-keyword">open</span>('default');
+<span class="hljs-keyword">db</span>.<span class="hljs-keyword">query</span> = ...
+</code></pre><p>&quot;db&quot; here is host object and you are actually adding functionality to host object. That is not the best approach, it&#39;s better to wrap that to JS object:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> db = {};
+db.open = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.connection = Titanium.Database.open(<span class="hljs-string">'default'</span>);
+};
+
+db.query = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">var</span> args = Array.prototype.slice.apply(arguments); <span class="hljs-comment">/* JavaScript, Y U no have arguments as proper Array */</span>
+  <span class="hljs-keyword">var</span> <span class="hljs-keyword">callback</span> = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{};
+  <span class="hljs-keyword">var</span> rs;
+
+  <span class="hljs-keyword">if</span> (typeof args[args.length - <span class="hljs-number">1</span>] === <span class="hljs-string">"function"</span>) {
+    <span class="hljs-keyword">callback</span> = args.pop();
+  }
+
+  <span class="hljs-keyword">try</span> {
+    rs = <span class="hljs-keyword">this</span>.connection.execute.apply(db, args); <span class="hljs-comment">/* this line does not break */</span>
+    <span class="hljs-keyword">callback</span>(rs, <span class="hljs-literal">null</span>);
+    <span class="hljs-keyword">if</span>(rs) {
+      rs.close();
+    }
+  } <span class="hljs-keyword">catch</span> (ex) {
+    <span class="hljs-keyword">callback</span>(<span class="hljs-literal">null</span>, ex);
+  }
+};
+</code></pre><p>Now you can use &quot;db&quot; object wrapper as any native JS object.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 15th 2012, 1:30:00 pm">March 15th 2012</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/133862/titanium-functions-are-too-special-for-javascript#answer-233456" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Ivan - Well done! I wanted to respond that this wasn&#39;t a Titanium issue, but I don&#39;t quite have the javascript &quot;muscle&quot; yet to explain it. Thank you so much!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 15th 2012, 1:50:12 pm">March 15th 2012</span>
+											by <span class='authorname'>Darren Adams</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That&#39;s really awesome, it even works like this:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> wrapper</span> = {wrapped: db};
+<span class="hljs-variable"><span class="hljs-keyword">var</span> rs</span> = wrapper.wrapped.execute.apply(wrapper, args);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 15th 2012, 2:23:58 pm">March 15th 2012</span>
+											by <span class='authorname'>Sven Herzberg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ah, I was partially wrong here. :)</p>
+<p>All that I said about host objects stands, but the solution I provided is not the best. &quot;connection.execute&quot; is host method, using &quot;apply&quot; could potentially brake things. I know I had same problem in the past (not sure is that resolved in current SDK version). What I did (actually, it already was done in Joli ORM that I was using) was building query in JS and passing built query string to &quot;execute&quot; method without using &quot;apply&quot;.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 16th 2012, 6:15:08 am">March 16th 2012</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-233447">
+				
+						<section>
+							<p>This will help to answer your issue - http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2012&#x2F;02&#x2F;what-is-a-titanium-proxy-object.html</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 15th 2012, 12:52:59 pm">March 15th 2012</span>
+								by <span class='authorname'>Minh Nguyen</span><br>
+								<a class="icon-bg icon-link" href="question/133862/titanium-functions-are-too-special-for-javascript#answer-233447" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>See section <strong>Overriding Properties</strong> and <strong>.apply and .call</strong></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 15th 2012, 12:54:36 pm">March 15th 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for the link. However, this doesn&#39;t help solving this issue and just quickly mentions the fact that there are issues with regards to this.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 15th 2012, 1:00:48 pm">March 15th 2012</span>
+											by <span class='authorname'>Sven Herzberg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes this doesnt help solving the issue, it just show off the reason why .apply or .call doesnt work, and you should to find out another way to workaround :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 15th 2012, 1:20:37 pm">March 15th 2012</span>
+											by <span class='authorname'>Minh Nguyen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

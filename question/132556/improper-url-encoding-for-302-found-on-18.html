@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Improper URL encoding for 302 FOUND on 1.8 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Improper URL encoding for 302 FOUND on 1.8</h1>
+		</header>
+		<section>
+			<p>Under the 1.8 sdk the (already URL encoded) &quot;location&quot; value of the 302 found response is then URL encoded again.</p>
+<p>I have only tested this on iPhone (emulator and device, for 1.8.0.1 and 1.8.1 sdk).</p>
+<p>For example, if my code</p>
+<pre><code class="hljs">var xhr = Titanium.Network.createHTTPClient();
+xhr.open(<span class="hljs-string">"<span class="hljs-keyword">GET</span>"</span>, 'http://mysite.com/');
+xhr.send();
+</code></pre><p>returned a response of</p>
+<pre><code class="hljs">HTTP/<span class="hljs-number">1.1</span> <span class="hljs-number">302</span> FOUND
+...
+Location: https:<span class="hljs-comment">//www.google.com/search?q=test%3Dthis</span>
+...
+</code></pre><p>Under 1.7.5 sdk I get a raw request of</p>
+<pre><code class="hljs">GET /<span class="hljs-built_in">search</span>?<span class="hljs-keyword">q</span>=test%<span class="hljs-number">3</span>Dthis HTTP/<span class="hljs-number">1.1</span>
+Hos<span class="hljs-variable">t:</span> google.<span class="hljs-keyword">com</span>
+...
+</code></pre><p>which amounts to the actual query of &quot;test=this&quot; (this is what I want).</p>
+<p>However, under 1.8 sdk I get a raw request of</p>
+<pre><code class="hljs">GET /<span class="hljs-built_in">search</span>?<span class="hljs-keyword">q</span>=test%<span class="hljs-number">253</span>Dthis HTTP/<span class="hljs-number">1.1</span>
+Hos<span class="hljs-variable">t:</span> google.<span class="hljs-keyword">com</span>
+...
+</code></pre><p>notice how the &quot;%&quot; has been url encoded into %25 thus making the actual query &quot;test%3Dthis&quot; (which is doubly escaped).</p>
+<p>Where this bug is particularly causing my problems is when trying to retrieve files from amazon s3. My app returns a 302 response that looks something like this:</p>
+<pre><code class="hljs"><span class="hljs-status">HTTP/1.1 <span class="hljs-number">302</span> FOUND</span>
+<span class="hljs-attribute">Date</span>: <span class="hljs-string">Wed, 22 Feb 2012 00:18:39 GMT</span>
+<span class="hljs-attribute">Server</span>: <span class="hljs-string">Apache/2.2.16 (Amazon)</span>
+<span class="hljs-attribute">Vary</span>: <span class="hljs-string">Cookie</span>
+<span class="hljs-attribute">Location</span>: <span class="hljs-string">https://devencstorea1.s3.amazonaws.com/mydata/image.jpg?Signature=123ABC%3D</span>
+<span class="hljs-attribute">Content-Length</span>: <span class="hljs-string">0</span>
+<span class="hljs-attribute">Connection</span>: <span class="hljs-string">close</span>
+<span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">text/html; charset=utf-8</span>
+</code></pre><p>To get my file I need the key passed as &quot;123ABC=&quot;, but due to URL encoding the key is passed as &quot;123ABC%3D&quot;. </p>
+<p>I&#39;ve considered setting <code>autoRedirect = false</code> for my first request, then sending another request with the result (as this URL encoding problem doesn&#39;t seem to happen on the initial request), but this seems less than ideal.</p>
+<p>Also, the <code>autoEncodeUrl</code> property seems to be for android only and I&#39;m not entirely sure is applicable to redirects anyway.</p>
+<p>Any one else experiencing this problem &#x2F; know a work around?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 21st 2012, 11:17:55 pm">February 21st 2012</span>
+				by <span class='authorname'>Trent Walkiewicz</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>302 found</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>redirect</span></li>
+					
+						<li><span class='tagname'>s3</span></li>
+					
+						<li><span class='tagname'>url</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>This is still a problem in the 1.8.2 SDK</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 1st 2012, 5:05:02 pm">March 1st 2012</span>
+								by <span class='authorname'>Trent Walkiewicz</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-231384">
+				
+						<section>
+							<p>I&#39;ve <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-676">filed a ticket</a> with a more succinct explanation as well as example code if anyone is having similar problems. I&#39;ll update this question if &#x2F; when I hear back.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 23rd 2012, 8:44:14 pm">February 23rd 2012</span>
+								by <span class='authorname'>Trent Walkiewicz</span><br>
+								<a class="icon-bg icon-link" href="question/132556/improper-url-encoding-for-302-found-on-18#answer-231384" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-248859">
+				
+						<section>
+							<p>I think this is still a problem in Ti SDK 2.1.2 GA  and I can confirm the <code>autoEncodeUrl</code>-property doensn&#39;t (if it even is supposed to) fix it for me either in iOS at least (didnt test Android). However I didnt find this a problem in 1.8.X features (I think I used up to 1.8.2 in combination with iOS 4.3 (!)), I only found out now when instantly upgrading to the 2.1.2 GA with iOS 6.0.</p>
+<p>If I <code>raw_urldecode()</code> the &#39;url to redirect to&#39; on the serverside before actually redirecting, the xhr succesfully fetches the final url. So indeed this confirms the URLencoding according to my logics. </p>
+<p>Now only to find out whether pre 1.8ish-behaviour was the correct behaviour or there is some other solution to this, other than server side encoding….</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 8th 2012, 9:33:14 pm">October 8th 2012</span>
+								by <span class='authorname'>Roeland P</span><br>
+								<a class="icon-bg icon-link" href="question/132556/improper-url-encoding-for-302-found-on-18#answer-248859" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

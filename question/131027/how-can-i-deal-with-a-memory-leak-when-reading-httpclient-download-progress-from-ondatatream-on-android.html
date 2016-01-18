@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How can I deal with a memory leak when reading httpclient download progress from ondatatream on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How can I deal with a memory leak when reading httpclient download progress from ondatatream on Android</h1>
+		</header>
+		<section>
+			<p>Below is a working sample of code I am using to test downloads on an android 3.1 tablet.</p>
+<p>For simplicity sake rather then downloading several different files it currently tries to download the same file 1000 times, and I have left out all error checking.</p>
+<p>All it needs to be used is to set the requestURI variable to the location of a file to download (i.e. &quot;http:&#x2F;&#x2F;…jpg&quot;)</p>
+<p>Without the ondatastream event it is capable of downloading any number of files (it handled downloading 1000 1Mb jpg files without issue), but with ondatastream the httpclient seems not to be properly cleared and it runs out of memory after only a few repetitions.</p>
+<p>I thought maybe that overuse of Ti.Api.info to read the progress may be causing problems but even with this line taken out the device still runs out of memory and the application crashes. As long as I have an ondatastream event handler it crashes every time, even if I do no processing at all within the ondatastream event.</p>
+<p>The main issue is that without using ondatastream I can&#39;t monitor download progress. </p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span><span class="hljs-collection">{
+    var xhr;
+    var reps = <span class="hljs-number">1000</span><span class="hljs-comment">;</span>
+
+    function downloadFileList<span class="hljs-list">(<span class="hljs-keyword">index</span>)</span>
+    <span class="hljs-collection">{
+        Ti.API.info<span class="hljs-list">(<span class="hljs-string">"download: "</span> + index)</span><span class="hljs-comment">;</span>
+        if <span class="hljs-list">( xhr == null )</span> <span class="hljs-collection">{
+            xhr = Ti.Network.createHTTPClient<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+        }</span>
+
+        var requestURI = 'http://upload.wikimedia.org/wikipedia/commons/1/16/AsterNovi-belgii-flower-1mb.jpg';
+
+        xhr.open<span class="hljs-list">(<span class="hljs-string">"GET"</span>,requestURI)</span><span class="hljs-comment">;</span>
+
+        xhr.ondatastream = function<span class="hljs-list">(<span class="hljs-keyword">e</span>)</span><span class="hljs-collection">{
+            Ti.API.info<span class="hljs-list">(<span class="hljs-keyword">e.progress</span>)</span><span class="hljs-comment">;</span>
+        }</span>
+
+        xhr.onload = function<span class="hljs-list">()</span>
+        <span class="hljs-collection">{
+            var response = this.responseData;
+
+            var dest = Ti.Filesystem.getFile<span class="hljs-list">(<span class="hljs-keyword">Ti.Filesystem.getExternalStorageDirectory</span><span class="hljs-list">()</span>, <span class="hljs-string">"file_"</span> + index + <span class="hljs-string">".jpg"</span>)</span><span class="hljs-comment">;</span>
+
+            if <span class="hljs-list">(<span class="hljs-keyword">response.type</span> == <span class="hljs-number">1</span>)</span><span class="hljs-collection">{
+                var f = Ti.Filesystem.getFile<span class="hljs-list">(<span class="hljs-keyword">response.nativePath</span>)</span><span class="hljs-comment">;</span>
+
+                if <span class="hljs-list">(<span class="hljs-keyword">dest.exists</span><span class="hljs-list">()</span>)</span><span class="hljs-collection">{
+                    dest.deleteFile<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                }</span>
+
+                f.move<span class="hljs-list">(<span class="hljs-keyword">dest.nativePath</span>)</span><span class="hljs-comment">;</span>
+                f = null;
+            }</span>else<span class="hljs-collection">{
+                dest.write<span class="hljs-list">(<span class="hljs-keyword">response</span>)</span><span class="hljs-comment">;</span>
+            }</span>
+
+            dest = null;
+            response = null;
+            xhr = null;
+
+            if <span class="hljs-list">(<span class="hljs-keyword">index</span> &lt; reps)</span><span class="hljs-collection">{
+                downloadFileList<span class="hljs-list">(<span class="hljs-keyword">index+1</span>)</span><span class="hljs-comment">;</span>
+            }</span>
+        }</span>
+
+        xhr.send<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+    }</span>
+
+    downloadFileList<span class="hljs-list">(<span class="hljs-number">0</span>)</span><span class="hljs-comment">;</span>
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 23rd 2012, 6:10:53 am">January 23rd 2012</span>
+				by <span class='authorname'>Liam Manderson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>ondatasend</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-228254">
+				
+						<section>
+							<p>I have managed to bypass the issue by using an interval and collecting the file length from the responseheader manually and working out the progress from the current httpclient data length.  I then clear the interval in the onload event.</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> xhrProgress</span> = setInterval(function(){
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> total_length</span> = xhr.getResponseHeader(<span class="hljs-string">"Content-Length"</span>);
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> current_length</span> = xhr.responseData.length;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> progress</span> = current_length/total_length;
+
+    Ti.API.info(progress);
+
+    total_length = <span class="hljs-literal">null</span>;
+    current_length = <span class="hljs-literal">null</span>;
+    progress = <span class="hljs-literal">null</span>;
+}, <span class="hljs-number">1000</span>)
+</code></pre><p>then in xhr.onload</p>
+<pre><code class="hljs">clearInterval<span class="hljs-list">(<span class="hljs-keyword">xhrProgress</span>)</span><span class="hljs-comment">;</span>
+</code></pre><p>This works ok for now, but it would be good to find some answer to why the ondatastream event is causeing the client not to be cleared on Android.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 23rd 2012, 7:58:09 am">January 23rd 2012</span>
+								by <span class='authorname'>Liam Manderson</span><br>
+								<a class="icon-bg icon-link" href="question/131027/how-can-i-deal-with-a-memory-leak-when-reading-httpclient-download-progress-from-ondatatream-on-android#answer-228254" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Would really like to know why this is leaking.. have you submitted a JIRA?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 22nd 2012, 10:47:17 am">February 22nd 2012</span>
+											by <span class='authorname'>Mark Henderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Also where do you run this set interval? My xhr does not have a getResponseHeader()</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 22nd 2012, 10:58:23 am">February 22nd 2012</span>
+											by <span class='authorname'>Mark Henderson</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

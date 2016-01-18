@@ -1,0 +1,219 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Javascript not getting evaluated correctly » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Javascript not getting evaluated correctly</h1>
+		</header>
+		<section>
+			<p>After struggling for few days I posted a <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;133309&#x2F;javascript-scripting-issue">question</a>  here related to modifying proxy object and storing user defined data in it. I am sure I am missing something or not able to understand the proxy stuff mentioned in the article.</p>
+<p>Here is my new problem.</p>
+<p>I have Titanium.Network.createHTTPClient which I want to wrap it using javascript object as given below so that I can store user defined data in it.</p>
+<p>but http client calls a method which registered for onerror and onload. As it is called through native object so I lost reference to wrapper object.<br>I want to get handle to wrapper object for further processing.</p>
+<p>So what I have thought is as below, may sound complex. I am finding tough to get used to titanium, I am coming from java background.</p>
+<ol>
+<li>create a NativeWrapper module (pure javascript).</li>
+<li>register all wrapper object with it.</li>
+<li>native wrapper module is suppose to assign a key to native object</li>
+<li>native wrapper module will maintain map (array with key and value).</li>
+<li>value will be the wrapper object.</li>
+<li>once we have the native (proxy object) which has the key we can get the reference to wrapper object which is already stored in native wrapper module.</li>
+</ol>
+<p>Problem:<br>While storing the wrapper object I see it is getting added to the array. But once it is out of the method the array loose the reference to the key and value. I read that this type of observation is true for proxy object (native). But I am finding same observation with pure javascript, am I missing anything here?</p>
+<p>Workaround: Instead of creating a separate module store the wrapper in the native component. any change in wrapper property should re assign wrapper object back to native object. But this is hard to track and puts a lots of over head in maintaining both the instance in sync.</p>
+<pre><code class="hljs"><span class="hljs-comment">//Ti.App.wrapperProxy is reference to NativeWrapper module</span>
+<span class="hljs-comment">//HttpClient</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">WrappedHTTPClient</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.proxy = Titanium.Network.createHTTPClient();
+    <span class="hljs-keyword">this</span>.proxy.onload =<span class="hljs-keyword">this</span>.HttpOnLoad;
+    <span class="hljs-keyword">this</span>.proxy.onerror =<span class="hljs-keyword">this</span>.HttpOnError;
+    <span class="hljs-comment">//this.proxy.myWrraper={wrapper:this};</span>
+    Ti.App.wrapperProxy.NativeWrapperHandler.registerNative(<span class="hljs-keyword">this</span>);
+}
+WrappedHTTPClient.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">method,url,async</span>) </span>{
+    <span class="hljs-keyword">this</span>.proxy.open(method, url, <span class="hljs-keyword">async</span>);
+};
+
+WrappedHTTPClient.prototype.setRequestHeader = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">headerName, headerValue</span>) </span>{
+    <span class="hljs-keyword">this</span>.proxy.setRequestHeader(headerName, headerValue);
+};
+WrappedHTTPClient.prototype.send=<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">args</span>) </span>{
+    <span class="hljs-keyword">if</span>(args == <span class="hljs-literal">undefined</span>) {
+        <span class="hljs-keyword">this</span>.proxy.send();
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">this</span>.proxy.send(args);
+    }
+}
+WrappedHTTPClient.prototype.getResponseText=<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.proxy.responseText;
+}
+
+WrappedHTTPClient.prototype.HttpOnLoad=<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> myWrraper = Ti.App.wrapperProxy.NativeWrapperHandler.getWrapperObject(<span class="hljs-keyword">this</span>);
+    <span class="hljs-comment">//as this is passed to http client so this will be nothing but the proxy.</span>
+    <span class="hljs-comment">//var myWrraper = this.myWrraper['wrapper'];</span>
+    <span class="hljs-comment">// below code is for actual execution can be commented. as not used in this context.</span>
+    <span class="hljs-keyword">if</span>(myWrraper.onload != <span class="hljs-literal">undefined</span>) {
+        myWrraper.onload();    
+    }
+}
+WrappedHTTPClient.prototype.HttpOnError=<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">event</span>) </span>{
+    <span class="hljs-keyword">var</span> myWrraper = Ti.App.wrapperProxy.NativeWrapperHandler.getWrapperObject(<span class="hljs-keyword">this</span>);
+    <span class="hljs-comment">//    var myWrraper = this.myWrraper['wrapper'];</span>
+    <span class="hljs-comment">// below code is for actual execution can be commented. as not used in this context.</span>
+    <span class="hljs-keyword">if</span>(myWrraper.onerror != <span class="hljs-literal">undefined</span>) {
+        myWrraper.onerror(event);    
+    }
+}
+<span class="hljs-keyword">export</span>.HttpClient = WrappedHTTPClient;
+</code></pre><pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">NativeWrapper</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.handlerName = <span class="hljs-string">''</span>+<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getMilliseconds();
+    <span class="hljs-keyword">this</span>.nativeWrapperHandler = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>();
+    <span class="hljs-keyword">this</span>.registerNative=<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">wrapper</span>) </span>{
+        <span class="hljs-keyword">var</span> nativeComponent = wrapper.proxy;
+        <span class="hljs-keyword">if</span>(wrapper._proxy != <span class="hljs-literal">undefined</span>) {
+            nativeComponent = wrapper._proxy;
+        }
+        <span class="hljs-keyword">var</span> d = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+        <span class="hljs-keyword">var</span> randomId = <span class="hljs-built_in">Math</span>.floor(<span class="hljs-built_in">Math</span>.random()*<span class="hljs-number">20</span>);
+        nativeComponent.wrapperKey=<span class="hljs-string">''</span>+randomId+<span class="hljs-string">'_'</span>+d.getMilliseconds();
+        <span class="hljs-keyword">this</span>.nativeWrapperHandler[<span class="hljs-string">'native_'</span>+nativeComponent.wrapperKey] = wrapper;
+        <span class="hljs-keyword">var</span> wrapper1 =  <span class="hljs-keyword">this</span>.nativeWrapperHandler[<span class="hljs-string">'native_'</span>+nativeComponent.wrapperKey];
+        <span class="hljs-keyword">if</span>(wrapper1 != <span class="hljs-literal">undefined</span>) {
+            Ti.API.info(<span class="hljs-string">"wrapper Found..."</span>);
+        }
+        nativeComponent.gtWrapperObject = gtWrapperObject;
+        <span class="hljs-comment">//this.nativeWrapperHandler = this.nativeWrapperHandler;</span>
+
+    }
+
+    <span class="hljs-keyword">this</span>.removeNative=<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">wrapper</span>) </span>{
+        <span class="hljs-keyword">var</span> nativeComponent = wrapper.proxy;
+        <span class="hljs-keyword">if</span>(wrapper._proxy != <span class="hljs-literal">undefined</span>) {
+            nativeComponent = wrapper._proxy;
+        }
+        <span class="hljs-keyword">this</span>.nativeWrapperHandler[<span class="hljs-string">'native_'</span>+nativeComponent.wrapperKey]= <span class="hljs-literal">null</span>;
+    }
+
+    <span class="hljs-keyword">this</span>.getWrapperObject=<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">nativeReference</span>) </span>{
+        <span class="hljs-keyword">var</span> keyToFind = <span class="hljs-string">'native_'</span>+nativeReference.wrapperKey;
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.nativeWrapperHandler[keyToFind];
+    }
+}
+<span class="hljs-keyword">var</span> NativeWrapperHandler = <span class="hljs-keyword">new</span> NativeWrapper();
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">gtWrapperObject</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> NativeWrapperHandler.getWrapperObject(<span class="hljs-keyword">this</span>);
+}
+exports.NativeWrapperHandler = NativeWrapperHandler;
+</code></pre><pre><code class="hljs">var httpClient = require('HttpClient');
+var wrapperProxy = require('WrapperProxy');
+var hc = new HttpClient();
+
+//I have my business logic here for the get request.
+
+// on <span class="hljs-operator"><span class="hljs-keyword">load</span> <span class="hljs-keyword">I</span> am <span class="hljs-keyword">call</span> <span class="hljs-keyword">to</span> my registered method  <span class="hljs-string">'WrappedHTTPClient.prototype.HttpOnLoad'</span>
+//<span class="hljs-keyword">then</span> <span class="hljs-keyword">I</span> am trying <span class="hljs-keyword">to</span> <span class="hljs-keyword">get</span> the actual wrapper <span class="hljs-keyword">object</span> (pure javascript).
+//below line <span class="hljs-keyword">is</span> just <span class="hljs-keyword">for</span> <span class="hljs-keyword">reference</span> (proxy <span class="hljs-keyword">is</span> actual httpclient) <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> <span class="hljs-built_in">real</span> code. please look <span class="hljs-keyword">into</span>   <span class="hljs-string">'WrappedHTTPClient.prototype.HttpOnLoad'</span> <span class="hljs-keyword">for</span> the actual code.
+wrapperProxy.getWrapperObject(proxy);</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 8th 2012, 8:52:46 am">March 8th 2012</span>
+				by <span class='authorname'>avaya sahu</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>nested property</span></li>
+					
+						<li><span class='tagname'>proxy</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-232736">
+				
+						<section>
+							<p>If you mean that the context of <code>this</code> changes, then you should assign the value of <code>this</code> to a local variable and reference it from there.</p>
+<p><code>var self = this;</code></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 8th 2012, 9:55:53 am">March 8th 2012</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/133444/javascript-not-getting-evaluated-correctly#answer-232736" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

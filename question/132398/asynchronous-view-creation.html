@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Asynchronous view creation » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Asynchronous view creation</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I am developing an OpenGL module for Appcelerator. Here is a sample code snippet of how its going to be used in JS:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> glView = tiuoozo.createGlView({
+                                  left: 10,
+                                  top: 10,
+                                  width: 200,
+                                  height: 200,
+<span class="hljs-comment">//                                  backgroundColor: "#00FFFF"</span>
+});
+
+<span class="hljs-keyword">window</span>.add(glView);
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">gl</span> = glView;
+<span class="hljs-keyword">var</span> texture = <span class="hljs-keyword">gl</span>.createTexture();
+Ti.API.info(<span class="hljs-string">"Texture Is: "</span> + texture);
+<span class="hljs-keyword">gl</span>.bindTexture(<span class="hljs-keyword">gl</span>.TEXTURE_2D, texture);
+</code></pre><p>Now the problem is that createGlView actually doesn&#39;t create the view and the GL context isn&#39;t ready when the <code>gl.createTexture();</code> call is made. This is completely screwing up my code flow.<br>How can I block javascript while my view is being initialized (i.e. <code>initWithFrame</code>). I would also like to block when <code>frameSizeChanged</code> is called because certain GL elements will need to be reinitialized.<br>This is iOS btw. I will have an equivalent Android module as well. I would appreciate if someone can tell me the relevant API for that platform as well. </p>
+<p>Thanks.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 19th 2012, 6:21:18 am">February 19th 2012</span>
+				by <span class='authorname'>Zulfiqar Malik</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>opengl</span></li>
+					
+						<li><span class='tagname'>view</span></li>
+					
+						<li><span class='tagname'>viewproxy</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-230847">
+				
+						<section>
+							<p>Hi, view creation is always asynchronous and you cannot change this behavior.<br>What gets created in a synchronous way is the ViewProxy object, which is responsible of the creation of the View object. </p>
+<p>Now, what do  you mean with &quot;while my view is being initialized. I would also like to block when frameSizeChanged is called because certain GL elements will need to be reinitialized&quot;?</p>
+<p>When the proxy instantiates the view you have the chance to initialize it by overriding the <code>initializeState</code> method of <code>TiUIView</code>. Overriding <code>initWithFrame</code> doesn&#39;t usually do what you&#39;d expect, since the view is initially created with a fictitious frame that doesn&#39;t reflect the values of the layout properties set in JS-land. So, getting to the point, <code>bindTexture()</code> should set the texture on the view with the current information (i.e. a possibly screwed frame), then you have the chance to fix things in <code>frameSizeChanged()</code> (which is called several times during the view lifeCycle). There you should probably do something similar to what you did in <code>bindTexture()</code> reapplying the texture considering the changed frame size. </p>
+<p>I hope this clarifies things a bit. For better understanding what&#39;s going on under the hood I suggest you to have a look at how the various views under the Ti.UI namespace are implemented in the Ti SDK source code.</p>
+<p>Cheers</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 19th 2012, 2:29:49 pm">February 19th 2012</span>
+								by <span class='authorname'>Olivier Morandi</span><br>
+								<a class="icon-bg icon-link" href="question/132398/asynchronous-view-creation#answer-230847" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-230856">
+				
+						<section>
+							<p>Hi,</p>
+<p>I&#39;ve been working on an Appcelerator OpenGL module for a week or so and the concurrency model for modules just baffles my mind. Consider the following source:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> textureId = <span class="hljs-keyword">gl</span>.createTexture();
+<span class="hljs-keyword">gl</span>.bindTexture(<span class="hljs-keyword">gl</span>.TEXTURE_2D, textureId);
+</code></pre><p>Straight forward eh?! The <code>gl</code> object is a proxy which encapsulates a view wrapping the native OpenGL ES API. My problem is that, generally speaking, you either want the whole thing to be concurrent or not. Since OpenGL in iOS does not support multithreading I queue up the operation on the main thread and get a nonsense value in <code>textureId</code> which is unusable in the <code>bindTexture</code> call later on. I can get around this whole problem by using double indirection i.e. returning a textureId which maps to an array of (un)initialized GL textures which I can then lazy initialize whenever someone tries to do an operation on that texture. This is a pain, to say the least and completely counter-intuitive.<br>I should have the power to make entire proxy calls run on a single thread. Its generally pointless queuing one function call on one thread and the next one another one.<br>So essentially my questions are:</p>
+<ol>
+<li>Can I make everything belonging to a particular proxy run on a single thread? Remember that I also have to return values and I would like to avoid double lookups as much as possible. </li>
+<li>If the above is not possible then what is the best way of returning &#39;something&#39; which I can then lazy initialize later on?</li>
+</ol>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 19th 2012, 4:22:02 pm">February 19th 2012</span>
+								by <span class='authorname'>Zulfiqar Malik</span><br>
+								<a class="icon-bg icon-link" href="question/132398/asynchronous-view-creation#answer-230856" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Mmmm, this looks like a different question from the original one to me ;-).</p>
+<p>Can you explain better what you mean with: &quot;I queue up the operation on the main thread and get a nonsense value in textureId which is unusable in the bindTexture call later on&quot;?</p>
+<p>Anyway, proxy method invocations are synchronous and run on a single thread. Please consider also that the proxy is the best place for holding references to model objects which can be then queried by the view when needed through the <code>proxy</code> property of TiUIView.</p>
+<p>This is pretty much what I can say without seeing a piece of code…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 19th 2012, 8:30:03 pm">February 19th 2012</span>
+											by <span class='authorname'>Olivier Morandi</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
