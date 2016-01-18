@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Display a PDF in app that was a BLOB in a MySQL database » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Display a PDF in app that was a BLOB in a MySQL database</h1>
+		</header>
+		<section>
+			<p>I am trying to display a PDF in my app.  The PDF is stored in a MySQL database as 9 separate BLOB files.  I wrote a PHP script that contains the SQL query to get the BLOB for the PDF that I want (along with the BLOB&#39;s ID and fileID.  Everything is stored in an array).  This PHP script resides on the same server as the MySQL database.<br>In my app, I created an HTTPClient to get the all of the information and push it into an array.  Since it&#39;s 9 separate BLOBs that make up the 1 PDF, I need to somehow concatenate those and then I need to display the PDF in the app.  I have no idea how to do this though.  </p>
+<p>*Important Note - I CANNOT change the way that the PDFs are stored in the MySQL database.</p>
+<p>Here is the PHP script that I wrote:</p>
+<pre><code class="hljs">&lt;?php
+<span class="hljs-variable">$mysqli</span> = new mysqli(<span class="hljs-string">"localhost"</span>,<span class="hljs-string">"root"</span>,<span class="hljs-string">"password"</span>,<span class="hljs-string">"database"</span>);
+<span class="hljs-keyword">if</span> (mysqli_connect_errno()) {
+    printf(<span class="hljs-string">"Can't connect to SQL Server. Error Code %s\n"</span>, mysqli_connect_error(<span class="hljs-variable">$mysqli</span>));
+    exit;
+}
+// Set the <span class="hljs-keyword">default</span> <span class="hljs-keyword">namespace</span> <span class="hljs-keyword">to</span> utf8
+<span class="hljs-variable">$mysqli-</span>&gt;query(<span class="hljs-string">"SET NAMES 'utf8'"</span>);
+<span class="hljs-variable">$json</span>   = <span class="hljs-keyword">array</span>();
+<span class="hljs-keyword">if</span>(<span class="hljs-variable">$result</span> = <span class="hljs-variable">$mysqli-</span>&gt;query(<span class="hljs-string">"SELECT b.id, fileid, datachunk  FROM jos_downloads_blob b join jos_downloads_files f on f.id = b.fileid where published =1 and filetitle = 'Judicial Directory' order by b.id;"</span>)) {
+
+    while (<span class="hljs-variable">$row</span>=<span class="hljs-variable">$result-</span>&gt;fetch_assoc()) {
+        <span class="hljs-variable">$json</span>[]=array(
+            <span class="hljs-string">'id'</span>=&gt;<span class="hljs-variable">$row</span>[<span class="hljs-string">'id'</span>],
+            <span class="hljs-string">'fileid'</span>=&gt;<span class="hljs-variable">$row</span>[<span class="hljs-string">'fileid'</span>],
+            <span class="hljs-string">'blob'</span>=&gt;<span class="hljs-variable">$row</span>[<span class="hljs-string">'datachunk'</span>]
+        );
+    }
+}
+<span class="hljs-variable">$result-</span>&gt;close();
+
+header(<span class="hljs-string">"Content-Type: text/json"</span>);
+echo json_encode(<span class="hljs-keyword">array</span>( <span class="hljs-string">'directory'</span>  =&gt;  <span class="hljs-variable">$json</span> )); 
+
+<span class="hljs-variable">$mysqli-</span>&gt;close(); 
+?&gt;
+</code></pre><p>Then in my app, I&#39;ve written the following code to get the results into an array:</p>
+<pre><code class="hljs">var blobs = [];
+var xhr = Ti.Network.createHTTPClient();
+xhr.onload = function(){
+    var json = JSON.parse(this.responseData);
+    var json = json.directory;
+    var <span class="hljs-keyword">pos</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">pos</span>=<span class="hljs-number">0</span>;<span class="hljs-keyword">pos</span>&lt;json.<span class="hljs-keyword">length</span>;<span class="hljs-keyword">pos</span>++){
+        blobs.<span class="hljs-keyword">push</span>({
+            id: json[<span class="hljs-keyword">pos</span>].id,
+            fileid: json[<span class="hljs-keyword">pos</span>].fileid,
+            blob: json[<span class="hljs-keyword">pos</span>].blob
+        });
+    };
+};
+xhr.<span class="hljs-keyword">open</span>(<span class="hljs-string">'GET'</span>,<span class="hljs-string">'http://www.myurl/myscript.php'</span>);
+xhr.<span class="hljs-keyword">send</span>();
+</code></pre><p>Then, based off of other posts that I&#39;ve been reading, I tried to read the blobs and concatenate them, but I&#39;m not sure if this is correct or where I go from here in order to display the PDF:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> pos;
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span>;
+<span class="hljs-keyword">var</span> docPart;
+<span class="hljs-keyword">for</span> (pos=0;pos&lt;blobs.length;pos++){
+    <span class="hljs-keyword">file</span> = blobs[pos].blob    
+    <span class="hljs-keyword">var</span> blobStream = Ti.Stream.createStream({source: <span class="hljs-keyword">file</span>, mode:Ti.Stream.MODE_READ});
+    <span class="hljs-keyword">var</span> buffer = Ti.createBuffer({length:<span class="hljs-keyword">file</span>.length});
+    docPart = blobStream.<span class="hljs-keyword">read</span>(buffer);    
+};
+</code></pre><p>Any help on how to combine the 9 BLOBs into one and then display my PDF would be greatly appreciated!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 8th 2012, 6:04:45 pm">November 8th 2012</span>
+				by <span class='authorname'>Sarah Smith</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>blob</span></li>
+					
+						<li><span class='tagname'>mysql</span></li>
+					
+						<li><span class='tagname'>pdf</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Ok, let me first start by saying, no sarcasm here, just pure empathy…</p>
+<p>Wow.</p>
+<p>Some assumptions: </p>
+<ul>
+<li>You are restricted from concatting on the server and handing the client the document.</li>
+<li>You are restricted from writing the pdf to the device.</li>
+</ul>
+<p>true?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 8th 2012, 6:26:04 pm">November 8th 2012</span>
+								by <span class='authorname'>Stephen Feather</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>on iOS a PDF file will be opened in Safari for display, without requiring the need for additional apps.</p>
+<p>On android, there is no default PDF viewer available and the user will require a &#39;helper application&#39; namely an app that can receive a local file via an intent to open it.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 8th 2012, 6:44:20 pm">November 8th 2012</span>
+								by <span class='authorname'>Stephen Feather</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I guess I could concatenate the BLOBs on the server side and then return the big BLOB, but I still then don&#39;t know how to convert that into a viewable PDF.<br>I can&#39;t store the pdf on the device because it changes frequently and I don&#39;t want to have to do an app update every time the document changes.<br>The document is stored in a document repository as BLOBs in the database, so there is no physical file in a directory that I can go retrieve. If that was the case, I would have figured this out DAYS ago!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 8th 2012, 7:12:32 pm">November 8th 2012</span>
+								by <span class='authorname'>Sarah Smith</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>either way, server side or client side, you need to create a physical file from the blobs in order to pass them to an appropriate reader (there is a reader module in the appcelerator marketplace you might want to look at to maintain control over everything)  It makes sense to me to create it on the server where there are more processor resources, download it to a temporary directory on the device and open it using whatever method is platform appropriate. Surely this information is available to web users, so the servers already have code someplace in php that you can borrow to regenerate a pdf from the blobs.</p>
+<p>If there are no restrictions on creating a physical file, I&#39;d head in this direction.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 8th 2012, 8:47:30 pm">November 8th 2012</span>
+								by <span class='authorname'>Stephen Feather</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

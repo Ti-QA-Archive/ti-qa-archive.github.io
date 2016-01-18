@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>ACS - Recurring Events &amp; other Events has start_date as the First start_date and not the current recurring » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>ACS - Recurring Events &amp; other Events has start_date as the First start_date and not the current recurring</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been wanting to fetch All Events (Occurring ones &amp; One Time events) that fall between a Start Date: Today &amp; 7 days from now, I am receiving all the Events, though in my List in Titanium, I&#39;d like them to be sorted by start_time.</p>
+<p>Recurring Events, that are in their second, or third occurences, start have as <code>start_time</code> the Initial Start Date of the First Occurrence, and not the current one.</p>
+<pre><code class="hljs">Cloud.Events.queryOccurrences({
+            page: <span class="hljs-number">1</span>,
+            per_page: <span class="hljs-number">15</span>,
+            where: { start_time : { <span class="hljs-string">"$gte"</span> : startDate.format(), <span class="hljs-string">"$lt"</span> : endDate.format() } }, 
+            order: <span class="hljs-string">'start_time'</span> }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-keyword">if</span> (e.success) {  
+                    <span class="hljs-keyword">var</span> eventsTableData = [];
+                    <span class="hljs-keyword">if</span> (e.event_occurrences.length &lt; <span class="hljs-number">1</span>) {
+                        noEventsFoundLabel.visible = <span class="hljs-literal">true</span>;
+                        eventTableView.visible = <span class="hljs-literal">false</span>;
+                    } <span class="hljs-keyword">else</span> {
+                        noEventsFoundLabel.visible = <span class="hljs-literal">false</span>;
+                        <span class="hljs-keyword">var</span> firstHeader;
+                        <span class="hljs-keyword">var</span> oldfirstHeader;
+                        <span class="hljs-keyword">var</span> oldDate;
+                        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; e.event_occurrences.length; i++){
+                            <span class="hljs-comment">// POPULATE THE EVENTS TABLE VIEW</span>
+                            <span class="hljs-keyword">var</span> currentEvent = e.event_occurrences[i].event;
+                            <span class="hljs-keyword">var</span> _date = currentEvent.start_time;
+                            Ti.API.info(<span class="hljs-string">'-----\nNAME: '</span> + currentEvent.name);
+                            Ti.API.info(<span class="hljs-string">'ACS returned Date: '</span> + currentEvent.start_time);
+                            <span class="hljs-keyword">var</span> parsedDate = moment(_date.substring(<span class="hljs-number">0</span>, <span class="hljs-number">19</span>)).subtract(<span class="hljs-string">'h'</span>, <span class="hljs-number">5</span>);       <span class="hljs-comment">// Adjusted Time Zone to EST!</span>
+                            Ti.API.info(<span class="hljs-string">'Formatted to now?: '</span> + parsedDate);
+                            <span class="hljs-comment">// all new ones as headers &amp; set all common headers as null, </span>
+                            firstHeader = parsedDate.calendar();
+
+                            <span class="hljs-comment">// Compare the current date if it's before the current one... ignore &amp; use current, </span>
+                            <span class="hljs-comment">// cause all current ones are sorted from yesterday to tomorrow.</span>
+                            Ti.API.info(<span class="hljs-string">'Diff in Hours: '</span> + parsedDate.diff(oldDate, <span class="hljs-string">'hours'</span>));
+
+                            <span class="hljs-keyword">if</span>(i == <span class="hljs-number">0</span>){
+                                oldfirstHeader = firstHeader;
+                                oldDate = parsedDate;
+                            } <span class="hljs-keyword">else</span> {
+                                <span class="hljs-keyword">if</span>(firstHeader == oldfirstHeader){
+                                    oldfirstHeader = <span class="hljs-literal">null</span>;
+                                } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (parsedDate.diff(oldDate, <span class="hljs-string">'days'</span>) &lt; <span class="hljs-number">0</span>) {
+                                    oldfirstHeader = <span class="hljs-literal">null</span>;
+                                } <span class="hljs-keyword">else</span> {
+                                    oldfirstHeader = firstHeader;
+                                    oldDate = parsedDate;
+                                }
+                            }
+                            <span class="hljs-keyword">var</span> row = Titanium.UI.createTableViewRow({hasChild:<span class="hljs-literal">true</span>, selectedBackgroundColor: <span class="hljs-string">'#79B0A9'</span>, 
+                                                                      backgroundGradient: { type:<span class="hljs-string">'linear'</span>, colors:[ {color:<span class="hljs-string">'#E5E5E5'</span>,position:<span class="hljs-number">0.0</span>}, {color:<span class="hljs-string">'#DEDEDE'</span>,position:<span class="hljs-number">0.50</span>}, {color:<span class="hljs-string">'#D4D4D4'</span>,position:<span class="hljs-number">1.0</span>} ] }, 
+                                                                      className: <span class="hljs-string">'default'</span>, hasDetail: <span class="hljs-literal">true</span>, 
+                                                                      header: oldfirstHeader,
+                                                                      dataObject: currentEvent, 
+                                                                      layout: <span class="hljs-string">'absolute'</span> });
+                            oldfirstHeader = firstHeader; <span class="hljs-comment">// reset the current to the old</span>
+                            oldDate = parsedDate;
+</code></pre><p><img src="http:&#x2F;&#x2F;i50.tinypic.com&#x2F;b7z7gp.png" alt="alt text"></p>
+<p>The Issue I am having, is I&#39;d like to have the header (as a date) of the rows if similar to previous as null and if new (date) then have those rows underneath that one… But the problem is that recurring Events has as start_date the Initial Date, and not the reccurring ones… any ideas to solve this?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 29th 2012, 11:30:03 pm">November 29th 2012</span>
+				by <span class='authorname'>Joseph Sachs</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>date_time</span></li>
+					
+						<li><span class='tagname'>events</span></li>
+					
+						<li><span class='tagname'>recurring</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Another thing I noticed is that the Query is Ordered by <code>order: &amp;#39;start_time&amp;#39;</code>, and is correctly ordering the occurring dates in order with other events that happen in between, but it is Not giving the me the actual date of the occurring Event, and only the start_date when it was initially set.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 29th 2012, 11:43:27 pm">November 29th 2012</span>
+								by <span class='authorname'>Joseph Sachs</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-251932">
+				
+						<section>
+							<p>Another Solution I thought of doing, is adding the Number of recurring count to the start_date… but the problem is that ACS always has the recurring_count == num_occurrences, making it difficult to get the date of the recurring event at any moment it occurs.</p>
+<p>example: I&#39;ve set the recurring of an Event to Weekly, and make it for 3 weeks.<br><img src="http:&#x2F;&#x2F;i49.tinypic.com&#x2F;28wfk94.png" alt="alt text"></p>
+<p><strong>Todays Date is November 29</strong>, so the Event Started a Week ago, this occurrence would be the <strong>2nd out of 3</strong> events… though on that instance of the recurrence, when I query for this weeks events, that Event gets returned both recurring_count and num_occurrences are 3, whereas the recurring_count should be 2.</p>
+<p>The Variables passed for that Event on the second week of the Occurrence:<br><img src="http:&#x2F;&#x2F;i50.tinypic.com&#x2F;2qx73wz.png" alt="alt text"></p>
+<p>If it was 2, it would be easy for me to get the Occurrence date.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 30th 2012, 12:11:16 am">November 30th 2012</span>
+								by <span class='authorname'>Joseph Sachs</span><br>
+								<a class="icon-bg icon-link" href="question/145224/acs---recurring-events--other-events-has-startdate-as-the-first-startdate-and-not-the-current-recurring#answer-251932" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>If it was 2, it would be easy for me to get the Occurrence date with moment.js by adding 7<em>num_occurrences or recurring_count to the <strong>start_time</strong> 
+</em>(not sure which one would show the number of times the Event has been passed if it&#39;s recurring_count or num_occurrences - but unfortunately the two variables are always the same value)*.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 30th 2012, 12:15:18 am">November 30th 2012</span>
+											by <span class='authorname'>Joseph Sachs</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>No answer yet, I guess an answer would need to be from Appcelerator…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 1st 2012, 1:33:59 pm">December 1st 2012</span>
+											by <span class='authorname'>Joseph Sachs</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-252001">
+				
+						<section>
+							<p>My Mistake… The <code>start_datetime</code> property I was looking for, for that specific instance of the Occurrence Event was not in the <code>event</code> object of the Occurrence, but actually in the parent object!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 1st 2012, 4:32:47 pm">December 1st 2012</span>
+								by <span class='authorname'>Joseph Sachs</span><br>
+								<a class="icon-bg icon-link" href="question/145224/acs---recurring-events--other-events-has-startdate-as-the-first-startdate-and-not-the-current-recurring#answer-252001" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

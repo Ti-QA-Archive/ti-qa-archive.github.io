@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Can anyone improve my border detection code? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Can anyone improve my border detection code?</h1>
+		</header>
+		<section>
+			<p>I wrote this and am happy with it overall but its still a little &quot;off&quot;. Currently only tested in Android, anyone mind taking a look at this and seeing if they can improve it? The maxTop and maxBottom also dont seem to be correct.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> baseWidth = 0, baseHeight = 0;
+<span class="hljs-keyword">var</span> maxWidth = 0;
+<span class="hljs-keyword">var</span> imageHeight = 0;
+<span class="hljs-keyword">var</span> maxTop = 0, maxBottom = 0;
+<span class="hljs-keyword">var</span> halfWidth = 0, halfHeight = 0;
+<span class="hljs-keyword">var</span> oldX = 0, oldY = 0;
+
+<span class="hljs-comment">//get lesser of 2</span>
+<span class="hljs-keyword">if</span> (Ti.Platform.displayCaps.platformWidth &lt;= Ti.Platform.displayCaps.platformHeight) {
+    maxWidth = baseWidth = baseHeight = Ti.Platform.displayCaps.platformWidth;
+} <span class="hljs-keyword">else</span> {
+    maxWidth = baseWidth = baseHeight = Ti.Platform.displayCaps.platformHeight;
+}
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">win</span> = Ti.UI.createWindow({
+    backgroundColor : '#000',
+    fullscreen : false,
+    hideNavBar : true,
+    exitOnClose : true,
+    name : '<span class="hljs-keyword">win</span>'
+});
+
+<span class="hljs-keyword">var</span> imageView = Ti.UI.createImageView({
+    image : 'http:<span class="hljs-comment">//msgboard.snopes.com/photos/odd/graphics/watermelon3.jpg',</span>
+    width : '100%',
+    zIndex : 0,
+    touchEnabled : false
+});
+<span class="hljs-keyword">win</span>.add(imageView);
+
+<span class="hljs-keyword">var</span> cropView = Ti.UI.createView({
+    height : baseHeight,
+    width : baseWidth,
+    borderColor : 'black',
+    borderWidth : 8,
+    backgroundColor : 'transparent',
+    zIndex : 1,
+    touchEnabled : false
+});
+<span class="hljs-keyword">win</span>.add(cropView);
+
+<span class="hljs-keyword">win</span>.addEventListener('pinch', function(<span class="hljs-keyword">e</span>) {
+    <span class="hljs-keyword">var</span> newWidth = baseWidth * <span class="hljs-keyword">e</span>.scale;
+    <span class="hljs-keyword">var</span> newHeight = baseHeight * <span class="hljs-keyword">e</span>.scale;
+
+    <span class="hljs-comment">//dont allow to scale larger than smallest distance</span>
+    <span class="hljs-keyword">if</span> (newHeight &lt;= maxWidth || newWidth &lt;= maxWidth) {
+        cropView.height = baseHeight * <span class="hljs-keyword">e</span>.scale;
+        cropView.width = baseWidth * <span class="hljs-keyword">e</span>.scale;
+        halfWidth = cropView.width / 2;
+        halfHeight = cropView.height / 2;
+    }
+
+});
+<span class="hljs-keyword">win</span>.addEventListener('touchstart', function(<span class="hljs-keyword">e</span>) {
+    <span class="hljs-keyword">if</span> (imageHeight == 0) {
+        <span class="hljs-comment">//set first time properties</span>
+        imageHeight = imageView.toImage().height;
+        maxTop = ((Ti.Platform.displayCaps.platformHeight / 2) - (imageHeight / 2)) / 2;
+        maxBottom = imageHeight + maxTop;
+    }
+    baseHeight = cropView.height;
+    baseWidth = cropView.width;
+});
+
+<span class="hljs-keyword">win</span>.addEventListener('touchmove', function(<span class="hljs-keyword">e</span>) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.source.name == '<span class="hljs-keyword">win</span>') {
+        <span class="hljs-comment">//if all in bounds, move both ways</span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.x - halfWidth &gt;= 0 &amp;&amp; <span class="hljs-keyword">e</span>.x + halfWidth &lt;= maxWidth &amp;&amp; <span class="hljs-keyword">e</span>.y - halfHeight &gt;= maxTop &amp;&amp; <span class="hljs-keyword">e</span>.y + halfHeight &lt;= maxBottom) {
+            cropView.animate({
+                center : {
+                    x : <span class="hljs-keyword">e</span>.x,
+                    y : <span class="hljs-keyword">e</span>.<span class="hljs-literal">y</span>
+                },
+                duration : 0
+            });
+            oldX = <span class="hljs-keyword">e</span>.x;
+            oldY = <span class="hljs-keyword">e</span>.y;
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.x - halfWidth &gt;= 0 &amp;&amp; <span class="hljs-keyword">e</span>.x + halfWidth &lt;= maxWidth) {
+            <span class="hljs-comment">//move left and right</span>
+            cropView.animate({
+                center : {
+                    x : <span class="hljs-keyword">e</span>.x,
+                    y : oldY
+                },
+                duration : 0
+            });
+            oldX = <span class="hljs-keyword">e</span>.x;
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.y - halfHeight &gt;= maxTop &amp;&amp; <span class="hljs-keyword">e</span>.y + halfHeight &lt;= maxBottom) {
+            <span class="hljs-comment">//move up and down</span>
+            cropView.animate({
+                center : {
+                    x : oldX,
+                    y : <span class="hljs-keyword">e</span>.<span class="hljs-literal">y</span>
+                },
+                duration : 0
+            });
+            oldY = <span class="hljs-keyword">e</span>.y;
+        }
+
+    }
+});
+
+<span class="hljs-keyword">win</span>.<span class="hljs-keyword">open</span>();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 26th 2012, 1:13:46 pm">October 26th 2012</span>
+				by <span class='authorname'>andrew royce</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>border detection</span></li>
+					
+						<li><span class='tagname'>crop</span></li>
+					
+						<li><span class='tagname'>imageview</span></li>
+					
+						<li><span class='tagname'>scale</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

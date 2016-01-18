@@ -1,0 +1,572 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>strange issue with SplitWindow landscape behavior » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>strange issue with SplitWindow landscape behavior</h1>
+		</header>
+		<section>
+			<p>Hi developers,</p>
+<p>I&#39;m facing a problem with the SplitWindow on iPad in landscape-mode.</p>
+<p>The iPad version of my application is based on an iPhone version I&#39;ve developed earlier. On iPad I wanted to take advantage of the SplitWindow by extending the main window (in my case: ComposeWindow) of the iPhone app in the following way:</p>
+<p>The UI is based on a TableView. I want the main window (ComposeWindow) to go on the left side of the SplitWindow to appear like in the iPhone version. Then I want to extract some TableViewSections of it and put them in another TableView on the right side.<br>The NavigationBar (title, buttons, etc.) of my SplitWindow should be the same as on iPhone, so I&#39;m using the NavigationGroup of the left window for the tabGroup. For some actions the SplitWindow should use its own NavigationGroup. Another requirement is that the window that is re-buildable, that means I must be able to close ist, build it again and put this new instance back to the tabGroup.</p>
+<p>So far so good. Here comes the bug:<br>When I launch my application in portrait mode everything is fine an switching to landscape works as expected. But when launching straight from landscape it does something strange. It seems the windows don&#39;t know how much width-space is available and are displayed as small as possible. On the left side the width is tiny, on the right side it&#39;s like half-space.</p>
+<p>To reproduce this behavior &#x2F; error, I abstracted my code into one single file that you can execute:</p>
+<p><strong>app.js</strong></p>
+<pre><code class="hljs">
+<span class="hljs-comment">/**
+ * Application Window (iPad)
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ApplicationWindow</span><span class="hljs-params">()</span> </span>{
+
+    Ti.UI.setBackgroundColor(<span class="hljs-string">'#fff'</span>);
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createTabGroup();
+
+    <span class="hljs-keyword">var</span> composeWindow = (Ti.Platform.osname===<span class="hljs-string">'ipad'</span>) ? <span class="hljs-keyword">new</span> IpadComposeWindow() : <span class="hljs-keyword">new</span> ComposeWindow();
+
+    <span class="hljs-keyword">var</span> resetComposeWindow = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        baseWinTab1.remove(composeWindow.getNavGroup());
+        composeWindow.close();
+        composeWindow = <span class="hljs-keyword">null</span>;
+        composeWindow = (Ti.Platform.osname===<span class="hljs-string">'ipad'</span>) ? <span class="hljs-keyword">new</span> IpadComposeWindow() : <span class="hljs-keyword">new</span> ComposeWindow();
+        baseWinTab1.add(composeWindow.getNavGroup());
+    }
+    Ti.App.addEventListener(<span class="hljs-string">'resetComposeWindow'</span>, resetComposeWindow);
+
+    <span class="hljs-keyword">var</span> baseWinTab1 = Titanium.UI.createWindow({
+        navBarHidden:<span class="hljs-keyword">true</span>,
+        width: Ti.UI.FILL
+    });
+    baseWinTab1.add(composeWindow.getNavGroup());
+
+    <span class="hljs-keyword">var</span> tab = Titanium.UI.createTab({  
+        title: <span class="hljs-string">'Tab'</span>,
+        window: baseWinTab1
+    });
+    <span class="hljs-keyword">self</span>.addTab(tab);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+
+<span class="hljs-comment">/**
+ * ComposeWindow - iPad Wrapper
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">IpadComposeWindow</span><span class="hljs-params">()</span> </span>{
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Titanium.UI.createWindow({
+        title:<span class="hljs-string">'New Message'</span>,
+    });
+
+    <span class="hljs-keyword">var</span> navGroup = Ti.UI.iPhone.createNavigationGroup({
+        window:<span class="hljs-keyword">self</span>,
+        width: Ti.UI.FILL,
+        height: Ti.UI.FILL
+    });
+
+    <span class="hljs-keyword">self</span>.getNavGroup = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-keyword">return</span> navGroup;
+    }
+
+    <span class="hljs-keyword">var</span> leftView = <span class="hljs-keyword">new</span> ComposeWindow();
+
+    leftView.setIpadNavGroup(navGroup);
+
+    <span class="hljs-keyword">var</span> rightView = Ti.UI.createWindow({
+        navBarHidden: <span class="hljs-keyword">true</span>,
+    });
+    <span class="hljs-keyword">var</span> aTableView = Ti.UI.createTableView({
+        width:Ti.UI.FILL,
+        data: [leftView.secTwo]
+    });
+    rightView.add(aTableView);
+
+    <span class="hljs-keyword">var</span> masterNav = leftView.getNavGroup();
+
+    <span class="hljs-keyword">var</span> detailNav = Ti.UI.iPhone.createNavigationGroup({
+        window: rightView
+    });
+
+    <span class="hljs-keyword">var</span> splitWindow = Ti.UI.iPad.createSplitWindow({
+        masterView: masterNav,
+        detailView: detailNav,
+        showMasterInPortrait: <span class="hljs-keyword">true</span>,
+    });
+    <span class="hljs-keyword">self</span>.add(splitWindow);
+
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-keyword">self</span>.setRightNavButton(leftView.rightNavButton);
+    }, <span class="hljs-number">300</span>);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+
+
+<span class="hljs-comment">/**
+ * ComposeWindow - iPhone
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ComposeWindow</span><span class="hljs-params">()</span></span>{
+
+    <span class="hljs-keyword">var</span> isIpad = Ti.Platform.osname === <span class="hljs-string">'ipad'</span>;
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+        layout:<span class="hljs-string">'vertical'</span>,
+        title:<span class="hljs-string">'New Message'</span>,
+        backgroundColor:<span class="hljs-string">'white'</span>,
+        navBarHidden: isIpad
+    });
+
+    <span class="hljs-keyword">var</span> navGroup = Ti.UI.iPhone.createNavigationGroup({
+        window:<span class="hljs-keyword">self</span>
+    });
+
+    <span class="hljs-keyword">var</span> iPadNavGroup = undefined;
+    <span class="hljs-keyword">self</span>.setIpadNavGroup = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(navGroup)</span></span>{
+        iPadNavGroup = navGroup;
+    }
+
+    <span class="hljs-keyword">self</span>.getNavGroup = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-keyword">return</span> navGroup;
+    }
+
+    <span class="hljs-keyword">var</span> sendButton = Ti.UI.createButton({
+        title : <span class="hljs-string">'Send'</span>,
+        style: Ti.UI.iPhone.SystemButtonStyle.DONE
+    });
+    <span class="hljs-keyword">self</span>.rightNavButton = sendButton;
+
+    <span class="hljs-keyword">var</span> sections = [];
+
+    <span class="hljs-keyword">var</span> secOne = Ti.UI.createTableViewSection({
+        headerTitle: <span class="hljs-string">'First Section'</span>
+    });
+
+    secOne.add(Ti.UI.createTableViewRow({
+        title: <span class="hljs-string">'Row One'</span>
+    }));
+
+    sections.push(secOne);
+
+    <span class="hljs-keyword">var</span> dataTwo = [
+        {title:<span class="hljs-string">'Row 5'</span>},
+        {title:<span class="hljs-string">'Row 6'</span>},
+        {title:<span class="hljs-string">'Row 7'</span>},
+        {title:<span class="hljs-string">'Row 8'</span>}
+    ];
+
+    <span class="hljs-keyword">var</span> secTwo = Ti.UI.createTableViewSection({
+        headerTitle: <span class="hljs-string">'Second Section'</span>
+    });
+    secTwo.add(Ti.UI.createTableViewRow({
+        title: <span class="hljs-string">'Row Two'</span>
+    }));
+
+    <span class="hljs-keyword">if</span> (isIpad)    <span class="hljs-keyword">self</span>.secTwo = secTwo;
+    <span class="hljs-keyword">else</span> sections.push(secTwo);
+
+    <span class="hljs-keyword">var</span> aTableView = Ti.UI.createTableView({
+        data: sections,
+        height: <span class="hljs-number">200</span>
+    });
+    <span class="hljs-keyword">self</span>.add(aTableView);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+
+
+<span class="hljs-comment">/**
+ * start ApplicationWindow
+ */</span>
+(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">var</span> App = <span class="hljs-keyword">new</span> ApplicationWindow();
+    App.open();
+})();
+</code></pre><p>Please, run this in iPad Simulator. Then kill the application, switch the simulator to landscape and start the app again - you will then see what the problem is.</p>
+<p>Every help to solve that issue would be highly appreciated. Maybe you can provide another way of dispatching the navigationGroups.</p>
+<p>Thanks in advance</p>
+<p>Titanium SDK: 3.0.2 GA<br>iOS SDK: 6.1</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 14th 2013, 8:10:36 am">March 14th 2013</span>
+				by <span class='authorname'>Manuel Lehner</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ipad</span></li>
+					
+						<li><span class='tagname'>landscape</span></li>
+					
+						<li><span class='tagname'>navigationgroup</span></li>
+					
+						<li><span class='tagname'>splitwindow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-258595">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>I do not see many properties declaring the <strong>width</strong> or <strong>height</strong> of things.  I would suggest you declare the properties for each window at least with a valid width and height of <strong>Ti.UI.SIZE</strong>.</p>
+<p>For example;</p>
+<pre><code class="hljs"><span class="hljs-built_in">var</span> <span class="hljs-built_in">self</span> = Ti<span class="hljs-built_in">.</span>UI<span class="hljs-built_in">.</span>createWindow({
+    backgroundCol<span class="hljs-subst">or</span>:<span class="hljs-string">'white'</span>,
+    height: Ti<span class="hljs-built_in">.</span>UI<span class="hljs-built_in">.</span>FILL,
+    layout:<span class="hljs-string">'vertical'</span>,
+    navBarHidden: isIpad,
+    title:<span class="hljs-string">'New Message'</span>,
+    width: Ti<span class="hljs-built_in">.</span>UI<span class="hljs-built_in">.</span>FILL
+});
+</code></pre><p>This will rule out any unforeseen results of the lack of declarations.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 14th 2013, 8:31:40 am">March 14th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/149549/strange-issue-with-splitwindow-landscape-behavior#answer-258595" rel="permalink">permalink</a>
+							</div>
+
+							<h5>12 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for the tip. I already tried this in my original code. In the example above I forgot some of these declarations, but unfortunatly it didn&#39;t help.</p>
+<p>To underline the problem, I improved the code and set backgroundColors to both windows. As you can see in the screenshot, the windows become full width, but the tableViews width are compressed:<br>https:&#x2F;&#x2F;dl.dropbox.com&#x2F;u&#x2F;30156569&#x2F;splitvew-bug.png</p>
+<p>What I don&#39;t understand is, that it works when I&#39;m in portrait mode first. Do you have any idea?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 8:51:02 am">March 14th 2013</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry, but I have to add another question:<br>The docs say the &#39;masterView&#39; and &#39;detailView&#39; of a SplitWindow should be &#39;Titanium.UI.View&#39;.<br>Why does the following crash?</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">IpadComposeWindow</span><span class="hljs-params">()</span> </span>{
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Titanium.UI.createWindow({
+        title:<span class="hljs-string">'New Message'</span>,
+        width: Ti.UI.FILL,
+        height: Ti.UI.FILL,
+    });
+
+    <span class="hljs-keyword">var</span> navGroup = Ti.UI.iPhone.createNavigationGroup({
+        window:<span class="hljs-keyword">self</span>,
+        width: Ti.UI.FILL,
+        height: Ti.UI.FILL
+    });
+
+    <span class="hljs-keyword">self</span>.getNavGroup = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-keyword">return</span> navGroup;
+    }
+
+    <span class="hljs-keyword">var</span> leftView = Ti.UI.createView({
+        width: Ti.UI.FILL,
+        height: Ti.UI.FILL,
+        backgroundColor: <span class="hljs-string">'blue'</span>
+    });
+
+    <span class="hljs-keyword">var</span> rightView = Ti.UI.createView({
+        backgroundColor: <span class="hljs-string">'red'</span>,
+        width: Ti.UI.FILL,
+        height: Ti.UI.FILL
+    });
+
+    <span class="hljs-keyword">var</span> splitWindow = Ti.UI.iPad.createSplitWindow({
+        masterView: leftView,
+        detailView: rightView,
+        showMasterInPortrait: <span class="hljs-keyword">true</span>,
+    });
+    <span class="hljs-keyword">self</span>.add(splitWindow);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 9:38:13 am">March 14th 2013</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>As to the most recent question, the docs say this <em>&quot;Note that the SplitWindow element will only accept two Windows as children&quot;</em>.  I would stick to windows.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 10:37:23 am">March 14th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Here is a simple Split View example based on your own code in part, but using the CommonJS module to simplify things.  It also works in all orientations used to start up.</p>
+<p><strong>app.js</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> split = Ti.UI.iPad.createSplitWindow({
+    detailView: <span class="hljs-built_in">require</span>(<span class="hljs-string">'/detail'</span>).create(),
+    masterView: <span class="hljs-built_in">require</span>(<span class="hljs-string">'/master'</span>).create(),
+    showMasterInPortrait: <span class="hljs-literal">true</span>
+});
+split.addEventListener(<span class="hljs-string">'visible'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'view: '</span>, e.view);
+});
+split.open();
+</code></pre><p><strong>master.js</strong></p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">create</span>(<span class="hljs-params">o</span>) </span>{
+    <span class="hljs-keyword">var</span> obj = o || {};
+    <span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+        backgroundColor: <span class="hljs-string">'red'</span>,
+        height: Ti.UI.FILL,
+        title: <span class="hljs-string">'Master'</span>,
+        width: Ti.UI.FILL
+    });
+    <span class="hljs-keyword">var</span> data = [
+        { title: <span class="hljs-string">'Master 1'</span> },
+        { title: <span class="hljs-string">'Master 2'</span> },
+        { title: <span class="hljs-string">'Master 3'</span> }
+    ];
+    <span class="hljs-keyword">var</span> tbl = Ti.UI.createTableView({
+        data: data,
+        height: Ti.UI.FILL,
+        width: Ti.UI.FILL,
+    });
+    win.add(tbl);
+    <span class="hljs-keyword">var</span> nav = Ti.UI.iPhone.createNavigationGroup({
+       <span class="hljs-built_in">window</span>: win
+    });
+    <span class="hljs-keyword">return</span> nav;
+}
+exports.create = create;
+</code></pre><p><strong>detail.js</strong></p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">create</span>(<span class="hljs-params">o</span>) </span>{
+    <span class="hljs-keyword">var</span> obj = o || {};
+    <span class="hljs-keyword">var</span> btnTest = Ti.UI.createButton({
+        title: <span class="hljs-string">'Button'</span>
+    });
+    btnTest.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        alert(<span class="hljs-string">'test'</span>);
+    });
+    <span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+        backgroundColor: <span class="hljs-string">'green'</span>,
+        height: Ti.UI.FILL,
+        rightNavButton: btnTest,
+        title: <span class="hljs-string">'Detail'</span>,
+        width: Ti.UI.FILL
+    });
+    <span class="hljs-keyword">var</span> data = [
+        { title: <span class="hljs-string">'Detail 1'</span> },
+        { title: <span class="hljs-string">'Detail 2'</span> },
+        { title: <span class="hljs-string">'Detail 3'</span> }
+    ];
+    <span class="hljs-keyword">var</span> tbl = Ti.UI.createTableView({
+        data: data,
+        height: Ti.UI.FILL,
+        width: Ti.UI.FILL,
+    });
+    win.add(tbl);
+    <span class="hljs-keyword">var</span> nav = Ti.UI.iPhone.createNavigationGroup({
+       <span class="hljs-built_in">window</span>: win
+    });
+    <span class="hljs-keyword">return</span> nav;
+}
+exports.create = create;
+</code></pre><p>Try comparing this to your own work, as I say this is a simpler format to work with, but provides a good framework to add your code to.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 10:39:44 am">March 14th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK. Your example works fine as it is. But I need to put the SplitWindow on an Tab. And I also want each Tab to have its own NavigationGroup.</p>
+<p>So, I modified your code just a little and the described bug appears again….</p>
+<p>How to work arround this?</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> tabGroup = Ti.UI.createTabGroup();
+
+<span class="hljs-keyword">var</span> split = Ti.UI.iPad.createSplitWindow({
+    detailView: <span class="hljs-built_in">require</span>(<span class="hljs-string">'/detail'</span>).create(),
+    masterView: <span class="hljs-built_in">require</span>(<span class="hljs-string">'/master'</span>).create(),
+    showMasterInPortrait: <span class="hljs-literal">true</span>
+});
+split.addEventListener(<span class="hljs-string">'visible'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'view: '</span>, e.view);
+});
+
+<span class="hljs-keyword">var</span> navGroup = Ti.UI.iPhone.createNavigationGroup({
+    <span class="hljs-built_in">window</span>: split
+});
+
+<span class="hljs-keyword">var</span> baseWin = Titanium.UI.createWindow({
+    navBarHidden: <span class="hljs-literal">true</span>
+});
+baseWin.add(navGroup);
+
+<span class="hljs-keyword">var</span> tab = Titanium.UI.createTab({  
+    title: <span class="hljs-string">'Tab'</span>,
+    <span class="hljs-built_in">window</span>: baseWin
+});
+tabGroup.addTab(tab);
+
+tabGroup.open();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 11:42:38 am">March 14th 2013</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Are you trying to;</p>
+<ul>
+<li>create a <strong>tabGroup</strong> that houses one or more split windows?</li>
+</ul>
+<p>or</p>
+<ul>
+<li>create a <strong>tabGroup</strong> INSIDE the detail view?</li>
+</ul>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 12:08:18 pm">March 14th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>First one! I want a tabGroup housing a splitWindow that is the root of a navGroup at the same time!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 12:15:37 pm">March 14th 2013</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I will take a look. I would be concerned that Apple may not favour your design choice though.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 12:29:13 pm">March 14th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks a lot for your help and inspiration. I currently solve this by using two views to split a common window. I guess it&#39;s better to use the SplitWindow for a master-detail-usecase.</p>
+<p>Nevertheless, I think there seems to be a bug in the Titanium API.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 12:40:19 pm">March 14th 2013</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I think the problem you are seeing is not so much a bug but rather a problem with your layout wishes.</p>
+<p>It is my understanding that the <strong>splitWindow</strong> is designed to encompass the entire screen layout rather than being a child of anything.  It is also more common to see a <strong>tabGroup</strong> inside either the detail or master (detail being more common).</p>
+<p>With a <strong>navigationGroup</strong> being the parent of windows rather than a <strong>splitWindow</strong>.</p>
+<p>I wonder if because of these common UI patterns your specific needs are simply not working out.  When the design is reduced back to any of the patterns I mentioned above - everything behaves correctly and as expected.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 12:48:50 pm">March 14th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m afraid you are right! There&#39;s a SplitView Guide in Apple&#39;s Human Interface Guidelines where they describe it in the same way: A split view is a full-screen view. And I&#39;m using it a kind of wrong.</p>
+<p>I&#39;ll do it better soon ;-)</p>
+<p>(I have to admit that I&#39;m not an iPad user, so there&#39;s always things to learn)</p>
+<p>Malcolm, thank you so much for your time and your instructive explanations!!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 2:21:55 pm">March 14th 2013</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You are very welcome.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2013, 2:59:14 pm">March 14th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

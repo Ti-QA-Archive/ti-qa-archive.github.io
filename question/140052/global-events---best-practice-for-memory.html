@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Global Events - Best Practice for Memory » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Global Events - Best Practice for Memory</h1>
+		</header>
+		<section>
+			<p>I have a &quot;completed&quot; app and I am now going through and cleaning up code, trying to add needed comments, and possibly conserve memory where I can. I learned I may have been using a bad practice when it comes to global event listeners. Consider the following code:</p>
+<pre><code class="hljs">Ti.App.addEventListener(<span class="hljs-string">'loadCourseDataWindow'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-keyword">var</span> crsnum = cf.searchNumber;
+        cf.search.searchBar.blur();
+        <span class="hljs-keyword">if</span>(Ti.Network.online){
+            cf.ajax.getCourseData(crsnum);
+        } <span class="hljs-keyword">else</span> {
+            Ti.UI.createAlertDialog({
+                title: <span class="hljs-string">'Network Error'</span>,
+                message: <span class="hljs-string">'Cannot establish network connection to get course details'</span>
+            }).show();
+        }
+    });
+</code></pre><p>From what I gather var scoping variables in a global event can cause memory leaks. Is this the case in my example? I have a bad practice of sometimes changing a longer variable to a shorter variable for various reasons… often times simple for readability. In my example above, would the var crsnum be consuming uneeded resources?</p>
+<p>Consider a more complex example that better illustrates my point:</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">App</span>.addEventListener('saveCourse', function(){
+        <span class="hljs-keyword">var</span> courses = JSON.<span class="hljs-keyword">parse</span>(Ti.<span class="hljs-keyword">App</span>.Properties.getString('savedCourses'));
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">cf</span>.<span class="hljs-keyword">search</span>.courseToSave !== undefined){
+            courses.push(<span class="hljs-keyword">cf</span>.<span class="hljs-keyword">search</span>.courseToSave);
+        }
+        <span class="hljs-keyword">var</span> tableData = [];
+        <span class="hljs-keyword">if</span> (courses.length &gt; 0){
+            tableData = <span class="hljs-keyword">cf</span>.<span class="hljs-keyword">save</span>.generateSavedCoursesData(courses);
+        }
+        <span class="hljs-keyword">cf</span>.<span class="hljs-keyword">save</span>.resultsTable.data = tableData;
+        Ti.<span class="hljs-keyword">App</span>.Properties.setString('savedCourses',JSON.stringify(courses));
+        <span class="hljs-keyword">if</span> (courses.length &gt; 0){
+            <span class="hljs-keyword">cf</span>.ApplicationTabs.savedTab.setBadge(JSON.<span class="hljs-keyword">parse</span>(Ti.<span class="hljs-keyword">App</span>.Properties.getString('savedCourses')).length);
+        }
+        <span class="hljs-keyword">cf</span>.<span class="hljs-keyword">save</span>.editRegisterButton();
+    });
+</code></pre><p>I throw my savedCourses object to a local variable, is this consuming memory needlessly? Is it better practice to pass in the JSON object as an argument to be used in the function? I would guess the same would go for the tableData object?</p>
+<p>In the second example, how could I revise the code so as not to cause a potential memory leak?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 23rd 2012, 1:29:19 pm">July 23rd 2012</span>
+				by <span class='authorname'>Lee Bartelme</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>In my first example, is this enough to avoid the leak?</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">App</span>.addEventListener('loadCourseDataWindow', function(<span class="hljs-keyword">e</span>){
+        <span class="hljs-keyword">cf</span>.<span class="hljs-keyword">search</span>.searchBar.blur();
+        <span class="hljs-keyword">if</span>(Ti.Network.online){
+            <span class="hljs-keyword">cf</span>.ajax.getCourseData(<span class="hljs-keyword">e</span>.crsnum);
+        } <span class="hljs-keyword">else</span> {
+            Ti.UI.createAlertDialog({
+                title: 'Network <span class="hljs-keyword">Error</span>',
+                message: 'Cannot establish network connection to get course details'
+            }).show();
+        }
+    });
+</code></pre><p>Of course passing in the crsnum on the firing of the event.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 23rd 2012, 1:51:40 pm">July 23rd 2012</span>
+								by <span class='authorname'>Lee Bartelme</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-243636">
+				
+						<section>
+							<p>I&#39;m guessing you are referring to the use of adding App.addEventListener ?  the take-away as i understand it is that you must always remove any App eventlisteners when you are done with them otherwise they never get reclaimed. So, unfortunately because your code doesnt show the context of how these are added (eg, in a loop etc) its hard to say if its a problem or not</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 23rd 2012, 4:41:20 pm">July 23rd 2012</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/140052/global-events---best-practice-for-memory#answer-243636" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;index.html#!&#x2F;guide&#x2F;Coding_Best_Practices">API Docs</a><br>Right after global scope it goes into avoiding local objects in event listeners. I am not talking about creating&#x2F;releasing event listeners.</p>
+<p>I want to know if my code above (the second example mainly) suffers from the problem in the notes, and if so, how I can rewrite it to not.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 23rd 2012, 4:57:33 pm">July 23rd 2012</span>
+											by <span class='authorname'>Lee Bartelme</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-243714">
+				
+						<section>
+							<p>Its actually the same problem as I mentioned. If the App level event listener remains loaded, the local variables declared within it will stay too.  Removing the event listener will detroy the references to its local variables</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 24th 2012, 3:52:15 pm">July 24th 2012</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/140052/global-events---best-practice-for-memory#answer-243714" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>So… I guess then I have two questions.<br>A: If I can work around not using global event listeners, is that the best practice?<br>B: If I choose to use global event listeners, what is the best practice to avoid needless memory usage?</p>
+<p>My event listeners DO only use local variables scoped within the event listener AND &quot;global&quot; variables scoped in the application scope. I don&#39;t ever create event listeners within a function, because that just seems strange to me. All my global listeners are created in a file in my app called appevents.js and I use them for various things.</p>
+<p>I could I guess create functions and instead of firing the event call the function, but to me those are one in the same. Am I wrong.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 24th 2012, 4:03:15 pm">July 24th 2012</span>
+											by <span class='authorname'>Lee Bartelme</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

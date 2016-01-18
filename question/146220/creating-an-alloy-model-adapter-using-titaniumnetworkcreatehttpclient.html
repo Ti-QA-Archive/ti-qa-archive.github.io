@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Creating an Alloy Model adapter using Titanium.Network.createHTTPClient » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Creating an Alloy Model adapter using Titanium.Network.createHTTPClient</h1>
+		</header>
+		<section>
+			<p>I am attempting to use Alloy Models with a server-side REST api. So far, I&#39;ve figured out that I need to create a custom adapter, so I decided to take the default Backbone.js sync class as a starting point. I ran into errors about Backbone.ajax not being found, so I&#39;m guessing that Backbone.ajax is not supported or not imported properly in my module.</p>
+<p>The first thing I&#39;m trying is to use Titanium.Network.HTTPClient but am a little lost at this point as no error is being thrown but the http request is not being made.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> methodMap = {
+    <span class="hljs-string">'create'</span> : <span class="hljs-string">'POST'</span>,
+    <span class="hljs-string">'update'</span> : <span class="hljs-string">'PUT'</span>,
+    <span class="hljs-string">'patch'</span> : <span class="hljs-string">'PATCH'</span>,
+    <span class="hljs-string">'delete'</span> : <span class="hljs-string">'DELETE'</span>,
+    <span class="hljs-string">'read'</span> : <span class="hljs-string">'GET'</span>
+};
+
+<span class="hljs-built_in">module</span>.exports.sync = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">model, method, options</span>) </span>{
+    <span class="hljs-keyword">var</span> type = methodMap[method];
+
+    <span class="hljs-comment">// Throw an error when a URL is needed, and none is supplied.</span>
+    <span class="hljs-keyword">var</span> urlError = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'A "url" property or function must be specified'</span>);
+    };
+
+    <span class="hljs-comment">// Default options, unless specified.</span>
+    _.defaults(options || ( options = {}), {
+        emulateHTTP : Backbone.emulateHTTP,
+        emulateJSON : Backbone.emulateJSON
+    });
+
+    <span class="hljs-comment">// Default JSON-request options.</span>
+    <span class="hljs-keyword">var</span> params = {
+        type : type,
+        dataType : <span class="hljs-string">'json'</span>
+    };
+
+    <span class="hljs-comment">// Ensure that we have a URL.</span>
+    <span class="hljs-keyword">if</span> (!options.url) {
+        params.url = _.result(model, <span class="hljs-string">'url'</span>) || urlError();
+    }
+
+    <span class="hljs-comment">// Ensure that we have the appropriate request data.</span>
+    <span class="hljs-keyword">if</span> (options.data == <span class="hljs-literal">null</span> &amp;&amp; model &amp;&amp; (method === <span class="hljs-string">'create'</span> || method === <span class="hljs-string">'update'</span> || method === <span class="hljs-string">'patch'</span>)) {
+        params.contentType = <span class="hljs-string">'application/json'</span>;
+        params.data = <span class="hljs-built_in">JSON</span>.stringify(options.attrs || model.toJSON(options));
+    }
+
+    <span class="hljs-comment">// For older servers, emulate JSON by encoding the request into an HTML-form.</span>
+    <span class="hljs-keyword">if</span> (options.emulateJSON) {
+        params.contentType = <span class="hljs-string">'application/x-www-form-urlencoded'</span>;
+        params.data = params.data ? {
+            model : params.data
+        } : {};
+    }
+
+    <span class="hljs-comment">// For older servers, emulate HTTP by mimicking the HTTP method with `_method`</span>
+    <span class="hljs-comment">// And an `X-HTTP-Method-Override` header.</span>
+    <span class="hljs-keyword">if</span> (options.emulateHTTP &amp;&amp; (type === <span class="hljs-string">'PUT'</span> || type === <span class="hljs-string">'DELETE'</span> || type === <span class="hljs-string">'PATCH'</span>)) {
+        params.type = <span class="hljs-string">'POST'</span>;
+        <span class="hljs-keyword">if</span> (options.emulateJSON)
+            params.data._method = type;
+        <span class="hljs-keyword">var</span> beforeSend = options.beforeSend;
+        options.beforeSend = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">xhr</span>) </span>{
+            xhr.setRequestHeader(<span class="hljs-string">'X-HTTP-Method-Override'</span>, type);
+            <span class="hljs-keyword">if</span> (beforeSend)
+                <span class="hljs-keyword">return</span> beforeSend.apply(<span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span>);
+        };
+    }
+
+    <span class="hljs-comment">// Don't process data on a non-GET request.</span>
+    <span class="hljs-keyword">if</span> (params.type !== <span class="hljs-string">'GET'</span> &amp;&amp; !options.emulateJSON) {
+        params.processData = <span class="hljs-literal">false</span>;
+    }
+
+    <span class="hljs-keyword">var</span> success = options.success;
+    options.success = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">resp</span>) </span>{
+        <span class="hljs-keyword">if</span> (success)
+            success(model, resp, options);
+        model.trigger(<span class="hljs-string">'sync'</span>, model, resp, options);
+    };
+
+    <span class="hljs-keyword">var</span> error = options.error;
+    options.error = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">xhr</span>) </span>{
+        <span class="hljs-keyword">if</span> (error)
+            error(model, xhr, options);
+        model.trigger(<span class="hljs-string">'error'</span>, model, xhr, options);
+    };
+
+    <span class="hljs-comment">// Make the request, allowing the user to override any Ajax options.</span>
+    <span class="hljs-comment">//var xhr = options.xhr = Backbone.ajax(_.extend(params, options));</span>
+    <span class="hljs-keyword">var</span> xhr = options.xhr = Titanium.Network.createHTTPClient(<span class="hljs-comment">/*_.extend(params, options)*/</span>);
+    <span class="hljs-built_in">console</span>.log(xhr);
+    <span class="hljs-built_in">console</span>.log(params);
+    <span class="hljs-built_in">console</span>.log(options);
+    model.trigger(<span class="hljs-string">'request'</span>, model, xhr, options);
+    <span class="hljs-keyword">return</span> xhr;
+};
+
+<span class="hljs-built_in">module</span>.exports.beforeModelCreate = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">config</span>) </span>{
+    config = config || {};
+    <span class="hljs-comment">// Perform some pre-checks (as an example)</span>
+    <span class="hljs-keyword">return</span> config;
+};
+
+<span class="hljs-built_in">module</span>.exports.afterModelCreate = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">Model</span>) </span>{
+    Model = Model || {};
+    <span class="hljs-comment">// Set up the persistent storage device, apply migrations or preload data (as examples)</span>
+};
+</code></pre><p>This part is what I&#39;ve changed.</p>
+<pre><code class="hljs">    //var xhr = <span class="hljs-keyword">options</span>.xhr = Backbone.ajax(_.<span class="hljs-built_in">extend</span>(params, <span class="hljs-keyword">options</span>));
+    var xhr = <span class="hljs-keyword">options</span>.xhr = Titanium.Network.createHTTPClient(/*_.<span class="hljs-built_in">extend</span>(params, <span class="hljs-keyword">options</span>)*/);
+</code></pre><p>If I use the first line Backbone.ajax the app comes back with the error &#39;Object # has no method ajax&#39;. The uncommented line does not throw an error, however no request is made. Does anyone have any suggestions?</p>
+<p>For completeness here is my model</p>
+<pre><code class="hljs">exports.definition = {
+
+    <span class="hljs-string">"urlRoot"</span> : <span class="hljs-string">'http://site.com/charts/'</span>,
+    <span class="hljs-string">"url"</span> : <span class="hljs-string">'http://site.com/charts/'</span>,
+
+    config : {
+
+        <span class="hljs-string">"columns"</span> : {
+            <span class="hljs-string">"display_name"</span> : <span class="hljs-string">"string"</span>
+        },
+        <span class="hljs-string">"adapter"</span> : {
+            <span class="hljs-string">"type"</span> : <span class="hljs-string">"rest"</span>,
+            <span class="hljs-string">"collection_name"</span> : <span class="hljs-string">"charts"</span>
+        }
+    },
+
+    extendModel : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span> </span>{
+        _.extend(Model.prototype, {
+            <span class="hljs-string">"urlRoot"</span> : <span class="hljs-string">'http://site.com/charts/'</span>,
+            <span class="hljs-string">"url"</span> : <span class="hljs-string">'http://site.com/charts/'</span>
+        });
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+
+    extendCollection : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span> </span>{
+        _.extend(Collection.prototype, {
+            <span class="hljs-string">"urlRoot"</span> : <span class="hljs-string">'http://site.com/charts/'</span>,
+            <span class="hljs-string">"url"</span> : <span class="hljs-string">'http://site.com/charts/'</span>
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+}
+</code></pre><p>And index.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> charts = Alloy.createModel(<span class="hljs-string">'Chart'</span>);
+charts.fetch({id: <span class="hljs-number">75</span>}); <span class="hljs-comment">// Grab data from persistent storage</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 27th 2012, 10:00:54 pm">December 27th 2012</span>
+				by <span class='authorname'>Matt Moyles</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>model</span></li>
+					
+						<li><span class='tagname'>network.httpclient</span></li>
+					
+						<li><span class='tagname'>sync</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hey Matt, did you solve your issue?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 10th 2013, 12:20:07 pm">January 10th 2013</span>
+								by <span class='authorname'>Michael Rachlitz</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I think I was on the right track creating the custom adapter, but due to time constraints I ended up not using Alloy for the project and just went with regular old Titanium. My models would have included a lot of relationships as well and I didn&#39;t think Alloy was setup to handle that yet either.</p>
+<p>It would be interesting to revisit for the next time I&#39;m developing on mobile platforms.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 10th 2013, 12:26:21 pm">January 10th 2013</span>
+								by <span class='authorname'>Matt Moyles</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>4</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

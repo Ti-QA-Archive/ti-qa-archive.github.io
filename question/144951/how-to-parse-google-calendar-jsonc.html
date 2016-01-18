@@ -1,0 +1,334 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to parse Google Calendar JSONC » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to parse Google Calendar JSONC</h1>
+		</header>
+		<section>
+			<p>Hi I am trying to parse google calendar JSONC. Anybody have experience about JSONC?<br>i get title data but i don&#39;t know how to get &quot;when&quot; data<br>here i use url &quot;http:&#x2F;&#x2F;www.google.com&#x2F;calendar&#x2F;feeds&#x2F;campus.viu.edu_p37ts69cbhot57i2rd9p5tfhl8%40group.calendar.google.com&#x2F;public&#x2F;full?alt=jsonc&quot;</p>
+<p>my code</p>
+<pre><code class="hljs">for <span class="hljs-comment">(i = 0; i &lt; calendar.data.items.length; i++)</span> {
+
+      var labelDate = Ti.UI.createLabel<span class="hljs-comment">({
+            text:calendar.data.items[i].when.start,
+        })</span>;
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 21st 2012, 5:35:16 pm">November 21st 2012</span>
+				by <span class='authorname'>Prashish Shrestha</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>google calendar</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>jsonc</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-251482">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>calendar.data.items[i].when[0].start</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 21st 2012, 5:45:15 pm">November 21st 2012</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/144951/how-to-parse-google-calendar-jsonc#answer-251482" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Many Thanks Stephen!!!!<br>Nobody teach me but I really learn from forum and helper. Thank you again!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 21st 2012, 6:54:21 pm">November 21st 2012</span>
+											by <span class='authorname'>Prashish Shrestha</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In this case you can hard code the <strong>0</strong> in there.</p>
+<p>I&#39;m in a good mood today, so here is a library you can hack apart:</p>
+<ul>
+<li>References are to the config file that has some settings, and a caching library. </li>
+<li>eventColors are the ones that Google uses, hardcoded to reduce an additional net call (check for updates from time to time though as Google may update these.</li>
+<li>yes, this is one of the few places I use a try&#x2F;catch as I believe the value out weighs the overhead.</li>
+</ul>
+<p>gcal-json.js</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * @description Library for parsing GCAL json feed
+ * @author Stephen Feather 
+ */</span>
+<span class="hljs-comment">/*jslint vars: true, sloppy: true, nomen: true, maxerr: 1000 */</span>
+<span class="hljs-comment">/*global Analytics, L*/</span>
+
+<span class="hljs-keyword">var</span> config = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/clientconfig'</span>);
+
+<span class="hljs-keyword">var</span> DateConverter = {
+    rfc3339toDate: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">t</span>)</span>{
+        <span class="hljs-keyword">if</span> (t.length === <span class="hljs-number">10</span>){
+            t = t.replace(<span class="hljs-regexp">/-/g</span>,<span class="hljs-string">"/"</span>).replace(<span class="hljs-string">"T"</span>,<span class="hljs-string">" "</span>);
+        } <span class="hljs-keyword">else</span> {
+            t = t.substr(<span class="hljs-number">0</span>,<span class="hljs-number">19</span>).replace(<span class="hljs-regexp">/-/g</span>,<span class="hljs-string">"/"</span>).replace(<span class="hljs-string">"T"</span>,<span class="hljs-string">" "</span>);
+        }
+        <span class="hljs-keyword">var</span> dt = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+        dt.setTime(<span class="hljs-built_in">Date</span>.parse(t));
+        <span class="hljs-keyword">return</span> dt;
+    }
+};
+exports.DateConverter = DateConverter;
+
+<span class="hljs-keyword">var</span> eventColor = {
+    <span class="hljs-string">"1"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#a4bdfc"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"2"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#7ae7bf"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"3"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#dbadff"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"4"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#ff887c"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"5"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#fbd75b"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"6"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#ffb878"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"7"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#46d6db"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"8"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#e1e1e1"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"9"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#5484ed"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"10"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#51b749"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    },
+    <span class="hljs-string">"11"</span>: {
+      <span class="hljs-string">"background"</span>: <span class="hljs-string">"#dc2127"</span>,
+      <span class="hljs-string">"foreground"</span>: <span class="hljs-string">"#1d1d1d"</span>
+    }
+ };
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">EventEntry</span>(<span class="hljs-params">entry</span>)</span>{
+    <span class="hljs-keyword">this</span>.title = entry.summary;
+    <span class="hljs-keyword">this</span>.status = entry.status;
+    <span class="hljs-keyword">this</span>.id = entry.id;
+
+    <span class="hljs-keyword">if</span>(entry.colorId){
+        <span class="hljs-keyword">this</span>.color = eventColor[entry.colorId];
+        Ti.API.info(<span class="hljs-keyword">this</span>.color);
+    }
+
+    <span class="hljs-keyword">if</span> (!entry.start.dateTime){
+        <span class="hljs-keyword">this</span>.timeless = <span class="hljs-literal">true</span>;
+        <span class="hljs-keyword">this</span>.startDate = DateConverter.rfc3339toDate(entry.start.date);
+        <span class="hljs-keyword">this</span>.endDate = DateConverter.rfc3339toDate(entry.end.date);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">this</span>.startDate = DateConverter.rfc3339toDate(entry.start.dateTime);
+        <span class="hljs-keyword">this</span>.endDate = DateConverter.rfc3339toDate(entry.end.dateTime);
+        <span class="hljs-keyword">this</span>.timeless = <span class="hljs-literal">false</span>;
+    }
+    <span class="hljs-keyword">if</span> (entry.location){
+        <span class="hljs-keyword">this</span>.location = entry.location;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">this</span>.location = <span class="hljs-string">''</span>;
+    }
+    <span class="hljs-keyword">if</span> (entry.description){
+        <span class="hljs-keyword">this</span>.content = entry.description;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">this</span>.content = <span class="hljs-string">''</span>;
+    }
+
+
+
+
+}
+exports.EventEntry = EventEntry;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Calendar</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-keyword">this</span>.uri = config.structure.tabs.events.url;
+    <span class="hljs-keyword">this</span>.apiKey = config.structure.tabs.events.apiKey;
+    <span class="hljs-keyword">this</span>.orderby = <span class="hljs-string">'starttime'</span>;
+    <span class="hljs-keyword">this</span>.singleEvents = <span class="hljs-literal">true</span>;
+    <span class="hljs-keyword">this</span>.sortOrder = <span class="hljs-string">'ascending'</span>;
+    <span class="hljs-keyword">this</span>.entries = {};
+    <span class="hljs-keyword">this</span>.initialize = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">u</span>)</span>{
+        <span class="hljs-keyword">if</span> (u) {<span class="hljs-keyword">this</span>.uri = u;}
+    };
+    <span class="hljs-keyword">this</span>.buildURL = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">var</span> str = <span class="hljs-string">"https://www.googleapis.com/calendar/v3/calendars/"</span>;
+        str += <span class="hljs-keyword">this</span>.uri;
+        str += <span class="hljs-string">"/events?key="</span>+<span class="hljs-keyword">this</span>.apiKey;
+        <span class="hljs-comment">//str += "?orderby=" + this.orderby;</span>
+        <span class="hljs-comment">//str += "&amp;alt=json-in-script&amp;callback=window.activeCalendar.parseFeed&amp;";</span>
+        str += <span class="hljs-string">"&amp;singleEvents="</span> + <span class="hljs-keyword">this</span>.singleEvents;
+        <span class="hljs-comment">//str += "&amp;sortorder=" + this.sortOrder;</span>
+        <span class="hljs-comment">//str += "&amp;futureevents=" + this.futureEvents;</span>
+        <span class="hljs-keyword">return</span> str;
+    };
+
+    <span class="hljs-keyword">this</span>.loadFeed = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">callback</span>)</span>{
+        <span class="hljs-keyword">var</span> xhrevents = Ti.Network.createHTTPClient();
+        xhrevents.open(<span class="hljs-string">"GET"</span>, <span class="hljs-keyword">this</span>.buildURL());
+        xhrevents.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+        </span>{
+            <span class="hljs-keyword">try</span>
+            {
+                <span class="hljs-keyword">var</span> strContent = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/caching'</span>).CacheFeedContent(<span class="hljs-keyword">this</span>, <span class="hljs-string">'events.json'</span>,<span class="hljs-string">'events'</span>);
+                callback(strContent);
+                utils.hideActivityIndicator();
+
+
+            }
+            <span class="hljs-keyword">catch</span>(E)
+            {
+                alert(E);
+            }
+        };
+        xhrevents.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            Ti.API.error(<span class="hljs-built_in">JSON</span>.stringify(e));
+            alert(L(<span class="hljs-string">'errornetwork'</span>));
+
+        };
+        xhrevents.send();
+
+    };
+
+    <span class="hljs-keyword">this</span>.parseFeed = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">json</span>)</span>{
+        <span class="hljs-keyword">var</span> events = [];
+        <span class="hljs-keyword">var</span> data = <span class="hljs-built_in">JSON</span>.parse(json);
+        <span class="hljs-keyword">var</span> entries = data.items;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt; entries.length; i++){
+            <span class="hljs-keyword">var</span> eventEntry = {};
+            eventEntry = <span class="hljs-keyword">new</span> exports.EventEntry(entries[i]);
+
+            events.push(eventEntry);
+        }
+
+        events.sort(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">a,b</span>)</span>{
+            <span class="hljs-keyword">var</span> A = a.startDate;
+            <span class="hljs-keyword">var</span> B = b.startDate;
+
+            <span class="hljs-keyword">if</span> (A &lt; B)
+                {<span class="hljs-keyword">return</span> -<span class="hljs-number">1</span>;}
+            <span class="hljs-keyword">if</span> (A &gt; B)
+                {<span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;}
+            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+
+        });
+
+
+        <span class="hljs-keyword">return</span> events;
+    };
+
+}
+exports.Calendar = Calendar;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="November 21st 2012, 7:21:36 pm">November 21st 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

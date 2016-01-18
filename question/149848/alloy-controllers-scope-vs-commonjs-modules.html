@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy controllers scope vs commonJS modules » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy controllers scope vs commonJS modules</h1>
+		</header>
+		<section>
+			<p>This is both a question and a thought about how to manage some situations in Alloy.</p>
+<p>Formerly, working with commonJS modules was very useful to have some module-scope variables that could be shared by multiple instances of a module. </p>
+<p>For example, for a module called MyWin with this content</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'tools'</span>);
+<span class="hljs-keyword">var</span> count = <span class="hljs-number">0</span>;
+
+<span class="hljs-built_in">module</span>.exports = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">args</span>)</span>{
+    increaseCounter();
+    <span class="hljs-keyword">return</span> Ti.UI.createWindow(args || {});
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">increaseCounter</span>(<span class="hljs-params"></span>)</span>{
+    count++;
+}
+</code></pre><p>Everytime time we did something like</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> MyWin = <span class="hljs-built_in">require</span>(<span class="hljs-string">'MyWin'</span>);
+<span class="hljs-keyword">var</span> myWin = <span class="hljs-keyword">new</span> MyWin(args);
+</code></pre><p>we had a new window instance and a variable &quot;count&quot; that could be shared by all instances and a var Tools loaded just one time. This had another advantage, it is that all functions and objects declared out of the module.exports function where interpreted only the first time the module was required, theorically resulting in faster execution. In the example, tools is created and increaseCounter is interpreted only one time.</p>
+<p>I&#39;m trying to replicate this behavior in Alloy controllers, but I understand that in Alloy the controller&#39;s .js file is interpreted (or, at least, initialized) everytime it is created (from an XML file or with Alloy.createController)), so each controller instance has its own scope.</p>
+<p>I tried to create these vars as module vars inside the controller (i.e. exports.count), but they are also initialized every time. As I don&#39;t want to pollute Alloy.Globals with what I consider local variables, I&#39;m still looking for a solution for controllers to behave as commonJS modules and have a shared scope initialized only the first time it is required.</p>
+<p>I&#39;ve found a partial solution, it is to create a commonJS module that hosts all functions, objects and vars shared by all instances of a given controller and require it from them.</p>
+<p>For example, for a MyWin controller, I would create a file in lib folder called MyWinScope</p>
+<p>lib&#x2F;MyWinScope.js:</p>
+<pre><code class="hljs">Ti.API.info(<span class="hljs-string">'REQUIRING MyWinScope'</span>); <span class="hljs-comment">//you will see this only once</span>
+
+<span class="hljs-keyword">exports</span>.count = <span class="hljs-number">0</span>;
+
+<span class="hljs-keyword">exports</span>.increaseCounter = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span><span class="hljs-comment">{
+    exports.count++;
+}</span></span>
+</code></pre><p>and from the MyWin controller:</p>
+<pre><code class="hljs">var args = arguments<span class="hljs-keyword">[</span>0] || {};
+var scope =<span class="hljs-function"> require(</span>'scopeRow'<span class="hljs-function">)</span>;
+scope.increaseCounter(<span class="hljs-function">)</span>;    //now it is actually increased on every<span class="hljs-instruction"> instance </span>creation
+</code></pre><p>This requires more files and adds complexity to something that was pretty obvious in commonJS. So, just before adapt this method as my standard, what do you think? Is my concept about alloy controllers correct? Is there an easier&#x2F;better way to do this?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 21st 2013, 7:39:39 am">March 21st 2013</span>
+				by <span class='authorname'>Javier Rayon</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>scope</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>obviously in the last code block when it says <code>scopeRow</code> I mean <code>MyWinScope</code></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 21st 2013, 9:27:03 am">March 21st 2013</span>
+								by <span class='authorname'>Javier Rayon</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>4</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-259087">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>I&#39;ll leave the workarounds to everyone else, but here&#39;s the current state of Alloy&#39;s controllers…</p>
+<p>Javier, your assessment is correct. In an effort to keep the controllers as simple they ended up being a little too &quot;flat&quot; let&#39;s say. There&#39;s not a clear cut way to treat them like an actual commonjs module unless you use a solution like your own with the common functionality in an external commonjs module. This is obviously not ideal.</p>
+<p>I can&#39;t give a timeline on this yet, but we have been initial talks on how we can improve this (prior to the creation of this question). In the (possibly near) futureI&#39;m going to be working on a more explicit format for controllers. Instead of hiding the underlying commonjs and using developer created controller code to populate it, we would instead create the controllers with the few lines of boilerplate they need and allow developers to have the full power of commonjs. This proposed change would allow things like:</p>
+<ul>
+<li>Allow for module-level code that doesn&#39;t pertain to a specific instance, like you proposed</li>
+<li>per-controller llfecycle functions: beforeUi(), afterUi()</li>
+<li>True usage of commonjs patterns in controlelrs</li>
+<li>Cleaner inheritance</li>
+<li>Probably a whole bunch of stuff I haven&#39;t even considered yet</li>
+</ul>
+<p>So when I do have a semi-solid spec for what these new controllers will look like I will be sure to make it available for comments to the community, not unlike the recent <a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;community&#x2F;Titanium+ListView+Specification">ListView spec</a>. Hope this helps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 21st 2013, 10:51:17 am">March 21st 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/149848/alloy-controllers-scope-vs-commonjs-modules#answer-259087" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Tony. I&#39;m reassured to know that you always stay some steps ahead of us :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 21st 2013, 11:40:48 am">March 21st 2013</span>
+											by <span class='authorname'>Javier Rayon</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-259083">
+				
+						<section>
+							<p>This might not be the best solution but here is a way of achieving it all inside the controller. </p>
+<p>At alloy compile time your controllers are wrapped in functions and <code>$</code> simply refers to <code>this</code>.</p>
+<p>I haven&#39;t used this method, but you can access the prototype of your controller from within it. E.g.</p>
+<pre><code class="hljs">$.<span class="hljs-constructor"><span class="hljs-keyword">constructor</span>.prototype.count = $.<span class="hljs-keyword">constructor</span>.prototype.count || 0</span>
+</code></pre><p>If you then, e.g. add the following code:</p>
+<pre><code class="hljs">Ti<span class="hljs-class">.API</span><span class="hljs-class">.log</span>(++ $<span class="hljs-class">.constructor</span><span class="hljs-class">.prototype</span><span class="hljs-class">.count</span>)
+</code></pre><p>It will log the incremented number each time a new instance is created.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 21st 2013, 10:20:55 am">March 21st 2013</span>
+								by <span class='authorname'>David Bankier</span><br>
+								<a class="icon-bg icon-link" href="question/149848/alloy-controllers-scope-vs-commonjs-modules#answer-259083" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>thx, David. While it works, IMHO it does not solve one of the mentioned problems, that is, this code is interpreted every time an instance of the controller is created. So, if I do something like</p>
+<pre><code class="hljs">$.<span class="hljs-constructor"><span class="hljs-keyword">constructor</span>.prototype.doWhatever = $.<span class="hljs-keyword">constructor</span>.prototype.doWhatever || function()</span>{
+    alert(<span class="hljs-string">'doh doh ah'</span>);
+}
+</code></pre><p>a comparison and an assignment is done for every instance. Anyway, is good to know that things like that can be done and helps me a lot in my understanding of titanium, so thanks</p>
+<p>I think I&#39;ll use my method using a complementary commonJS module, which looks to me more clear and we&#39;ll look forward to the enhancements promised by Tony :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 21st 2013, 11:34:04 am">March 21st 2013</span>
+											by <span class='authorname'>Javier Rayon</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

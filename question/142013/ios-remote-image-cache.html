@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS Remote Image Cache » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS Remote Image Cache</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I know that SDK 1.8.0 automatically caches remote images (in Library&#x2F;Caches) once, so next time when this image is requested from a server, the cached file will be displayed automatically. Works even if user is offline.</p>
+<p>Now I upgrade to lastes SDK 2.1.2 and although the images are still stored in mentioned directory, the caching is ignored? In offline mode no previously loaded image will be shown and in online mode all images will be loaded again from the server, ignoring the existing cached file.</p>
+<p>Why this new behaviour? It works so fine in 1.8.0 and now I have to implement an own caching logic?</p>
+<p>Best<br>Danny</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 8th 2012, 4:12:37 am">September 8th 2012</span>
+				by <span class='authorname'>Danny Pham</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>cache</span></li>
+					
+						<li><span class='tagname'>image</span></li>
+					
+						<li><span class='tagname'>remote</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-247254">
+				
+						<section>
+							<p>I think I found the bug why image caching is not working.</p>
+<p>Just comment out these lines in ImageLoader.m:</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> (hires &amp;&amp; [<span class="hljs-constant">TiUtils</span> isRetinaDisplay]) { <span class="hljs-regexp">//</span> <span class="hljs-constant">Save</span> <span class="hljs-keyword">as</span> <span class="hljs-variable">@2x</span> w/retina
+   ...
+}
+</code></pre><p>So e.g. instead of 1cf1835516fab2213ec5675f01865ad3@2x.jpg the remote image will be saved as 1cf1835516fab2213ec5675f01865ad3.jpg</p>
+<p>There is no need for a @2x suffix, the cached image will still be display in retina resolution and ImageView will detect this local file.</p>
+<p>Any custom caching solution with xhr is too slow and not asynchron. I guess implemented native caching is based on ASICache?</p>
+<p>Tested with iOS 6, both retina and non-retina device, works fine ;)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 13th 2012, 7:12:57 pm">September 13th 2012</span>
+								by <span class='authorname'>Danny Pham</span><br>
+								<a class="icon-bg icon-link" href="question/142013/ios-remote-image-cache#answer-247254" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-246914">
+				
+						<section>
+							<p>You can use this code logic:</p>
+<pre><code class="hljs">exports.create = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(imageDirectoryName, url, imageViewObject, hires)</span> </span>{
+    <span class="hljs-keyword">var</span> filename = url.split(<span class="hljs-string">'/'</span>);
+    <span class="hljs-keyword">var</span> hiresfilename;
+
+    filename = filename[filename.length - <span class="hljs-number">1</span>];
+    hiresfilename = filename.split(<span class="hljs-string">'.'</span>);
+    hiresfilename = hiresfilename[hiresfilename.length - <span class="hljs-number">2</span>] + <span class="hljs-string">'@2x'</span> + hiresfilename[hiresfilename.length - <span class="hljs-number">1</span>];
+    <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName, filename);
+    <span class="hljs-keyword">var</span> hiresfile = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName, hiresfilename);
+
+    <span class="hljs-keyword">if</span> (file.exists()) {
+        imageViewObject.image = file.nativePath;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">var</span> g = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName);
+        <span class="hljs-keyword">if</span> (!g.exists()) {
+            g.createDirectory();
+        };
+        <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span>) {
+                file.write(xhr.responseData);
+                file.remoteBackup = <span class="hljs-literal">false</span>;
+                <span class="hljs-keyword">if</span> (hires) {
+                    hiresfile.write(xhr.responseData);
+                    hiresfile.remoteBackup = <span class="hljs-literal">false</span>;
+                }
+                imageViewObject.image = file.nativePath;
+            };
+        };
+        xhr.open(<span class="hljs-string">'GET'</span>, url);
+        xhr.send();
+    };
+};
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 8th 2012, 5:49:25 am">September 8th 2012</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/142013/ios-remote-image-cache#answer-246914" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for the code. I already had a similar function, used for SDK &lt; 1.8.</p>
+<p>But my main question is, why does the automatic image caching stops working in latest SDK 2.1, although it works pretty good in SDK 1.8?</p>
+<p>The remote images are still saved in Library&#x2F;Caches, but are never used again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2012, 5:08:41 pm">September 13th 2012</span>
+											by <span class='authorname'>Danny Pham</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

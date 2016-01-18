@@ -1,0 +1,330 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>MVC and CallBack Requests with Function Arguments » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>MVC and CallBack Requests with Function Arguments</h1>
+		</header>
+		<section>
+			<p>Hello there,</p>
+<p>In an effort to apply a powerful, yet easy to understand MVC concept over my code I have created a controller which calls model &amp; view using CommonJS in the following way:</p>
+<pre><code class="hljs"><span class="hljs-comment">/* Controller */</span>
+
+<span class="hljs-keyword">var</span> data = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/src/models/doctor'</span>);
+
+<span class="hljs-comment">/* CallBack Functions */</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doctorViewCallBack_onSuccess</span><span class="hljs-params">(arg)</span> </span>{
+    <span class="hljs-keyword">var</span> ui = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/src/views/doctor_view'</span>);
+    <span class="hljs-keyword">var</span> view = ui.createArticleView({
+        htmlContent:arg.doctor[<span class="hljs-number">0</span>].htmlContent
+    });
+
+    win.add(view);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doctorViewCallBack_onError</span><span class="hljs-params">(arg)</span> </span>{
+    alert(arg);
+}
+
+
+<span class="hljs-comment">/* 
+
+var exec = doctorModel.getDoctorByID (
+    win.doctorID,
+    doctorViewCallBack_onSuccess,
+    doctorViewCallBack_onError
+);
+
+/* Model */</span>
+
+exports.getDoctorByID = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(doctorID,doctorViewCallBack_onSuccess,doctorViewCallBack_onError)</span> </span>{
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">global</span> = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/src/common/utils/globals'</span>);
+    <span class="hljs-keyword">var</span> config = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/src/common/vars/config'</span>);
+
+    <span class="hljs-keyword">var</span> http = Titanium.Network.createHTTPClient({
+        onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+
+            <span class="hljs-keyword">var</span> data = JSON.parse(this.responseText);
+            <span class="hljs-keyword">if</span> (data.doctor.length == <span class="hljs-number">1</span>) {
+
+                <span class="hljs-keyword">if</span> (typeof doctorViewCallBack_onSuccess == <span class="hljs-string">"function"</span>) {
+                    doctorViewCallBack_onSuccess(data);
+                }
+            }
+        },
+        onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+           <span class="hljs-keyword">if</span> (typeof doctorViewCallBack_onError == <span class="hljs-string">"function"</span>) {
+                doctorViewCallBack_onError(<span class="hljs-string">"Doctor Not Found"</span>);
+            }
+        },
+
+        timeout:Titanium.App.Properties.getInt(<span class="hljs-string">"timeout"</span>)
+    });
+
+    http.open(<span class="hljs-string">"POST"</span>,config.network.doctorGateway);
+    http.send({
+            doctorID:doctorID
+    });
+
+}
+</code></pre><p>This works perfect and the code is really very tidy and easy for any programmer within our organisation to understand and work. However, I would like to change something a little bit. That is, the way we are calling the model, which is found at the following part of the code:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> exec</span> = doctorModel.getDoctorByID (
+    win.doctorID,
+    doctorViewCallBack_onSuccess,
+    doctorViewCallBack_onError
+);
+</code></pre><p>I would like this to be done using the standard JSON notation for my arguments, in this way:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> exec</span> = doctorModel.getDoctorByID ({
+    doctorID:win.doctorID,
+    callback_onSuccess:doctorViewCallBack_onSuccess,
+    callback_onError:doctorViewCallBack_onError
+});
+</code></pre><p>I know that in order to get this right, I should modify my model and re-write it in this way:</p>
+<pre><code class="hljs">exports.getDoctorByID = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+
+    <span class="hljs-keyword">var</span> global = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/src/common/utils/globals'</span>);
+    <span class="hljs-keyword">var</span> config = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/src/common/vars/config'</span>);
+
+    <span class="hljs-keyword">var</span> http = Titanium.Network.createHTTPClient({
+        onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+
+            <span class="hljs-keyword">var</span> data = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-keyword">if</span> (data.doctor.length == <span class="hljs-number">1</span>) {
+
+                <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> e.callback_onSuccess== <span class="hljs-string">"function"</span>) {
+                    e.callback_onSuccess(data);
+                }
+            }
+        },
+        onerror: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+           <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> e.callback_onError== <span class="hljs-string">"function"</span>) {
+                e.callback_onError(<span class="hljs-string">"Doctor Not Found"</span>);
+            }
+        },
+
+        timeout:Titanium.App.Properties.getInt(<span class="hljs-string">"timeout"</span>)
+    });
+
+    http.open(<span class="hljs-string">"POST"</span>,config.network.doctorGateway);
+    http.send({
+            doctorID:e.doctorID
+    });
+
+}
+</code></pre><p>However, this won&#39;t work. For some reason, the app stops working because e.callback_onSuccess is not recognised as a function. If I do a test and just call it without any argument, i.e.</p>
+<p><code>e.callback_onSuccess</code></p>
+<p>then it works fine, but .. I need to pass the argument to my callback like that</p>
+<p><code>e.callback_onSuccess(data)</code></p>
+<p>which of course generates an error. I know that&#39;s a long code to ready and maybe too much work to reproduce in order to be able to test it, but if there is any obvious point that I could check please let me know.</p>
+<p>Thank you,<br>George</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 12th 2012, 2:35:13 pm">November 12th 2012</span>
+				by <span class='authorname'>George Georgiou</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>callback</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>function arguments</span></li>
+					
+						<li><span class='tagname'>mvc</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-251043">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Inside your function:</p>
+<pre><code class="hljs">exports<span class="hljs-class">.getDoctorByID</span> = <span class="hljs-function"><span class="hljs-title">function</span><span class="hljs-params">(e)</span></span>
+</code></pre><p>you have:</p>
+<pre><code class="hljs">onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+   ...
+   <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> e.callback_onSuccess== <span class="hljs-string">"function"</span>) {
+       e.callback_onSuccess(data);
+   }
+   ...
+},
+onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+   <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> e.callback_onError== <span class="hljs-string">"function"</span>) {
+        e.callback_onError(<span class="hljs-string">"Doctor Not Found"</span>);
+   }
+}
+</code></pre><p>So <strong>e</strong> in:</p>
+<pre><code class="hljs">onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>
+</code></pre><p>and in:</p>
+<pre><code class="hljs">onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>
+</code></pre><p>&quot;overwrites&quot; <strong>e</strong> in:</p>
+<pre><code class="hljs">exports<span class="hljs-class">.getDoctorByID</span> = <span class="hljs-function"><span class="hljs-title">function</span><span class="hljs-params">(e)</span></span>
+</code></pre><p>What you have to do is erase <strong>e</strong> from <code>onload: function(e)</code> and <code>onerror: function(e)</code> </p>
+<p><em>(anyway they do not need any argument passed as far as I can tell)</em></p>
+<p>Sorry for the long answer but a long question like this needs a detailed explanation.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 13th 2012, 7:16:14 pm">November 13th 2012</span>
+								by <span class='authorname'>Michael Massalas</span><br>
+								<a class="icon-bg icon-link" href="question/144629/mvc-and-callback-requests-with-function-arguments#answer-251043" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>that helped! thanks a lot!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2012, 5:54:31 am">November 14th 2012</span>
+											by <span class='authorname'>George Georgiou</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-250956">
+				
+						<section>
+							<p>I think the reason might be because of the re-use of the <code>e</code> value for the result of onError method. This is hiding the outer scope version of e. Try renaming the method argument to<br><code>exports.getDoctorByID = function(e)</code> to <code>exports.getDoctorByID = function(r)</code> and then <code>if (typeof r.callback_onError== &amp;quot;function&amp;quot;) {
+                r.callback_onError(&amp;quot;Doctor Not Found&amp;quot;);
+            }</code></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 12th 2012, 4:45:36 pm">November 12th 2012</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/144629/mvc-and-callback-requests-with-function-arguments#answer-250956" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I have tried that, unfortunately, that&#39;s not the reason it doesn&#39;t work …</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 13th 2012, 4:38:11 am">November 13th 2012</span>
+											by <span class='authorname'>George Georgiou</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-250981">
+				
+						<section>
+							<p>the problem is that the value</p>
+<p><code>typeof e.callback_onSuccess</code></p>
+<p>within my function getDoctorByID is not of type <em>function</em>  for some weird reason.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 13th 2012, 6:54:37 am">November 13th 2012</span>
+								by <span class='authorname'>George Georgiou</span><br>
+								<a class="icon-bg icon-link" href="question/144629/mvc-and-callback-requests-with-function-arguments#answer-250981" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

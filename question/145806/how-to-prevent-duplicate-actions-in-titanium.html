@@ -1,0 +1,401 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to prevent duplicate actions in titanium » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to prevent duplicate actions in titanium</h1>
+		</header>
+		<section>
+			<p>I have an app built with titanium. when a action button is clicked, there is a lag. Neither the &quot;Activity Indicator comes on&quot; not the activity happens immediately. So users tend to click the button twice resulting in duplicate action. For example. if the button is to make a payment. A duplicate payment is made for the same amount.</p>
+<p>Anyone else have this problem, How to prevent this.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 16th 2012, 2:54:09 pm">December 16th 2012</span>
+				by <span class='authorname'>avinash kuttuva</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>delay in action</span></li>
+					
+						<li><span class='tagname'>duplicate action</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-252902">
+				
+						<section>
+							<p>I have run into this problem, and I&#39;m pretty sure I&#39;ve seen it on both android and iOS.  For me, it usually happened when a button click causes a new window to open.  It seems that sometimes window opening takes too long, and if the user double-clicks quickly on the button, he can force a second event on the button before the new window is open.</p>
+<p>I wrote a small class called EventThrottle that is part of my <a href="http:&#x2F;&#x2F;smorgasbork.com&#x2F;component&#x2F;content&#x2F;article&#x2F;38-titanium-mobile&#x2F;136-titanium-mobile-utility-library-titanup">TitanUp</a> library.  Here it is standalone.</p>
+<pre><code class="hljs"><span class="hljs-comment">// provide a mechanism to throttle clicks on buttons, tableview rows, images, etc. that</span>
+<span class="hljs-comment">// open windows; if you don't do this, and the user taps faster than the window is opened,</span>
+<span class="hljs-comment">// you'll get multiple windows opened</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// http://developer.appcelerator.com/question/117541/multiple-click-on-row-will-fire-event-multiple-times</span>
+EventThrottle = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> _ignore_event = <span class="hljs-literal">false</span>;
+
+    <span class="hljs-keyword">this</span>.shouldFire = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span>
+    </span>{
+        <span class="hljs-keyword">if</span> (_ignore_event)
+        {
+            Ti.API.debug (<span class="hljs-string">'[TU.UI.EventThrottle] ignoring event...'</span>);
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+
+        _ignore_event = <span class="hljs-literal">true</span>;
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+    }
+
+    <span class="hljs-keyword">this</span>.setWindow = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(win)</span>
+    </span>{
+        win.addEventListener (<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+            _ignore_event = <span class="hljs-literal">false</span>;
+        });
+    }
+
+    <span class="hljs-keyword">this</span>.setTimeout = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(ms)</span>
+    </span>{
+        setTimeout (<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+            _ignore_event = <span class="hljs-literal">false</span>;
+        }, ms);
+    }
+
+}
+</code></pre><p>Here&#39;s one way to use it:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> et = new <span class="hljs-type">TU</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">EventThrottle</span> ();
+
+<span class="hljs-keyword">var</span> btn = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createButton (<span class="hljs-decorator">{...}</span>);
+
+btn.addEventListener ('click', function (e) {
+    <span class="hljs-keyword">if</span> (!et.shouldFire())
+    {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">var</span> w = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createWindow (<span class="hljs-decorator">{...}</span>);
+    et.setWindow (w);
+    w.open ();
+});
+</code></pre><p>As soon as the new window is closed, the event throttle will reset itself and allow the button clicks to work again.</p>
+<p>You could modify this to tie into your ActivityIndicator instead of a Window.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 17th 2012, 12:00:57 am">December 17th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/145806/how-to-prevent-duplicate-actions-in-titanium#answer-252902" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Wonderfully elegant solution! Thank you so much for sharing.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2013, 4:29:54 pm">November 14th 2013</span>
+											by <span class='authorname'>Ronald Cocklin</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-268837">
+				
+						<section>
+							<p>Underscore&#39;s debounce function can come in handy (http:&#x2F;&#x2F;underscorejs.org&#x2F;#debounce).  </p>
+<p>Example of a one second debounce on a click callback,</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> someClick = _.debounce(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+<span class="hljs-comment">//do something</span>
+}, <span class="hljs-number">1000</span>, <span class="hljs-literal">true</span>);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 19th 2013, 4:50:45 pm">September 19th 2013</span>
+								by <span class='authorname'>matt m</span><br>
+								<a class="icon-bg icon-link" href="question/145806/how-to-prevent-duplicate-actions-in-titanium#answer-268837" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-252888">
+				
+						<section>
+							<p>Hi</p>
+<p>The smartest thing to do is to disable the button in the event listener and then if required re-enable the button on any success or failure message - if there is a need to re-submit.</p>
+<pre><code class="hljs">btn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+    e.source.setEnabled(<span class="hljs-literal">false</span>);
+    ...
+    <span class="hljs-comment">// do your normal code here</span>
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 16th 2012, 3:00:24 pm">December 16th 2012</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/145806/how-to-prevent-duplicate-actions-in-titanium#answer-252888" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for the answer, This problem is difficult to reproduce and test (as it does not happen all the time and I am unsure what causes this lag). Have you had this problem and did this solution fix it?</p>
+<p>thanks again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 16th 2012, 3:11:30 pm">December 16th 2012</span>
+											by <span class='authorname'>avinash kuttuva</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Everybody gets this at some time for many different reasons, usually because the code that is called is not able to run instantly.</p>
+<p>Yes this solution - does work and I use it all the time.  Especially when using things like <strong>httpClient</strong> calls that then load a new window - the delay there can be a couple of seconds.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 16th 2012, 3:15:56 pm">December 16th 2012</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-252889">
+				
+						<section>
+							<p>You have to possibilities: </p>
+<pre><code class="hljs">button.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> {</span>
+    <span class="hljs-keyword">e</span>.<span class="hljs-keyword">source</span>.<span class="hljs-keyword">hide</span>();
+    // <span class="hljs-keyword">next</span> steps
+}
+</code></pre><p>Or:</p>
+<pre><code class="hljs">button.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (button.locked) <span class="hljs-keyword">return</span>;
+    button.locked = <span class="hljs-literal">true</span>;
+    <span class="hljs-comment">// do something</span>
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{button.locked=<span class="hljs-literal">false</span>},<span class="hljs-number">300</span>);
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 16th 2012, 3:02:37 pm">December 16th 2012</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/145806/how-to-prevent-duplicate-actions-in-titanium#answer-252889" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for the answer, This problem is difficult to reproduce and test (as it does not happen all the time and I am unsure what causes this lag). Have you had this problem and did this solution fix it?</p>
+<p>thanks again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 16th 2012, 3:11:49 pm">December 16th 2012</span>
+											by <span class='authorname'>avinash kuttuva</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Actually, The problem is easy to reproduce.   All you have to do to reproduce this is have an event handler that takes more than 1 second to complete its action.   Try populating a ListView with 10,000 items.  That should do it</p>
+<p>The button can be clicked repeatedly before the new view has a chance to draw itself.   Each click will cause the event handler to fire, causing the view to be drawn many times.</p>
+<p>Yes, I&#39;ve run into this problem myself and tested the solution – that&#39;s why I posted it as an answer.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 20th 2014, 5:45:21 pm">January 20th 2014</span>
+											by <span class='authorname'>Mark Riggins</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Removing of eventListener after event?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 20th 2014, 9:17:00 pm">January 20th 2014</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-274162">
+				
+						<section>
+							<p>Might I suggest a &#39;throttled Button&#39; ?</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * create a button that temporarily disables itself onTap
+*
+* options {
+*     onTap: function to call on 'singletap' event
+*     throttleTimeout: how long to temporarily disable the button after each tap. 
+*     backgroundSelectedColor:  backgroundColor while the button is disabled
+*/</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createThrottledButton</span><span class="hljs-params">(options)</span></span>{
+        <span class="hljs-keyword">var</span> button = Ti.UI.createButton(options);
+
+        <span class="hljs-keyword">if</span>(options.onTap){
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">temporarilyDisableOnTap</span><span class="hljs-params">(e)</span> </span>{
+                button.backgroundColor = options.backgroundSelectedColor;
+                button.enabled = <span class="hljs-literal">false</span>;
+                setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+                                        button.backgroundColor = options.backgroundColor
+                                        button.enabled = <span class="hljs-literal">true</span>;
+                                    }, 
+                            options.throttleTimeout);
+                options.onTap(e);
+            }
+            button.addEventListener(<span class="hljs-string">'singletap'</span>, temporarilyDisableOnTap);
+        }
+        <span class="hljs-keyword">return</span> button;
+    }
+</code></pre><p>You use it like this</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> newButton = createThrottledButton( {
+    onTap: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ alert(<span class="hljs-string">'you tapped me'</span>)},
+    throttleTimeout: <span class="hljs-number">2000</span>, <span class="hljs-comment">//milliseconds</span>
+    backgroundColor: <span class="hljs-string">'#ddd'</span>,
+    backgroundSelectedColor:<span class="hljs-string">'#aaa'</span>,
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 20th 2014, 3:15:35 pm">January 20th 2014</span>
+								by <span class='authorname'>Mark Riggins</span><br>
+								<a class="icon-bg icon-link" href="question/145806/how-to-prevent-duplicate-actions-in-titanium#answer-274162" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I ran into this problem in my application with a &#39;Search&#39; button that opens a new view or window to display the results.   In some cases, the search would take too long and the user would click the search button Twice, which would result in TWO windows being opened, one on top of the other.</p>
+<p>The fix above temporarily disables the search button for 2 seconds when pressed.  The button changes its color to the backgroundSelectedColor and holds it that way for the duration.  It gives the user a visual indication that their click has been effective, and helps them wait.   Additional clicks during the 2 seconds are disabled.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 26th 2014, 11:14:47 am">January 26th 2014</span>
+											by <span class='authorname'>Mark Riggins</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

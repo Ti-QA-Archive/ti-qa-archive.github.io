@@ -1,0 +1,237 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>WAV sounds played back-to-back crashes app repeatedly on iOS 6 when resuming from background » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>WAV sounds played back-to-back crashes app repeatedly on iOS 6 when resuming from background</h1>
+		</header>
+		<section>
+			<p>I&#39;ve searched and found corrections to one or two things my code was doing that I have corrected, but I can&#39;t find anything more specific for a crash that I am able to reproduce consistently in my app that includes a map with only a few annotations on it and playback of WAV files one after the other. I am happy to provide more code if needed.</p>
+<p>Summary:My Titanium app crashes using iOS 6 whenever I repeat this sequence of events:</p>
+<ul>
+<li>Begin playing an array of sounds in sequence</li>
+<li>Place the app into the background during playback</li>
+<li>Return to the app a minute or two later</li>
+<li>Resume playback of the sequence of sounds (WAVs)</li>
+</ul>
+<p>When I return to the app, my map&#39;s current location indicator is frequently off-screen and it takes a few seconds to &quot;center&quot; itself. I&#39;m not sure if this is related, but it seems to crash more frequently when my map is zoomed in all the way. I&#39;m wondering if there isn&#39;t a connection between the audio playback and Apple Maps.</p>
+<p>This is the error I see in my console log:</p>
+<pre><code class="hljs"><span class="hljs-type">Jan</span> <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">01</span> <span class="hljs-type">MY_IPHONE_NAME</span> <span class="hljs-type">MY_APP_NAME</span>[<span class="hljs-number">7929</span>] &lt;<span class="hljs-type">Error</span>&gt;: <span class="hljs-type">Terminating</span> app due <span class="hljs-keyword">to</span> uncaught <span class="hljs-keyword">exception</span> <span class="hljs-symbol">'NSInternalInconsistencyException'</span>, reason: <span class="hljs-symbol">'stopAudioSession</span> called too many times'
+</code></pre><p>A search on this crash gave me some insight, but the issue remains. I&#39;m assuming it may have to do with some garbage that may be accumulated while I&#39;m in the background, or the fact that I&#39;m re-calling &#39;createSound&#39; vs. just swapping out the sound object&#39;s url when I load a new sound.</p>
+<p>My app uses a map and a few WAV files served from an S3 bucket. I create an annotation on the map to represent the location of each sound, and have an event listener that automatically plays each sound until they are all played. My mapView is created and added to a &quot;heavyweight&quot; window as follows:</p>
+<pre><code class="hljs">var self = Ti.Map.createView({
+    mapType: Titanium.Map.STANDARD_TYPE,
+    height: (Ti.Platform.displayCaps.platformHeight-<span class="hljs-number">20</span>),
+    width: Ti.UI.FILL,
+    userLocation: <span class="hljs-literal">true</span>,
+    animate: <span class="hljs-literal">true</span>,
+    region: {
+        latitude: gps.getUserCoordinates().latitude,
+        longitude: gps.getUserCoordinates().longitude,
+        latitudeDelta:<span class="hljs-number">.05</span>,
+        longitudeDelta:<span class="hljs-number">.05</span>
+        },
+    regionFit: <span class="hljs-literal">true</span>,
+    zIndex: <span class="hljs-number">5</span>
+    });
+</code></pre><p>NOTES:<br>Only crashes on iPhone running iOS6. Does not crash in the emulator or iOS 5. No Android version.</p>
+<p>Here is a snippet of my playback code:</p>
+<pre><code class="hljs">autoSoundPlayer.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ Ti.App.fireEvent(<span class="hljs-string">'app:autoplaynext'</span>);}, <span class="hljs-number">400</span>);
+    });
+</code></pre><p>Inside the app event &#39;autoplaynext&#39;. &#39;masterplaylist&#39; is an array of sound file names:</p>
+<pre><code class="hljs"><span class="hljs-type">Ti</span>.<span class="hljs-type">App</span>.addEventListener(<span class="hljs-symbol">'app</span>:autoplaynext', function<span class="hljs-literal">()</span> {
+.
+.
+.
+var fileurl = <span class="hljs-type">Ti</span>.<span class="hljs-type">Filesystem</span>.getFile( <span class="hljs-type">Ti</span>.<span class="hljs-type">Filesystem</span>.getApplicationDataDirectory<span class="hljs-literal">()</span>, masterplaylist[ current_sound_index].unique_id + <span class="hljs-string">".wav"</span>);
+
+<span class="hljs-keyword">if</span>( fileurl.exists<span class="hljs-literal">()</span>) {
+
+    <span class="hljs-keyword">if</span>( autoSoundPlayer) {
+        <span class="hljs-keyword">if</span>( autoSoundPlayer.playing) autoSoundPlayer.stop<span class="hljs-literal">()</span>;
+        <span class="hljs-keyword">if</span> (<span class="hljs-type">Ti</span>.<span class="hljs-type">Platform</span>.osname == <span class="hljs-symbol">'android'</span>) autoSoundPlayer.release<span class="hljs-literal">()</span>;
+    }
+
+    autoSoundPlayer = <span class="hljs-type">Ti</span>.<span class="hljs-type">Media</span>.createSound( {url: fileurl});
+    autoSoundPlayer.play<span class="hljs-literal">()</span>;
+.
+.
+.
+    });
+
+}
+</code></pre><p>I&#39;ve researched the &#39;stopAudioSession called too many times&#39; issue and placed &quot;mysound.stop()&quot; calls before I change the sound source. I can&#39;t seem to do anything to fix this issue, and am beginning to wonder if it isn&#39;t an iOS6&#x2F;mapping issue that won&#39;t be fixed without an iOS update. Thoughts?</p>
+<p>Console log and Crash log included, though they are abbreviated. Let me know if you need the entire log contents. Any help&#x2F;direction&#x2F;criticism&#x2F;advice would be greatly appreciated!</p>
+<p>Portion of the Console log:</p>
+<pre><code class="hljs">Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">01</span> MY_IPHONE_NAME MY_APP_NAME[<span class="hljs-number">7929</span>] &lt;Warning&gt;: *** Assertion failure <span class="hljs-keyword">in</span> -[TiMediaAudioSession stopAudioSession], /MY_APP_NAME <span class="hljs-number">1.2</span>/build/iphone/Classes/TiMediaAudioSession.m:<span class="hljs-number">326</span>
+Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">01</span> MY_IPHONE_NAME MY_APP_NAME[<span class="hljs-number">7929</span>] &lt;Warning&gt;: [INFO] autoSoundPlayer complete <span class="hljs-keyword">in</span> autoplay
+Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">01</span> MY_IPHONE_NAME MY_APP_NAME[<span class="hljs-number">7929</span>] &lt;Warning&gt;: [ERROR] The application has crashed with an unhandled exception. Stack trace:
+
+    <span class="hljs-number">0</span>   CoreFoundation                      <span class="hljs-number">0x37b392a3</span> &lt;redacted&gt; + <span class="hljs-number">162</span>
+    <span class="hljs-number">1</span>   libobjc.A.dylib                     <span class="hljs-number">0x32e3197f</span> objc_exception_throw + <span class="hljs-number">30</span>
+    <span class="hljs-number">2</span>   CoreFoundation                      <span class="hljs-number">0x37b3915d</span> &lt;redacted&gt; + <span class="hljs-number">0</span>
+    <span class="hljs-number">3</span>   Foundation                          <span class="hljs-number">0x376252af</span> &lt;redacted&gt; + <span class="hljs-number">90</span>
+    <span class="hljs-number">4</span>   MY_APP_NAME                       <span class="hljs-number">0x0010c151</span> -[TiMediaAudioSession stopAudioSession] + <span class="hljs-number">288</span>
+    <span class="hljs-number">5</span>   MY_APP_NAME                       <span class="hljs-number">0x000a78bf</span> -[TiMediaSoundProxy audioPlayerDidFinishPlaying:successfully:] + <span class="hljs-number">258</span>
+    <span class="hljs-number">6</span>   Foundation                          <span class="hljs-number">0x376668ed</span> &lt;redacted&gt; + <span class="hljs-number">460</span>
+    <span class="hljs-number">7</span>   CoreFoundation                      <span class="hljs-number">0x37b0e683</span> &lt;redacted&gt; + <span class="hljs-number">14</span>
+    <span class="hljs-number">8</span>   CoreFoundation                      <span class="hljs-number">0x37b0dee9</span> &lt;redacted&gt; + <span class="hljs-number">212</span>
+    <span class="hljs-number">9</span>   CoreFoundation                      <span class="hljs-number">0x37b0ccb7</span> &lt;redacted&gt; + <span class="hljs-number">646</span>
+    <span class="hljs-number">10</span>  CoreFoundation                      <span class="hljs-number">0x37a7febd</span> CFRunLoopRunSpecific + <span class="hljs-number">356</span>
+    <span class="hljs-number">11</span>  CoreFoundation                      <span class="hljs-number">0x37a7fd49</span> CFRunLoopRunInMode + <span class="hljs-number">104</span>
+    <span class="hljs-number">12</span>  GraphicsServices                    <span class="hljs-number">0x367f72eb</span> GSEventRunModal + <span class="hljs-number">74</span>
+    <span class="hljs-number">13</span>  UIKit                               <span class="hljs-number">0x39c2c2f9</span> UIApplicationMain + <span class="hljs-number">1120</span>
+    <span class="hljs-number">14</span>  MY_APP_NAME                       <span class="hljs-number">0x00003ef5</span> main + <span class="hljs-number">100</span>
+    <span class="hljs-number">15</span>  MY_APP_NAME                       <span class="hljs-number">0x00003138</span> start + <span class="hljs-number">40</span>
+Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">01</span> MY_IPHONE_NAME MY_APP_NAME[<span class="hljs-number">7929</span>] &lt;Error&gt;: *** Terminating app due to uncaught exception <span class="hljs-string">'NSInternalInconsistencyException'</span>, reason: <span class="hljs-string">'stopAudioSession called too many times'</span>
+    *** First throw <span class="hljs-keyword">call</span> stack:
+    (<span class="hljs-number">0x37b392a3</span> <span class="hljs-number">0x32e3197f</span> <span class="hljs-number">0x37b3915d</span> <span class="hljs-number">0x376252af</span> <span class="hljs-number">0x10c151</span> <span class="hljs-number">0xa78bf</span> <span class="hljs-number">0x376668ed</span> <span class="hljs-number">0x37b0e683</span> <span class="hljs-number">0x37b0dee9</span> <span class="hljs-number">0x37b0ccb7</span> <span class="hljs-number">0x37a7febd</span> <span class="hljs-number">0x37a7fd49</span> <span class="hljs-number">0x367f72eb</span> <span class="hljs-number">0x39c2c2f9</span> <span class="hljs-number">0x3ef5</span> <span class="hljs-number">0x3138</span>)
+Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">02</span> MY_IPHONE_NAME ReportCrash[<span class="hljs-number">7958</span>] &lt;Notice&gt;: Formulating crash report for process MY_APP_NAME[<span class="hljs-number">7929</span>]
+Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">02</span> MY_IPHONE_NAME com.apple.launchd[<span class="hljs-number">1</span>] (UIKitApplication:com.xxxxxxxx.xxxxxxxx[<span class="hljs-number">0x6cda</span>][<span class="hljs-number">7929</span>]) &lt;Warning&gt;: (UIKitApplication:com.xxxxxxxx.xxxxxxxx[<span class="hljs-number">0x6cda</span>]) Job appears to have crashed: Abort trap: <span class="hljs-number">6</span>
+Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">02</span> MY_IPHONE_NAME backboardd[<span class="hljs-number">52</span>] &lt;Warning&gt;: Application <span class="hljs-string">'UIKitApplication:com.xxxxxxxx.xxxxxxxx[0x6cda]'</span> exited abnormally with signal <span class="hljs-number">6</span>: Abort trap: <span class="hljs-number">6</span>
+Jan <span class="hljs-number">24</span> <span class="hljs-number">14</span>:<span class="hljs-number">09</span>:<span class="hljs-number">02</span> MY_IPHONE_NAME ReportCrash[<span class="hljs-number">7958</span>] &lt;Error&gt;: libMobileGestalt copySystemVersionDictionaryValue: Could <span class="hljs-keyword">not</span> lookup ReleaseType from system version dictionary
+</code></pre><p>Portion of the Crash Log:</p>
+<pre><code class="hljs">Thread <span class="hljs-number">0</span> name:  Dispatch <span class="hljs-built_in">queue</span>: com.apple.main-thread
+Thread <span class="hljs-number">0</span> Crashed:
+<span class="hljs-number">0</span>   libsystem_kernel.dylib            <span class="hljs-number">0x35c9e350</span> __pthread_kill + <span class="hljs-number">8</span>
+<span class="hljs-number">1</span>   libsystem_c.dylib                 <span class="hljs-number">0x3714011e</span> pthread_kill + <span class="hljs-number">54</span>
+<span class="hljs-number">2</span>   libsystem_c.dylib                 <span class="hljs-number">0x3717c96e</span> <span class="hljs-built_in">abort</span> + <span class="hljs-number">90</span>
+<span class="hljs-number">3</span>   libc++abi.dylib                   <span class="hljs-number">0x349bbd4a</span> abort_message + <span class="hljs-number">70</span>
+<span class="hljs-number">4</span>   libc++abi.dylib                   <span class="hljs-number">0x349b8ff4</span> _ZL17default_terminatev + <span class="hljs-number">20</span>
+<span class="hljs-number">5</span>   libobjc.A.dylib                   <span class="hljs-number">0x32e31a74</span> _ZL15_objc_terminatev + <span class="hljs-number">144</span>
+<span class="hljs-number">6</span>   libc++abi.dylib                   <span class="hljs-number">0x349b9078</span> _ZL19safe_handler_callerPFvvE + <span class="hljs-number">76</span>
+<span class="hljs-number">7</span>   libc++abi.dylib                   <span class="hljs-number">0x349b9110</span> <span class="hljs-built_in">std</span>::terminate() + <span class="hljs-number">16</span>
+<span class="hljs-number">8</span>   libc++abi.dylib                   <span class="hljs-number">0x349ba594</span> __cxa_rethrow + <span class="hljs-number">84</span>
+<span class="hljs-number">9</span>   libobjc.A.dylib                   <span class="hljs-number">0x32e319cc</span> objc_exception_rethrow + <span class="hljs-number">8</span>
+<span class="hljs-number">10</span>  CoreFoundation                    <span class="hljs-number">0x37a7ff1c</span> CFRunLoopRunSpecific + <span class="hljs-number">452</span>
+<span class="hljs-number">11</span>  CoreFoundation                    <span class="hljs-number">0x37a7fd44</span> CFRunLoopRunInMode + <span class="hljs-number">100</span>
+<span class="hljs-number">12</span>  GraphicsServices                  <span class="hljs-number">0x367f72e6</span> GSEventRunModal + <span class="hljs-number">70</span>
+<span class="hljs-number">13</span>  UIKit                             <span class="hljs-number">0x39c2c2f4</span> UIApplicationMain + <span class="hljs-number">1116</span>
+<span class="hljs-number">14</span>  MY_APP_NAME                     <span class="hljs-number">0x00003ef0</span> <span class="hljs-number">0x1000</span> + <span class="hljs-number">12016</span>
+<span class="hljs-number">15</span>  MY_APP_NAME                     <span class="hljs-number">0x00003134</span> <span class="hljs-number">0x1000</span> + <span class="hljs-number">8500</span>
+</code></pre><p>Titanium SDK version: 2.1.3 (10&#x2F;02&#x2F;12 16:16 15997d0)</p>
+<p>Titanium Studio, build: 3.0.1.201212181159</p>
+<p>iPhone 4 w iOS 6.0.1 (10A523)</p>
+<p>My Desktop dev environment: Macbook Air, OSX 10.7.5 Build 11G63b</p>
+<p>Thanks in advance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 24th 2013, 6:14:58 pm">January 24th 2013</span>
+				by <span class='authorname'>Dan Jacoby</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>audio</span></li>
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>ios6</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Update:<br>It appears to be an issue with sound playback. I inherited the code, so I&#39;m still learning how the app works. There is an app-level event listener that plays sounds sequentially. The event is fired after a &quot;complete&quot; event for each sound. Then, a setInterval delay triggers the next sound. The crash is happening in this code as when I remove it, the app is stabile - even when I manually play a single sound. I will post the fix after I re-engineer the sequential playback. Thanks.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 25th 2013, 4:11:12 am">January 25th 2013</span>
+								by <span class='authorname'>Dan Jacoby</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-256141">
+				
+						<section>
+							<p>This turned out to be an issue with iOS 6.0 (not 6.1) and the userLocation option in a MapView. With userLocation: false I could not repeat the crash. I created a hack for 6.0 by setting userLocation=false and then re-setting userLocation=true when resuming the application. It appears to work fairly well, but without spending hours trying to get it to crash again I&#39;ll never know for sure.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 5th 2013, 11:35:40 am">February 5th 2013</span>
+								by <span class='authorname'>Dan Jacoby</span><br>
+								<a class="icon-bg icon-link" href="question/147366/wav-sounds-played-back-to-back-crashes-app-repeatedly-on-ios-6-when-resuming-from-background#answer-256141" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

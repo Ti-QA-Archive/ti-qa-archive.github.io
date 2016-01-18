@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Asynchronous callback to a closed window » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Asynchronous callback to a closed window</h1>
+		</header>
+		<section>
+			<p>My app has a network module for handling network requests across my app. My network module is using callbacks instead of events. If a window in my app makes a request to the network module which starts an asynchronous HTTPClient call, and then the calling window is closed before the network request has completed, could that result in a callback to a non-existent function? In other words, is it possible for a window to be garbage collected while another function is asynchronously processing its request?</p>
+<p>It seems to me that there should be some type of object graph in memory that makes a reference to the window that invoked the function call which should hold it in memory until the called function returns. However, I haven&#39;t been able to find anything to back up my assumption. And since the call is asynchronous, I don&#39;t know if that has a different result.</p>
+<p>Thanks for any help.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 15th 2012, 7:26:05 pm">December 15th 2012</span>
+				by <span class='authorname'>Paul Gullette</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>asynchronous</span></li>
+					
+						<li><span class='tagname'>callback</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>network</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Please provide some example code to demonstrate your circumstance as I am not sure why you are needing to close the calling window before the network call is returned.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 16th 2012, 11:29:52 am">December 16th 2012</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Below is a portion of my network module. Note that the options variable is declared outside the function but contains the necessary components to create an HTTPClient.</p>
+<pre><code class="hljs"><span class="hljs-function">function <span class="hljs-title">process</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> url = options.url;
+
+    <span class="hljs-keyword">if</span> (options.<span class="hljs-keyword">params</span> &amp;&amp; options.type === <span class="hljs-string">"GET"</span>) {
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">params</span> = options.<span class="hljs-keyword">params</span>;
+        <span class="hljs-keyword">var</span> params_string = <span class="hljs-string">""</span>;
+
+        <span class="hljs-comment">// Generate params string</span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">params</span>.length &gt; <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">var</span> temp = [];
+
+             <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt; <span class="hljs-keyword">params</span>.length; i++) {
+                 temp.push(Ti.Network.encodeURIComponent(<span class="hljs-keyword">params</span>[i][<span class="hljs-string">'key'</span>]) + <span class="hljs-string">"="</span> + Ti.Network.encodeURIComponent(<span class="hljs-keyword">params</span>[i][<span class="hljs-string">'value'</span>]));
+             }
+
+             params_string = <span class="hljs-string">"?"</span> + temp.<span class="hljs-keyword">join</span>(<span class="hljs-string">"&amp;"</span>);
+             url = url + params_string;
+        }
+    }
+
+    <span class="hljs-keyword">var</span> client = Ti.Network.createHTTPClient({
+        <span class="hljs-comment">// Function called when the response data is available</span>
+        onload: function(e) {
+            <span class="hljs-comment">// Call the success function if present</span>
+            <span class="hljs-keyword">if</span> (options.success)
+                options.success(<span class="hljs-keyword">this</span>);
+
+            <span class="hljs-comment">// Process other network requests if any</span>
+            processNextRequest();
+        },
+        <span class="hljs-comment">// Function called when an error occurs, including a timeout</span>
+        onerror: function(e) {
+            <span class="hljs-comment">// Call onError function passing current error and response</span>
+               onError(e, <span class="hljs-keyword">this</span>);
+        },
+        onreadystatechange: onReadyStateChange,
+        timeout: options.timeout ? options.timeout : <span class="hljs-number">10000</span>
+    });
+
+    <span class="hljs-comment">// Prepare the connection.</span>
+    client.open(options.type, url);
+
+    <span class="hljs-keyword">if</span> (options.type === <span class="hljs-string">"GET"</span>) {
+        client.send();
+    }
+    <span class="hljs-function"><span class="hljs-keyword">else</span> <span class="hljs-title">if</span> (<span class="hljs-params">options.type === <span class="hljs-string">"POST"</span></span>) </span>{
+        client.setRequestHeader(<span class="hljs-string">'Content-Type'</span>,<span class="hljs-string">'application/json; charset=utf-8'</span>);
+        client.send(options.<span class="hljs-keyword">params</span>[<span class="hljs-number">0</span>]);
+    }
+}
+</code></pre><p>And let&#39;s say I invoke my network module in a modal window as listed below:</p>
+<pre><code class="hljs">// <span class="hljs-type">Assume</span> that creating an instance <span class="hljs-keyword">of</span> <span class="hljs-type">Network</span> fires the process <span class="hljs-keyword">method</span> to kick off the request
+<span class="hljs-keyword">var</span> request = new <span class="hljs-type">Network</span>({
+    url: <span class="hljs-string">"http://myurl.com/page"</span>,
+    <span class="hljs-keyword">type</span>: <span class="hljs-string">"GET"</span>,
+    params: [{key: <span class="hljs-string">"param1"</span>, value: <span class="hljs-string">"value1"</span>}],
+    success: myModalSuccessFunction
+});
+
+<span class="hljs-keyword">var</span> myModalSuccessFunction = function() {
+    alert(<span class="hljs-string">"Modal network request success!"</span>);
+};
+</code></pre><p>So my question then is as follows. Let&#39;s say this modal window was opened by a completely different file and when the modal loads, it fires off the network request. While waiting for the network request to complete, the modal window is closed. Since my network module is using a callback instead of an event, what will happen? Will the callback still exist in memory even though the window it was defined in has been closed? Does this make more sense?</p>
+<p>And thanks to everyone who has responded so far and tried to help me.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 17th 2012, 7:38:53 pm">December 17th 2012</span>
+								by <span class='authorname'>Paul Gullette</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>You could simulate this for yourself, right?  Use a setTimeout() call in your Network class to delay the HTTP request by a few seconds.  This will give you time enough to close the window manually.  Then with a carefully placed breakpoint in your Network class, you can step through the <strong>onload</strong> callback, and see what happens when it tries to reference <strong>myModalSuccessFunction</strong>.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 17th 2012, 7:59:11 pm">December 17th 2012</span>
+								by <span class='authorname'>Jason Priebe</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-252923">
+				
+						<section>
+							<p>Hi,<strong>My app has a network module for handling network requests across my app.</strong></p>
+<p>it says that you are using some custom module and needs to checked the way you should use it. in this case Malcolm is right,you should provide some code here.</p>
+<p>and if you would be using Titanium Network call, then no problem in async call, as Network call is independent of window object.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 17th 2012, 7:33:17 am">December 17th 2012</span>
+								by <span class='authorname'>Ashish Nigam</span><br>
+								<a class="icon-bg icon-link" href="question/145785/asynchronous-callback-to-a-closed-window#answer-252923" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

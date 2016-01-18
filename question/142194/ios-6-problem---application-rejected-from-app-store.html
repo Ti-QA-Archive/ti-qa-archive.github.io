@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS 6 problem - application rejected from App Store » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS 6 problem - application rejected from App Store</h1>
+		</header>
+		<section>
+			<p>My application was rejected due to crash on iPhone and iPad with iOS6. Any ideas what to do?</p>
+<p>I got this from Apple:</p>
+<p>Sep 12, 2012 02:35 PM. From Apple.<br>2.1</p>
+<p>We found that your app crashed on iPhone 4 and iPad running iOS 6, which is not in compliance with the App Store Review Guidelines.</p>
+<p>Your app crashed on both Wi-Fi and cellular networks when we launched the app.</p>
+<p>We have attached detailed crash logs to help troubleshoot this issue. For information on how to symbolicate and read a crash log, please see Tech Note TN2151 Understanding and Analyzing iPhone OS Application Crash Reports.</p>
+<p>For discrete code-level questions, you may wish to consult with Apple Developer Technical Support. Please be sure to include any symbolicated crash logs, screenshots, or steps to reproduce the issues when you submit your request. </p>
+<p>Crash report: <a href="http:&#x2F;&#x2F;pastebin.com&#x2F;t2D8Q25n">http:&#x2F;&#x2F;pastebin.com&#x2F;t2D8Q25n</a></p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 13th 2012, 3:08:11 am">September 13th 2012</span>
+				by <span class='authorname'>Sergey Nosenko</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>app store</span></li>
+					
+						<li><span class='tagname'>ios 6</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-247185">
+				
+						<section>
+							<p>I think I found reason of crash after some debug under Xcode 4.5.</p>
+<p>It crashed in TiUILabel.m here:</p>
+<pre><code class="hljs">-(<span class="hljs-built_in">CGSize</span>)sizeForFont:(<span class="hljs-built_in">CGFloat</span>)suggestedWidth
+{
+    <span class="hljs-built_in">NSString</span> *value = [label text];
+    <span class="hljs-built_in">UIFont</span> *font = [label font];
+    <span class="hljs-built_in">CGSize</span> maxSize = <span class="hljs-built_in">CGSizeMake</span>(suggestedWidth&lt;=<span class="hljs-number">0</span> ? <span class="hljs-number">480</span> : suggestedWidth, <span class="hljs-number">10000</span>);
+    <span class="hljs-built_in">CGSize</span> shadowOffset = [label shadowOffset];
+    requiresLayout = <span class="hljs-literal">YES</span>;
+    <span class="hljs-keyword">if</span> ((suggestedWidth &gt; <span class="hljs-number">0</span>) &amp;&amp; [value characterAtIndex:value<span class="hljs-variable">.length</span>-<span class="hljs-number">1</span>] == <span class="hljs-string">' '</span>) {
+        <span class="hljs-comment">// (CGSize)sizeWithFont:(UIFont *)font constrainedToSize:(CGSize)size lineBreakMode:(UILineBreakMode)lineBreakMode method truncates</span>
+        <span class="hljs-comment">// the string having trailing spaces when given size parameter width is equal to the expected return width, so we adjust it here.</span>
+        maxSize<span class="hljs-variable">.width</span> += <span class="hljs-number">0.00001</span>;
+    }
+    <span class="hljs-built_in">CGSize</span> size = [value sizeWithFont:font constrainedToSize:maxSize lineBreakMode:<span class="hljs-built_in">UILineBreakModeTailTruncation</span>];
+    <span class="hljs-keyword">if</span> (shadowOffset<span class="hljs-variable">.width</span> &gt; <span class="hljs-number">0</span>)
+    {
+        <span class="hljs-comment">// if we have a shadow and auto, we need to adjust to prevent</span>
+        <span class="hljs-comment">// font from clipping</span>
+        size<span class="hljs-variable">.width</span> += shadowOffset<span class="hljs-variable">.width</span> + <span class="hljs-number">10</span>;
+    }
+    <span class="hljs-keyword">return</span> size;
+}
+</code></pre><p>at line </p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> ((suggestedWidth &gt; <span class="hljs-number">0</span>) &amp;&amp; [<span class="hljs-built_in">value</span> characterAtIndex:<span class="hljs-built_in">value</span>.<span class="hljs-built_in">length</span>-<span class="hljs-number">1</span>] == <span class="hljs-string">' '</span>) {
+</code></pre><p>with BAR_ACCESS exception</p>
+<p>but if modify this line to </p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> ((<span class="hljs-built_in">value</span>.<span class="hljs-built_in">length</span> &gt; <span class="hljs-number">0</span>) &amp;&amp; (suggestedWidth &gt; <span class="hljs-number">0</span>) &amp;&amp; [<span class="hljs-built_in">value</span> characterAtIndex:<span class="hljs-built_in">value</span>.<span class="hljs-built_in">length</span>-<span class="hljs-number">1</span>] == <span class="hljs-string">' '</span>) {
+</code></pre><p>fixed the crash.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 13th 2012, 3:52:24 am">September 13th 2012</span>
+								by <span class='authorname'>Sergey Nosenko</span><br>
+								<a class="icon-bg icon-link" href="question/142194/ios-6-problem---application-rejected-from-app-store#answer-247185" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Wow, thank you so much.  This fix worked for me too.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2012, 5:18:02 am">September 13th 2012</span>
+											by <span class='authorname'>Kevin McCallum</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It&#39;s becoming urgent for Appcelerator to release an update of the SDK….</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2012, 7:43:42 am">September 13th 2012</span>
+											by <span class='authorname'>Armindo Da Silva</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I think that problem is connected only  with Ti.UI.createLabel() with empty text and &#39;auto&#39; width.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2012, 7:46:08 am">September 13th 2012</span>
+											by <span class='authorname'>Sergey Nosenko</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Please follow the ticket here: <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-10810">TIMOB-10810</a>. This will be released as part of 2.1.3.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 15th 2012, 7:20:26 pm">September 15th 2012</span>
+											by <span class='authorname'>Ingo Muschenetz</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thank you Sergey. This is very helpful to me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 16th 2012, 4:54:08 pm">September 16th 2012</span>
+											by <span class='authorname'>Pavel Mikunda</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Sergey, much appreciated - fixed the issue for me :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 1st 2012, 12:14:24 am">October 1st 2012</span>
+											by <span class='authorname'>Gavin Harriss</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-247282">
+				
+						<section>
+							<p>Is there a official fix for the SDK yet?<br>My App was rejected from Apple with this Message.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 14th 2012, 5:35:35 am">September 14th 2012</span>
+								by <span class='authorname'>Fab Ian</span><br>
+								<a class="icon-bg icon-link" href="question/142194/ios-6-problem---application-rejected-from-app-store#answer-247282" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Try the fix, but iOS 6 will release only in 5 days, and Appcelerator usually support it in 30 days… :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 14th 2012, 5:47:51 am">September 14th 2012</span>
+											by <span class='authorname'>Sergey Nosenko</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

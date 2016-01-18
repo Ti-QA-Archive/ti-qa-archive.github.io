@@ -1,0 +1,725 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Trying to create pins on mobile map based on JSON data » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Trying to create pins on mobile map based on JSON data</h1>
+		</header>
+		<section>
+			<p>Application type: Mobile - iOS, Android<br>Titanium SDK: 2.1.2<br>Device: iOS simulator</p>
+<p>I&#39;ve come pretty far in what I&#39;m trying to achieve. So far I&#39;ve managed to request JSON data, looped through it and managed to create pins on map. I&#39;ve also created a picker which will work as a filter option - e.g. select category and those pins with that category (as of now JSON &quot;subtitle&quot; work as category) will be marked on the map. Right now ALL pins get dropped on the map, I only want pins with the specific category&#x2F;subtitle to create a pin. So it&#39;s not working as intended right now.</p>
+<p>My picker collects &quot;subtitle&quot; from JSON and creates a row with that as title. All well and good. But how to make my active row (getSelectedRow) in picker to &quot;drop&quot; that pin which has the same title? I&#39;m not sure filterAttribute is the way to go for a picker, just saw it in use for tableviews.</p>
+<p>I&#39;m at a stalemate right now where I don&#39;t know how to proceed. Forgive me if I don&#39;t make sense, ask and I can elaborate. :)</p>
+<p>Ps. My selectionIndicator isn&#39;t working either, but that&#39;s no biggie.</p>
+<p>My picker at app.js look like this and it works because all creation&#x2F;population &quot;stuff&quot; is happening in my geo.js:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> pickerList</span> = Titanium.UI.createPicker({
+    <span class="hljs-comment">//style</span>
+});
+</code></pre><p>My geo.js file:</p>
+<pre><code class="hljs"><span class="hljs-comment">// get JSON from address and run script</span>
+<span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://localhost:8888/titanium-restaurants/restaurants.json"</span>;
+<span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+    onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.debug(<span class="hljs-keyword">this</span>.responseText);
+
+        <span class="hljs-comment">// get JSON as response</span>
+        <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+
+        <span class="hljs-comment">// create variable for response</span>
+        <span class="hljs-keyword">var</span> listOfRests = response.restaurants;
+
+               <span class="hljs-comment">// loop through JSON</span>
+        <span class="hljs-keyword">for</span>(i = <span class="hljs-number">0</span>; i &lt; listOfRests.length; i++){
+
+            <span class="hljs-comment">// get all data from JSON</span>
+            <span class="hljs-keyword">var</span> lon = listOfRests[i].longitude;
+            <span class="hljs-keyword">var</span> lat = listOfRests[i].latitude;                
+            <span class="hljs-keyword">var</span> title = listOfRests[i].title;
+            <span class="hljs-keyword">var</span> subtitle = listOfRests[i].subtitle;
+
+               Ti.API.info(subtitle);
+               <span class="hljs-comment">// get categories from JSON 'subtitle', create rows in picker then add it</span>
+               <span class="hljs-keyword">var</span> data = Ti.UI.createPickerRow({title:subtitle});
+               pickerList.add(data);
+
+            <span class="hljs-comment">// create pins for map, take coordinates from JSON</span>
+            annotations.push(Titanium.Map.createAnnotation({
+                   longitude:lon,
+                   latitude:lat,
+                   title:title,
+                   subtitle:subtitle,
+                   filterAttribute: <span class="hljs-string">'filter'</span>,
+                   pincolor:Titanium.Map.ANNOTATION_PURPLE,
+                   animate:<span class="hljs-literal">true</span>
+                }));    
+        }
+
+            pickerList.setSelectedRow(<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>);
+            selectionIndicator: <span class="hljs-literal">true</span>;
+
+            <span class="hljs-comment">// listen for event  - drop pins, for chosen category</span>
+    <span class="hljs-keyword">var</span> pinToActiveRow = pickerList.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+
+                <span class="hljs-keyword">var</span> getActiveRow = pickerList.getSelectedRow(<span class="hljs-number">0</span>).title;
+                getActiveRow.filter = subtitle;
+                mapview.annotations = annotations;
+            });
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 15th 2012, 12:17:51 pm">October 15th 2012</span>
+				by <span class='authorname'>Johan Johansson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>annotation</span></li>
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>mapview</span></li>
+					
+						<li><span class='tagname'>picker</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-249302">
+				
+						<section>
+							<p>It seems like you&#39;re on the right track, but I would do things a little differently.  I don&#39;t think the filterattribute applies here.</p>
+<p>I would do something like this:</p>
+<pre><code class="hljs">onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+...
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> annotations[subtitle] === <span class="hljs-literal">undefined</span>)
+            {
+                annotations[subtitle] = [];
+            }
+
+            annotations[subtitle].push(Titanium.Map.createAnnotation({
+                   longitude:lon,
+                   latitude:lat,
+                   title:title,
+                   pincolor:Titanium.Map.ANNOTATION_PURPLE,
+                   animate:<span class="hljs-literal">true</span>
+                }));
+...
+}
+</code></pre><p>Then in your event handler:</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> pinToActiveRow = pickerList.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                <span class="hljs-keyword">var</span> subtitle = e.selectedValue[<span class="hljs-number">0</span>];
+                mapview.annotations = annotations[subtitle];
+            });
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2012, 12:42:57 pm">October 15th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/143512/trying-to-create-pins-on-mobile-map-based-on-json-data#answer-249302" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I should point out that it might be more efficient to just store the latitude, longitude, and title of the pins and then create them as you need them in the picker change event listener.   If you have a lot of pins that you&#39;re not going to show, you may not want to create a large quantity of unused annotations.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2012, 12:44:29 pm">October 15th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Many thanks for a quick reply Jason!</p>
+<p>However, I get this: &quot;[ERROR] Invalid type passed to function. expected: NSArray, was: (null)&quot;<br>on: &quot;mapview.annotations = annotations[subtitle];&quot;</p>
+<p>And I had to change &quot;onload: function(e)<br>to: function onload(e) otherwise I get a syntax error.</p>
+<p>Am I missing something?</p>
+<p>:(</p>
+<p>Looks like this now:</p>
+<pre><code class="hljs"><span class="hljs-comment">// get JSON as response</span>
+        <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+
+        <span class="hljs-comment">// create variable for response</span>
+        <span class="hljs-keyword">var</span> listOfRests = response.restaurants;
+
+        <span class="hljs-comment">// loop through JSON</span>
+        <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; listOfRests.length; i++){
+
+            <span class="hljs-comment">// get all data</span>
+            <span class="hljs-keyword">var</span> lon = listOfRests[i].longitude;
+            <span class="hljs-keyword">var</span> lat = listOfRests[i].latitude;                
+            <span class="hljs-keyword">var</span> title = listOfRests[i].title;
+            <span class="hljs-keyword">var</span> subtitle = listOfRests[i].subtitle;
+
+               <span class="hljs-comment">// get categories from JSON 'subtitle', create rows in picker then add it</span>
+               <span class="hljs-keyword">var</span> data = Ti.UI.createPickerRow({title:subtitle});
+               pickerList.add(data);
+
+            }
+
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onload</span>(<span class="hljs-params">e</span>) </span>{
+
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> annotations[subtitle] === <span class="hljs-literal">undefined</span>){
+                annotations[subtitle] = [];
+            }
+
+            annotations[subtitle].push(Titanium.Map.createAnnotation({
+                   longitude:lon,
+                   latitude:lat,
+                   title:title,
+                   pincolor:Titanium.Map.ANNOTATION_PURPLE,
+                   animate:<span class="hljs-literal">true</span>
+                }));
+
+            }
+
+            <span class="hljs-comment">// create event  - drop pins, for chosen category</span>
+            pickerList.setSelectedRow(<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>);
+            selectionIndicator: <span class="hljs-literal">true</span>;
+
+            <span class="hljs-keyword">var</span> pinToActiveRow = pickerList.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+                <span class="hljs-keyword">var</span> subtitle = e.selectedValue[<span class="hljs-number">0</span>];
+                mapview.annotations = annotations[subtitle];
+            });
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2012, 1:21:36 pm">October 15th 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Btw, what am I passing as &quot;e&quot;  - onload: function(e) in your solution?  :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2012, 1:23:09 pm">October 15th 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In my example, I included the <code>onload: function (e)</code> just to provide context, so you would have an idea of where the code belongs.  The &quot;…&quot; indicates that there was more code from your original that I didn&#39;t include.</p>
+<p>Go back to your original code and replace</p>
+<pre><code class="hljs">            <span class="hljs-tag">annotations</span><span class="hljs-class">.push</span>(Titanium.Map.<span class="hljs-function">createAnnotation</span>({
+                   <span class="hljs-attribute">longitude</span>:lon,
+                   <span class="hljs-attribute">latitude</span>:lat,
+                   <span class="hljs-attribute">title</span>:title,
+                   <span class="hljs-attribute">subtitle</span>:subtitle,
+                   <span class="hljs-attribute">filterAttribute</span>: <span class="hljs-string">'filter'</span>,
+                   <span class="hljs-attribute">pincolor</span>:Titanium.Map.ANNOTATION_PURPLE,
+                   <span class="hljs-attribute">animate</span>:true
+                }));
+</code></pre><p>with</p>
+<pre><code class="hljs">            if (typeof annotations<span class="hljs-string">[subtitle]</span> === undefined)
+            {
+                annotations<span class="hljs-string">[subtitle]</span> = <span class="hljs-string">[]</span>;
+            }
+
+            annotations<span class="hljs-string">[subtitle]</span>.push(Titanium.Map.createAnnotation({
+                   longitude:lon,
+                   latitude:lat,
+                   title:title,
+                   pincolor:Titanium.Map.ANNOTATION_PURPLE,
+                   animate:true
+                }));
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2012, 1:26:46 pm">October 15th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I see. Hm, well, now I only get one subtitle true, but seems I have to modify my:</p>
+<pre><code class="hljs">// get categories from JSON 'subtitle', <span class="hljs-operator"><span class="hljs-keyword">create</span> <span class="hljs-keyword">rows</span> <span class="hljs-keyword">in</span> picker <span class="hljs-keyword">then</span> <span class="hljs-keyword">add</span> it
+               <span class="hljs-keyword">var</span> <span class="hljs-keyword">data</span> = Ti.UI.createPickerRow({title:subtitle});</span>
+               pickerList.add(data);
+</code></pre><p>with something, otherwise the picker row only displays one row - the first subtitle in my JSON as title in row. And no pin gets dropped either. I thought I first had to collect all subtitles from JSON, createPickerRows so I can flip through them, then the chosen row &quot;fetches&#x2F;creates&quot; a pin.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2012, 1:53:45 pm">October 15th 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I think you may have inadvertently closed your for() loop with a misplaced &quot;}&quot;.</p>
+<p>Even when you fix that, you probably will not be happy with the results, as you will have one row for every item in the JSON listOfRests.  You really want one for each unique subtitle.  </p>
+<p>The good news is that the code I&#39;ve provided is already tracking each unique subtitle.  So you can just move the creation of the picker rows outside of the for loop, like this:</p>
+<pre><code class="hljs"><span class="hljs-title">for</span> (var category <span class="hljs-keyword">in</span> annotations) {
+    var <span class="hljs-typedef"><span class="hljs-keyword">data</span> = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createPickerRow<span class="hljs-container">({<span class="hljs-title">title</span>:<span class="hljs-title">category</span>})</span>;</span>
+    pickerList.add(<span class="hljs-typedef"><span class="hljs-keyword">data</span>);</span>
+}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2012, 2:03:35 pm">October 15th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249308">
+				
+						<section>
+							<p>First I really like to express my sincere gratitude for taking the time to aid me.  :)</p>
+<p>But right now I&#39;m not seeing rows created at all. I deleted my creation of pickerRows and added your for-loop-creation-of-pickerRows instead, after the previous for-loop which fetched all the JSON data. But you better take a look at my code to see if I&#39;m not totally off point here.</p>
+<pre><code class="hljs"><span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; listOfRests.length; i++){
+
+            <span class="hljs-comment">// get all data</span>
+            <span class="hljs-keyword">var</span> lon = listOfRests[i].longitude;
+            <span class="hljs-keyword">var</span> lat = listOfRests[i].latitude;                
+            <span class="hljs-keyword">var</span> title = listOfRests[i].title;
+            <span class="hljs-keyword">var</span> subtitle = listOfRests[i].subtitle;
+
+           <span class="hljs-comment">// create pins for map, take coordinates from JSON</span>
+           <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> annotations[subtitle] === <span class="hljs-literal">undefined</span>){
+                annotations[subtitle] = [];
+            }
+
+            annotations[subtitle].push(Titanium.Map.createAnnotation({
+                   longitude:lon,
+                   latitude:lat,
+                   title:title,
+                   pincolor:Titanium.Map.ANNOTATION_PURPLE,
+                   animate:<span class="hljs-literal">true</span>
+                }));    
+            }
+
+            <span class="hljs-comment">// create picker rows and populate with subtitles as titles</span>
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> category <span class="hljs-keyword">in</span> annotations) {
+                <span class="hljs-keyword">var</span> data = Ti.UI.createPickerRow({title:category});
+                pickerList.add(data);
+            }
+
+            <span class="hljs-comment">// create event  - drop pins, for chosen category</span>
+            pickerList.setSelectedRow(<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>);
+            selectionIndicator: <span class="hljs-literal">true</span>;
+
+            <span class="hljs-keyword">var</span> pinToActiveRow = pickerList.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                <span class="hljs-keyword">var</span> subtitle = e.selectedValue[<span class="hljs-number">0</span>];
+                mapview.annotations = annotations[subtitle];
+            });
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2012, 2:14:55 pm">October 15th 2012</span>
+								by <span class='authorname'>Johan Johansson</span><br>
+								<a class="icon-bg icon-link" href="question/143512/trying-to-create-pins-on-mobile-map-based-on-json-data#answer-249308" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249309">
+				
+						<section>
+							<p>Here are two techniques you can use to figure out what is happening:</p>
+<p>Technique 1: add some console logging in key places.  I would put one here:</p>
+<pre><code class="hljs">            <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.debug ('creating annotation <span class="hljs-keyword">for</span> ' + title);
+            annotations[subtitle].push(<span class="hljs-type">Titanium</span>.<span class="hljs-type">Map</span>.createAnnotation(<span class="hljs-decorator">{...}</span>));
+</code></pre><p>and here:</p>
+<pre><code class="hljs">            // create picker rows <span class="hljs-keyword">and</span> populate <span class="hljs-keyword">with</span> subtitles as titles
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> category <span class="hljs-keyword">in</span> annotations) {
+                Ti.API.debug (<span class="hljs-string">'creating picker row for '</span> + category);
+                <span class="hljs-keyword">var</span> data = Ti.UI.createPickerRow({title:category});
+                pickerList.add(data);
+            }
+</code></pre><p>Technique 2: use breakpoints in the debugger and inspect your variables.  For example, you could put a breakpoint at this line:</p>
+<pre><code class="hljs"><span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> category <span class="hljs-keyword">in</span> annotations) {
+</code></pre><p>Then inspect the <code>annotations</code> object.  If it doesn&#39;t contain what you would expect to see (which would be a set of properties, one for each category), then put a breakpoint higher up in the code and step through the code line by line, inspecting variables as you go.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2012, 2:25:32 pm">October 15th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/143512/trying-to-create-pins-on-mobile-map-based-on-json-data#answer-249309" rel="permalink">permalink</a>
+							</div>
+
+							<h5>11 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Yeah, I&#39;ll do as you say. Right now I&#39;m successfully creating annotation for one object in JSON - the first. Still no pickerRow created but will try debugging a bit. I&#39;ll let you know here soon as I&#39;ve come up with some positive results. </p>
+<p>Thanks again, great community here!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 15th 2012, 3:02:37 pm">October 15th 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok, now I&#39;ve tried debugging a bit (though couldn&#39;t find the &quot;break point option&quot; in my studio). Anyway, I think the main issue is with the loop where I&#39;m trying to create pickerRows. Fetching JSON data works fine. The first two debugs collects title and subtitle, but where I debug my creation for pickerRows nothing shows in log. I think it&#39;s either that loop or the way I push subtitles to my annotations. Shouldn&#39;t I push subtitles at a later stage?</p>
+<p>Now it looks like this:</p>
+<pre><code class="hljs">        for <span class="hljs-list">(<span class="hljs-keyword">i</span> = <span class="hljs-number">0</span><span class="hljs-comment">; i &lt; listOfRests.length; i++){</span>
+
+            // get all data
+            var lon = listOfRests[i].longitude<span class="hljs-comment">;</span>
+            var lat = listOfRests[i].latitude<span class="hljs-comment">;                </span>
+            var title = listOfRests[i].title<span class="hljs-comment">;</span>
+            var subtitle = listOfRests[i].subtitle<span class="hljs-comment">;</span>
+
+            Ti.API.debug <span class="hljs-list">(<span class="hljs-quoted">'creating</span> annotation for ' + title)</span><span class="hljs-comment">;</span>
+            Ti.API.debug <span class="hljs-list">(<span class="hljs-quoted">'creating</span> annotation for ' + subtitle)</span><span class="hljs-comment">;</span>
+
+             // check if subtitles exist
+            if <span class="hljs-list">(<span class="hljs-keyword">typeof</span> annotations[subtitle] === undefined)</span>{
+                annotations[subtitle] = []<span class="hljs-comment">;</span>
+            }    
+
+             // create pins for map, take coordinates from JSON
+            annotations[subtitle].push<span class="hljs-list">(<span class="hljs-keyword">Titanium</span>.Map.createAnnotation<span class="hljs-list">({
+               longitude<span class="hljs-keyword">:lon</span>,
+               latitude<span class="hljs-keyword">:lat</span>,
+               title<span class="hljs-keyword">:title</span>,
+               pincolor<span class="hljs-keyword">:Titanium</span>.Map.ANNOTATION_PURPLE,
+               animate<span class="hljs-keyword">:true</span>
+            })</span>)</span><span class="hljs-comment">;</span>
+
+            // create picker rows and populate with subtitles as titles
+            for <span class="hljs-list">(<span class="hljs-keyword">var</span> subtitle in annotations)</span>{                
+            Ti.API.debug <span class="hljs-list">(<span class="hljs-quoted">'creating</span> picker row for ' + subtitle)</span><span class="hljs-comment">;    </span>
+                    var data = Ti.UI.createPickerRow<span class="hljs-list">({title<span class="hljs-keyword">:subtitle</span>})</span><span class="hljs-comment">;</span>
+
+                    pickerList.add<span class="hljs-list">(<span class="hljs-keyword">data</span>)</span><span class="hljs-comment">;</span>
+                }
+            }</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 17th 2012, 10:50:08 am">October 17th 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I was going to point you to the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;index.html#!&#x2F;guide&#x2F;Debugging_Mobile_Applications">documentation</a>, but then I realized it wasn&#39;t very good.  When I clicked on &quot;add a breakpoint&quot;, it jumped me to a section about using the studio debugger to debug web pages.  I don&#39;t know if you can do that, or if you would want to, but that&#39;s a different animal.</p>
+<p>At any rate, if you weren&#39;t setting breakpoints, you really weren&#39;t debugging.   One of the main things you do while debugging is stepping through your code line by line and looking at variables.</p>
+<p>To set a breakpoint, right-click on the line number to the left of your code.  Click on &quot;toggle breakpoint&quot;, and a little blue dot will show up next to the line number.  When the code is executing, it will stop at that line.  You can then examine variables in the &quot;variables&quot; view (although I&#39;ve found that to not work very well, so I usually use the &quot;expressions&quot; window, and just type in the name of the variable I want to examine).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 17th 2012, 4:09:52 pm">October 17th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Aha, thanks!</p>
+<p>I&#39;ll try that then. Btw, I changed my code so now I&#39;m successfully creating a pin by the &quot;event on change&quot;, but it only drops the last subtitle in my JSON. </p>
+<p>First: I only loop through my JSON.<br>Second: I create my pickerRow and add it to my pickerList.<br>Third: I create annotations.<br>Fourth: I run the second for loop - for(var subtitle in annotations) and add the subtitle to my pickerList.<br>Fitfth: I add the event listener &quot;on change&quot; which add the annotation to my mapview.</p>
+<p>But I&#39;ll debug correctly now. Feels like I&#39;m closer now.  :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 17th 2012, 5:03:12 pm">October 17th 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok Jason, I&#39;m at a loss here.</p>
+<p>My way wasn&#39;t any good as I added more subtitles (as categories) to my JSON I also created doubles of pickerRows. Not good. So I can&#39;t, as you stated, run creation of pickerRows in my first for loop were I go through&#x2F;collect my JSON data. Like so:</p>
+<pre><code class="hljs"><span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; listOfRests.length; i++){
+
+            <span class="hljs-comment">// get all data</span>
+            <span class="hljs-keyword">var</span> lon = listOfRests[i].longitude;
+            <span class="hljs-keyword">var</span> lat = listOfRests[i].latitude;                
+            <span class="hljs-keyword">var</span> title = listOfRests[i].title;
+            <span class="hljs-keyword">var</span> subtitle = listOfRests[i].subtitle;
+
+            <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.info (<span class="hljs-symbol">'creating</span> title <span class="hljs-keyword">for</span> ' + title);
+             }
+</code></pre><p>What&#39;s in this loop seems to be all I can log in my console (title is just an example, all vars log fine).</p>
+<p>And what I don&#39;t understand, in your solution, is how do I push (?) subtitles to my annotations. Because what you&#39;re suggesting doesn&#39;t seem to add subtitles from my JSON data to my annotations. Like so (what&#39;s really going on here I wonder):</p>
+<pre><code class="hljs">if (typeof annotations<span class="hljs-string">[subtitle]</span> === undefined){
+                annotations<span class="hljs-string">[subtitle]</span> = <span class="hljs-string">[]</span>;
+                }
+
+                    annotations<span class="hljs-string">[subtitle]</span>.push(Titanium.Map.createAnnotation({
+                   longitude:lon,
+                   latitude:lat,
+                   title:title,
+                   pincolor:Titanium.Map.ANNOTATION_PURPLE,
+                   animate:true
+                }));
+</code></pre><p>Btw, I also has this at the very end of my file (perhaps it shouldn&#39;t be there but at the top or someplace else):</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> annotations</span> = [];
+</code></pre><p>So I want each subtitle to act as a category, and when I call the event (change) in my eventListener I want pins representing only those restaurants to be created for that specific category. I&#39;ve tried several ways but I&#39;m guessing I&#39;m missing some fundamental logic here.</p>
+<p>Also tried debugging with breakpoints but it doesn&#39;t really tell me anything, but it might just be me. :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2012, 10:20:56 am">October 23rd 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It is vital that you figure out how to debug with breakpoints.  I can&#39;t keep helping you if you don&#39;t have the right tools to figure at least some things out on your own.</p>
+<p>If you don&#39;t know what </p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> annotations</span> = [];
+</code></pre><p>does at the end of your file, you may be in over your head.  </p>
+<p>That line initializes the variable <code>annotations</code> to an empty array, undoing everything that had come before.</p>
+<p>And if you didn&#39;t initialize it at the beginning, chances are that nothing you were doing in the loop was working anyway.  So below is what it <em>should</em> look like.</p>
+<p>Basically what it&#39;s doing is building an array of arrays.  One subarray for each subtitle, containing all the restaurants that belong to that subtitle.</p>
+<p>Note: this code all goes in the onload callback.</p>
+<pre><code class="hljs"><span class="hljs-comment">// initialize the array of annotations</span>
+<span class="hljs-keyword">var</span> annotations = [];
+
+<span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; listOfRests.length; i++){
+
+    <span class="hljs-comment">// get all data</span>
+    <span class="hljs-keyword">var</span> lon = listOfRests[i].longitude;
+    <span class="hljs-keyword">var</span> lat = listOfRests[i].latitude;              
+    <span class="hljs-keyword">var</span> title = listOfRests[i].title;
+    <span class="hljs-keyword">var</span> subtitle = listOfRests[i].subtitle;
+
+    Ti.API.info (<span class="hljs-string">'creating title for '</span> + title);
+
+    <span class="hljs-comment">// if we don't already have a subarray for this subtitle, initialize one</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> annotations[subtitle] === <span class="hljs-literal">undefined</span>){
+        annotations[subtitle] = [];
+    }
+
+    <span class="hljs-comment">// create the annotation and add it to the subarray </span>
+    annotations[subtitle].push(Titanium.Map.createAnnotation({
+        longitude:lon,
+        latitude:lat,
+        title:title,
+        pincolor:Titanium.Map.ANNOTATION_PURPLE,
+        animate:<span class="hljs-literal">true</span>
+    }));
+}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2012, 10:35:12 am">October 23rd 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Jason.</p>
+<p>Yeah I&#39;m a bit in over my head, I admit that. I thought that I had to initialize the onload function at the end like some ordinary Javascript function, but I see what you mean now.</p>
+<p>Some stuff in Ti is &quot;easy&quot; but this particular problem has been thorn in my side.  I&#39;ll try debugging some more, if you&#39;re some what sure that this solution is the way to go about it. And I believe you know more than I do. :)</p>
+<p>Doing an app as my exam project, so first time with Ti but not with JavaScript. Chose Titanium.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2012, 10:46:09 am">October 23rd 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Spend 8 minutes to watch <a href="https:&#x2F;&#x2F;vimeo.com&#x2F;21949107">this video</a> on debugging in Ti Studio.  If you can master debugging, you&#39;ll be able to figure out almost anything that goes wrong in your code.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2012, 10:51:36 am">October 23rd 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ah, thanks.</p>
+<p>Ok so finally actually found THE debugger, heh. I didn&#39;t really debug earlier because I only put breakpoints but didn&#39;t read anything from it (I wasn&#39;t in the debug mode).</p>
+<p>I put a breakpoint at the end of my annotation object array. The &quot;debug current pointer&quot; is at the beginning of annotations row (annotations[subtitle].push …)</p>
+<p>Looking at my variables I see that I&#39;m only getting the first object (from my JSON) &quot;subtitle&quot; and &quot;lat&quot;. My annotations object array is just empty: [object Array].</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2012, 12:20:47 pm">October 23rd 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok, been debugging for some time now. </p>
+<p>There&#39;s some fundamental flaw in all this that I&#39;m missing. My annotations aren&#39;t populating with my variables, just getting an empty [object Array]. This just isn&#39;t producing anything sadly. Maybe it&#39;s how I loop stuff or the order of things. Thanks for trying to help me, I truly appreciate it.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://localhost:8888/titanium-restaurants/restaurants.json"</span>;
+<span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+    onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.debug(<span class="hljs-keyword">this</span>.responseText);
+
+        <span class="hljs-comment">// get JSON as response</span>
+        <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+
+        <span class="hljs-comment">// create variable for response</span>
+        <span class="hljs-keyword">var</span> listOfRests = response.restaurants;
+
+
+            <span class="hljs-comment">// initialize the array of annotations</span>
+            <span class="hljs-keyword">var</span> annotations = [];
+
+            <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; listOfRests.length; i++){
+
+                <span class="hljs-comment">// get all data</span>
+                <span class="hljs-keyword">var</span> lon = listOfRests[i].longitude;
+                <span class="hljs-keyword">var</span> lat = listOfRests[i].latitude;              
+                <span class="hljs-keyword">var</span> title = listOfRests[i].title;
+                <span class="hljs-keyword">var</span> subtitle = listOfRests[i].subtitle;
+
+                <span class="hljs-comment">// if we don't already have a subarray for this subtitle, initialize one</span>
+                <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> annotations[subtitle] === <span class="hljs-literal">undefined</span>){
+                    annotations[subtitle] = [];
+                }
+
+                <span class="hljs-comment">// create the annotation and add it to the subarray </span>
+                annotations[subtitle].push(Titanium.Map.createAnnotation({
+                    longitude:lon,
+                    latitude:lat,
+                    title:title,
+                    pincolor:Titanium.Map.ANNOTATION_PURPLE,
+                    animate:<span class="hljs-literal">true</span>
+                }));
+            }    
+             <span class="hljs-comment">// create picker rows and populate with subtitles as titles</span>
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> subtitle <span class="hljs-keyword">in</span> annotations){                
+                    Ti.API.debug (<span class="hljs-string">'creating picker row for '</span> + subtitle);
+                    <span class="hljs-keyword">var</span> data = Ti.UI.createPickerRow({title:subtitle});
+                        pickerList.add(data);
+                }
+
+
+            pickerList.setSelectedRow(<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>);
+            selectionIndicator: <span class="hljs-literal">true</span>;
+
+            <span class="hljs-comment">// create event  - drop pins, for chosen category</span>
+            pickerList.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{                
+                <span class="hljs-keyword">var</span> subtitle = e.selectedValue[<span class="hljs-number">0</span>];
+                mapview.annotations[subtitle] = annotations;
+
+                Ti.API.debug (<span class="hljs-string">'creating pin for '</span> + annotations);
+            });
+    },
+
+    <span class="hljs-comment">// if connection error - display message</span>
+    onerror: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.debug(e.error);
+        alert(<span class="hljs-string">'error'</span>);
+        Ti.API.debug(<span class="hljs-string">"STATUS: "</span> + <span class="hljs-keyword">this</span>.status);
+        Ti.API.debug(<span class="hljs-string">"TEXT:   "</span> + <span class="hljs-keyword">this</span>.responseText);
+        Ti.API.debug(<span class="hljs-string">"ERROR:  "</span> + e.error);
+        alert(<span class="hljs-string">'There was an error retrieving the remote data. Try again.'</span>);
+    },
+    timeout:<span class="hljs-number">5000</span>
+});
+
+xhr.open(<span class="hljs-string">"GET"</span>, url);
+xhr.send();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2012, 4:52:13 pm">October 23rd 2012</span>
+											by <span class='authorname'>Johan Johansson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You&#39;re just not giving enough information for me to be helpful.</p>
+<p>When you inspect response.restaurants, what is in that variable?  </p>
+<p>What is listOfRests.length equal to?</p>
+<p>If you add a debug line like</p>
+<pre><code class="hljs">Ti.Api.<span class="hljs-keyword">debug</span> (<span class="hljs-string">"["</span> + subtitle + <span class="hljs-string">"] "</span> + title + <span class="hljs-string">" ("</span> + <span class="hljs-keyword">lat</span> + <span class="hljs-string">","</span> + lon + <span class="hljs-string">")"</span>);
+</code></pre><p>right after this line:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> subtitle</span> = listOfRests[i].subtitle;
+</code></pre><p>what do you see on the console?</p>
+<p>Just so you understand, nobody can just look at 50 lines of client&#x2F;server code and with a symptom of &quot;my annotations aren&#39;t populating&quot; tell you what is wrong.  It could be any manner of things – your server side code might not be returning anything useful.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 23rd 2012, 5:00:14 pm">October 23rd 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

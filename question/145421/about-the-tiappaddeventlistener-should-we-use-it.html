@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>About the Ti.App.addEventListener, should we use it? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>About the Ti.App.addEventListener, should we use it?</h1>
+		</header>
+		<section>
+			<p>Hi, I am studing the Alloy, and find that if i want to get the parent view&#39;s object (or trigger it&#39;s event), seems the best way just use Ti.App.addEventListener to define a global event , and fire it in sub controller, just like in CodeStrong sample:</p>
+<p>define the open.drawer event in <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;Codestrong&#x2F;blob&#x2F;master&#x2F;app&#x2F;controllers&#x2F;main.js">main.js</a>:</p>
+<pre><code class="hljs"><span class="hljs-comment">//Listen for new drawer events</span>
+Ti.<span class="hljs-keyword">App</span>.addEventListener('<span class="hljs-keyword">app</span>:<span class="hljs-keyword">open</span>.drawer', function(<span class="hljs-keyword">e</span>) {
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">d</span> = Alloy.createController('drawer');
+    drawers.push(<span class="hljs-keyword">d</span>);
+    $.container.add(<span class="hljs-keyword">d</span>.getView());
+
+    <span class="hljs-comment">//Tablet manages this manually</span>
+    <span class="hljs-keyword">if</span> (!Alloy.isTablet) {
+        <span class="hljs-comment">//add to the count managed by the header</span>
+        $.header.setBackVisible(true);
+    }
+
+    <span class="hljs-comment">//Open a new drawer, containing the given view controller</span>
+    <span class="hljs-keyword">d</span>.openDrawer(<span class="hljs-keyword">e</span>.controller, <span class="hljs-keyword">e</span>.contextData);
+
+    <span class="hljs-keyword">d</span>.<span class="hljs-keyword">on</span>('<span class="hljs-keyword">close</span>', function() {
+        Ti.<span class="hljs-keyword">App</span>.fireEvent('<span class="hljs-keyword">app</span>:<span class="hljs-keyword">close</span>.drawer', {
+            controller:<span class="hljs-keyword">e</span>.controller
+        });
+    });
+});
+</code></pre><p>and fire it in the <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;Codestrong&#x2F;blob&#x2F;master&#x2F;app&#x2F;controllers&#x2F;header.js">header.js</a> sub controller:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doProfile</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> ($.profile.enabled) {
+        Ti.App.fireEvent(<span class="hljs-string">'app:open.drawer'</span>, {
+            controller:<span class="hljs-string">'profile'</span>
+        });
+        $.profile.enabled = <span class="hljs-literal">false</span>;
+        $.profile.visible = <span class="hljs-literal">false</span>;
+
+        <span class="hljs-keyword">if</span> (!Alloy.isTablet) {
+            $.about.enabled = <span class="hljs-literal">false</span>;
+            $.about.visible = <span class="hljs-literal">false</span>;
+        }
+    }
+}
+$.profile.on(<span class="hljs-string">'click'</span>, doProfile);
+</code></pre><p>but I have a problem with this, that&#39;s about avoid <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;Managing_Memory_and_Finding_Leaks-section-29004941_ManagingMemoryandFindingLeaks-Examplesourcesofmemoryleaks">memory leaks</a> article said, if use <code>Ti.App.addEventListener</code> that&#39;s will case memory leaks just like following:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doSomething</span><span class="hljs-params">(_event)</span> </span>{
+    <span class="hljs-keyword">var</span> foo = bar;
+}
+<span class="hljs-comment">// adding this event listener causes a memory leak</span>
+<span class="hljs-comment">// as references remain valid as long as the app is running</span>
+Ti.App.addEventListener(<span class="hljs-string">'bad:idea'</span>, doSomething);
+
+<span class="hljs-comment">// you can plug this leak by removing the event listener, for example when the window is closed</span>
+thisWindow.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">// to remove an event listener, you must use the exact same function signature</span>
+    <span class="hljs-comment">// as when the listener was added</span>
+    Ti.App.removeEventListener(<span class="hljs-string">'bad:idea'</span>, doSomething);
+});
+</code></pre><p>so I am very confuse that&#39;s means if we use this global custom event, and we must remove it ? but i don&#39;t know when should i remove it, cause just a window in my app, so i cannot remove it in other place, but if the app is always open in backend, then my app will cause the memory lake at this time?</p>
+<p>so should i continue use it? if don&#39;t, then what&#39;s the best way to solve my problem in Alloy?</p>
+<p>and I also have not found CodeStrong sample remove this global event, is that means it will cause memory lake too? or CodeStrong  just a sample so don&#39;t case of this ?</p>
+<p>thanks!!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 5th 2012, 12:00:47 pm">December 5th 2012</span>
+				by <span class='authorname'>Winson Qiu</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>allow</span></li>
+					
+						<li><span class='tagname'>codestrong</span></li>
+					
+						<li><span class='tagname'>ti.app.addeventliste</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-252219">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Ill have a go at answering this for you.</p>
+<p>Firstly having a single custom application listener is a lot lot better than having many…</p>
+<p>Secondly when you do define your custom listener, do not use an inner function always send it to a new function.</p>
+<pre><code class="hljs">
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doSomething</span><span class="hljs-params">(inParam)</span> </span>{<span class="hljs-string">'use strict'</span>;
+   <span class="hljs-comment">// Do the code</span>
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">runningApp</span><span class="hljs-params">()</span> </span>{<span class="hljs-string">'use strict'</span>;
+
+    <span class="hljs-comment">// do what you need.</span>
+
+   Ti.App.addEventListener(<span class="hljs-string">'customListener'</span>, doSomething);
+}
+</code></pre><p>Or you cannot remove it.</p>
+<p>Now when the app closes that listener will be removed. If it is running in background then you can add and event to listen for the app being removed and restarted.. within which you can remove and add the custom event listener.</p>
+<p>However, a single event listener like this should not cause a memory leak, even when in background unless you are continually firing it, or when you app comes out of background it is being re added.</p>
+<p>A little more on that if you have setup background processing and the app is resumed, and during the resume it runs the runningApp function then you will add the event listener again and cause a nice memory leak.</p>
+<p>I hope this makes sense, but what you are doing is not bad practice, unless you try adding the event listener again while it is still there.</p>
+<p>T.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 5th 2012, 1:13:21 pm">December 5th 2012</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/145421/about-the-tiappaddeventlistener-should-we-use-it#answer-252219" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>thanks for your reply, and now i am more clear with this :)  but i still have a problem and hope you can help:</p>
+<p>Is the same of  following code snippet with memory leaks issue?</p>
+<ol>
+<li>define a function and pass in a global event listener:<br>~~~<br>function doSomething(_event) {<br> var foo = bar;<br>}</li>
+</ol>
+<p>Ti.App.addEventListener(&#39;bad:idea&#39;, doSomething);</p>
+<pre><code class="hljs">
+2. <span class="hljs-operator"><span class="hljs-keyword">use</span> an anonymous <span class="hljs-keyword">function</span> <span class="hljs-keyword">in</span> a <span class="hljs-keyword">global</span> <span class="hljs-keyword">event</span> listener:</span>
+</code></pre><p>Ti.App.addEventListener(&#39;bad:idea&#39;, function(){<br>      var foo = bar;<br>});<br>~~~</p>
+<p>thanks~~</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 1:42:02 pm">December 5th 2012</span>
+											by <span class='authorname'>Winson Qiu</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>not quite sure what your asking here. but best practice is not to use the anonymous function on an event listener</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 7:42:58 pm">December 5th 2012</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>ok, i see, thank you!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 9:10:11 pm">December 5th 2012</span>
+											by <span class='authorname'>Winson Qiu</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

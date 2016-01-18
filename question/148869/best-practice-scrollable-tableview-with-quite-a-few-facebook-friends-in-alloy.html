@@ -1,0 +1,203 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Best practice: Scrollable Tableview with quite a few Facebook-friends in Alloy » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Best practice: Scrollable Tableview with quite a few Facebook-friends in Alloy</h1>
+		</header>
+		<section>
+			<p>Hi there,</p>
+<p>so, I was wondering if anyone of you guys can point me in the right direction with this problem. Btw., I&#39;m using the Titanium SDK 3.0.2 with Alloy.</p>
+<p>So what I&#39;m basically trying to archive is to <strong>list someones Facebook-friends in a scrollable tableview</strong> (with their picture and name, e.g.). And optionally I&#39;d like to load friends dynamically as i scroll down the list. In a third step I want to show details of friends if you click on the row. But for some reason it&#39;s just not working the way I want it to.</p>
+<p>First of all: It&#39;s eating a lot, and I mean a LOT of memory. With 400+ rows it took more then a few hundred megabyte RAM and sometimes even more then a gigabyte!<br>Second: The display isn&#39;t showing up correctly, sometimes, when scrolling, some names cover each other.<br>Third: Rendering 100+ rows is noticeably slowing everything down.</p>
+<p>Has anyone of you some sort of best practice on how to handle a large amount of rows in a Tableview in Alloy? So far I have this code…</p>
+<p>Friends.js<br>These are the two main functions for getting the friends from Facebook and storing them as a Model in the Friends-Collection.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getFriends</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">// Call the function to load Facebook-friends and render them as TableViewRows</span>
+    getFacebookFriends( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(results)</span> </span>{
+        <span class="hljs-keyword">var</span> Friends = Alloy.Collections.User;
+        <span class="hljs-keyword">var</span> data = results[<span class="hljs-string">'data'</span>];
+
+        <span class="hljs-comment">// Loop through friends and add every single one of them as a model</span>
+        <span class="hljs-comment">// Question: might it be faster to create an array of</span>
+        <span class="hljs-comment">// friend-objects and mass-add them as a Model? Is that even possible?</span>
+        <span class="hljs-comment">//Btw. at the moment I'm just using some basic information.</span>
+        <span class="hljs-comment">// The Model itself is much more complex. But that shouldn't be of such a problem?!</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt; data.length; i++) {
+            <span class="hljs-keyword">var</span> friend = Alloy.createModel(<span class="hljs-string">'User'</span>, {
+                name : data[i][<span class="hljs-string">'name'</span>],
+                picture : data[i][<span class="hljs-string">'picture'</span>][<span class="hljs-string">'data'</span>][<span class="hljs-string">'url'</span>]
+            });
+
+            <span class="hljs-comment">// Save the Model</span>
+            friend.save();
+        }
+
+        <span class="hljs-comment">// Fetch all friends and render them in Friend_Row.xml</span>
+        Friends.fetch();
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getFacebookFriends</span> <span class="hljs-params">(callback)</span> </span>{
+    <span class="hljs-comment">// Facebook query to receive all friends</span>
+    Ti.Facebook.requestWithGraphPath( <span class="hljs-string">'me/friends'</span>, {<span class="hljs-string">'fields'</span>: <span class="hljs-string">'id,name,picture'</span>}, <span class="hljs-string">'GET'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            <span class="hljs-keyword">callback</span>(JSON.parse(e.result));
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (e.error) {
+               alert(e.error);
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">'Unknown response'</span>);
+           }
+    });
+}
+</code></pre><p>Friends.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"friendsTable"</span> <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"User"</span> &gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Require</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"Friend_Row"</span>/&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>Front_Row.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"row"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">ImageView</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"userPicture"</span> <span class="hljs-attribute">image</span>=<span class="hljs-value">"{picture}"</span>/&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"name"</span> <span class="hljs-attribute">text</span>=<span class="hljs-value">"{name}"</span>/&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">TableViewRow</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p><strong>Thanks a lot for your help!</strong></p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 26th 2013, 8:59:52 pm">February 26th 2013</span>
+				by <span class='authorname'>Hamburger Jung</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>facebook</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-257619">
+				
+						<section>
+							<p>few questions…. why are you saving the model? Also you probably want to just add the model directly to the collection… and finally you probably want to follow this approach</p>
+<p><a href="https:&#x2F;&#x2F;github.com&#x2F;goodybag&#x2F;ti-infini-scroll">https:&#x2F;&#x2F;github.com&#x2F;goodybag&#x2F;ti-infini-scroll</a></p>
+<p>or  this alloy implementation </p>
+<p><a href="https:&#x2F;&#x2F;github.com&#x2F;FokkeZB&#x2F;nl.fokkezb.dynamicScrolling">https:&#x2F;&#x2F;github.com&#x2F;FokkeZB&#x2F;nl.fokkezb.dynamicScrolling</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 26th 2013, 9:31:20 pm">February 26th 2013</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/148869/best-practice-scrollable-tableview-with-quite-a-few-facebook-friends-in-alloy#answer-257619" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey Aaron,<br>thanks for your reply. Well, to be honest, I was kind of following your code-example from the <a href="https:&#x2F;&#x2F;github.com&#x2F;aaronksaunders&#x2F;todolist.alloy&#x2F;blob&#x2F;master&#x2F;app&#x2F;controllers&#x2F;add.js">todo-app</a> and since you are first adding the Model to the Collection, save it and then fetch the whole Collection afterwards, I did it this way in the first place. But what I&#39;ve noticed, is that Collection.add(Model) slowed the whole application down big time. So I decided to get rid of it, since the data was still shown and saved properly. Unfortunately I still haven&#39;t found a good tutorial&#x2F;code-example which explains the Alloy Collection&#x2F;Model system to me as a whole. And yes, I&#39;ve been looking through the documentation and other code examples. If there is anything you can refer me to, I&#39;d be happy to know. I&#39;m still very new to Java Script and Alloy&#x2F;Titanium. That&#39;s why I&#39;m really glad, that folks like you take some time to help others out!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 9:45:32 pm">February 26th 2013</span>
+											by <span class='authorname'>Hamburger Jung</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>to understand the collection models, you really should look to pure backbone documentation first and then Alloy documentation. Understanding the basics will help to understand the more complex.</p>
+<p>You are trying to do alot in one sample, I would suggest you understand the basic table view… and it looks like you are trying binding also… which I dont think will work with a dynamic scrolling implementation.</p>
+<p>I would try one of the plugins above, get them working and then integrate the additional features.</p>
+<p>Finally I still dont get why you want to save the facebook friends… sorry if I am missing something here</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 9:57:50 pm">February 26th 2013</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

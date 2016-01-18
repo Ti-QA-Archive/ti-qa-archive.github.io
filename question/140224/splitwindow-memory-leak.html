@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>SplitWindow memory leak » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>SplitWindow memory leak</h1>
+		</header>
+		<section>
+			<p>I suspect the SplitWindow is creating memory leaks. I ran a simple test case on iOS with the Instrument tool. The results shows that a TiUIWindowProxy object is created each time the SplitWindow opens but never released, causing the leak. Screenshot here: <a href="http:&#x2F;&#x2F;snag.gy&#x2F;RmyAL.jpg">http:&#x2F;&#x2F;snag.gy&#x2F;RmyAL.jpg</a></p>
+<p>Code (app.js) :</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> main</span> = Ti.UI.createWindow({backgroundColor: <span class="hljs-string">"#fff"</span>});
+<span class="hljs-variable"><span class="hljs-keyword">var</span> btn</span> = Ti.UI.createButton({title: <span class="hljs-string">"SplitWindow"</span>});
+main.add(btn);
+
+btn.addEventListener(<span class="hljs-string">"click"</span>, function (e) {
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> detail</span> = Ti.UI.createWindow({backgroundColor: <span class="hljs-string">"#fff"</span>});
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> master</span> = Ti.UI.createWindow({backgroundColor: <span class="hljs-string">"#fff"</span>});
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> splitWin</span> = Ti.UI.iPad.createSplitWindow({
+        masterView: master,
+        detailView: detail
+    });
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> closeBtn</span> = Ti.UI.createButton({title: <span class="hljs-string">"Close"</span>});
+    closeBtn.addEventListener(<span class="hljs-string">"click"</span>, function (e) {
+        splitWin.close();
+        splitWin = <span class="hljs-literal">null</span>;
+
+        <span class="hljs-comment">// Just in case, as SplitWindow does not seems to close/release them</span>
+        detail.close();
+        detail = <span class="hljs-literal">null</span>;
+
+        master.close();
+        master = <span class="hljs-literal">null</span>;
+    });
+    detail.add(closeBtn);
+
+    master.add(Ti.UI.createLabel({text:<span class="hljs-string">"Lbl"</span>}));
+
+    splitWin.<span class="hljs-keyword">open</span>();
+});
+
+main.<span class="hljs-keyword">open</span>();
+</code></pre><p>I suspect the SplitWindow to keep a reference to one of the window (detail or master) causing it to not be released when the object is &quot;nulled&quot;.</p>
+<ul>
+<li>SDK version: 2.1.0.GA.6e3cab6 (latest official) and 2.2.0.v20120726120119.d57a9af (latest CI build)</li>
+<li>Platform: iOS 5.1 (iPad Simulator)</li>
+<li>Host OS: OSX 10.7.4</li>
+</ul>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 26th 2012, 6:28:42 pm">July 26th 2012</span>
+				by <span class='authorname'>Patrick Daigle</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>memory leak</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>splitwindow</span></li>
+					
+						<li><span class='tagname'>tiuiwindowproxy</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-244143">
+				
+						<section>
+							<p>For some reason, I found you need to null the objects contained in the SplitWindow object. The objects in local variables (<code>detail</code> and <code>master</code>) will be released when they&#39;ll be out of scope.</p>
+<pre><code class="hljs">splitWin.close()<span class="hljs-comment">;</span>
+splitWin.detailView = null<span class="hljs-comment">;</span>
+splitWin.masterView = null<span class="hljs-comment">;</span>
+splitWin = null<span class="hljs-comment">;</span>
+</code></pre><p>Event though <code>splitWin.detailView === detail</code> and <code>splitWin.masterView === master</code> (ie: they respectively reference the same object), if you set <code>detail = null</code> then for some reason <code>splitWin.detailView != null</code> as it <strong>should be</strong>. It still hold a reference to the object causing it to not be garbage collected. I believe it&#39;s because of the way binding&#x2F;proxy objects works.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 31st 2012, 4:05:11 pm">July 31st 2012</span>
+								by <span class='authorname'>Patrick Daigle</span><br>
+								<a class="icon-bg icon-link" href="question/140224/splitwindow-memory-leak#answer-244143" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

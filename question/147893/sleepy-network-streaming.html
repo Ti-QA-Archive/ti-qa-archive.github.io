@@ -1,0 +1,396 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Sleepy Network Streaming » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Sleepy Network Streaming</h1>
+		</header>
+		<section>
+			<p>Running Titanium SDK 3.0.1 on Mac OSX with targets of iPhone, iPad, and Android . I have a table that lists Rss feed tiltles that have been validated in YQL to return results.  I have played same feed in an RSS feed reader and all works. My issue is that it sometimes takes 10 - 50 seconds to pull in the feed items. When it does, it sometime returns an error: &quot;File error: unable to configure network stream, no data found&quot;. Other times, using the same code for another feed works like a charm. I need help on two things:</p>
+<ol>
+<li><p>What is inefficient in my code that request for the XML data and how can I improve it to speed up gathering the data and populating the tableview? (see getSermon.js below).</p>
+</li>
+<li><p>What if anything do I need to fix in the podcaster.js audio player to not get the error of unable ot configure network stream which happens when podcastPlayer is called?</p>
+</li>
+</ol>
+<p>getSermon.js</p>
+<pre><code class="hljs">exports.fetchRSSData = function(url) {
+    <span class="hljs-comment">// Pulls the RSS feed data and returns it to caller</span>
+<span class="hljs-comment">//    var xhr = Titanium.Network.createHTTPClient();</span>
+    url = (url) ? url : <span class="hljs-string">"http://developer.appcelerator.com/blog/feed"</span>; <span class="hljs-comment">// default blog rss feed url</span>
+
+var xhr = Ti.Network.createHTTPClient({
+    onload: function() {
+        var xml = <span class="hljs-keyword">this</span>.responseXML;
+        var channel = xml.documentElement.getElementsByTagName(<span class="hljs-string">"channel"</span>);
+
+        <span class="hljs-comment">// begin looping through blog posts</span>
+        var data = [];
+        var items = xml.documentElement.getElementsByTagName(<span class="hljs-string">"item"</span>);
+        <span class="hljs-keyword">for</span> (var i=<span class="hljs-number">0</span>;i&lt;items.length;i++) {
+            data.push({
+                postTitle: items.item(i).getElementsByTagName(<span class="hljs-string">"title"</span>).item(0).text,
+                postLink: items.item(i).getElementsByTagName(<span class="hljs-string">"link"</span>).item(0).text,
+                pubDate: parseDate(items.item(i).getElementsByTagName(<span class="hljs-string">"pubDate"</span>).item(0).text)
+
+            });
+        }
+        <span class="hljs-comment">// fire an app-level event to notify the UI that the blog data is available</span>
+        Ti.App.fireEvent(<span class="hljs-string">'net:podDataReturned'</span>,{
+            blogTitle: channel.item(0).getElementsByTagName(<span class="hljs-string">"title"</span>).item(0).text,
+            blogPosts: data
+        });
+    },
+
+    onerror: function(e) {
+    Ti.API.debug(<span class="hljs-string">"STATUS: "</span> + <span class="hljs-keyword">this</span>.status);
+    Ti.API.debug(<span class="hljs-string">"TEXT:   "</span> + <span class="hljs-keyword">this</span>.responseXML);
+    Ti.API.debug(<span class="hljs-string">"ERROR:  "</span> + e.<span class="hljs-keyword">error</span>);
+    alert(<span class="hljs-string">'There was an error retrieving the remote data. Try again.'</span>);
+    },
+    timeout:5000
+});
+
+    xhr.open(<span class="hljs-string">'GET'</span>,url);
+    xhr.setRequestHeader(<span class="hljs-string">'User-Agent'</span>, <span class="hljs-string">'my user agent'</span>)
+    xhr.send();
+}; <span class="hljs-comment">// end getSermon()</span>
+</code></pre><p>podcastPlayer.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> podcastPlayer = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">pod</span>) </span>{
+
+    <span class="hljs-keyword">var</span> margin = TU.UI.Sizer.getDimension (<span class="hljs-number">10</span>);
+    <span class="hljs-keyword">var</span> playerWin = Titanium.UI.createWindow({
+
+        backgroundImage: <span class="hljs-string">'/images/backgrounds/hopRSS.jpg'</span>,
+        barColor: TU.UI.Theme.barColor,
+        title: <span class="hljs-string">'Play Message'</span>
+    });
+    Ti.API.info(<span class="hljs-string">'Player Window Title:'</span> + pod.title);
+<span class="hljs-comment">// custom media player to play RSS fed podcasts</span>
+
+        <span class="hljs-keyword">var</span> startStopButton = Titanium.UI.createButton({
+            title:<span class="hljs-string">''</span>,
+            backgroundImage: <span class="hljs-string">'/images/icons/playAudio.png'</span>,
+<span class="hljs-comment">//            left: margin,</span>
+<span class="hljs-comment">//            bottom: '5dp',</span>
+            width: <span class="hljs-string">'62dp'</span>,
+            height: <span class="hljs-string">'62dp'</span>
+        });
+
+         <span class="hljs-keyword">var</span> pauseResumeButton = Titanium.UI.createButton({
+            title:<span class="hljs-string">''</span>,
+            backgroundImage: <span class="hljs-string">'/images/icons/pauseAudio.png'</span>,
+<span class="hljs-comment">//            right: margin,</span>
+<span class="hljs-comment">//            bottom: '5dp',</span>
+            width: <span class="hljs-string">'62dp'</span>,
+            height: <span class="hljs-string">'62dp'</span>,
+            enabled:<span class="hljs-literal">false</span>
+        });
+         <span class="hljs-keyword">var</span> playButtonView = Ti.UI.createView({
+
+            borderRadius: margin,
+            borderColor:TU.UI.Theme.borderColor,
+            bottom: margin,
+            left: margin,
+        <span class="hljs-comment">//    right: margin,</span>
+            width: Ti.UI.SIZE,
+            height: Ti.UI.SIZE
+        });
+        playButtonView.add(startStopButton);
+        playerWin.add(playButtonView);
+
+         <span class="hljs-keyword">var</span> pauseButtonView = Ti.UI.createView({
+
+            borderRadius: margin,
+            borderColor:TU.UI.Theme.borderColor,
+            bottom: margin,
+        <span class="hljs-comment">//    left: margin,</span>
+            right: margin,
+            width: Ti.UI.SIZE,
+            height: Ti.UI.SIZE
+        });
+        pauseButtonView.add(pauseResumeButton);
+        playerWin.add(pauseButtonView);
+
+    <span class="hljs-comment">// allowBackground: true on Android allows the </span>
+    <span class="hljs-comment">// player to keep playing when the app is in the </span>
+    <span class="hljs-comment">// background.</span>
+
+
+         pod.link = pod.link.replace(<span class="hljs-regexp">/\s/g</span>, <span class="hljs-string">""</span>);
+<span class="hljs-comment">//         pod.link = pod.link.replace(s/[ \t]+/ /g);</span>
+
+<span class="hljs-comment">//         Ti.API.info('Working with this url:' + pod.link);</span>
+<span class="hljs-comment">//         Ti.API.info(JSON.stringify(pod)); </span>
+         <span class="hljs-keyword">var</span> audioPlayer = Ti.Media.createAudioPlayer({ 
+
+            url: pod.link,
+            allowBackground: <span class="hljs-literal">true</span>
+        });           
+
+    startStopButton.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-comment">// When paused, playing returns false.</span>
+        <span class="hljs-comment">// If both are false, playback is stopped.</span>
+
+        <span class="hljs-keyword">if</span> (audioPlayer.playing || audioPlayer.paused)
+        {
+            audioPlayer.stop();
+
+            <span class="hljs-keyword">var</span> btnImage = <span class="hljs-string">'/images/icons/playAudio.png'</span>;
+                       startStopButton.backgroundImage = btnImage;
+
+            pauseResumeButton.enabled = <span class="hljs-literal">false</span>;
+            <span class="hljs-keyword">if</span> (Ti.Platform.name === <span class="hljs-string">'android'</span>)
+            { 
+                audioPlayer.release();
+            }   
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            pod.link = pod.link.replace(<span class="hljs-regexp">/\n/g</span>, <span class="hljs-string">""</span>);
+            audioPlayer.start();
+            <span class="hljs-keyword">var</span> btnImage = <span class="hljs-string">'/images/icons/stopAudio.png'</span>;
+            startStopButton.backgroundImage = btnImage;
+            pauseResumeButton.enabled = <span class="hljs-literal">true</span>;
+        }
+    });
+
+    pauseResumeButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (audioPlayer.paused) {
+            audioPlayer.start();
+        }
+        <span class="hljs-keyword">else</span> {
+            audioPlayer.pause();
+        }
+    });
+
+    audioPlayer.addEventListener(<span class="hljs-string">'progress'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'Time Played: '</span> + <span class="hljs-built_in">Math</span>.round(e.progress) + <span class="hljs-string">' milliseconds'</span>);
+    });
+
+    audioPlayer.addEventListener(<span class="hljs-string">'change'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+    </span>{
+        Ti.API.info(<span class="hljs-string">'State: '</span> + e.description + <span class="hljs-string">' ('</span> + e.state + <span class="hljs-string">')'</span>);
+    });
+
+    playerWin.addEventListener(<span class="hljs-string">'close'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        audioPlayer.stop();
+        <span class="hljs-keyword">if</span> (Ti.Platform.osname === <span class="hljs-string">'android'</span>)
+        { 
+            audioPlayer.release();
+        }
+    });
+
+    <span class="hljs-keyword">return</span> playerWin;
+}
+
+<span class="hljs-built_in">module</span>.exports = podcastPlayer;
+</code></pre><p>Thx</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 5th 2013, 4:39:49 pm">February 5th 2013</span>
+				by <span class='authorname'>adebisi oladipupo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>audioplayer</span></li>
+					
+						<li><span class='tagname'>network config error</span></li>
+					
+						<li><span class='tagname'>podcast</span></li>
+					
+						<li><span class='tagname'>streaming</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Here&#39;s a the code that calls the getSermon.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> sermonRSS = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+<span class="hljs-comment">//    require('/includes/getSermon').fetchRSSData('http://www.biblestudy.net/podcast.xml'); </span>
+
+    <span class="hljs-keyword">var</span> b = Titanium.UI.createButton({title:<span class="hljs-string">'Menu'</span>});
+    <span class="hljs-keyword">var</span> margin = TU.UI.Sizer.getDimension (<span class="hljs-number">10</span>);
+    <span class="hljs-built_in">require</span>(<span class="hljs-string">'/includes/getSermon'</span>).fetchRSSData(<span class="hljs-string">'http://thebiblestudypodcast.com/feed/'</span>); 
+
+    <span class="hljs-keyword">var</span> rssWindow = Titanium.UI.createWindow({  
+        title:<span class="hljs-string">'Audio Sermons'</span>,
+        backgroundColor:TU.UI.Theme.darkBackgroundColor,
+        barColor:TU.UI.Theme.barColor
+    });
+    <span class="hljs-comment">// create the tableview</span>
+    tv = Titanium.UI.createTableView({
+
+            top: margin,
+            borderRadius: margin,
+            borderColor:TU.UI.Theme.borderColor,
+            backgroundColor: TU.UI.Theme.backgroundColor,
+            separatorColor: TU.UI.Theme.textColor,
+
+    });
+    rssWindow.add(tv);
+
+    <span class="hljs-comment">// helper function for adding rows, we'll need this later</span>
+    <span class="hljs-keyword">var</span> addTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">tblData</span>)</span>{
+
+        <span class="hljs-keyword">var</span> rowh = TU.UI.Sizer.getDimension (<span class="hljs-number">70</span>);
+        <span class="hljs-keyword">var</span> tableRows = []; <span class="hljs-comment">// an array to hold our rows</span>
+        <span class="hljs-keyword">var</span> imgV = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> pDate = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> tblView = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> titleview = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> itemCount = <span class="hljs-number">14</span>;
+
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;tblData.length; i++) {
+            <span class="hljs-keyword">if</span>(i &lt;= itemCount ) {
+
+            tblView = Ti.UI.createTableViewRow({
+<span class="hljs-comment">//                title: tblData[i].postTitle,</span>
+                link: tblData[i].postLink,
+                className: <span class="hljs-string">'itemRow'</span>,
+<span class="hljs-comment">//                font:TU.UI.Theme.fonts.mediumBold,</span>
+                selectedBackgroundColor: TU.UI.Theme.highlightColor,
+                backgroundColor: TU.UI.Theme.backgroundColor,
+                color: TU.UI.Theme.textColor,
+                rightImage: <span class="hljs-string">'/images/icons/rightArrow.png'</span>,
+                height:rowh
+            });
+
+            titleview = Ti.UI.createLabel({
+                text: tblData[i].postTitle,
+                color: TU.UI.Theme.textColor,
+                font:TU.UI.Theme.fonts.mediumBold,
+                height: <span class="hljs-string">'50dp'</span>,
+                left: <span class="hljs-string">'73dp'</span>,
+                right: <span class="hljs-string">'5dp'</span>
+            });
+
+            imgV = Ti.UI.createImageView({
+            image: <span class="hljs-string">'/images/icons/sermonRSS.png'</span>,
+            height: <span class="hljs-string">'42dp'</span>, 
+            width: <span class="hljs-string">'42dp'</span>, 
+            left: <span class="hljs-string">'5dp'</span>,
+            top: <span class="hljs-string">'3dp'</span>
+            });
+
+            <span class="hljs-comment">// Date region</span>
+            pDate = Ti.UI.createLabel({
+            text: tblData[i].pubDate,
+            textAlign: <span class="hljs-string">'center'</span>,
+            color: TU.UI.Theme.textColor,
+            font:TU.UI.Theme.fonts.small,
+            height: <span class="hljs-string">'auto'</span>,
+            width: <span class="hljs-string">'42dp'</span>,
+            left: <span class="hljs-string">'3dp'</span>,
+            bottom: <span class="hljs-string">'3dp'</span>
+            });
+            tblView.add(imgV);
+            tblView.add(pDate);
+            tblView.add(titleview);
+            tableRows.push(tblView); 
+        }
+        tv.setData(tableRows);    
+        }        
+    };
+    <span class="hljs-comment">// add click event listener to open blog post when row is tapped</span>
+
+    tv.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> ArticleWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/includes/podcastPlayer'</span>);
+        <span class="hljs-keyword">var</span> articlewindow = <span class="hljs-keyword">new</span> ArticleWindow(e.rowData);
+        TU.UI.TGWM.openWindow (articlewindow);
+    });
+    <span class="hljs-comment">// set up an event listener to populate data when it's available from the network and remove same when window closes</span>
+    <span class="hljs-comment">//to conserve memory</span>
+
+    <span class="hljs-keyword">var</span> eventHandler = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-comment">// Set the window's title</span>
+        rssWindow.title = <span class="hljs-string">'Podcasts'</span>;
+        <span class="hljs-comment">// Add the table rows</span>
+        addTableRows(e.blogPosts);
+    };
+
+
+    Ti.App.addEventListener(<span class="hljs-string">'net:podDataReturned'</span>, eventHandler);
+
+    b.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+    </span>{
+
+    Ti.App.removeEventListener(<span class="hljs-string">'net:podDataReturned'</span>, eventHandler);
+
+    });
+
+    <span class="hljs-keyword">return</span> rssWindow;
+}; <span class="hljs-comment">// end createSermonRSS()</span>
+
+<span class="hljs-built_in">module</span>.exports = sermonRSS;
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="February 5th 2013, 4:43:20 pm">February 5th 2013</span>
+								by <span class='authorname'>adebisi oladipupo</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

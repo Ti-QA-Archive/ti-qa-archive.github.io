@@ -1,0 +1,341 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy:Perform action on view destruction (remove event listeners) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy:Perform action on view destruction (remove event listeners)</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I have written a module SelectableButton that makes a two-state button from a View. It changes the view background when it&#39;s getting tapped and changes it back when it&#39;s being released. Below is the approximate code (somewhat shortened):</p>
+<pre><code class="hljs">exports.initialize = function() { 
+    root = this.getView();
+    root.addEventListener(<span class="hljs-string">"touchstart"</span>, <span class="hljs-keyword">state</span>On);
+    root.addEventListener(<span class="hljs-string">"touchend"</span>, <span class="hljs-keyword">state</span>Off);
+}
+</code></pre><p>Function initialize() is then called from a subclass (if I just do it right away upon initialization of the base class, the subclass view is not initialized yet and it throws an exception). The problem is, I cannot find any way to remove these event listeners. I have tried catching windows close event and walking all the children or all the $.__views (however hackish this would be), but the views are not directly visible from the window object.</p>
+<p>This way, when I navigate back from the window (by doing <code>$.close()</code>) and then open it again (<code>...createController(...).getView().open()</code>), they still seem to be there and the application gets really sluggish adding more and more event listeners.</p>
+<p>What is the suggested way to handle such situations? I would like to deal with this within my class (SelectableButton), so I keep the modularity. I am posting this to the Alloy group, as it would be easy to do in regular Titanium with no modularity.</p>
+<p>Thanks in advance,</p>
+<p>Andrey.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 26th 2013, 8:23:29 am">February 26th 2013</span>
+				by <span class='authorname'>Andrey Chirikba</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>destructor</span></li>
+					
+						<li><span class='tagname'>finalize</span></li>
+					
+						<li><span class='tagname'>finalizer</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Below is the actual controller code (with minor cuts). The child controller (having this controller as its base) calls the initialize() function. A child controller can be any view with a background image.</p>
+<pre><code class="hljs">exports.initialize = function() {
+    root = this.getView();
+    backgroundRegular = root.backgroundImage;
+    backgroundSelected = backgroundRegular.replace(<span class="hljs-string">".png"</span>, <span class="hljs-string">"_selected.png"</span>);
+    root.addEventListener(<span class="hljs-string">"touchstart"</span>, <span class="hljs-keyword">state</span>On);
+    root.addEventListener(<span class="hljs-string">"touchend"</span>, <span class="hljs-keyword">state</span>Off);
+}
+
+function <span class="hljs-keyword">state</span>On() { exports.selectState(true); }
+function <span class="hljs-keyword">state</span>Off() { exports.selectState(false); }
+
+exports.selectState = function(<span class="hljs-keyword">state</span>) {
+    if (!<span class="hljs-keyword">state</span>) { root.backgroundImage = backgroundRegular; }
+    else { root.backgroundImage = backgroundSelected; }    
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="February 26th 2013, 11:31:49 am">February 26th 2013</span>
+								by <span class='authorname'>Andrey Chirikba</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-257791">
+				
+						<section>
+							<p>Ok, how I solved it in the end. Again, the problem was: I needed a button class (a base class that other views would derive from and that provides background change on tapping&#x2F;releasing). I wanted it to be independent of any views that may include it. Changing background on tapping&#x2F;releasing involves settings an event listener on these events. This means we also have to remove it when it&#39;s done, otherwise it would lead to all kinds of memory leaks and slowing down of the app (which I experienced). However, because I wanted the button class to be independent of any views that may use it, I didn&#39;t want to have the including view do special things to facilitate this. The event handlers need to be removed when window is being closed. Ti.UI.currentWindow doesn&#39;t return the actual current window. Below is how I solved it for now.</p>
+<p>alloy.js:</p>
+<pre><code class="hljs">Alloy.Globals.getWindowForView = function(<span class="hljs-keyword">view</span>)
+{
+    <span class="hljs-keyword">for</span> ( ; <span class="hljs-keyword">view</span>.getParent() != undefined; <span class="hljs-keyword">view</span> = <span class="hljs-keyword">view</span>.getParent()) {};
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">view</span>;
+}
+</code></pre><p>selectableButton.js (the actual class):</p>
+<pre><code class="hljs">exports.initialize = function() {
+    // Defer attaching of event handlers until the view has been layed <span class="hljs-keyword">out</span> (otherwise no access <span class="hljs-keyword">to</span> window object)
+    $.getView().addEventListener(<span class="hljs-string">"postlayout"</span>, deferredInitialize);
+}
+
+function deferredInitialize()
+{
+    $.getView().removeEventListener(<span class="hljs-string">"postlayout"</span>, deferredInitialize);
+
+    root = $.getView();
+    root.addEventListener(<span class="hljs-string">"touchstart"</span>, <span class="hljs-keyword">state</span>On);
+    root.addEventListener(<span class="hljs-string">"touchend"</span>, <span class="hljs-keyword">state</span>Off);
+    root.addEventListener(<span class="hljs-string">"swipe"</span>, <span class="hljs-keyword">state</span>Off);
+    root.addEventListener(<span class="hljs-string">"scroll"</span>, <span class="hljs-keyword">state</span>Off);
+    root.addEventListener(<span class="hljs-string">"touchcancel"</span>, <span class="hljs-keyword">state</span>Off);
+
+    var window = Alloy.Globals.getWindowForView($.getView());
+    window.addEventListener(<span class="hljs-string">"close"</span>, finalize);
+}
+
+function <span class="hljs-keyword">state</span>On() {
+    exports.selectState(true);
+}
+
+function <span class="hljs-keyword">state</span>Off() {
+    exports.selectState(false);
+}
+
+exports.selectState = function(<span class="hljs-keyword">state</span>) {
+    if (!<span class="hljs-keyword">state</span>) {
+        root.backgroundImage = backgroundRegular;
+    } else {
+        root.backgroundImage = backgroundSelected;
+    }    
+}
+
+function finalize() {
+    root.removeEventListener(<span class="hljs-string">"touchstart"</span>, <span class="hljs-keyword">state</span>On);
+    root.removeEventListener(<span class="hljs-string">"touchend"</span>, <span class="hljs-keyword">state</span>Off);
+    root.removeEventListener(<span class="hljs-string">"swipe"</span>, <span class="hljs-keyword">state</span>Off);
+    root.removeEventListener(<span class="hljs-string">"scroll"</span>, <span class="hljs-keyword">state</span>Off);
+    root.removeEventListener(<span class="hljs-string">"touchcancel"</span>, <span class="hljs-keyword">state</span>Off);
+    Alloy.Globals.getWindowForView($.getView()).removeEventListener(<span class="hljs-string">"close"</span>, finalize);
+}
+</code></pre><p>Any subclass:</p>
+<pre><code class="hljs"><span class="hljs-keyword">this</span>.initialize();            <span class="hljs-comment">// Have SelectableButton initialize itself</span>
+</code></pre><p>This makes sure all event listeners are set and cleared at right times.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 1st 2013, 6:53:20 am">March 1st 2013</span>
+								by <span class='authorname'>Andrey Chirikba</span><br>
+								<a class="icon-bg icon-link" href="question/148840/alloyperform-action-on-view-destruction-remove-event-listeners#answer-257791" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-257576">
+				
+						<section>
+							<p>hi,</p>
+<p>remove listener by this way when you close window..</p>
+<pre><code class="hljs">root.removeEventListener(<span class="hljs-string">"touchstart"</span>, <span class="hljs-keyword">state</span>On);
+root.removeEventListener(<span class="hljs-string">"touchend"</span>, <span class="hljs-keyword">state</span>Off);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 26th 2013, 8:37:58 am">February 26th 2013</span>
+								by <span class='authorname'>Mitul Bhalia</span><br>
+								<a class="icon-bg icon-link" href="question/148840/alloyperform-action-on-view-destruction-remove-event-listeners#answer-257576" rel="permalink">permalink</a>
+							</div>
+
+							<h5>11 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I understand that I have to use that function. But where&#x2F;when do I have to do that? A window is an Alloy controller&#x2F;view, and buttons are that, as well. If I catch the close event in the window controller, how do I propagate it to the individual buttons? An application-wide event would not do, as I do navigation by opening a window on top of the previous one and closing it when the user navigates away. This would mean all underlying screens would also get the application-wide event. I can also find no easy way to enumerate all the buttons inside a window.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 8:44:44 am">February 26th 2013</span>
+											by <span class='authorname'>Andrey Chirikba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>can&#39;t you get button&#39;s click event in your window..?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 8:53:48 am">February 26th 2013</span>
+											by <span class='authorname'>Mitul Bhalia</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>this would defeat the purpose of having a separate class (modularity). I need the tapping&#x2F;releasing handled in the base class, perhaps with a little help from outside (like firing an event or something).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 8:56:31 am">February 26th 2013</span>
+											by <span class='authorname'>Andrey Chirikba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yes, so to fire event on click of button will help you to remove listener.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 9:09:45 am">February 26th 2013</span>
+											by <span class='authorname'>Mitul Bhalia</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m not following what the issue is here, probably because you&#39;re mentioning modularity but haven&#39;t showed us how the rest of this component is structured. Mitul&#39;s advice seem very straightforward and correct, and we probably can&#39;t assess much better than he has without seeing why his solution wouldn&#39;t work for you.</p>
+<p>If the various components you need to remove events from are in different controllers, then use a custom event that they can all subscribe to to indicate when the listeners should be removed. Listen for the window &quot;close&quot; as you are now and then fire some custom &quot;removeListeners&quot; event (or whatever you want to name it. All components that needs to remove event listeners should be configured to listen for that event. Everything gets cleaned up, everything remains loosely coupled.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 11:13:47 am">February 26th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Tony, that&#39;s what I was thinking about, too (firing an event on windows close). However, my navigation around the app is built by opening a new window on top of the current one. When the user clicks the &quot;back&quot; button, I close the current window and the previous one becomes active. Firing an event would make all buttons on the current screen and the underlying ones receive it. Is this way of navigation acceptable or do I have to change that anyway?</p>
+<p>I&#39;ve posted the controller code as a comment to my question, hopefully that clarifies it a bit more.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 11:33:58 am">February 26th 2013</span>
+											by <span class='authorname'>Andrey Chirikba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m not following what the problem is here. Why can&#39;t you just remove the event listeners from the necessary components when you close the window? The buttons only need to subscribe to the events fired by a single instance of a window, not all windows.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 12:18:12 pm">February 26th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>ok, that&#39;s what I&#39;m looking for. But how do I get to the window object from the button view that may be inside another view? Only by passing it to every button upon creation? Or by doing getParent() repeatadly (which I don&#39;t think is documented) and somehow detecting it&#39;s a window?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 12:39:58 pm">February 26th 2013</span>
+											by <span class='authorname'>Andrey Chirikba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Fire the close event from the window, listen for it on the buttons contained in the window. If it is a custom event that you fire yoursel, always from a window, you can be sure what the source is.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 26th 2013, 2:01:50 pm">February 26th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Tony, how do I go about multiple windows? Each one contains buttons. How can the buttons in the active (topmost) window know for which window the close event is being fired?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 28th 2013, 12:00:54 pm">February 28th 2013</span>
+											by <span class='authorname'>Andrey Chirikba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Again, I&#39;m not following, you just make the buttons subscribe to the events of which ever window is relevant.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 28th 2013, 2:14:56 pm">February 28th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

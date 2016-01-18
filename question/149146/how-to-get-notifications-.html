@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to get notifications ? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to get notifications ?</h1>
+		</header>
+		<section>
+			<p>Hi all,</p>
+<p>How to get notifications when new blog has been added to blog ?<br><strong>URL: http:&#x2F;&#x2F;vibrantinfosystem.blogspot.com&#x2F;</strong></p>
+<p>Below is the code:</p>
+<p>app.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isiOS4Plus</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-keyword">if</span> (Titanium.Platform.name == <span class="hljs-string">'iPhone OS'</span>){
+        <span class="hljs-keyword">var</span> version = Titanium.Platform.version.split(<span class="hljs-string">"."</span>);
+        <span class="hljs-keyword">var</span> major = <span class="hljs-built_in">parseInt</span>(version[<span class="hljs-number">0</span>]);
+        <span class="hljs-comment">// can only test this support on a 3.2+ device</span>
+        <span class="hljs-keyword">if</span> (major &gt;= <span class="hljs-number">4</span>){
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+        }
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-keyword">if</span> (isiOS4Plus()){
+
+    <span class="hljs-keyword">var</span> service;
+
+    <span class="hljs-comment">// Ti.App.iOS.addEventListener('notification',function(e){</span>
+    <span class="hljs-comment">// You can use this event to pick up the info of the noticiation. </span>
+    <span class="hljs-comment">// Also to collect the 'userInfo' property data if any was set</span>
+    <span class="hljs-comment">//        Ti.API.info("local notification received: "+JSON.stringify(e));</span>
+    <span class="hljs-comment">//    });</span>
+    <span class="hljs-comment">// fired when an app resumes from suspension</span>
+    Ti.App.addEventListener(<span class="hljs-string">'resume'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">"app is resuming from the background"</span>);
+    });
+    Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">"app has resumed from the background"</span>);
+        <span class="hljs-comment">// this will unregister the service if the user just opened the app</span>
+        <span class="hljs-comment">// is: not via the notification 'OK' button..</span>
+        <span class="hljs-keyword">if</span>(service!=<span class="hljs-literal">null</span>){
+            service.stop();
+            service.unregister();
+        }
+                Titanium.UI.iPhone.appBadge = <span class="hljs-literal">null</span>;
+    });
+    Ti.App.addEventListener(<span class="hljs-string">'pause'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">"app was paused from the foreground"</span>);
+
+        service = Ti.App.iOS.registerBackgroundService({url:<span class="hljs-string">'bg.js'</span>});
+        Ti.API.info(<span class="hljs-string">"registered background service = "</span>+service);
+
+    });
+};
+</code></pre><p>bg.js</p>
+<pre><code class="hljs">Ti.API.info(<span class="hljs-string">"hello from a background service!"</span>); 
+
+<span class="hljs-keyword">var</span> alertCount = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> notification = <span class="hljs-literal">null</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">notify</span>(<span class="hljs-params">resp</span>)</span>{
+    <span class="hljs-comment">// This creates the notification alert on a 'paused' app</span>
+    notification = Ti.App.iOS.scheduleLocalNotification({
+        alertBody:resp,
+        alertAction:<span class="hljs-string">"OK"</span>,
+        userInfo:{<span class="hljs-string">"hello"</span>:<span class="hljs-string">"world"</span>},
+        badge:alertCount,
+        date:<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() + <span class="hljs-number">10</span>)
+    });
+} 
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkFeed</span>(<span class="hljs-params"></span>)</span>{
+
+        <span class="hljs-comment">// silently ignore this if there's no network connection</span>
+    <span class="hljs-keyword">if</span> (Titanium.Network.online == <span class="hljs-literal">false</span>) {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">var</span> t = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime();
+    Ti.API.info(<span class="hljs-string">'checking feed in bg.. '</span>+t);
+
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.timeout = <span class="hljs-number">1000000</span>;
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">'IN ERROR '</span> + e.error);
+    };
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+
+        <span class="hljs-comment">// demo to increase the badge number...</span>
+        alertCount++;
+
+        <span class="hljs-keyword">var</span> response = <span class="hljs-keyword">this</span>.responseText;        
+        Ti.API.info(<span class="hljs-string">"the reply was: "</span>+response);
+        <span class="hljs-comment">// open the notification</span>
+        notify(response);
+    };
+
+    xhr.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://vibrantinfosystem.blogspot.com/feeds/posts/default?alt=rss'</span>)
+    <span class="hljs-comment">//xhr.open('GET','http://vibrantinfosystems.com/service_test.php');</span>
+    xhr.send();
+    <span class="hljs-comment">/*
+    my service_test.php is simply: 
+    &lt;?php
+        echo "hello from a server at: ".date("r");
+    ?&gt;
+    */</span>
+
+
+}
+
+Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    Ti.API.info(<span class="hljs-string">'background event received = '</span>+notification);
+    Ti.App.currentService.stop();
+    Ti.App.currentService.unregister();
+});
+
+<span class="hljs-comment">// Kick off a timer to trigger a function called 'checkFeed' every 10 seconds (= 10000 ms)</span>
+<span class="hljs-keyword">var</span> timer = setInterval(checkFeed, <span class="hljs-number">10000</span>);
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 5th 2013, 2:34:57 am">March 5th 2013</span>
+				by <span class='authorname'>Namitha M</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>blog</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+						<li><span class='tagname'>rss</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-258076">
+				
+						<section>
+							<p>hi,<br>because you set badge property for notification so comment this line <strong>badge:alertCount,</strong> and test again.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 5th 2013, 3:27:33 am">March 5th 2013</span>
+								by <span class='authorname'>Mitul Bhalia</span><br>
+								<a class="icon-bg icon-link" href="question/149146/how-to-get-notifications-#answer-258076" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Its not working :(</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 7th 2013, 4:47:48 am">March 7th 2013</span>
+											by <span class='authorname'>Namitha M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>but i get all notification at time interval in notification window..<br>just check in notification window</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 7th 2013, 4:56:36 am">March 7th 2013</span>
+											by <span class='authorname'>Mitul Bhalia</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

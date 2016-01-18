@@ -1,0 +1,428 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Web-like forms in native view » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Web-like forms in native view</h1>
+		</header>
+		<section>
+			<p>Using TI sdk 3.0.2, on Mac OSx 10.7 and dev targets of iOS, Android. I found a git repo on creating nice form in Titanium (url: http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2011&#x2F;10&#x2F;forging-titanium-episode-10-forms.html).</p>
+<p>However, running the same code today doesn&#39;t seem to work as it concerns the picker fields of State and Birthday. See screenshot and relevant code below.  I am guessing the code may need modification since it was initially done in SDK 1.7.3. I am trying to adapt this to my need by supplying the form handling code segment since the UI is good enough for me. YOur help or advice to another resource that accomplishes my goal is welcome.  Thx.</p>
+<p><a href="http:&#x2F;&#x2F;tinypic.com&#x2F;r&#x2F;24yraja&#x2F;6">Form UI</a> </p>
+<p>form.js:</p>
+<pre><code class="hljs">
+<span class="hljs-comment">// "Constants"</span>
+exports.STYLE_HINT = <span class="hljs-string">'hint'</span>;
+exports.STYLE_LABEL = <span class="hljs-string">'label'</span>;
+
+exports.TYPE_DATE = <span class="hljs-string">'date'</span>;
+<span class="hljs-comment">//exports.TYPE_USERNAME = 'text';</span>
+exports.TYPE_EMAIL = <span class="hljs-string">'email'</span>;
+exports.TYPE_NUMBER = <span class="hljs-string">'number'</span>;
+exports.TYPE_PASSWORD = <span class="hljs-string">'password'</span>;
+exports.TYPE_PHONE = <span class="hljs-string">'phone'</span>;
+exports.TYPE_PICKER = <span class="hljs-string">'picker'</span>;
+exports.TYPE_TEXT = <span class="hljs-string">'text'</span>;
+exports.TYPE_SUBMIT = <span class="hljs-string">'submit'</span>;
+
+<span class="hljs-keyword">var</span> isAndroid = Ti.Platform.osname === <span class="hljs-string">'android'</span>;
+<span class="hljs-keyword">var</span> textFieldDefaults = {
+    height: <span class="hljs-string">'40dp'</span>,
+    width: <span class="hljs-string">'250dp'</span>,
+    top: <span class="hljs-string">'10dp'</span>,
+    color: <span class="hljs-string">'#222'</span>,
+    borderStyle:Titanium.UI.INPUT_BORDERSTYLE_ROUNDED
+};
+<span class="hljs-keyword">var</span> keyboardMap = {};
+keyboardMap[exports.TYPE_EMAIL] = Ti.UI.KEYBOARD_EMAIL;
+keyboardMap[exports.TYPE_NUMBER] = Ti.UI.KEYBOARD_NUMBER_PAD;
+keyboardMap[exports.TYPE_PASSWORD] = Ti.UI.KEYBOARD_DEFAULT;
+keyboardMap[exports.TYPE_PHONE] = Ti.UI.KEYBOARD_NUMBER_PAD;
+keyboardMap[exports.TYPE_TEXT] = Ti.UI.KEYBOARD_DEFAULT;
+
+<span class="hljs-keyword">var</span> handleStyle = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">form, textField, title</span>) </span>{
+    <span class="hljs-keyword">if</span> (form.fieldStyle === exports.STYLE_HINT &amp;&amp; textField) {
+        textField.hintText = title;    
+    } <span class="hljs-keyword">else</span> {
+        form.container.add(Ti.UI.createLabel({
+            text: title,
+            top: <span class="hljs-string">'10dp'</span>,
+            left: <span class="hljs-string">'35dp'</span>,
+            color: <span class="hljs-string">'#222'</span>,
+            font: {
+                fontSize: <span class="hljs-string">'16dp'</span>,
+                fontWeight: <span class="hljs-string">'bold'</span>
+            },
+            height: <span class="hljs-string">'auto'</span>,
+            width: <span class="hljs-string">'auto'</span>
+        }));    
+        <span class="hljs-keyword">if</span> (textField) {
+            textField.top = <span class="hljs-string">'5dp'</span>;
+        }
+    }
+};
+
+<span class="hljs-keyword">var</span> setupPickerTextField = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">textField, pickerType, data</span>) </span>{
+    textField.editable = <span class="hljs-literal">false</span>;
+    textField.rightButton = Ti.UI.createButton({
+        style: Ti.UI.iPhone.SystemButton.DISCLOSURE,
+        transform: Ti.UI.create2DMatrix().rotate(<span class="hljs-number">90</span>)
+    });
+    textField.rightButtonMode = Ti.UI.INPUT_BUTTONMODE_ALWAYS;
+
+    textField.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        e.source.blur(); 
+        <span class="hljs-built_in">require</span>(<span class="hljs-string">'/includes/semiModalPicker'</span>).createSemiModalPicker({
+            textField: textField,
+            value: textField.value,
+            type: pickerType,
+            data: data
+        }).open({animated:<span class="hljs-literal">true</span>});
+    });
+};
+
+<span class="hljs-keyword">var</span> ctr = <span class="hljs-number">1</span>;
+<span class="hljs-keyword">var</span> addField = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">field, fieldRefs</span>) </span>{
+    <span class="hljs-keyword">var</span> title = field.title || (<span class="hljs-string">'field'</span> + ctr++);
+    <span class="hljs-keyword">var</span> id = field.id || title;
+    <span class="hljs-keyword">var</span> type = field.type || exports.TYPE_TEXT;
+    <span class="hljs-keyword">var</span> form = <span class="hljs-keyword">this</span>;
+    <span class="hljs-keyword">var</span> fieldObject = <span class="hljs-literal">undefined</span>;
+
+    <span class="hljs-keyword">if</span> (type === exports.TYPE_TEXT ||
+        type === exports.TYPE_EMAIL ||
+        type === exports.TYPE_NUMBER ||
+        type === exports.TYPE_PHONE ||
+        type === exports.TYPE_PASSWORD) {
+        fieldObject = Ti.UI.createTextField(textFieldDefaults);
+        fieldObject.keyboardType = keyboardMap[type];
+        fieldObject.passwordMask = type === exports.TYPE_PASSWORD;
+        handleStyle(form, fieldObject, title);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type === exports.TYPE_DATE) {
+        <span class="hljs-keyword">if</span> (isAndroid) {
+            fieldObject = Ti.UI.createPicker({
+                type: Ti.UI.PICKER_TYPE_DATE
+            });
+            handleStyle(form, <span class="hljs-literal">undefined</span>, title);
+        } <span class="hljs-keyword">else</span> {
+            fieldObject = Ti.UI.createTextField(textFieldDefaults);
+            handleStyle(form, fieldObject, title);
+            setupPickerTextField(fieldObject, Ti.UI.PICKER_TYPE_DATE);
+        }
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type === exports.TYPE_PICKER) {
+        <span class="hljs-keyword">if</span> (isAndroid) {
+            fieldObject = Ti.UI.createPicker({
+                type: Ti.UI.PICKER_TYPE_PLAIN,
+                width: <span class="hljs-string">'250dp'</span>
+            });
+            handleStyle(form, <span class="hljs-literal">undefined</span>, title);
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> field.data) {
+                fieldObject.add(Ti.UI.createPickerRow({title:field.data[i]}));    
+            }
+        } <span class="hljs-keyword">else</span> {
+            fieldObject = Ti.UI.createTextField(textFieldDefaults);
+            handleStyle(form, fieldObject, title);
+            setupPickerTextField(fieldObject, Ti.UI.PICKER_TYPE_PLAIN, field.data);
+        }
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type === exports.TYPE_SUBMIT) {
+        <span class="hljs-keyword">var</span> button = Ti.UI.createButton({
+            title: title,
+            height: <span class="hljs-string">'40dp'</span>,
+            width: <span class="hljs-string">'100dp'</span>,
+            top:<span class="hljs-string">'10dp'</span>
+        });
+        button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">var</span> values = {};
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> fieldRefs) {
+                values[i] = fieldRefs[i].value;    
+            }
+            form.fireEvent(id, {values:values});    
+        });    
+        form.container.add(button);
+    }
+
+    <span class="hljs-comment">// Add our prepared UI component to the form</span>
+    <span class="hljs-keyword">if</span> (fieldObject) {
+        form.container.add(fieldObject);
+        fieldRefs[id] = fieldObject;
+    }
+};
+
+<span class="hljs-keyword">var</span> addFields = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">fields, fieldRefs</span>) </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> fields) {
+        <span class="hljs-keyword">this</span>.addField(fields[i], fieldRefs);
+    }
+};
+
+exports.createForm = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">o</span>) </span>{
+    <span class="hljs-keyword">var</span> container = Ti.UI.createView({
+        layout: <span class="hljs-string">'vertical'</span>,
+        height: <span class="hljs-string">'auto'</span>
+    });
+    <span class="hljs-keyword">var</span> fieldRefs = {};
+    <span class="hljs-keyword">var</span> form = Ti.UI.createScrollView({
+        contentHeight: <span class="hljs-string">'auto'</span>,
+        contentWidth: <span class="hljs-string">'auto'</span>,
+        showVerticalScrollIndicator:<span class="hljs-literal">true</span>,
+        showHorizontalScrollIndicator:<span class="hljs-literal">true</span>,
+
+        <span class="hljs-comment">// new stuff</span>
+        container: container,
+        fieldStyle: o.style || exports.STYLE_HINT,
+        addField: addField,
+        addFields: addFields
+    });
+
+    form.addFields(o.fields, fieldRefs);
+    form.add(container);
+
+    <span class="hljs-comment">// Add this so each field can be accessed directly, if necessary</span>
+    form.fieldRefs = fieldRefs;
+
+    <span class="hljs-keyword">return</span> form;
+};
+</code></pre><p>semiModalPicker.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> stringToDate = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">dateString</span>) </span>{
+    dateString = dateString || <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">var</span> matches = <span class="hljs-regexp">/(\d+)\/(\d+)\/(\d+)/</span>.exec(dateString);
+    <span class="hljs-keyword">if</span> (matches &amp;&amp; matches.length &gt;= <span class="hljs-number">4</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(matches[<span class="hljs-number">3</span>], matches[<span class="hljs-number">1</span>] - <span class="hljs-number">1</span>, matches[<span class="hljs-number">2</span>]);    
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+};
+
+<span class="hljs-keyword">var</span> dateToString = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">date</span>) </span>{
+    <span class="hljs-keyword">return</span> (date.getMonth()+<span class="hljs-number">1</span>) + <span class="hljs-string">'/'</span> + date.getDate() + <span class="hljs-string">'/'</span> + date.getFullYear();
+};
+
+exports.createSemiModalPicker = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">o</span>) </span>{
+    <span class="hljs-keyword">var</span> type = o.type === <span class="hljs-literal">undefined</span> ? Ti.UI.PICKER_TYPE_PLAIN : o.type;
+    <span class="hljs-keyword">var</span> modalWin = Ti.UI.createWindow({
+        backgroundColor:<span class="hljs-string">'transparent'</span>
+    });
+    <span class="hljs-keyword">var</span> overlay = Ti.UI.createView({
+        backgroundColor: <span class="hljs-string">'#000'</span>,
+        opacity: <span class="hljs-number">0.6</span>
+    });
+    <span class="hljs-keyword">var</span> container = Ti.UI.createView({
+        bottom: <span class="hljs-number">0</span>,
+        layout: <span class="hljs-string">'vertical'</span>,
+        height: <span class="hljs-string">'auto'</span>
+    });
+
+    <span class="hljs-keyword">var</span> picker = Ti.UI.createPicker({
+        type: type,
+        height: <span class="hljs-string">'auto'</span>,
+        useSpinner: <span class="hljs-literal">true</span>
+    });
+    picker.selectionIndicator = <span class="hljs-literal">true</span>;
+
+    <span class="hljs-keyword">if</span> (type === Ti.UI.PICKER_TYPE_DATE) {
+        picker.value = stringToDate(o.value);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (o.data) {
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> o.data) {
+            picker.add(Ti.UI.createPickerRow({title:o.data[i]}));    
+        }
+    }
+    picker.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{});
+
+    <span class="hljs-keyword">var</span> cancel =  Titanium.UI.createButton({
+        title:<span class="hljs-string">'Cancel'</span>,
+        height: <span class="hljs-number">30</span>,
+        width: <span class="hljs-number">80</span>,
+        style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
+        left: <span class="hljs-number">10</span>
+    });
+    cancel.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        modalWin.close();
+    });
+
+    <span class="hljs-keyword">var</span> done =  Titanium.UI.createButton({
+        title:<span class="hljs-string">'Done'</span>,
+        height: <span class="hljs-number">30</span>,
+        width: <span class="hljs-number">80</span>,
+        style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED,
+        right: <span class="hljs-number">10</span>
+    });
+    done.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (type === Ti.UI.PICKER_TYPE_DATE) {
+            o.textField.value = dateToString(picker.value);
+        } <span class="hljs-keyword">else</span> {
+            o.textField.value = picker.getSelectedRow(<span class="hljs-number">0</span>).title;    
+        }
+
+        modalWin.close();
+    });
+
+    <span class="hljs-keyword">var</span> spacer =  Titanium.UI.createButton({
+        systemButton:Titanium.UI.iPhone.SystemButton.FLEXIBLE_SPACE
+    });
+
+    <span class="hljs-keyword">var</span> toolbar = Ti.UI.createView({
+        height: <span class="hljs-number">43</span>,
+        backgroundColor: <span class="hljs-string">'#bbb'</span>
+    });
+
+
+    toolbar.add(cancel);
+    toolbar.add(done);
+    container.add(toolbar);
+    container.add(picker);
+    modalWin.add(overlay);
+    modalWin.add(container);
+
+    <span class="hljs-keyword">return</span> modalWin;
+};
+</code></pre><p>The issue may reside in the semiModalPicker.js but I am not finding the problem. Pls help.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 18th 2013, 2:18:44 am">March 18th 2013</span>
+				by <span class='authorname'>adebisi oladipupo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>forms</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Community, please help.  Here&#39;s additional info that may highlight my real issues.  The state and birthday text fields seem not to be active. Clicking on both gives no response.  I expected the options to be revealed when clicked and the options to be the Spinner selection mode but nothing happens. I checked the eventListners, other textfields do show a blinking cursor and displayed the assigned keyboard types. Where am I going haywire with the picker fields?  Thx for your help</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 20th 2013, 12:17:29 pm">March 20th 2013</span>
+								by <span class='authorname'>adebisi oladipupo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Please PLease Please someone help me figure out why these form codes are not working as it concerns the state and birthday (textfileds) are not receiving the eventListener events.  I have studied the codes and compared with the reference guide but can&#39;t see where things are going wrong.</p>
+<p>One thing I know for sure is that these two fields (state and birthday) are either not receiving the &quot;focus&quot; event or definitely not handling the eventListener code segment.  Someone please help me discover what&#39;s wrong with the code, which i have borrowed almost verbatim from Titanium form blog.  Thx. </p>
+<p>P.S. the textfield.eventListener code in the semiModalPicker.js in the original post.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 28th 2013, 1:07:58 am">March 28th 2013</span>
+								by <span class='authorname'>adebisi oladipupo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Community can you please help me on this intractabe issue?  I am only trying to adapt a forms example in appcelerator guides (see http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;video&#x2F;30387041 ) but is not working.</p>
+<p>I have run their own code verbatim and the ios deployment has the dame problem as my adaptation.  The picker fields (state and birthday) are not responding to any mouse click as it does in android. The drop down for state field and the picker date field seem frozen. Is there anything that has changed since this example was coded? I will guess that the guides have been updated.  But if not, I have inspected all the codes to see what needs to change as it concerns the picker UI but I am drawing a blank.</p>
+<p>Please, please, please someone help me.  I know no one has to but I have tried on my own to figure this out but not working.</p>
+<p>If no one wants to rewrite someone else&#39;s code, I will appreciate if someone can get me started with a code snippet for a registration form that uses date picker, drop down menu selection similar to this example.  I am already working on a php to handle the Submit event but just can&#39;t get the form to function.  Thanks a million as you help.  I am developing for both iOS and Android on a Mac OS X and Titanium SDK 3.0.2</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 3rd 2013, 11:27:54 pm">April 3rd 2013</span>
+								by <span class='authorname'>adebisi oladipupo</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-259984">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Do one of two things, either remove the &quot;textField.editable = false&quot; in line 53 of forms.js or change the &quot;focus&quot; event to a click event in line 60.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 3rd 2013, 11:53:46 pm">April 3rd 2013</span>
+								by <span class='authorname'>Pedro Enrique</span><br>
+								<a class="icon-bg icon-link" href="question/149684/web-like-forms-in-native-view#answer-259984" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks a million Pedro.  My angel Titan comes through again. What worked is the changing focus to click in the addEventlistener. removing the textField.editable = false only worked with the birthday field but not with the state field.</p>
+<p>I am hoping this change works equally on the android as I am not sure why the code worked on that platform as is without the change; unless focus is equivalent to click event in Android and iOS requires a click event.  Nevertheless, it works now and I owe it to this great community of Titans and my friend Pedro. Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 4th 2013, 12:53:49 am">April 4th 2013</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

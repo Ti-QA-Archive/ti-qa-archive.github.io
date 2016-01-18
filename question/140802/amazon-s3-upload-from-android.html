@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Amazon S3 upload from Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Amazon S3 upload from Android</h1>
+		</header>
+		<section>
+			<p>Hi, I have searched the forum for how to make S3 uploads work from Android but most of the threads are quite old and actually not very helpful (I tried many suggestions but with no success).</p>
+<p>I&#39;m using Titanium mobile version 2.1.0 (Studio build: 2.1.0.201206251749). Generally I used emulator but it behaves the same on a device. I run OS X Lion.</p>
+<h1 id="post">POST</h1>
+<p>I got S3 uploads working very simply for iOS using the POST method like this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+xhr.setTimeout(<span class="hljs-number">3</span> * <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>); <span class="hljs-comment">// 3 min</span>
+xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">callback</span>(<span class="hljs-literal">true</span>, <span class="hljs-literal">null</span>);
+};
+xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">callback</span>(<span class="hljs-literal">false</span>, <span class="hljs-string">'Something has gone wrong'</span>);
+};
+xhr.open(<span class="hljs-string">'POST'</span>, <span class="hljs-string">'http://our-bucket.s3.amazonaws.com/'</span>, <span class="hljs-literal">true</span>);
+
+fields[<span class="hljs-string">'file'</span>] = blob;
+xhr.send(fields);
+</code></pre><p>(Where fields is a server-generated JSON object with all the HTML fields needed for a browser-based S3 upload using POST and blob is a Ti.Blob with a photo)</p>
+<p>Unfortunately, on Android Amazon&#39;s server returns the following error:</p>
+<pre><code class="hljs">InvalidArgument: Bucket POST must contain a field named 'key'. If it is specified, please<span class="hljs-instruction"> check </span>the order of the fields.
+</code></pre><p>I fixed this by manually creating a string with parameters to send as a part of the request (the order is fine in our server&#39;s response but not actually preserved in the JS object). Last 2 lines of the previous code snippet get replaced with:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> urlParams = <span class="hljs-string">''</span>;
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> fields) {
+    <span class="hljs-keyword">if</span> (urlParams !== <span class="hljs-string">''</span>) {
+        urlParams += <span class="hljs-string">'&amp;'</span>;
+    }
+    <span class="hljs-keyword">if</span> (i !== <span class="hljs-string">'file'</span>) {
+        urlParams += i + <span class="hljs-string">'='</span> + fields[i];
+    } <span class="hljs-keyword">else</span> {
+        urlParams += i + <span class="hljs-string">'='</span> + Ti.Utils.base64encode(blob);
+    }
+}
+
+xhr.send(urlParams);
+</code></pre><p>This failed again with:</p>
+<pre><code class="hljs">InvalidArgumen<span class="hljs-variable">t:</span> Conflicting query <span class="hljs-built_in">string</span> parameter<span class="hljs-variable">s:</span> acl, policy
+</code></pre><p>(Just for the record acl is set to &#39;public-read&#39; and policy includes just all it needs to. Again, the code works on iOS and uploads are handled in the same way on our server running Django.)</p>
+<p>Here I got stuck because I was not able to figure out what was wrong with it after googling for a bit. There are actually not too many people having this kind of problem as it turns out.</p>
+<h1 id="put">PUT</h1>
+<p>So I switched to using the PUT method as seen on this forum.</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'sha-aws.js'</span>);   <span class="hljs-comment">// file comes from this URL's project: http://aws.amazon.com/code/Amazon-S3/3236824658053653</span>
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'utf8.js'</span>);      <span class="hljs-comment">// code for this file from this URL: http://www.webtoolkit.info/javascript-utf8.html</span>
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'date.js'</span>);      <span class="hljs-comment">// file comes from this URL: http://www.mattkruse.com/javascript/date/source.html</span>
+
+<span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+xhr.setTimeout(<span class="hljs-number">3</span> * <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>); <span class="hljs-comment">// 3 min</span>
+xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    callback(<span class="hljs-literal">true</span>, <span class="hljs-literal">null</span>);
+};
+xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    callback(<span class="hljs-literal">false</span>, <span class="hljs-string">'Something has gone wrong'</span>);
+};
+<span class="hljs-keyword">var</span> AWSAccessKeyID = <span class="hljs-string">'AWS '</span> + <span class="hljs-string">'accesskey'</span> + <span class="hljs-string">':'</span>;
+<span class="hljs-keyword">var</span> AWSSecretAccessKey = <span class="hljs-string">'secretkey'</span>;
+<span class="hljs-comment">// STEP 2:  Change your bucket name to a bucket you have on AWS S3.</span>
+<span class="hljs-keyword">var</span> AWSBucketName = <span class="hljs-string">'our-bucket'</span>;
+<span class="hljs-comment">// STEP 3:  Change to a file that exists in your resources directory of your titanium app.</span>
+
+<span class="hljs-comment">// STEP 4: Change your GMT offset (-0700 is PST)</span>
+<span class="hljs-keyword">var</span> currentDateTime = formatDate(<span class="hljs-keyword">new</span> Date(),<span class="hljs-string">'E, d MMM dd yyyy HH:mm:ss'</span>) + <span class="hljs-string">' +0000'</span>;
+<span class="hljs-comment">//Expected date format for AWS: 'Mon, 30 May 2011 17:00:00 -0700';</span>
+
+xhr.setTimeout(<span class="hljs-number">99000</span>);
+
+<span class="hljs-comment">// true or false if it's asynchronous or not (last parameter below for xhr.open)</span>
+xhr.open(<span class="hljs-string">'PUT'</span>, <span class="hljs-string">'https://'</span> + AWSBucketName + <span class="hljs-string">'.s3.amazonaws.com/'</span> + <span class="hljs-string">'/'</span> + fields[<span class="hljs-string">'key'</span>], <span class="hljs-literal">false</span>);
+
+<span class="hljs-keyword">var</span> StringToSign = <span class="hljs-string">'PUT\n\n\n'</span>+blob.mimeType+<span class="hljs-string">'\n'</span> + currentDateTime + <span class="hljs-string">'\n/'</span>+AWSBucketName+<span class="hljs-string">'/'</span> + fields[<span class="hljs-string">'key'</span>];
+<span class="hljs-keyword">var</span> AWSSignature = b64_hmac_sha1(AWSSecretAccessKey, Utf8.encode(StringToSign));
+<span class="hljs-keyword">var</span> AuthorizationHeader = AWSAccessKeyID.concat(AWSSignature);
+<span class="hljs-comment">// On Android, base64encode() returns a TiBlob, so we must convert this toString in order to work.</span>
+xhr.setRequestHeader(<span class="hljs-string">'Authorization'</span>, Ti.Utils.base64encode(AuthorizationHeader).toString()); 
+xhr.setRequestHeader(<span class="hljs-string">'Content-Type'</span>, blob.mimeType);
+<span class="hljs-comment">// The Content-Length header works fine for iOS, but on Android raises an error: "Content-Length header already present"</span>
+<span class="hljs-comment">//xhr.setRequestHeader('Content-Length', uploadFile.size);</span>
+xhr.setRequestHeader(<span class="hljs-string">'Host'</span>, AWSBucketName + <span class="hljs-string">'.s3.amazonaws.com'</span>);
+xhr.setRequestHeader(<span class="hljs-string">'Date'</span>, currentDateTime);
+
+xhr.send(blob);
+</code></pre><p>This is where I got this strange error (like in one of the threads I saw here):</p>
+<pre><code class="hljs">InvalidArgumen<span class="hljs-variable">t:</span> Authorization header <span class="hljs-keyword">is</span> invalid -- one <span class="hljs-built_in">and</span> <span class="hljs-keyword">only</span> one <span class="hljs-string">' '</span> (space) required
+</code></pre><h1 id="other">Other</h1>
+<p>I also tried using this code snippet: https:&#x2F;&#x2F;gist.github.com&#x2F;1012632&#x2F;21d665acaf4b674a19f04ee4fb3b8e37a4b4cd28 but it didn&#39;t work. Maybe I was using it in a wrong way but it looked like I had to change the snippet a little to fix some errors but further ones appeared.</p>
+<h1 id="so-">So…</h1>
+<p>I will be grateful for any help regarding S3 uploads from Android. Hopefully there are more people who have experience with this now. Thanks.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 9th 2012, 1:57:38 pm">August 9th 2012</span>
+				by <span class='authorname'>Milan Misak</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>aws s3</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>upload</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Forgot to say: I&#39;m using Android 2.2 (API level 8)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 9th 2012, 2:11:37 pm">August 9th 2012</span>
+								by <span class='authorname'>Milan Misak</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Milan</p>
+<p>This is a very worthwhile aim - one I will have to deal with myself shortly.  I will happily pitch in and take a look - but given the potential time involved I will not be able to look until the weekend.  </p>
+<p>So if there is no solution before then - I will see what I can do.  I have done the exact same thing for PHP so &#39;hopefully&#39; I can be of use in this endeavour.</p>
+<p>I will want to make the code available for all though.</p>
+<p>Obviously if someone has a really cool, simple library - then my help will not be needed.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 9th 2012, 4:14:04 pm">August 9th 2012</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Milan,</p>
+<p>Can you provide me the code with the POST method ?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 24th 2015, 3:22:47 am">September 24th 2015</span>
+								by <span class='authorname'>Dharmesh R</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

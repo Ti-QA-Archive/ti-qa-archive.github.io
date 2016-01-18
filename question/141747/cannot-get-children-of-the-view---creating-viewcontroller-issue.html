@@ -1,0 +1,316 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Cannot get children of the View - creating ViewController issue! » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Cannot get children of the View - creating ViewController issue!</h1>
+		</header>
+		<section>
+			<p>Hello,</p>
+<p>I&#39;m trying to create a controller to manage my &quot;screens&quot;.<br>At first I wanted to use cross platform NavigationController as described in Forging Titanium ep 02 with later modifications from <a href="https:&#x2F;&#x2F;github.com&#x2F;vuinguyen&#x2F;Ti-Navigation-Controller">here</a>.</p>
+<p>Because my flow, can be like this [Letters are different &#39;screens&#39;]:</p>
+<pre><code class="hljs"><span class="hljs-type">A</span>-&gt;<span class="hljs-type">B</span>-&gt;<span class="hljs-type">C</span> [stacked three <span class="hljs-symbol">'screens'</span>] ----&gt; <span class="hljs-type">A</span> [going from <span class="hljs-type">C</span> <span class="hljs-keyword">to</span> <span class="hljs-type">A</span> <span class="hljs-keyword">while</span> removing <span class="hljs-type">B</span>, just like home <span class="hljs-keyword">function</span> <span class="hljs-keyword">in</span> the controller]
+<span class="hljs-type">A</span>-&gt;<span class="hljs-type">B</span>-&gt;<span class="hljs-type">C</span> [stacked three <span class="hljs-symbol">'screens'</span>] ----&gt; <span class="hljs-type">A</span>-&gt;<span class="hljs-type">B</span>-&gt;<span class="hljs-type">D</span> [substitution <span class="hljs-keyword">of</span> screen <span class="hljs-type">C</span> <span class="hljs-keyword">for</span> screen <span class="hljs-type">D</span>]
+<span class="hljs-type">A</span>-&gt;<span class="hljs-type">B</span>-&gt;<span class="hljs-type">C</span> [stacked three <span class="hljs-symbol">'screens'</span>] ----&gt; <span class="hljs-type">D</span>-&gt;<span class="hljs-type">C</span> [removal <span class="hljs-keyword">of</span> <span class="hljs-type">B</span>, substitution <span class="hljs-keyword">of</span> home screen from <span class="hljs-type">A</span> <span class="hljs-keyword">to</span> <span class="hljs-type">D</span>]
+</code></pre><p>and similar.</p>
+<p>So I have extended the &quot;original&quot; NavigationController, to something like this:</p>
+<pre><code class="hljs">NavigationController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.windowStack = [];
+};
+
+NavigationController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>) </span>{
+    <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+    <span class="hljs-keyword">this</span>.windowStack.push(windowToOpen);
+
+    <span class="hljs-comment">//grab a copy of the current nav controller for use in the callback</span>
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    windowToOpen.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.debug(<span class="hljs-string">"close called!"</span>);
+        <span class="hljs-keyword">var</span> win = that.windowStack.pop();
+    });
+
+    <span class="hljs-comment">//hack - setting this property ensures the window is "heavyweight" (associated with an Android activity)</span>
+    <span class="hljs-keyword">if</span> (Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+        windowToOpen.navBarHidden = <span class="hljs-literal">true</span>;
+        windowToOpen.fullscreen = <span class="hljs-literal">true</span>;
+    }
+
+    <span class="hljs-comment">//This is the first window</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.windowStack.length === <span class="hljs-number">1</span>) {
+        windowToOpen.exitOnClose = <span class="hljs-literal">true</span>;
+        windowToOpen.open();
+    }
+    <span class="hljs-comment">//All subsequent windows</span>
+    <span class="hljs-keyword">else</span> {
+        windowToOpen.open();
+    }
+};
+
+NavigationController.prototype.closeCurrent = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> currentWindow = <span class="hljs-keyword">this</span>.windowStack[<span class="hljs-keyword">this</span>.windowStack.length - <span class="hljs-number">1</span>];
+    currentWindow.close();
+}
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">1</span>, l = windows.length; i &lt; l; i++) {
+        (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[i]) : windows[i].close();
+    }
+    <span class="hljs-keyword">this</span>.windowStack = [<span class="hljs-keyword">this</span>.windowStack[<span class="hljs-number">0</span>]];
+    <span class="hljs-comment">//reset stack</span>
+};
+
+NavigationController.prototype.replace = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">controller, <span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>) </span>{
+    <span class="hljs-keyword">var</span> current = <span class="hljs-keyword">this</span>.windowStack.length - <span class="hljs-number">1</span>
+    <span class="hljs-keyword">if</span> (current &gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">var</span> currentWindow = <span class="hljs-keyword">this</span>.windowStack[current];
+        currentWindow.close();
+        controller.open(windowToOpen)
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (current == <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">var</span> currentWindow =  <span class="hljs-keyword">this</span>.windowStack[current];
+        Ti.API.warn(<span class="hljs-string">"NavigationController closing last window"</span>)
+        currentWindow.close()
+        controller.open(windowToOpen)
+    } <span class="hljs-keyword">else</span> {
+        Ti.API.error(<span class="hljs-string">"There are no windows in the Navigation Controller to remvoe"</span>)
+    }
+}
+
+NavigationController.prototype.replaceAll = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">controller, <span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>) </span>{
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = windows.length; i &lt; l-<span class="hljs-number">1</span>; i++) {
+        (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[i]) : windows[i].close();
+    }
+    <span class="hljs-keyword">var</span> current = windows[windows.length - <span class="hljs-number">1</span>];
+    current.close()
+    controller.open(windowToOpen)
+}
+
+<span class="hljs-built_in">module</span>.exports = NavigationController;
+</code></pre><p>This code worked fine on Android and I was able to use the <code>replace</code> function fine, however on iOS, after calling the <code>.close()</code> function on window and then <code>.open()</code> on another, the new window (let&#39;s call it winndow X) was opened BEFORE the other one (window Z) was closed (the <code>close</code> event was fired after the X window was created). This meant, that the new window X reference was &#39;popped&#39; from the windowStack and the Z remained. However what is weird about it, is that on screen I could see window X, but when I tried to close it (by clicking on a button on it, which called <code>controller.closeCurrent()</code>) I could see the controller trying to call <code>.close()</code> method on the reference to the Z window.<br>I just couldn&#39;t get pass that and I figured out this is iOS behavior and I should find a different solution. And [I thought] I did.<br>Instead of switching windows, I decided to have a single window and control a stack of views.<br>So I&#39;ve created a new <code>ViewController</code>:</p>
+<pre><code class="hljs">ViewController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.window = Ti.UI.createWindow({
+        navBarHidden: <span class="hljs-literal">true</span>,
+        fullscreen: <span class="hljs-literal">true</span>,
+        exitOnClose: <span class="hljs-literal">true</span>,
+        backgroundColor: <span class="hljs-string">'#fff'</span>
+    });
+    <span class="hljs-keyword">this</span>.window.open()
+};
+
+ViewController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.View*/</span>viewToOpen</span>) </span>{
+    <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+    Ti.API.log(<span class="hljs-string">"opening "</span> + viewToOpen.viewName)
+    <span class="hljs-keyword">this</span>.window.add(viewToOpen);
+};
+
+ViewController.prototype.closeCurrent = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.log(<span class="hljs-string">"close current"</span>)
+    <span class="hljs-keyword">this</span>.window.remove(<span class="hljs-keyword">this</span>.window.children[<span class="hljs-keyword">this</span>.window.children.length-<span class="hljs-number">1</span>])
+}
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+ViewController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-keyword">this</span>.window.children.length - <span class="hljs-number">1</span>; i &gt; <span class="hljs-number">0</span>; i--) {
+        <span class="hljs-keyword">this</span>.window.remove(<span class="hljs-keyword">this</span>.window.children[i])
+    }
+};
+
+ViewController.prototype.replace = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.View*/</span>viewToOpen</span>) </span>{
+    Ti.API.log(<span class="hljs-string">"replace na Navi Controller"</span>)
+    <span class="hljs-keyword">var</span> current = <span class="hljs-keyword">this</span>.window.children[<span class="hljs-keyword">this</span>.window.children.length-<span class="hljs-number">1</span>]
+    Ti.API.log(<span class="hljs-string">"removing "</span>)
+    <span class="hljs-keyword">this</span>.window.remove(current)
+    Ti.API.log(<span class="hljs-string">"replace removed"</span>)
+    <span class="hljs-keyword">this</span>.window.add(viewToOpen)
+    Ti.API.log(<span class="hljs-string">"replace added"</span>)
+}
+
+ViewController.prototype.replaceAll = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">controller, <span class="hljs-comment">/*Ti.UI.View*/</span>viewToOpen</span>) </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-keyword">this</span>.window.children.length - <span class="hljs-number">1</span>; i &gt; <span class="hljs-number">0</span>; i--) {
+        <span class="hljs-keyword">this</span>.window.remove(<span class="hljs-keyword">this</span>.window.children[i])
+    }
+    <span class="hljs-keyword">this</span>.window.add(viewToOpen)
+}
+
+<span class="hljs-built_in">module</span>.exports = ViewController;
+</code></pre><p>So at the beginning of <code>app.js</code> I&#39;m creating the <code>ViewController</code> which will create a window for me and then I use this controller similarly to the <code>NavigationController</code> to control the flow. At first I&#39;ve tested it with iOS and everything looked great. Then I ran it on my Android Phone and… well it didn&#39;t work.</p>
+<p>When calling the <code>replace</code> function I cannot get children of <code>this.window</code>!<br>When debugging&#x2F;logging I can see that <code>this.window</code> is a window, but I cannot get <code>.children</code>!</p>
+<p>Could anyone explain to me, why would it not work?<br>It&#39;s fine when I&#39;m using <code>open</code> function, but anytime I want to use <code>.replace</code> it will throw error that <code>.children</code> is null.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 1st 2012, 4:51:54 am">September 1st 2012</span>
+				by <span class='authorname'>Krystian Szczesny</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+						<li><span class='tagname'>view</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+						<li><span class='tagname'>windows</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I was finally able to run debug on Android emulator [even though in Titanium Studio I&#39;ve selected Android 2.3.3 API it would use some Real3D…].<br>There&#39;s something weird going on with the window created when creating <code>NavigationController</code>. When first view is added to it using <code>controller.open()</code> it looks good, when opening second window using the same function, debugger will show me the window, but with <code>_children</code> property, and not <code>children</code>. In expression test I am still able to get the value of <code>this.window.children</code> so I think it&#39;s ok. But.. when opening third view, <code>this.window.children.length</code> is 0! Don&#39;t know how come. I&#39;ve got a breakpoint set to the line where window is created, so I know this code is ran only once.<br>What the hell?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 1st 2012, 11:25:47 am">September 1st 2012</span>
+								by <span class='authorname'>Krystian Szczesny</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-246495">
+				
+						<section>
+							<p>an approach I have worked with before is to keep all of the views in a stack and dont remove them, just slide them off the screen and hide them… then show them and animate them back into view.</p>
+<p>as for why the window.children is not working, it was difficult for me to follow all of this code… sorry.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 1st 2012, 12:44:47 pm">September 1st 2012</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/141747/cannot-get-children-of-the-view---creating-viewcontroller-issue#answer-246495" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>if you call .getChildren() does that work cross-platform?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 1st 2012, 2:59:16 pm">September 1st 2012</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>no, unfortunately. This was one of the first things I&#39;ve tried :&#x2F;<br>The easiest solution I have found was to add a new function to the window:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getChildrenCP</span><span class="hljs-params">()</span> </span>{
+<span class="hljs-keyword">if</span> (Ti.Platform.osname == <span class="hljs-string">"android"</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.window._children
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.window.children
+    }
+}
+</code></pre><p>CP as in Cross Platform ;)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 1st 2012, 3:04:16 pm">September 1st 2012</span>
+											by <span class='authorname'>Krystian Szczesny</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-246500">
+				
+						<section>
+							<p>The solution to the problem is quite simple, and I should have spotted it before.<br>On iOS, elements added with <code>.add()</code> are stored in <code>.children</code> array, however on Android, it is stored in <code>._children</code> array. That&#39;s it. Rejoice.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 1st 2012, 2:54:11 pm">September 1st 2012</span>
+								by <span class='authorname'>Krystian Szczesny</span><br>
+								<a class="icon-bg icon-link" href="question/141747/cannot-get-children-of-the-view---creating-viewcontroller-issue#answer-246500" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Download in Background with Ti.App.iOS.registerBackgroundService » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Download in Background with Ti.App.iOS.registerBackgroundService</h1>
+		</header>
+		<section>
+			<p>Guys I am implementing Background downloading for my Titanium iPhone app. I have followed <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;index.html#!&#x2F;api&#x2F;Titanium.App.iOS.BackgroundService">this link</a> and referred source code from <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;867404">this link</a>.</p>
+<p>The app works perfect and it downloads completely when app goes to background but it gives error when app comes back to foreground and resume its activities. You can see code below as I mention.</p>
+<p>App.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> root = {};
+<span class="hljs-keyword">var</span> Helper = {};
+<span class="hljs-keyword">var</span> config = {};
+root.ui = {};
+root.db = {};
+
+root.Device = {};
+root.Device = (Titanium.Platform.osname == <span class="hljs-string">'iphone'</span>) ? <span class="hljs-string">'iPhone'</span> : <span class="hljs-string">'Android'</span>;
+
+<span class="hljs-comment">// fired when an app resumes from suspension</span>
+Ti.App.addEventListener(<span class="hljs-string">'resume'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(<span class="hljs-string">"app is resuming from the background"</span>);
+});
+Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(<span class="hljs-string">"app has resumed from the background"</span>);
+    <span class="hljs-comment">// this will unregister the service if the user just opened the app</span>
+    <span class="hljs-comment">// is: not via the notification 'OK' button..</span>
+    <span class="hljs-keyword">if</span>(root.Service!=<span class="hljs-literal">null</span>){
+        root.Service.stop();
+        root.Service.unregister();
+    }
+});
+Ti.App.addEventListener(<span class="hljs-string">'pause'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(<span class="hljs-string">"app was paused from the foreground"</span>);
+    root.Service = Ti.App.iOS.registerBackgroundService({url:<span class="hljs-string">'Helper/DBHelper.js'</span>});
+    Ti.API.info(<span class="hljs-string">"registered background service = "</span>+ root.Service);
+});
+
+Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    Ti.API.info(<span class="hljs-string">'background event received = '</span>+notification);
+    Ti.App.currentService.stop();
+    Ti.App.currentService.unregister();
+});
+</code></pre><p>Helper&#x2F;DBHelper.js</p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> <span class="hljs-collection">{
+    var db;
+    if<span class="hljs-list">(<span class="hljs-keyword">root.Device</span> === 'Android')</span><span class="hljs-collection">{
+        db = Ti.Database.install<span class="hljs-list">(<span class="hljs-keyword">'appdb.mp3'</span>, 'database')</span><span class="hljs-comment">;</span>
+    }</span>else<span class="hljs-collection">{
+        db = Ti.Database.install<span class="hljs-list">(<span class="hljs-keyword">'Helper/appdb.mp3'</span>, 'database')</span><span class="hljs-comment">;</span>
+        db.file.remoteBackup = <span class="hljs-literal">false</span><span class="hljs-comment">;</span>
+    }</span>
+
+    var connection = function<span class="hljs-list">()</span> <span class="hljs-collection">{
+        return Ti.Database.open<span class="hljs-list">(<span class="hljs-keyword">'database'</span>)</span><span class="hljs-comment">;</span>
+    }</span><span class="hljs-comment">;</span>
+    root.db.connection = connection;
+
+    root.downloadFile = function<span class="hljs-list">(<span class="hljs-keyword">path</span>, directoryName, deleteReport, callback)</span> <span class="hljs-collection">{
+        var arrPath = path.split<span class="hljs-list">(<span class="hljs-keyword">'/'</span>)</span><span class="hljs-comment">;</span>
+        var fileName = arrPath<span class="hljs-collection">[arrPath.length - <span class="hljs-number">1</span>]</span><span class="hljs-comment">;</span>
+
+        // Check if image in Bundle or need to Download
+        if<span class="hljs-list">(<span class="hljs-keyword">root.Device</span> == 'iPhone')</span><span class="hljs-collection">{
+            var resourceExists = root.resourceExists<span class="hljs-list">(<span class="hljs-keyword">fileName.split</span><span class="hljs-list">(<span class="hljs-keyword">'.'</span>)</span><span class="hljs-collection">[<span class="hljs-number">0</span>]</span>)</span><span class="hljs-comment">;</span>
+            if<span class="hljs-list">(<span class="hljs-keyword">resourceExists</span>)</span> <span class="hljs-collection">{
+                if<span class="hljs-list">(<span class="hljs-keyword">callback</span> != null)</span> <span class="hljs-collection">{
+                    callback<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                }</span>
+                return fileName.split<span class="hljs-list">(<span class="hljs-keyword">'.'</span>)</span><span class="hljs-collection">[<span class="hljs-number">0</span>]</span><span class="hljs-comment">;</span>
+            }</span>    
+        }</span>
+
+        try <span class="hljs-collection">{
+            var parent = Helper.StoragePath<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+            var fileExistsH = <span class="hljs-literal">false</span><span class="hljs-comment">;</span>
+            //TODO: Thie below directory structure language needs to be changed
+
+            arrPath<span class="hljs-collection">[arrPath.length - <span class="hljs-number">1</span>]</span> = fileName.replace<span class="hljs-list">(<span class="hljs-keyword">'.'</span>, <span class="hljs-list">(<span class="hljs-list">(<span class="hljs-keyword">root.Retina</span>)</span> ? '@<span class="hljs-number">2</span>x.' : '.')</span>)</span><span class="hljs-comment">;</span>
+            var pathH = arrPath.join<span class="hljs-list">(<span class="hljs-keyword">'/'</span>)</span><span class="hljs-comment">;</span>
+            var new_folder = Titanium.Filesystem.getFile<span class="hljs-list">(<span class="hljs-keyword">parent</span>, directoryName)</span><span class="hljs-comment">;</span>
+            if<span class="hljs-list">(<span class="hljs-keyword">!new_folder.exists</span><span class="hljs-list">()</span>)</span> <span class="hljs-collection">{
+                new_folder.createDirectory<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+            }</span>
+            var fileH = Titanium.Filesystem.getFile<span class="hljs-list">(<span class="hljs-keyword">new_folder.nativePath</span>, fileName)</span><span class="hljs-comment">;</span>
+            var cH = Titanium.Network.createHTTPClient<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+            cH.onload = function<span class="hljs-list">()</span> <span class="hljs-collection">{
+                try <span class="hljs-collection">{
+                    fileH.write<span class="hljs-list">(<span class="hljs-keyword">this.responseData</span>)</span><span class="hljs-comment">;</span>
+                    if<span class="hljs-list">(<span class="hljs-keyword">root.Device</span> == 'iPhone')</span> fileH.setRemoteBackup<span class="hljs-list">(<span class="hljs-keyword">false</span>)</span><span class="hljs-comment">;</span>
+                }</span>catch<span class="hljs-list">(<span class="hljs-keyword">e</span>)</span><span class="hljs-collection">{
+                    Ti.API.info<span class="hljs-list">(<span class="hljs-keyword">'Exception</span> while downloading file: ' + e)</span><span class="hljs-comment">;</span>
+                }</span>
+                if<span class="hljs-list">(<span class="hljs-keyword">root.Device</span> == 'iPhone')</span> fileH.setRemoteBackup<span class="hljs-list">(<span class="hljs-keyword">false</span>)</span><span class="hljs-comment">;</span>
+                if<span class="hljs-list">(<span class="hljs-keyword">this.status</span> != <span class="hljs-number">200</span>)</span> <span class="hljs-collection">{
+                    cH.abort<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                    fileH.deleteFile<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                }</span>
+                if<span class="hljs-list">(<span class="hljs-keyword">callback</span> != null)</span> <span class="hljs-collection">{
+                    callback<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                }</span>
+            }</span><span class="hljs-comment">;</span>
+            cH.onerror = function<span class="hljs-list">()</span> <span class="hljs-collection">{
+                cH.abort<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                fileH.deleteFile<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                if<span class="hljs-list">(<span class="hljs-keyword">callback</span> != null)</span> <span class="hljs-collection">{
+                    callback<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                }</span>
+            }</span><span class="hljs-comment">;</span>
+            //Ti.API.info<span class="hljs-list">(<span class="hljs-keyword">'Downloading:</span> ' + pathH)</span><span class="hljs-comment">;</span>
+            cH.open<span class="hljs-list">(<span class="hljs-keyword">'GET'</span>, pathH + '?date=' + new Date<span class="hljs-list">()</span>)</span><span class="hljs-comment">;</span>
+            cH.setRequestHeader<span class="hljs-list">(<span class="hljs-string">"User-Agent"</span>, config.UserAgent)</span><span class="hljs-comment">;</span>
+
+            if<span class="hljs-list">(<span class="hljs-keyword">fileH.exists</span><span class="hljs-list">()</span>)</span> <span class="hljs-collection">{
+                fileExistsH = <span class="hljs-literal">true</span><span class="hljs-comment">;</span>
+            }</span>
+            if<span class="hljs-list">(<span class="hljs-keyword">deleteReport</span> == <span class="hljs-literal">true</span> &amp;&amp; fileExistsH == <span class="hljs-literal">true</span>)</span> <span class="hljs-collection">{
+                fileH.deleteFile<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+                fileExistsH = <span class="hljs-literal">false</span><span class="hljs-comment">;</span>
+            }</span>
+            if<span class="hljs-list">(<span class="hljs-keyword">fileExistsH</span> == <span class="hljs-literal">false</span>)</span> <span class="hljs-collection">{
+                //Ti.API.info<span class="hljs-list">(<span class="hljs-keyword">'Downloading</span> file: ' + pathH +' @ ' + fileH.nativePath)</span><span class="hljs-comment">;</span>
+                cH.file = fileH;
+                cH.send<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+            }</span>
+        }</span> catch <span class="hljs-list">(<span class="hljs-keyword">e</span>)</span> <span class="hljs-collection">{
+            Ti.API.info<span class="hljs-list">(<span class="hljs-keyword">'Download</span> File went in catch:' + e)</span><span class="hljs-comment">;</span>
+        }</span>
+
+        return fileName.split<span class="hljs-list">(<span class="hljs-keyword">'.'</span>)</span><span class="hljs-collection">[<span class="hljs-number">0</span>]</span><span class="hljs-comment">;</span>
+    }</span><span class="hljs-comment">;</span>
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>The only code mentioned above will not work full and might get lots of errors but I put the code here to explain things how I am doing downloading task in Background.</p>
+<p>In app.js, I have implemented listeners and created background service for Helper&#x2F;DBHelper.js because root.DownloadFile() exists in that particular file. But you can see that in DBHelper.js we have reference of <code>root</code> object, like, <code>if(root.Device === &amp;#39;Android&amp;#39;){</code>. This is where I receive error, like, <code>[ERROR] Script Error = Can&amp;#39;t find variable: root at DBHelper.js (line 3).</code> I don&#39;t know why this error occurs so if anything is wrong please let me know from the code above because this error occurs only in Background mode, else working fine.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 4th 2012, 4:47:49 am">September 4th 2012</span>
+				by <span class='authorname'>Paresh Thakor</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>ios4</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-246664">
+				
+						<section>
+							<p>DBHelper.js is in its own context and thus does not know about variables set in App.js</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 4th 2012, 12:37:51 pm">September 4th 2012</span>
+								by <span class='authorname'>Matt Apperson</span><br>
+								<a class="icon-bg icon-link" href="question/141838/download-in-background-with-tiappiosregisterbackgroundservice#answer-246664" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Problems POSTing a multipart request on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Problems POSTing a multipart request on Android</h1>
+		</header>
+		<section>
+			<p>I have a mobile Android client that exchanges model objects with a Rails endpoint. I need to transfer media files back and forth as models&#39; attributes. Apparently I need to send them as multipart&#x2F;form-data, but I can&#39;t get this to work. I&#39;ve tried this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">params</span>.contentType = <span class="hljs-string">"multipart/form-data"</span>
+<span class="hljs-keyword">params</span>.data = model.toParams()
+...
+xhr.open(<span class="hljs-operator">type</span>, <span class="hljs-keyword">params</span>.url)
+
+<span class="hljs-comment"># Add request headers etc.</span>
+xhr.setRequestHeader('Content-<span class="hljs-operator">Type</span>', <span class="hljs-keyword">params</span>.contentType)
+xhr.setRequestHeader(<span class="hljs-string">"Connection"</span>, <span class="hljs-string">"close"</span>);
+
+<span class="hljs-keyword">params</span>.beforeSend(xhr) if <span class="hljs-keyword">params</span>.beforeSend
+
+<span class="hljs-comment"># Make the request</span>
+xhr.send(<span class="hljs-keyword">params</span>.data)
+</code></pre><p><code>toParams()</code> is a method used to normalize the model&#39;s attributes to a Rails-friendly format, taken from <a href="http:&#x2F;&#x2F;blog.0x82.com&#x2F;2012&#x2F;04&#x2F;11&#x2F;titanium-with-coffeescript-and-backbone-dot-js-part-2">here</a>.</p>
+<p>I can see that the HTTPClient actually sends the request as multipart, but the problem is that I have no way of knowing what the boundary is, so I can&#39;t specify it in the Content-Type header. Because of this, when parsing the request, Rack thinks it&#39;s actually a URL encoded form and throws an invalid %-encoding exception when trying to handle the POST body as an escaped string.</p>
+<p>I&#39;ve also tried to build the request body manually:</p>
+<pre><code class="hljs">      <span class="hljs-tag">b</span> = <span class="hljs-string">"B0undary"</span>
+      data = <span class="hljs-string">"--#{b}"</span>
+      buffer = Ti.<span class="hljs-function"><span class="hljs-title">createBuffer</span><span class="hljs-params">(value: <span class="hljs-string">""</span>)</span></span>
+      params<span class="hljs-class">.contentType</span> = <span class="hljs-string">"multipart/form-data; boundary=#{b}"</span>
+
+      <span class="hljs-keyword">for</span> k,v of model.<span class="hljs-function"><span class="hljs-title">toParams</span><span class="hljs-params">()</span></span>
+        data += <span class="hljs-string">"\r\nContent-Disposition: form-data; name=\"#{k}\""</span>
+
+        <span class="hljs-keyword">if</span> <span class="hljs-string">"#{v}"</span> == <span class="hljs-string">"[object TiBlob]"</span>
+          data += <span class="hljs-string">"; filename=\"#{v.file.name}\""</span> <span class="hljs-keyword">if</span> v<span class="hljs-class">.file</span>
+          data += <span class="hljs-string">"\r\nContent-Type: #{v.mimeType}\r\n"</span>
+          raw = Ti<span class="hljs-class">.Stream</span><span class="hljs-class">.createStream</span>(source: v, mode: Ti<span class="hljs-class">.Stream</span><span class="hljs-class">.MODE_READ</span>)
+          buffer<span class="hljs-class">.append</span> Ti.<span class="hljs-function"><span class="hljs-title">createBuffer</span><span class="hljs-params">(value: data)</span></span>
+          <span class="hljs-attribute">content</span> = Ti<span class="hljs-class">.Stream</span><span class="hljs-class">.readAll</span>(raw)
+          buffer<span class="hljs-class">.append</span> <span class="hljs-attribute">content</span>
+          data = <span class="hljs-string">"\r\n--#{b}"</span>
+        <span class="hljs-keyword">else</span>
+          data += <span class="hljs-string">"\r\n\r\n#{v}\r\n--#{b}"</span>
+
+      data += <span class="hljs-string">"--\r\n"</span>
+      buffer<span class="hljs-class">.append</span> Ti.<span class="hljs-function"><span class="hljs-title">createBuffer</span><span class="hljs-params">(value: data)</span></span>
+      params<span class="hljs-class">.data</span> = buffer
+</code></pre><p>This way the request is parsed OK, but the file is corrupted (it&#39;s about twice the size of the original and has all the binary data messed up, though string data (e.g. timestamp) is intact).</p>
+<p>I couldn&#39;t find an acceptable solution to this. Omitting the Content-Type header does not help either.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 25th 2012, 1:17:21 pm">September 25th 2012</span>
+				by <span class='authorname'>Artem Mindrov</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>multipart</span></li>
+					
+						<li><span class='tagname'>post</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-248025">
+				
+						<section>
+							<p>Don&#39;t set any headers that you don&#39;t need to. Ti does it automagically for you, on Android.</p>
+<p>From my code:</p>
+<pre><code class="hljs">var xhr = Titanium.Network.createHTTPClient();
+xhr.open(<span class="hljs-string">'POST'</span>,thisURL);
+<span class="hljs-keyword">if</span> (MediaAPI.os !== <span class="hljs-string">'android'</span>) {
+    xhr.setRequestHeader(<span class="hljs-string">"enctype"</span>, <span class="hljs-string">"multipart/form-data"</span>);
+}
+xhr.send({<span class="hljs-string">file:</span>myFileObject,<span class="hljs-string">data:</span>someOtherData);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 25th 2012, 1:38:10 pm">September 25th 2012</span>
+								by <span class='authorname'>Shannon Hicks</span><br>
+								<a class="icon-bg icon-link" href="question/142660/problems-posting-a-multipart-request-on-android#answer-248025" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>oops, &quot;MediaAPI.os&quot; is just a reference to Ti.Platform.osname</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2012, 1:38:45 pm">September 25th 2012</span>
+											by <span class='authorname'>Shannon Hicks</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><code>if (!Ti.Android)</code></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2012, 1:40:31 pm">September 25th 2012</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Well that leads to problem #1: Rack won&#39;t parse the request correctly if it doesn&#39;t find Content-Type with an appropriate boundary set. If I omit Content-Type altogether, I end up with an empty params hash in my application code.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2012, 1:44:18 pm">September 25th 2012</span>
+											by <span class='authorname'>Artem Mindrov</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>your toParams is probably messing things up. You have to pass the TiFile object to xhr.send()</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 25th 2012, 2:55:55 pm">September 25th 2012</span>
+											by <span class='authorname'>Shannon Hicks</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-248082">
+				
+						<section>
+							<p>Turned out my second code snippet actually works if I do <code>params.data = buffer.toBlob()</code></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 26th 2012, 9:41:54 am">September 26th 2012</span>
+								by <span class='authorname'>Artem Mindrov</span><br>
+								<a class="icon-bg icon-link" href="question/142660/problems-posting-a-multipart-request-on-android#answer-248082" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-286933">
+				
+						<section>
+							<p>pls suggest something for  iphone as well…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 8th 2015, 1:06:32 pm">April 8th 2015</span>
+								by <span class='authorname'>priyanka jat</span><br>
+								<a class="icon-bg icon-link" href="question/142660/problems-posting-a-multipart-request-on-android#answer-286933" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

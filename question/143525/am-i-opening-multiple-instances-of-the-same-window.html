@@ -1,0 +1,658 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Am I opening multiple instances of the same window? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Am I opening multiple instances of the same window?</h1>
+		</header>
+		<section>
+			<p>I have an app that starts with a menu window. The user clicks a button and it opens a new window with a table of data that lists products. Ths user selects a product row and it opens another window, or even a window with tabs inside which display all the information for that product.</p>
+<p>Now when the user goes back from the 3rd (product) window to the 2nd (product list) window and selects a new row in the table, a (product) window is opened again.</p>
+<p>My question is this - is my programming causing multiple instances of the same window to get opened? Will this eventually crash the app because after a period of use, the app could have (for example) 50 instances of the product window open?</p>
+<p>Should I instead only ever open a window once and simply change the contents of the labels and fields on that window? If so, how I can I test to see if an instance of the window is already open&#x2F;exists?</p>
+<p>Many thanks for all guidance :)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 15th 2012, 7:46:04 pm">October 15th 2012</span>
+				by <span class='authorname'>Dr Caroline Wilkins</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>instances</span></li>
+					
+						<li><span class='tagname'>multiple</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>9</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>9 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-249333">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Ok, I can help with a few things on this. First of all, opening windows using the url parameter is discouraged and you should begin looking at commonJS as the way you create applications with Titanium. Check this out for some information why, most often using the URL parameter is not desired and some information on commonjs. <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;index.html#!&#x2F;guide&#x2F;Coding_Strategies">click here</a></p>
+<p>Now for some code to help you out. The NavigationController code below can be pasted into it&#39;s own file, then you can use it for cross platform navigation. I use it for a couple of apps that are published both on Apple and Google Play store:</p>
+<pre><code class="hljs"><span class="hljs-comment">//NavigationController.js</span>
+exports.NavigationController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.windowStack = [];
+};
+
+exports.NavigationController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>) </span>{
+    <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+    <span class="hljs-keyword">this</span>.windowStack.push(windowToOpen);
+    Ti.API.info(<span class="hljs-keyword">this</span>.windowStack.length + <span class="hljs-string">' is the size of the current windowstack'</span>);
+    <span class="hljs-comment">//grab a copy of the current nav controller for use in the callback</span>
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    windowToOpen.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        that.windowStack.pop();
+    });
+
+    <span class="hljs-comment">//hack - setting this property ensures the window is "heavyweight" (associated with an Android activity)</span>
+    windowToOpen.navBarHidden = windowToOpen.navBarHidden || <span class="hljs-literal">false</span>;
+    windowToOpen.orientationModes=[Ti.UI.PORTRAIT];
+
+    <span class="hljs-comment">//This is the first window</span>
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.windowStack.length === <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+            windowToOpen.exitOnClose = <span class="hljs-literal">true</span>;
+            Ti.API.info(<span class="hljs-string">'Opening Window'</span>);
+            windowToOpen.open();
+            Ti.API.info(<span class="hljs-string">'Window Opened'</span>);
+        } <span class="hljs-keyword">else</span> {
+            windowToOpen.open();
+            <span class="hljs-keyword">this</span>.navGroup = Ti.UI.iPhone.createNavigationGroup({
+                <span class="hljs-built_in">window</span> : windowToOpen
+            });
+            <span class="hljs-keyword">var</span> containerWindow = Ti.UI.createWindow();
+            containerWindow.add(<span class="hljs-keyword">this</span>.navGroup);
+            containerWindow.open();
+        }
+    }
+    <span class="hljs-comment">//All subsequent windows</span>
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+            windowToOpen.open();
+        } <span class="hljs-keyword">else</span> {
+<span class="hljs-comment">/*            var homeView = Ti.UI.createView({});
+            var homeButton = Ti.UI.createButton({title:'Home', width:55, height:35});
+            homeButton.addEventListener('click', function() {
+                that.home();
+            });
+            homeView.add(homeButton); */</span>
+            <span class="hljs-keyword">this</span>.navGroup.open(windowToOpen);
+            windowToOpen.backButtonTitle = <span class="hljs-string">'back'</span>;
+            <span class="hljs-comment">// windowToOpen.rightNavButton = homeView; </span>
+            windowToOpen.open();
+        }
+    }
+};
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+exports.NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">1</span>, l = windows.length; i &lt; l; i++) {
+        (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[i]) : windows[i].close();
+    }
+    <span class="hljs-keyword">this</span>.windowStack = [<span class="hljs-keyword">this</span>.windowStack[<span class="hljs-number">0</span>]]; <span class="hljs-comment">//reset stack</span>
+};
+
+exports.NavigationController.prototype.pop = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.info(<span class="hljs-string">'poping window'</span>);
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[windows.length-<span class="hljs-number">1</span>]) : windows[windows.length-<span class="hljs-number">1</span>].close();
+};
+</code></pre><p>Now create you app.js with the following:</p>
+<pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+<span class="hljs-keyword">var</span> NavigationController = <span class="hljs-built_in">require</span>(<span class="hljs-string">'NavigationController'</span>).NavigationController
+
+        <span class="hljs-comment">//create NavigationController which will drive our simple application</span>
+        <span class="hljs-keyword">var</span> controller = <span class="hljs-keyword">new</span> NavigationController();
+
+        <span class="hljs-keyword">var</span> winCategories = Titanium.UI.createWindow({  
+            title:<span class="hljs-string">'Categories'</span>,
+            backgroundColor:<span class="hljs-string">'#0C2253'</span>
+        });
+
+    <span class="hljs-keyword">var</span> mainwindow = controller.open(winCategories);
+</code></pre><p>Hope this helps… I grabbed the above code, cleaned it up and just posted, so hopefully it works when you compile :)</p>
+<p>Ray</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2012, 11:43:15 pm">October 15th 2012</span>
+								by <span class='authorname'>Ray Belisle</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249333" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249321">
+				
+						<section>
+							<p>I guess the real answer is… it depends. You haven&#39;t said whether you are using IOS or ANDROID, any they deal with windows a little differently. Without code to see, can&#39;t really tell you if you should worry about it or not. Generally, if you use the built in functionality of the platform, (ie. the back button closes the window on Android, use a NavigationGroup in IOS and you use the Open and Close methods properly) then you should be Ok. You should be opening&#x2F;closing windows not changing the data on a particular window. Again, without code, it&#39;s tough to say for sure. </p>
+<p>Ray</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2012, 8:26:13 pm">October 15th 2012</span>
+								by <span class='authorname'>Ray Belisle</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249321" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249325">
+				
+						<section>
+							<p>Dear Ray,</p>
+<p>Thank you very much for your response. There is too much code in the app to post here really, but here is a subset of it which will probably demonstrate what I am doing wrong.</p>
+<p>app.js</p>
+<pre><code class="hljs">var winWelcome = <span class="hljs-type">Titanium</span>.<span class="hljs-type">UI</span>.createWindow({  
+    title:<span class="hljs-symbol">'My</span> <span class="hljs-type">App</span> <span class="hljs-type">Name'</span>,
+    backgroundColor:<span class="hljs-char">'#0C2253'</span>,
+    url: <span class="hljs-symbol">'welcome</span>.js',
+    modal:<span class="hljs-literal">true</span>
+});
+
+winWelcome.<span class="hljs-keyword">open</span><span class="hljs-literal">()</span>;
+</code></pre><p>welcome.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> winWelcome = Ti.UI.currentWindow;
+
+
+    <span class="hljs-keyword">var</span> getCategoriesButton = Titanium.UI.createButton({
+        title: <span class="hljs-string">'Shop Categories'</span>,
+<span class="hljs-comment">//        left: 10,</span>
+        top: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">140</span>,
+        height: <span class="hljs-number">30</span>,
+        added: <span class="hljs-number">0</span>        
+    });
+
+    getCategoriesButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+
+        <span class="hljs-keyword">var</span> winCategories = Titanium.UI.createWindow({  
+               title:<span class="hljs-string">'Categories'</span>,
+                backgroundColor:<span class="hljs-string">'#0C2253'</span>,
+            url: <span class="hljs-string">'categories.js'</span>,
+            modal:<span class="hljs-literal">true</span>
+        });
+        winCategories.open();
+    });
+
+    winWelcome.add(getCategoriesButton);
+</code></pre><p>After this, it is more of the same really…using createWindow and window.open() in various contexts.</p>
+<p>I would like to target both Android and iPhone&#x2F;iPad, but so far my apps are only working on Android. On iPhone&#x2F;iPad, the simulator exits (I have checked my set-up by running KitchenSink on the emulator and it is fine). I get limited functionality on the iPhone&#x2F;iPad, but no navigation to go backwards through the screens.</p>
+<p>I now see that I will need to use NavigationGroup to achieve the backwards navigation. I am wondering how I will adapt my code to support both the NavigationGroup for iPhone&#x2F;iPad and for Android.</p>
+<p>I am guessing I could do something along the lines of testing for Android and in that if statement, put this?:</p>
+<pre><code class="hljs">win.addEventListener(<span class="hljs-string">'android:back'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+        win.close();
+    });
+</code></pre><p>So is the best strategy to completely split the iPhone and Android code? And for Android use the close function on the back button? And for iPhone use the NavigationGroup structure? </p>
+<p>Or is there a way to please both target platforms in one set of application files?</p>
+<p>Many thanks for all your help and advice :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 15th 2012, 9:06:53 pm">October 15th 2012</span>
+								by <span class='authorname'>Dr Caroline Wilkins</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249325" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249413">
+				
+						<section>
+							<p>Dear Ray,</p>
+<p>Thank you so much for taking the time and trouble to put that code up here for me. It is very much appreciated. I have put it in a new project and run it in the simulator and it looks good. The next challenge will be for me to change my app to incorporate it&#39;s approach. I haven&#39;t done that yet, but wanted to send my thanks at this stage :)</p>
+<p>Kindest Regards</p>
+<p>Caroline</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 16th 2012, 8:45:48 pm">October 16th 2012</span>
+								by <span class='authorname'>Dr Caroline Wilkins</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249413" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Glad it helped. This forum is great for learning. Glad I could help.</p>
+<p>Ray</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 16th 2012, 9:24:33 pm">October 16th 2012</span>
+											by <span class='authorname'>Ray Belisle</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249415">
+				
+						<section>
+							<p>Well I think I am closer, but still running in to problems when I test in the simulator</p>
+<pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+<span class="hljs-keyword">var</span> NavigationController = <span class="hljs-keyword">require</span>(<span class="hljs-string">'NavigationController'</span>).NavigationController
+
+        <span class="hljs-comment">//create NavigationController which will drive our simple application</span>
+        <span class="hljs-keyword">var</span> controller = <span class="hljs-keyword">new</span> NavigationController();
+
+        <span class="hljs-keyword">var</span> winWelcome = Titanium.UI.createWindow({  
+            title:<span class="hljs-string">'Welcome'</span>,
+            backgroundColor:<span class="hljs-string">'#0C2253'</span>
+        });
+
+    <span class="hljs-keyword">var</span> mainwindow = controller.open(winWelcome);
+
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'welcome.js'</span>);
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//welcome.js</span>
+    <span class="hljs-keyword">var</span> getStockListButton = Titanium.UI.createButton({
+        title: <span class="hljs-string">'Get Stock List'</span>,
+<span class="hljs-comment">//        left: 10,</span>
+        top: <span class="hljs-string">'10dp'</span>,
+        width: <span class="hljs-string">'140dp'</span>,
+        height: <span class="hljs-string">'30dp'</span>,
+        added: <span class="hljs-number">0</span>        
+    });
+
+    getStockListButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">var</span> winCategories = Titanium.UI.createWindow({  
+               title:<span class="hljs-string">'Categories'</span>,
+                backgroundColor:<span class="hljs-string">'#000'</span>,
+ <span class="hljs-comment">//           url: 'catselect.js',</span>
+            modal:<span class="hljs-literal">true</span>
+        });
+<span class="hljs-comment">//        winCategories.open();</span>
+        <span class="hljs-keyword">var</span> winCategories = controller.open(winCategories);
+        Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'catselect.js'</span>);
+    });
+
+    winWelcome.add(getStockListButton);
+</code></pre><p>This works til this point. i.e. I get a nice blue screen with a button on it. But when I click the button, I get an error &quot;Script Error = &#39;undefined&#39; is not an object (evaluating &#39;winCategories.add&#39;) at catselect.js (line 13)&quot; i.e. this line: </p>
+<p>winCategories.add(viewTitle);</p>
+<pre><code class="hljs"><span class="hljs-comment">//catselect.js</span>
+var winCategories = Ti.UI.currentWindow;
+
+var viewTitle = Ti.UI.createView({
+    top: <span class="hljs-number">0</span>,
+    <span class="hljs-variable">height</span>: <span class="hljs-string">'30dp'</span>,
+    <span class="hljs-built_in">text</span>: <span class="hljs-string">"Categories"</span>,
+    font: {fontSize: <span class="hljs-string">'14dp'</span>, fontWeight: <span class="hljs-string">'bold'</span>},
+    left: <span class="hljs-string">'10dp'</span>,
+    <span class="hljs-variable">width</span>: <span class="hljs-string">'auto'</span>,
+    <span class="hljs-built_in">color</span>: <span class="hljs-string">'#f0f'</span>
+});
+winCategories.<span class="hljs-built_in">add</span>(viewTitle);
+</code></pre><p>It looks like winCategories has scope local to the welcome.js EventListener function:</p>
+<p>var winCategories = controller.open(winCategories);</p>
+<p>I tried adding this to the top of catselect.js to no avail:</p>
+<p>var winCategories = Ti.UI.currentWindow;</p>
+<p>And I tried putting this at the top of welcome.js:</p>
+<p>var winCategories = null;</p>
+<p>If I can just get my head round opening windows from within windows, I should be able to get the rest of the app converted. I read the link you sent, and the links on from there. It was a bit confusing and nothing seemed to quite answer my question about how to structure an app like this with 4 cascading windows. I even saw that it said that iPhone apps should be single window - although clearly this is not quite the case, as you have shown me with the NavigationGroup.</p>
+<p>Again, many thanks for all your help!</p>
+<p>Caroline</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 16th 2012, 10:47:18 pm">October 16th 2012</span>
+								by <span class='authorname'>Dr Caroline Wilkins</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249415" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249418">
+				
+						<section>
+							<p>Caroline,</p>
+<p>I see what you are doing. Let me give you some commonJS pointers. You should not use include. Let me re-factor this code for you:</p>
+<pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+    <span class="hljs-keyword">var</span> NavigationController = <span class="hljs-built_in">require</span>(<span class="hljs-string">'NavigationController'</span>).NavigationController
+
+        <span class="hljs-comment">//create NavigationController which will drive our simple application</span>
+    <span class="hljs-keyword">var</span> controller = <span class="hljs-keyword">new</span> NavigationController();
+
+    <span class="hljs-keyword">var</span> winWelcome = <span class="hljs-built_in">require</span>(<span class="hljs-string">'welcome'</span>);
+        <span class="hljs-keyword">var</span> mainwindow = winWelcome.welcomeWindow(controller);
+    controller.open(mainwindow);
+</code></pre><p>Now look at welcome.js This has been re-done as commonJS. Notice in the eventListener, I&#39;m just calling the same welcome window again, you would just replace this with your &#39;Wincategories.js&#39; file, with the same structure as welcome.js.</p>
+<pre><code class="hljs"><span class="hljs-comment">//welcome.js</span>
+exports.welcomeWindow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">navController</span>) </span>{
+
+    <span class="hljs-keyword">var</span> winWelcome = Titanium.UI.createWindow({
+        title : <span class="hljs-string">'Welcome'</span>,
+        backgroundColor : <span class="hljs-string">'#0C2253'</span>
+    });
+
+    <span class="hljs-keyword">var</span> getStockListButton = Titanium.UI.createButton({
+        title : <span class="hljs-string">'Get Stock List'</span>,
+        <span class="hljs-comment">//      left: 10,</span>
+        top : <span class="hljs-string">'10dp'</span>,
+        width : <span class="hljs-string">'140dp'</span>,
+        height : <span class="hljs-string">'30dp'</span>,
+        added : <span class="hljs-number">0</span>
+    });
+
+    getStockListButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> categories = <span class="hljs-built_in">require</span>(<span class="hljs-string">'welcome'</span>);
+        <span class="hljs-keyword">var</span> categorieswindow = categories.welcomeWindow(controller);
+        navController.open(categorieswindow);
+<span class="hljs-comment">//        var winCategories = controller.open(winCategories);</span>
+        <span class="hljs-comment">//        Ti.include('catselect.js');</span>
+    });
+
+    winWelcome.add(getStockListButton);
+
+    <span class="hljs-keyword">return</span> winWelcome;
+};
+</code></pre><p>Hope this helps. </p>
+<p>Ray</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 16th 2012, 11:46:25 pm">October 16th 2012</span>
+								by <span class='authorname'>Ray Belisle</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249418" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249421">
+				
+						<section>
+							<p>Dear Ray,</p>
+<p>That&#39;s wonderful, thank you! It is opening the windows nicely and there is the &quot;Back&quot; navigation on the iPad simulator.</p>
+<p>One more question if I may…</p>
+<p>How should I pass data into a new window? Should I append it after the controller parameter?</p>
+<p>e.g.</p>
+<pre><code class="hljs"><span class="hljs-comment">//create a new window and pass through data from the tapped row</span>
+tblCategories.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">var</span> selectedRow = e.rowData; <span class="hljs-comment">//row index clicked</span>
+
+        <span class="hljs-keyword">var</span> products = <span class="hljs-built_in">require</span>(<span class="hljs-string">'productlist'</span>);
+        <span class="hljs-keyword">var</span> productswindow = products.productlistWindow(controller,selectedRow._catdesc,selectedRow._gwid,selectedRow._prodlin,selectedRow._catdesc,selectedRow._catpic);
+        navController.open(productswindow);
+
+});
+</code></pre><p>And, if so, how do I get at that data to use in the window it is passed into please?</p>
+<p>Would it be something like winProductList._prodlin?</p>
+<p>(assuming that the products window that has been created starts with this code now);</p>
+<pre><code class="hljs">exports.productlistWindow = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(navController,_catdesc,_gwid,_prodlin,_catdesc,_catpic)</span> </span>{
+
+        <span class="hljs-keyword">var</span> winProductList = Titanium.UI.createWindow({
+            title : <span class="hljs-string">'Products'</span>,
+               backgroundColor : <span class="hljs-string">'#0C2253'</span>
+            });
+</code></pre><p>Thank you so much for all your help!</p>
+<p>All good wishes</p>
+<p>Caroline</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 17th 2012, 12:28:01 am">October 17th 2012</span>
+								by <span class='authorname'>Dr Caroline Wilkins</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249421" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249423">
+				
+						<section>
+							<p>Yes, you can pass any parameters you need after the navcontroller. Now those variables are available  to the productlistWindow. Just need to pass them in when you create the window.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 17th 2012, 12:40:56 am">October 17th 2012</span>
+								by <span class='authorname'>Ray Belisle</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249423" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249487">
+				
+						<section>
+							<p>Thank you again Ray :)</p>
+<p>The parameter passing is working perfectly and now I have a series of windows that pass data on to each other and have back navigation buttons on the iPhone.</p>
+<p>When I tried to run the same code on the Android emulator, I ran into problems. The app.js opened up the welcomeWelcome but when I tried to click the &quot;Get Stock List&quot; button to open the next window, I received an error on the Android emulator:</p>
+<p>Location:<br>[20,60] welcome.js</p>
+<p>Message:<br>Uncaught ReferenceError: controller is not defined</p>
+<p>Source:<br>    var categorieswindow = categories.categoriesWindow(controller);</p>
+<p>Should this code structure work as it is equally on Android and iPhone&#x2F;iPad? Or do I need to split the code out in some way to accommodate the different platforms? Looking at your NavigationController.js, there seems to be some accommodation of the different platforms, but I am guessing I am doing something wrong in the way I use it?</p>
+<pre><code class="hljs"><span class="hljs-comment">//welcome.js</span>
+exports.welcomeWindow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">navController</span>) </span>{
+
+    <span class="hljs-keyword">var</span> winWelcome = Titanium.UI.createWindow({
+        title : <span class="hljs-string">'Welcome'</span>,
+        backgroundColor : <span class="hljs-string">'#0C2253'</span>
+    });
+
+    <span class="hljs-keyword">var</span> getStockListButton = Titanium.UI.createButton({
+        title : <span class="hljs-string">'Get Stock List'</span>,
+        <span class="hljs-comment">//      left: 10,</span>
+        top : <span class="hljs-string">'10dp'</span>,
+        width : <span class="hljs-string">'140dp'</span>,
+        height : <span class="hljs-string">'30dp'</span>,
+        added : <span class="hljs-number">0</span>
+    });
+
+    getStockListButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> categories = <span class="hljs-built_in">require</span>(<span class="hljs-string">'catselect'</span>);
+        <span class="hljs-keyword">var</span> categorieswindow = categories.categoriesWindow(controller);
+        navController.open(categorieswindow);
+<span class="hljs-comment">//      var winCategories = controller.open(winCategories);</span>
+        <span class="hljs-comment">//        Ti.include('catselect.js');</span>
+    });
+
+    winWelcome.add(getStockListButton);
+</code></pre><p>Once again, many thanks for your help and patience with this beginner!</p>
+<p>Kindest Regards</p>
+<p>Caroline</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 17th 2012, 7:01:24 pm">October 17th 2012</span>
+								by <span class='authorname'>Dr Caroline Wilkins</span><br>
+								<a class="icon-bg icon-link" href="question/143525/am-i-opening-multiple-instances-of-the-same-window#answer-249487" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>My mistake, the categorieswindow should pass in navController, not just controller. iOS is a little less picky on referencing than Android is…</p>
+<p>Make this change in your eventListener:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> categorieswindow</span> = categories.categoriesWindow(navController);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 17th 2012, 8:42:18 pm">October 17th 2012</span>
+											by <span class='authorname'>Ray Belisle</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That worked! It&#39;s running happily on iPhone&#x2F;iPad and Android emulators now.</p>
+<p>Thank you very much! :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 17th 2012, 8:51:56 pm">October 17th 2012</span>
+											by <span class='authorname'>Dr Caroline Wilkins</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You&#39;re welcome. </p>
+<p>Ray</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 17th 2012, 8:55:11 pm">October 17th 2012</span>
+											by <span class='authorname'>Ray Belisle</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

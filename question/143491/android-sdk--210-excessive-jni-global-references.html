@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android sdk &gt; 2.1.0 Excessive JNI global references » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android sdk &gt; 2.1.0 Excessive JNI global references</h1>
+		</header>
+		<section>
+			<p>Android sdk r20.0.3 + Titanium sdk &gt; 2.1.0 - app terminates (even when idle); log displays low memory, last 10 jni global refs, then:</p>
+<p>WARN][dalvikvm(  305)] Memory held directly by tracked refs is 43548 bytes<br>[ERROR][dalvikvm(  305)] Excessive JNI global references (2001)<br>[ERROR][dalvikvm(  305)] VM aborting</p>
+<p>However, 2.1.0 sdk works fine.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 14th 2012, 9:14:41 pm">October 14th 2012</span>
+				by <span class='authorname'>Laurie Perrin</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>mobile android</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-251212">
+				
+						<section>
+							<p>It seems that there is a problem with Android emulator when you use a simple WebView, with Android API &lt; 4.0. As soon as the WebView is opened&#x2F;loaded in the active window, and with no further interaction (just let it  sit there), it will start leaking memory. You can see this by watching the Console and noticing other Android processes dieing off, and then eventually the app itself will crash. An easier way to see the memory leak is to connect your emulator process to DDMS and view the log. Note you will see <code>GREF has increased to XYZ</code> every few seconds, where XYZ increases by 100 each time, till it hits 2001 at which point that is the max JNI GREFs allowed and the app dies. GREF are global references that cannot be garbage collected, and for whatever reason the WebView is causing these to be created.</p>
+<p>Try running the very simple code below in <code>app.js</code> on Android emulator to reproduce the problem. Make sure to pick Android API &lt; 4.0. Apparently at API 4+ this no longer happens, as far as I can tell.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">win</span> = Ti.UI.createWindow();
+<span class="hljs-keyword">var</span> wv = Ti.UI.createWebView({url:'http:<span class="hljs-comment">//www.google.com'});</span>
+<span class="hljs-keyword">win</span>.add(wv);
+<span class="hljs-keyword">win</span>.<span class="hljs-keyword">open</span>();
+</code></pre><p>Note that this doesn&#39;t seem to happen on an Android device. In my tests, the memory of the testing app remains stable on the device, it is only an emulator problem (but of course this is annoying for development).</p>
+<p>Also note that the same issue happens in Kitchen Sink on Android emulator, if you go to Base UI-&gt;Views-&gt;Webviews and select one of the options. You can connect it to DDMS and watch the GREF count increase until the app crashes. I will probably end up posting this as a bug to JIRA.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 16th 2012, 10:48:32 pm">November 16th 2012</span>
+								by <span class='authorname'>Garrett Gleim</span><br>
+								<a class="icon-bg icon-link" href="question/143491/android-sdk--210-excessive-jni-global-references#answer-251212" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Garrett, did you file a JIRA ticket for this? I&#39;d like to check on it and watch it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 4:44:37 pm">January 16th 2013</span>
+											by <span class='authorname'>Shawn Lipscomb</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sorry, I forgot to come back and update this Q&amp;A. I did not actually enter a JIRA ticket, there was one already there for this problem: <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-11771">https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-11771</a>. That ticket actually links back to this Q&amp;A.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 6:28:29 pm">January 16th 2013</span>
+											by <span class='authorname'>Garrett Gleim</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249755">
+				
+						<section>
+							<p>Same problem for me with an app with a webview (Android SDK r20.0.3 + Titanium 2.1.3)…</p>
+<p>The app start and crash after increasement of GREF</p>
+<pre><code class="hljs">GREF <span class="hljs-keyword">has</span> increased <span class="hljs-keyword">to</span> <span class="hljs-number">1701</span>
+GREF <span class="hljs-keyword">has</span> increased <span class="hljs-keyword">to</span> <span class="hljs-number">1801</span>
+GREF <span class="hljs-keyword">has</span> increased <span class="hljs-keyword">to</span> <span class="hljs-number">1901</span>
+GREF <span class="hljs-keyword">has</span> increased <span class="hljs-keyword">to</span> <span class="hljs-number">2001</span>
+Excessive JNI <span class="hljs-keyword">global</span> references (<span class="hljs-number">2001</span>)
+VM aborting
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 22nd 2012, 11:29:09 am">October 22nd 2012</span>
+								by <span class='authorname'>Damien Laureaux</span><br>
+								<a class="icon-bg icon-link" href="question/143491/android-sdk--210-excessive-jni-global-references#answer-249755" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Wow, I have one window with one view, and it crashes every 4 minutes. 2.3 does not run at all. So I can develop with 2.1, but will have to live without V8, or develop with 4+. That&#39;s a pretty big spread.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 14th 2013, 8:51:42 pm">January 14th 2013</span>
+											by <span class='authorname'>Hal Burgiss</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

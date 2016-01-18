@@ -1,0 +1,557 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Creating a “pull and release” refresh mechanism » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Creating a “pull and release” refresh mechanism</h1>
+		</header>
+		<section>
+			<h2 id="background-">Background: </h2>
+<p>This question is regarding an exercise in Appcelerator-Titanium-Smartphone-App-Development-Cookbook</p>
+<h2 id="chapter-and-recipe-chapter-2-recipe-9">Chapter and Recipe: Chapter 2. Recipe 9</h2>
+<h2 id="title-creating-a-pull-and-release-refresh-mechanism">Title: Creating a “pull and release” refresh mechanism</h2>
+<h2 id="question-">Question:</h2>
+<p>I have an app.js file which is getting its information from recipes.js file. In my recipes.js file I am trying to implement my pull and release mechanism. </p>
+<p>I am not getting any error. I have completed the code for the recipe.js file.<br>Following is the code for the recipe.js file. I think I have implemented the “Pull Down Mechanism” appropriately. When I test it I do not get any errors; however the Pull and release does not work either. </p>
+<p>Here are all the codes for all the related files. </p>
+<h1 id="recipes-js-code-for-pull-and-release-functionality">Recipes.js - Code for Pull and Release Functionality</h1>
+<pre><code class="hljs"><span class="hljs-comment">// Include Database</span>
+
+Ti.include(<span class="hljs-string">'database.js'</span>);
+
+<span class="hljs-comment">// Beginning of Pull and Release Functionality</span>
+
+
+<span class="hljs-comment">//this variable defines whether the user is currently pulling</span>
+       <span class="hljs-comment">//the refresh mechanism or not</span>
+
+   var pulling = <span class="hljs-keyword">false</span>;
+
+<span class="hljs-comment">//defines whether we're currently fetching data or not</span>
+
+    var reloading = <span class="hljs-keyword">false</span>;
+
+<span class="hljs-comment">//let's create our 'pull to refresh' view</span>
+
+    var tableHeader = Ti.UI.createView({
+      backgroundImage: <span class="hljs-string">'images/header.png'</span>,
+      <span class="hljs-variable">width</span>:<span class="hljs-number">320</span>,
+      <span class="hljs-variable">height</span>:<span class="hljs-number">81</span>
+    });
+
+var arrowImage = Ti.UI.createView({
+  backgroundImage:<span class="hljs-string">"images/arrow-down.png"</span>,
+  <span class="hljs-variable">width</span>: <span class="hljs-number">40</span>,
+
+<span class="hljs-variable">height</span>: <span class="hljs-number">40</span>,
+     bottom: <span class="hljs-number">20</span>,
+     left:<span class="hljs-number">20</span>
+});
+   var statusLabel = Ti.UI.createLabel({
+     <span class="hljs-built_in">text</span>:<span class="hljs-string">"Pull to refresh..."</span>,
+     left:<span class="hljs-number">85</span>,
+     <span class="hljs-variable">width</span>:<span class="hljs-number">200</span>,
+     bottom:<span class="hljs-number">28</span>,
+     <span class="hljs-variable">height</span>:<span class="hljs-string">"auto"</span>,
+     <span class="hljs-built_in">color</span>:<span class="hljs-string">"#000"</span>,
+     <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">"center"</span>,
+     font:{fontSize:<span class="hljs-number">20</span>,fontWeight:<span class="hljs-string">"bold"</span>},
+     shadowColor:<span class="hljs-string">"#999"</span>,
+     shadowOffset:{x:<span class="hljs-number">0</span>,y:<span class="hljs-number">1</span>}
+});
+   var actInd = Titanium.UI.createActivityIndicator({
+     left:<span class="hljs-number">20</span>,
+     bottom:<span class="hljs-number">20</span>,
+     <span class="hljs-variable">width</span>: <span class="hljs-number">40</span>,
+     <span class="hljs-variable">height</span>: <span class="hljs-number">40</span>
+});
+   tableHeader.<span class="hljs-built_in">add</span>(actInd);
+   tableHeader.<span class="hljs-built_in">add</span>(arrowImage);
+   tableHeader.<span class="hljs-built_in">add</span>(statusLabel);
+
+
+
+
+   <span class="hljs-comment">//define our table view</span>
+   var tblRecipes = Titanium.UI.createTableView({
+     <span class="hljs-variable">height</span>: <span class="hljs-number">366</span>,
+     <span class="hljs-variable">width</span>: <span class="hljs-number">320</span>,
+     top: <span class="hljs-number">0</span>,
+     left: <span class="hljs-number">0</span>,
+     rowHeight: <span class="hljs-number">70</span>,
+     search: searchBar,
+     filterAttribute:<span class="hljs-string">'filter'</span>
+});     
+
+
+<span class="hljs-comment">//add the header pull view</span>
+tblRecipes.headerPullView = tableHeader;
+tblRecipes.addEventListener(<span class="hljs-string">'scroll'</span>,function(e)
+{
+  var offset = e.contentOffset.y;
+  <span class="hljs-keyword">if</span> (offset &lt;= -<span class="hljs-number">80.0</span> &amp;&amp; !pulling)
+  {
+    pulling = <span class="hljs-keyword">true</span>;
+    arrowImage.backgroundImage = <span class="hljs-string">'images/arrow-up.png'</span>;
+    statusLabel.<span class="hljs-built_in">text</span> = <span class="hljs-string">"Release to refresh..."</span>;
+  }
+  <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (pulling &amp;&amp; offset &gt; -<span class="hljs-number">80.0</span> &amp;&amp; offset &lt; <span class="hljs-number">0</span>)
+  {
+    pulling = <span class="hljs-keyword">false</span>;
+    arrowImage.backgroundImage = <span class="hljs-string">'images/arrow-down.png'</span>;
+    statusLabel.<span class="hljs-built_in">text</span> = <span class="hljs-string">"Pull to refresh..."</span>;
+} });
+tblRecipes.addEventListener(<span class="hljs-string">'scrollEnd'</span>,function(e)
+{
+  <span class="hljs-keyword">if</span> (pulling &amp;&amp; !reloading &amp;&amp; e.contentOffset.y &lt;= -<span class="hljs-number">80.0</span>)
+  {
+    reloading = <span class="hljs-keyword">true</span>;
+    pulling = <span class="hljs-keyword">false</span>;
+    arrowImage.hide();
+    actInd.show();
+    statusLabel.<span class="hljs-built_in">text</span> = <span class="hljs-string">"Reloading recipes..."</span>;
+    tblRecipes.setContentInsets({top:<span class="hljs-number">80</span>},{animated:<span class="hljs-keyword">true</span>});
+    <span class="hljs-comment">//null out the existing recipe data</span>
+    tblRecipes.data = <span class="hljs-keyword">null</span>;
+    data = [];
+    <span class="hljs-comment">//open up the recipes xml feed</span>
+    xhr.<span class="hljs-built_in">open</span>(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://query.yahooapis.com/v1/public/yql?q=%20SELECT%20*%20FROM%20feed%20WHERE%20url%3D%22http%3A%2F%2Fwww.recipetips.com%2Fcooking-feed%2Frecipes%2Fall-new-recipes.xml%22&amp;format=json&amp;diagnostics=true&amp;callback='</span>);
+
+    <span class="hljs-comment">//and fetch it again</span>
+    xhr.send();
+  }
+});
+
+<span class="hljs-comment">//check to see if we are refreshing the data via our</span>
+   <span class="hljs-comment">//pull and release mechanism</span>
+   <span class="hljs-keyword">if</span>(reloading == <span class="hljs-keyword">true</span>){
+     <span class="hljs-comment">//when done, reset the header to its original style</span>
+     tblRecipes.setContentInsets({top:<span class="hljs-number">0</span>},{animated:<span class="hljs-keyword">true</span>});
+     reloading = <span class="hljs-keyword">false</span>;
+     statusLabel.<span class="hljs-built_in">text</span> = <span class="hljs-string">"Pull to refresh..."</span>;
+     actInd.hide();
+     arrowImage.backgroundImage = <span class="hljs-string">'images/arrow-down.png'</span>;
+     arrowImage.show();
+   }
+
+
+
+<span class="hljs-comment">// End of Pull and Release Functionality.</span>
+</code></pre><h1 id="remaining-recipes-js-code-for-implementing-table">Remaining Recipes.js - Code for implementing Table</h1>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> data = []; <span class="hljs-comment">//empty data array</span>
+
+<span class="hljs-keyword">var</span> win = Titanium.UI.currentWindow;
+<span class="hljs-comment">//declare the http client object</span>
+   <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+
+<span class="hljs-comment">//open up the recipes xml feed</span>
+   xhr.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://query.yahooapis.com/v1/public/yql?q=%20SELECT%20*%20FROM%20feed%20WHERE%20url%3D%22http%3A%2F%2Fwww.recipetips.com%2Fcooking-feed%2Frecipes%2Fall-new-recipes.xml%22&amp;format=json&amp;diagnostics=true&amp;callback='</span>);   
+
+<span class="hljs-comment">//finally, execute the call to the remote feed</span>
+   xhr.send();
+
+<span class="hljs-comment">//define search bar which will attach to our table view</span>
+
+<span class="hljs-keyword">var</span> searchBar = Titanium.UI.createSearchBar({
+    showCancel: <span class="hljs-literal">true</span>,
+    height: <span class="hljs-number">42</span>,
+    top: <span class="hljs-number">0</span>
+});
+
+<span class="hljs-comment">//print out the searchbar value whenever it changes</span>
+
+searchBar.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-comment">//search the tableview as user types</span>
+    Ti.API.info(<span class="hljs-string">'user searching for:'</span> + e.value);
+});
+
+<span class="hljs-comment">//When the return key is hit, remove focus from our search bar</span>
+
+searchBar.addEventListener(<span class="hljs-string">'return'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    searchBar.blur();
+});
+
+<span class="hljs-comment">//When the cancel button is tapped, remove focus from searchBar</span>
+
+searchBar.addEventListener(<span class="hljs-string">'cancel'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    searchBar.blur();
+});
+
+<span class="hljs-comment">//create the table view</span>
+<span class="hljs-keyword">var</span> tblRecipes = Titanium.UI.createTableView({
+    height: <span class="hljs-number">366</span>,
+     width: <span class="hljs-number">320</span>,
+     top: <span class="hljs-number">0</span>,
+     left: <span class="hljs-number">0</span>,
+     rowHeight: <span class="hljs-number">70</span>,
+     search: searchBar,
+     <span class="hljs-comment">//Here is the filter attribute that appears in Tabe View</span>
+     filterAttribute: <span class="hljs-string">'filter'</span> 
+   });
+
+
+
+   win.add(tblRecipes);
+
+
+    <span class="hljs-comment">//this method will process the remote data</span>
+   xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+<span class="hljs-comment">//</span>
+       <span class="hljs-comment">//Create json object using JSON.Parse function</span>
+       <span class="hljs-keyword">var</span> jsonObject = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+<span class="hljs-comment">//       </span>
+       <span class="hljs-comment">//print out how many items we had to console</span>
+
+       Ti.API.info(jsonObject.query.results.item.length);
+
+       <span class="hljs-comment">//Loop each item in the json object</span>
+
+
+       <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; jsonObject.query.results.item.length; i++) {
+           <span class="hljs-comment">//create table view row</span>
+           <span class="hljs-keyword">var</span> row = Titanium.UI.createTableViewRow({
+               hasChild: <span class="hljs-literal">true</span>,
+               className: <span class="hljs-string">'recipe-row'</span>,
+               backgroundColor: <span class="hljs-string">'#fff'</span>,
+
+               filter: jsonObject.query.results.item[i].title,
+               _title: jsonObject.query.results.item[i].title,
+            _description: jsonObject.query.results.item[i].description,
+            _link: jsonObject.query.results.item[i].link
+               <span class="hljs-comment">//this is the data we want to search on (title)</span>
+
+           })
+
+<span class="hljs-comment">//Convert to string</span>
+
+Ti.API.info(<span class="hljs-string">'row: '</span> + (i).toString() + <span class="hljs-string">' '</span> + <span class="hljs-built_in">JSON</span>.stringify(jsonObject.query.results.item[i]));           
+
+
+
+           <span class="hljs-comment">//Title Label</span>
+           <span class="hljs-keyword">var</span> titleLabel = Titanium.UI.createLabel({
+               text: jsonObject.query.results.item[i].title,
+               font: {fontSize: <span class="hljs-number">14</span>, fontWeight: <span class="hljs-string">'bold'</span>},
+               left: <span class="hljs-number">70</span>,
+               top: <span class="hljs-number">5</span>,
+               height: <span class="hljs-number">20</span>,
+               width: <span class="hljs-number">210</span>,
+               color: <span class="hljs-string">'#000'</span>
+           });
+           row.add(titleLabel);
+
+           <span class="hljs-comment">//description label</span>
+           <span class="hljs-keyword">var</span> descriptionLabel = Titanium.UI.createLabel({
+               text: jsonObject.query.results.item[i].description,
+               font: {fontSize:<span class="hljs-number">10</span>, fontWeight: <span class="hljs-string">'normal'</span>},
+               left: <span class="hljs-number">70</span>,
+               top: <span class="hljs-number">25</span>,
+               height: <span class="hljs-number">40</span>,
+               width: <span class="hljs-number">200</span>,
+               color: <span class="hljs-string">'#000'</span>
+           });
+
+           <span class="hljs-keyword">if</span> (descriptionLabel.text == <span class="hljs-string">''</span>) {
+               descriptionLabel.text = <span class="hljs-string">'No description is available.'</span>;
+
+           }
+
+           row.add(descriptionLabel);
+<span class="hljs-comment">//           </span>
+<span class="hljs-comment">//       </span>
+       <span class="hljs-comment">//add our little icon to the left of the row</span>
+       <span class="hljs-keyword">var</span> iconImage = Titanium.UI.createImageView({
+           image: <span class="hljs-string">'images/foodicon.jpg'</span>,
+           width: <span class="hljs-number">50</span>,
+           height: <span class="hljs-number">50</span>,
+           left: <span class="hljs-number">10</span>,
+           top: <span class="hljs-number">10</span>
+       });
+       row.add(iconImage);
+
+
+       <span class="hljs-comment">//add the table row to our data[] array</span>
+       data.push(row);
+
+     } <span class="hljs-comment">//end for loop</span>
+   <span class="hljs-comment">//finally, set the data property of the tableView to our //data[] object</span>
+
+   tblRecipes.data = data;
+};
+</code></pre><h1 id="recipes-js-code-for-database">Recipes.js - Code for database</h1>
+<pre><code class="hljs"><span class="hljs-comment">//Beginning of DB Code</span>
+
+<span class="hljs-comment">//create a new window and pass through data from the tapped row</span>
+tblRecipes.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">var</span> selectedRow = e.rowData; <span class="hljs-comment">//row index clicked</span>
+    <span class="hljs-keyword">var</span> detailWindow = Titanium.UI.createWindow({
+<span class="hljs-comment">//        title: 'selectedRow._title',</span>
+<span class="hljs-comment">//        _description: 'selectedRow._description',</span>
+<span class="hljs-comment">//        _link: 'selectedRow._link',</span>
+        title: selectedRow._title,
+        _description: selectedRow._description,
+        _link: selectedRow._link,
+        backgroundColor: <span class="hljs-string">'#fff'</span>,
+        id: <span class="hljs-number">0</span>
+    });
+
+    <span class="hljs-comment">//add the favorite button</span>
+    <span class="hljs-keyword">var</span> favButton = Titanium.UI.createButton({
+        title: <span class="hljs-string">'Add Favorite'</span>,
+        left: <span class="hljs-number">10</span>,
+        top: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">140</span>,
+        height: <span class="hljs-number">30</span>,
+        added: <span class="hljs-number">0</span>    
+    });
+    favButton.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+      <span class="hljs-keyword">if</span> (favButton.added == <span class="hljs-number">0</span>) {
+          <span class="hljs-keyword">var</span> newId = insertFavorite(detailWindow.title, detailWindow._description, detailWindow._link);
+          Ti.API.info(<span class="hljs-string">'Newly created favorite id = '</span> + newId);
+        detailWindow.id = newId;
+          alert(<span class="hljs-string">'This recipe has been added as a favorite!'</span>);
+          favButton.added = <span class="hljs-number">1</span>;
+          favButton.title = <span class="hljs-string">'Remove Favorite'</span>;
+      } 
+      <span class="hljs-keyword">else</span> {
+          deleteFavorite(detailWindow.id);
+        Ti.API.info(<span class="hljs-string">'Deleted '</span> + <span class="hljs-string">' favorite records. (id '</span> + detailWindow.id + <span class="hljs-string">')'</span>);        
+        detailWindow.id = <span class="hljs-number">0</span>;
+          alert(<span class="hljs-string">'This recipe has been removed from favorites!'</span>);
+          favButton.added = <span class="hljs-number">0</span>;
+          favButton.title = <span class="hljs-string">'Add Favorite'</span>;
+      }
+    });
+    detailWindow.add(favButton);
+
+    <span class="hljs-comment">//let's also add a button to open a link in safari</span>
+    <span class="hljs-keyword">var</span> linkButton = Titanium.UI.createButton({
+        title: <span class="hljs-string">'View In Safari'</span>,
+        right: <span class="hljs-number">10</span>,
+        top: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">140</span>,
+        height: <span class="hljs-number">30</span>,
+        added: <span class="hljs-number">0</span>        
+    });
+    <span class="hljs-comment">//this event listener will open the link in safari</span>
+    linkButton.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        Ti.Platform.openURL(detailWindow._link);
+    });
+    detailWindow.add(linkButton);
+
+    <span class="hljs-comment">//finally, add the full description so we can read the whole recipe</span>
+    <span class="hljs-keyword">var</span> lblDescription = Titanium.UI.createLabel({
+        text: detailWindow._description,
+        left: <span class="hljs-number">10</span>,
+        top: <span class="hljs-number">50</span>,
+        width: <span class="hljs-number">300</span>,
+        height: <span class="hljs-string">'auto'</span>,
+        color: <span class="hljs-string">'#000'</span>
+    });
+    detailWindow.add(lblDescription);    
+
+    <span class="hljs-comment">//open the detail window</span>
+    Titanium.UI.currentTab.open(detailWindow);
+});
+
+<span class="hljs-comment">//End of DB Code</span>
+<span class="hljs-comment">//this method will fire if there's an error in accessing the remotedata</span>
+   xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+     <span class="hljs-comment">//log the error to our Titanium Studio console</span>
+     Ti.API.error(<span class="hljs-keyword">this</span>.status + <span class="hljs-string">' - '</span> + <span class="hljs-keyword">this</span>.statusText);
+   };
+</code></pre><h1 id="app-js-complete-code">App.js - Complete code</h1>
+<pre><code class="hljs"><span class="hljs-comment">// this sets the background color of the master UIView (when there are no windows/tab groups on it)</span>
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+
+<span class="hljs-comment">// create tab group</span>
+<span class="hljs-keyword">var</span> tabGroup = Titanium.UI.createTabGroup();
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// create base UI tab and root window</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-keyword">var</span> win1 = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Recipies'</span>,
+    backgroundImage: <span class="hljs-string">'images/background.png'</span>,
+        url: <span class="hljs-string">'recipes.js'</span>
+});
+
+<span class="hljs-keyword">var</span> tab1 = Titanium.UI.createTab({  
+    icon:<span class="hljs-string">'images/fork-and-knife.png'</span>,
+    title:<span class="hljs-string">'Recipes'</span>,
+    <span class="hljs-built_in">window</span>:win1
+});
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// create controls tab and root window</span>
+<span class="hljs-comment">//</span>
+
+<span class="hljs-keyword">var</span> win2 = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Favorites'</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+        url: <span class="hljs-string">'favorites.js'</span>
+});
+
+<span class="hljs-keyword">var</span> tab2 = Titanium.UI.createTab({  
+    icon:<span class="hljs-string">'images/heart.png'</span>,
+    title:<span class="hljs-string">'Favorites'</span>,
+    <span class="hljs-built_in">window</span>:win2
+});
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//  add tabs</span>
+<span class="hljs-comment">//</span>
+tabGroup.addTab(tab1);  
+tabGroup.addTab(tab2);  
+
+
+<span class="hljs-comment">// open tab group</span>
+tabGroup.open();
+</code></pre><h1 id="please-help-the-pull-and-release-refresh-mechanism-is-not-working-">Please help: The Pull and Release Refresh mechanism is not working?</h1>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 3rd 2013, 12:05:38 am">January 3rd 2013</span>
+				by <span class='authorname'>Startup Saturdays</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>data updates</span></li>
+					
+						<li><span class='tagname'>database update</span></li>
+					
+						<li><span class='tagname'>pull and release</span></li>
+					
+						<li><span class='tagname'>pull and release ref</span></li>
+					
+						<li><span class='tagname'>updates</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-253783">
+				
+						<section>
+							<p>looks like it could be this:</p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;139052&#x2F;pull-to-refresh-stopped-working-in-titanium-mobile-sdk-210">http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;139052&#x2F;pull-to-refresh-stopped-working-in-titanium-mobile-sdk-210</a></p>
+<p>try changing &#39;scrollEnd&#39; to &#39;dragEnd&#39;.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 3rd 2013, 11:27:19 am">January 3rd 2013</span>
+								by <span class='authorname'>Matt Berg</span><br>
+								<a class="icon-bg icon-link" href="question/146374/creating-a-pull-and-release-refresh-mechanism#answer-253783" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>+1 strange but true, many of us got stuck by that one.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 3rd 2013, 9:06:56 pm">January 3rd 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-253761">
+				
+						<section>
+							<p>Look here: https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;blob&#x2F;master&#x2F;demos&#x2F;KitchenSink&#x2F;Resources&#x2F;examples&#x2F;table_view_pull_to_refresh.js</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 3rd 2013, 3:24:04 am">January 3rd 2013</span>
+								by <span class='authorname'>Mads Møller</span><br>
+								<a class="icon-bg icon-link" href="question/146374/creating-a-pull-and-release-refresh-mechanism#answer-253761" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

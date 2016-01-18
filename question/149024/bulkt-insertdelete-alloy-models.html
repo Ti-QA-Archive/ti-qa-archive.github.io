@@ -1,0 +1,236 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Bulkt insert/delete alloy models? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Bulkt insert/delete alloy models?</h1>
+		</header>
+		<section>
+			<p>Is it possible to extend a collection class or otherwise force Alloy&#x2F;Backbone to delete or insert models into database in one go? I update app content from web on startup and have to add&#x2F;remove some 1000 records. This leads to app being inresponsive for first 15 seconds or so. This is how I have to do it now:</p>
+<pre><code class="hljs"><span class="hljs-keyword">for</span> (var <span class="hljs-built_in">i</span> = <span class="hljs-number">0</span>; <span class="hljs-built_in">i</span> &lt; oldModels.<span class="hljs-built_in">length</span>; <span class="hljs-built_in">i</span>++) <span class="hljs-cell">{
+    oldModels[i].destroy();
+}</span>
+Alloy.Collections.document.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(model)</span> { <span class="hljs-title">model</span>.<span class="hljs-title">save</span><span class="hljs-params">()</span> });</span>
+</code></pre><p>If I did direct DB access, I would just do &quot;DELETE FROM document WHERE type_id = ?&quot; and then an insert of a batch of some dozens of new records. Is there a way to do this? How do I even get to the DB object that contains the tables?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 1st 2013, 2:23:59 pm">March 1st 2013</span>
+				by <span class='authorname'>Andrey Chirikba</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>batch</span></li>
+					
+						<li><span class='tagname'>bulk</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>db</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-257841">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>here is some code is a gist to get you started</p>
+<p><a href="https:&#x2F;&#x2F;gist.github.com&#x2F;aaronksaunders&#x2F;5066608">https:&#x2F;&#x2F;gist.github.com&#x2F;aaronksaunders&#x2F;5066608</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 1st 2013, 4:18:10 pm">March 1st 2013</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/149024/bulkt-insertdelete-alloy-models#answer-257841" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for your sample code, Aaron! I modified the saveAll() function just slightly to construct the query string, open the DB and start a transaction outside the main loop, otherwise that would be the same as calling .save() individually, in my opinion. The code now looks like this:</p>
+<pre><code class="hljs">    deleteWhere: function(params, options) {
+        <span class="hljs-keyword">var</span> collection = this;
+        <span class="hljs-keyword">var</span> whereParams = [];
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> params || {}) {
+            whereParams.push(key + <span class="hljs-string">" = \"</span><span class="hljs-string">" + params[key] + "</span>\<span class="hljs-string">""</span>);
+        }
+
+        <span class="hljs-keyword">var</span> sql = <span class="hljs-string">"DELETE FROM "</span> + collection.config.adapter.collection_name;
+        <span class="hljs-keyword">if</span> (whereParams.length &gt; 0) {
+            sql += <span class="hljs-string">" WHERE "</span> + whereParams.join(<span class="hljs-string">" AND "</span>);
+        }
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Ti.Database.<span class="hljs-keyword">open</span>(collection.config.adapter.db_name);
+        <span class="hljs-keyword">db</span>.execute(sql);
+        <span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+        <span class="hljs-keyword">if</span> (options == undefined || !(options instanceof Array) || !options[silent]) {
+            collection.trigger(<span class="hljs-string">"sync"</span>);
+        }
+    },
+
+    addAndSave: function(array) {
+        <span class="hljs-keyword">var</span> collection = this;
+
+        <span class="hljs-keyword">var</span> util = require(<span class="hljs-string">"alloy/sync/util"</span>);
+
+                <span class="hljs-keyword">var</span> dbName = collection.config.adapter.db_name;
+                <span class="hljs-keyword">var</span> <span class="hljs-keyword">table</span> = collection.config.adapter.collection_name;
+                <span class="hljs-keyword">var</span> columns = collection.config.columns;
+
+                <span class="hljs-keyword">var</span> names = [], q = [];
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> k <span class="hljs-keyword">in</span> columns) {
+                    names.push(k);
+                    q.push(<span class="hljs-string">"?"</span>);
+        }
+
+        <span class="hljs-keyword">var</span> sqlInsert = <span class="hljs-string">"INSERT INTO "</span> + <span class="hljs-keyword">table</span> + <span class="hljs-string">" ("</span> + names.join(<span class="hljs-string">","</span>) + <span class="hljs-string">") VALUES ("</span> + q.join(<span class="hljs-string">","</span>) + <span class="hljs-string">");"</span>;
+
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Ti.Database.<span class="hljs-keyword">open</span>(dbName);
+        <span class="hljs-keyword">db</span>.execute(<span class="hljs-string">"BEGIN;"</span>);
+
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = 0; i &lt; array.length; i++) {
+
+                     <span class="hljs-keyword">var</span> model = array[i];
+                     <span class="hljs-keyword">var</span> values = [];
+                    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> k <span class="hljs-keyword">in</span> columns) {
+                        values.push(model.<span class="hljs-literal">get</span>(k));
+                    }
+
+                    <span class="hljs-keyword">db</span>.execute(sqlInsert, values);
+                }
+
+                <span class="hljs-keyword">db</span>.execute(<span class="hljs-string">"COMMIT;"</span>);
+        <span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+        collection.add(array);
+<span class="hljs-comment">//                collection.trigger('sync');</span>
+   }
+</code></pre><p>Not sure about the collection.trigger(&quot;sync&quot;) part, but for me it works without that. Might also be a good idea to rewrite the delete one to make use of query params instead of sticking it all into the string.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 4th 2013, 11:44:40 am">March 4th 2013</span>
+											by <span class='authorname'>Andrey Chirikba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>BTW, it made a huge difference, from 15-20 seconds for saving some 300 rows down to 5-6 or so.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 4th 2013, 11:46:10 am">March 4th 2013</span>
+											by <span class='authorname'>Andrey Chirikba</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Those edits make sense, will update the gist. It is a good idea to trigger some event because you don&#39;t know who is listening. Not sure if it should be sync, but there should be an event fired</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 4th 2013, 11:47:30 am">March 4th 2013</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-257837">
+				
+						<section>
+							<p>The default name of the alloy database is &quot;_alloy_&quot;, remember the underscores. So you could open that database, perform your database operations, then call a fetch() on your collection to bring it into sync with the manual DB operations you just executed.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 1st 2013, 2:41:56 pm">March 1st 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/149024/bulkt-insertdelete-alloy-models#answer-257837" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

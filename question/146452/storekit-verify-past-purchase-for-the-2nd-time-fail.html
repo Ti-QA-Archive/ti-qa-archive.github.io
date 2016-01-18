@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Storekit: verify past purchase for the 2nd time fail » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Storekit: verify past purchase for the 2nd time fail</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I&#39;ve set up a couple of test products (which are auto-renewing subscriptions) and made some purchases with a test user successfully.</p>
+<p>I have problems however verifying the receipt of the purchase from the 2nd time and on. The 1st time, it verifies normally.</p>
+<p>I get this error from the 2nd time and on:</p>
+<pre><code class="hljs">Jan  <span class="hljs-number">4</span> <span class="hljs-number">13</span>:<span class="hljs-number">08</span>:<span class="hljs-number">59</span> unknown Magazi[<span class="hljs-number">1408</span>] &lt;Warning&gt;: [ERROR] Transaction identifer is not unique
+Jan  <span class="hljs-number">4</span> <span class="hljs-number">13</span>:<span class="hljs-number">08</span>:<span class="hljs-number">59</span> unknown Magazi[<span class="hljs-number">1408</span>] &lt;Warning&gt;: [INFO] Tried to verified and got: 
+Jan  <span class="hljs-number">4</span> <span class="hljs-number">13</span>:<span class="hljs-number">08</span>:<span class="hljs-number">59</span> unknown Magazi[<span class="hljs-number">1408</span>] &lt;Warning&gt;: [INFO] {
+        message = <span class="hljs-string">"The operation couldn\U2019t be completed. (SKErrorDomain error 3.)"</span>;
+        source = <span class="hljs-string">"[object TiStorekitReceiptRequest]"</span>;
+        success = <span class="hljs-number">0</span>;
+        type = callback;
+        valid = <span class="hljs-number">0</span>;
+    }
+</code></pre><p>My logic:</p>
+<pre><code class="hljs">Storekit.purchase(realProducts[e.index], onProductToPurchase);
+
+<span class="hljs-keyword">function</span> onProductToPurchase( <span class="hljs-variable">$purchase</span> ) {
+    if( <span class="hljs-variable">$purchase</span>.state !== undefined ) {
+        console.log(<span class="hljs-string">"New state change"</span>);
+        switch(<span class="hljs-variable">$purchase</span>.state) {
+            case Storekit.FAILED:
+                break;
+            case Storekit.PURCHASED:
+                onGotIt(<span class="hljs-variable">$purchase</span>);
+                break;
+            case Storekit.RESTORED:
+                onGotIt(<span class="hljs-variable">$purchase</span>);
+                break;
+        }
+        console.log(<span class="hljs-variable">$purchase</span>);
+    }
+}
+
+<span class="hljs-keyword">function</span> onGotIt( p ) {
+    console.log(<span class="hljs-string">"Got "</span> + p.quantity + <span class="hljs-string">" "</span> + p.productIdentifier + <span class="hljs-string">" on "</span> + p.date);
+    //save the details of the purchase in a plist object 
+    Ti.App.Properties.setObject(<span class="hljs-string">"MyLastPurchase"</span>, {
+        identifier:p.identifier,
+        quantity:p.quantity,
+        productIdentifier:p.productIdentifier
+    });
+    //save the receipt data in a file in the document folders of my app
+    saveReceipt(<span class="hljs-string">"MyLastReceipt"</span>, p.receipt);
+    console.log(<span class="hljs-string">"saved the purchase"</span>);
+}
+
+//calling this one <span class="hljs-keyword">when</span> I want <span class="hljs-keyword">to</span> verify a receipt. I do this <span class="hljs-keyword">every</span> time the user is trying <span class="hljs-keyword">to</span> access something that he needs <span class="hljs-keyword">to</span> be subscribed <span class="hljs-keyword">to</span>, <span class="hljs-keyword">in</span> <span class="hljs-keyword">order</span> <span class="hljs-keyword">to</span> use it. 
+exports.storeKitVerifyReceipt = storeKitVerifyReceipt = <span class="hljs-keyword">function</span>(<span class="hljs-variable">$receipt</span>){
+    var p = Ti.App.Properties.getObject(<span class="hljs-string">"MyLastPurchase"</span>, {});
+    console.log(<span class="hljs-string">"About to verify with storekit"</span>, p);
+    Storekit.verifyReceipt({
+        identifier:p.identifier,
+        receipt:<span class="hljs-variable">$receipt</span>,  //BLOB
+        quantity:p.quantity,
+        productIdentifier:p.productIdentifier
+    }, onVerifying);
+}
+
+//it successes the first time ONLY..
+<span class="hljs-keyword">function</span> onVerifying( verifEvent ) {
+    console.log(<span class="hljs-string">"Tried to verified and got: "</span>);
+    console.log(verifEvent);
+    saveReceipt(<span class="hljs-string">"MyLastReceipt"</span>, verifEvent.receipt);
+    Ti.App.Properties.setObject(<span class="hljs-string">"MyLastPurchase"</span>, {
+        identifier:verifEvent.identifier,
+        quantity:verifEvent.quantity,
+        productIdentifier:verifEvent.productIdentifier
+    });
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 4th 2013, 11:02:18 am">January 4th 2013</span>
+				by <span class='authorname'>Onoma Epitheto</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>storekit</span></li>
+					
+						<li><span class='tagname'>verifyreceipt</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-254374">
+				
+						<section>
+							<p>I haven&#39;t been able to do this also, so what I did is store the receipt and then validate it myself manually. It works, except I haven&#39;t been able to restore the receipt when I restore transactions for the case that the user re-installs the app and has a live subscription. Hope you can figure this part out and let me know :)</p>
+<pre><code class="hljs"><span class="hljs-comment">//Store receipt</span>
+                <span class="hljs-keyword">var</span> receipt = Ti.Utils.base64encode(evt.receipt).text; <span class="hljs-comment">//To validate manually the receipt must be in this format</span>
+                Ti.App.Properties.setString(<span class="hljs-string">'recibo'</span>, receipt);
+
+<span class="hljs-comment">//Validate receipt</span>
+exports.verifyReceipt = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"> </span>)</span>{
+
+    <span class="hljs-comment">//Tried to use Storekit.verifyReceipt on the raw receipt itself evt.receipt but would get an error that the</span>
+    <span class="hljs-comment">//transaction was not unique, thats why we validate manually</span>
+
+    <span class="hljs-keyword">var</span> loader = Titanium.Network.createHTTPClient({
+            onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{            
+                Titanium.API.info(<span class="hljs-string">'Status: '</span> + <span class="hljs-keyword">this</span>.status);
+                Titanium.API.info(<span class="hljs-string">'ResponseText: '</span> + <span class="hljs-keyword">this</span>.responseText);
+                Titanium.API.info(<span class="hljs-string">'connectionType: '</span> + <span class="hljs-keyword">this</span>.connectionType);
+                Titanium.API.info(<span class="hljs-string">'location: '</span> + <span class="hljs-keyword">this</span>.location);
+
+                <span class="hljs-keyword">var</span> response = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+
+                <span class="hljs-comment">//response.status = 21006; //Simulate subscription ended</span>
+
+                Titanium.API.info(<span class="hljs-string">"response.status:"</span> + response.status);
+
+                <span class="hljs-keyword">var</span> isValid = <span class="hljs-literal">false</span>;
+                <span class="hljs-keyword">if</span> ( response.status == <span class="hljs-number">0</span> ){
+                    <span class="hljs-comment">//Subscription is still valid</span>
+                    isValid = <span class="hljs-literal">true</span>;
+                }<span class="hljs-keyword">else</span>{
+                    Ti.App.Properties.setString(<span class="hljs-string">'recibo'</span>, <span class="hljs-literal">null</span>);
+                    <span class="hljs-keyword">var</span> alertDialog = Titanium.UI.createAlertDialog({
+                        title: <span class="hljs-string">'Ha terminado tu subscripción'</span>,
+                        message: <span class="hljs-string">'Tu subscripción ha terminado y no ha sido posible renovarla automáticamente. Esto puede ser debido a que elegiste terminar la subscripción o que tu cuenta de iTunes no tiene saldo para renovar la subscripción. Próximamente se te solicitará renovar tu subscripción.'</span>,
+                        buttonNames: [<span class="hljs-string">'OK'</span>]
+                    });
+                    alertDialog.show();                    
+                }        
+
+                <span class="hljs-comment">//Something weird, this function is sometimes called/sometimes not and dumps some memory warnings</span>
+                <span class="hljs-comment">//switching to not use then the callback arquitecture</span>
+                <span class="hljs-comment">//callback(isValid);                </span>
+            }});
+
+    <span class="hljs-keyword">var</span> data = <span class="hljs-built_in">JSON</span>.stringify({
+        <span class="hljs-string">'receipt-data'</span> : Ti.App.Properties.getString(<span class="hljs-string">'recibo'</span>),
+        <span class="hljs-string">'password'</span>:Storekit.receiptVerificationSharedSecret
+    });
+
+    <span class="hljs-keyword">if</span> ( Storekit.receiptVerificationSandbox == <span class="hljs-literal">true</span> ){
+        loader.open(<span class="hljs-string">"POST"</span>,<span class="hljs-string">"https://sandbox.itunes.apple.com/verifyReceipt"</span>);
+    }<span class="hljs-keyword">else</span>{
+        loader.open(<span class="hljs-string">"POST"</span>,<span class="hljs-string">"https://buy.itunes.apple.com/verifyReceipt"</span>);    
+    }
+    loader.setRequestHeader(<span class="hljs-string">"Content-Type"</span>, <span class="hljs-string">"application/json"</span>);
+    loader.send(data);
+
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 11th 2013, 6:39:49 pm">January 11th 2013</span>
+								by <span class='authorname'>Roberto Ibarra</span><br>
+								<a class="icon-bg icon-link" href="question/146452/storekit-verify-past-purchase-for-the-2nd-time-fail#answer-254374" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Did u manage to restore the transaction when the user reinstalls the app ?<br>Thnx</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 7th 2013, 7:40:33 pm">February 7th 2013</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-256352">
+				
+						<section>
+							<p>To restore transactions I have used this code, haven&#39;t verified it too much though. Also, haven&#39;t really seen if you get expired previous transactions, but I think the solution should be arround this.</p>
+<pre><code class="hljs">Storekit.addEventListener('restoredCompletedTransactions', function (evt) {
+    <span class="hljs-keyword">if</span> (evt.<span class="hljs-keyword">error</span>) {
+        alert(evt.<span class="hljs-keyword">error</span>);
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (evt.transactions == null || evt.transactions.length == 0) {
+        <span class="hljs-comment">//alert('No tienes subscripciones a restaurar, por favor adquiere una cuando se te vuelva a solicitar.');</span>
+        <span class="hljs-keyword">var</span> dialog = Ti.UI.createAlertDialog({
+            title : '<span class="hljs-keyword">No</span> tienes subscripció<span class="hljs-keyword">n</span>',
+            message : '<span class="hljs-keyword">No</span> <span class="hljs-keyword">se</span> ha encontrado una subscripció<span class="hljs-keyword">n</span> vigente a restaurar, puedes adquirir una nueva presionando el botó<span class="hljs-keyword">n</span> <span class="hljs-keyword">de</span> Subscríbete.',
+            buttonNames : [<span class="hljs-string">"OK"</span>]
+        });
+        dialog.show();        
+    }
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = 0; i &lt; evt.transactions.length; i++) {
+            Storekit.verifyReceipt(evt.transactions[i], function (<span class="hljs-keyword">e</span>) {
+                <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.valid) {
+                    <span class="hljs-comment">//markProductAsPurchased(e.productIdentifier);</span>
+                    Ti.API.info(<span class="hljs-string">"product purchased: "</span> + <span class="hljs-keyword">e</span>.productIdentifier);
+                    <span class="hljs-keyword">var</span> receipt = <span class="hljs-keyword">e</span>.receipt; 
+                    Ti.API.info(<span class="hljs-string">"recibo evt.transactions:"</span> + receipt);
+                    Ti.<span class="hljs-keyword">App</span>.Properties.setString('recibo', Ti.Utils.base64encode(receipt).text); <span class="hljs-comment">//To validate manually the receipt must be in this format</span>
+                    Ti.API.info(<span class="hljs-string">"b64:"</span> + Ti.Utils.base64encode(receipt).text);
+                    <span class="hljs-comment">//pendiente de ver que pasa al regresar las transacciones, si regresa todas las vencidas tambien</span>
+                    <span class="hljs-comment">//un caso podría ser que tienes la mensual y luego cambias a la anual entonces la mensual dirá que ya no está vigente pero la anual sí</span>
+                    <span class="hljs-comment">//ACTUALIZACION: parace que solo regresa la subscripción válida</span>
+                    <span class="hljs-keyword">var</span> dialog = Ti.UI.createAlertDialog({
+                        title : 'Subscripció<span class="hljs-keyword">n</span> restaurada',
+                        message : 'Tu subscripció<span class="hljs-keyword">n</span> ha sido restaurada, cambiate a <span class="hljs-keyword">la</span> secció<span class="hljs-keyword">n</span> del Evangelio y regresa a <span class="hljs-keyword">la</span> secció<span class="hljs-keyword">n</span> para iniciar <span class="hljs-keyword">su</span> descarga.',
+                        buttonNames : [<span class="hljs-string">"OK"</span>]
+                    });
+                    dialog.show();
+                } <span class="hljs-keyword">else</span> {
+                    Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">"Restored transaction is not valid"</span>);
+                }
+            });
+        }
+        Ti.API.info('Restored ' + evt.transactions.length + ' purchases!');
+    }
+    hideLoading();
+});
+
+exports.restoreTransactions = function(){
+    showLoading();
+    Storekit.restoreCompletedTransactions();
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 7th 2013, 9:43:56 pm">February 7th 2013</span>
+								by <span class='authorname'>Roberto Ibarra</span><br>
+								<a class="icon-bg icon-link" href="question/146452/storekit-verify-past-purchase-for-the-2nd-time-fail#answer-256352" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

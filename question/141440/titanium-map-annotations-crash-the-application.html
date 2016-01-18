@@ -1,0 +1,257 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium Map Annotations crash the application » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium Map Annotations crash the application</h1>
+		</header>
+		<section>
+			<p>I&#39;ve narrowed everything down to this - if I add Annotations (which work perfectly fine on iOS Simulator and Device) to map, then the Application instantly crashes on Launch.</p>
+<p>This is my code and Log:</p>
+<pre><code class="hljs"><span class="hljs-comment">// Check if the Platform is Android, if so, I need to determine which images to use</span>
+<span class="hljs-comment">// This is so due to the bug that existed up to Titanium version 2.0 and I haven't checked if it's still there (the correct image isn't automatically picked out from the corresponding folder, like Resources/android/res-long-land-hdpi/, etc.)</span>
+
+<span class="hljs-keyword">if</span> (Ti.Platform.osname === <span class="hljs-string">"android"</span>) {
+    dpi = Titanium.Platform.displayCaps.dpi;
+    <span class="hljs-keyword">if</span> (dpi &lt; <span class="hljs-number">160</span>) {
+      prefix = <span class="hljs-string">'l'</span>;
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (dpi &gt;= <span class="hljs-number">160</span> &amp;&amp; dpi &lt; <span class="hljs-number">240</span>) {
+      prefix = <span class="hljs-string">'m'</span>;
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (dpi &gt;= <span class="hljs-number">240</span> &amp;&amp; dpi &lt; <span class="hljs-number">320</span>) {
+      prefix = <span class="hljs-string">'h'</span>;
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (dpi &gt;= <span class="hljs-number">320</span>) {
+      prefix = <span class="hljs-string">'x'</span>;
+    } <span class="hljs-keyword">else</span> {
+      prefix = <span class="hljs-string">'m'</span>;
+    }
+    pinButton = <span class="hljs-string">"/images/"</span> + prefix + <span class="hljs-string">"RightArrow.png"</span>;
+    pinImage = <span class="hljs-string">"/images/"</span> + prefix + <span class="hljs-string">"Pin.png"</span>;
+  } <span class="hljs-keyword">else</span> { 
+     <span class="hljs-comment">// On iPhone things are much more simple, and everything just works.</span>
+    pinButton = Titanium.UI.iPhone.SystemButton.DISCLOSURE;
+    pinImage = null;
+  }
+
+  <span class="hljs-comment">// mapData is an Array that is pulled from SQLite with information like latitude, longitute, address, text, etc.</span>
+  <span class="hljs-comment">// So I'm creating an Annotation for each pin, and pushing them all into an array</span>
+  allPins = (function() {
+    var _i, _len, _results;
+    _results = [];
+    <span class="hljs-keyword">for</span> (_i = <span class="hljs-number">0</span>, _len = mapData.length; _i &lt; _len; _i++) {
+      pin = mapData[_i];
+      _results.push(Ti.Map.createAnnotation({
+        entryid: pin.id,
+        latitude: pin.la,
+        longitude: pin.lo,
+        title: pin.text,
+        subtitle: pin.address,
+        pincolor: Titanium.Map.ANNOTATION_GREEN,
+        animate: <span class="hljs-literal">false</span>,
+        rightButton: pinButton,
+        image: pinImage
+      }));
+    }
+    <span class="hljs-keyword">return</span> _results;
+  })();
+
+ <span class="hljs-comment">// Finally I create a Map View,</span>
+  mapView = Ti.Map.createView({
+    mapType: Titanium.Map.STANDARD_TYPE,
+    region: that.region,
+    animate: <span class="hljs-literal">true</span>,
+    regionFit: <span class="hljs-literal">true</span>,
+    userLocation: <span class="hljs-literal">true</span>
+  });
+</code></pre><p>Now <strong>if</strong> after &quot;userLocation&quot; (or anywhere else in crateView for that matter) I add the Array of Annotation objects, like this:</p>
+<pre><code class="hljs">   mapView = Ti.<span class="hljs-built_in">Map</span>.createView({
+     mapType: Titanium.<span class="hljs-built_in">Map</span>.STANDARD_TYPE,
+     region: that.region,
+      animate: <span class="hljs-keyword">true</span>,
+      regionFit: <span class="hljs-keyword">true</span>,
+      userLocation: <span class="hljs-keyword">true</span>,
+      annotations: allPins
+    });
+</code></pre><p><strong>then</strong> I get an App &quot;Force Quit&quot; crash and this is what is in the log: http:&#x2F;&#x2F;pastebin.com&#x2F;VnUxL1rX</p>
+<p>Please Help.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 24th 2012, 11:51:15 am">August 24th 2012</span>
+				by <span class='authorname'>Nauris Pukis</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>annotation</span></li>
+					
+						<li><span class='tagname'>map</span></li>
+					
+						<li><span class='tagname'>mapview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>5 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Also, when I limit the SQLite Query LIMIT 0, 10 it works. Only trouble is that I need to display the 160 pins! 10 don&#39;t suit me at all.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 24th 2012, 12:03:48 pm">August 24th 2012</span>
+								by <span class='authorname'>Nauris Pukis</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I made a memory test on iOS, and with all the pins, it doesn&#39;t consume more than 4MB  of ram with fall the activity I could do in the app.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 24th 2012, 12:20:39 pm">August 24th 2012</span>
+								by <span class='authorname'>Nauris Pukis</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Try this declare an array var allPins= [];  then a annotation var anni = Ti.Map.createAnnotation({}) outside of the loop. then in the loop add to the annotation data to the anni.  when you loop is done do the following allPins=anni; Keep your mapview as is. Also be sure you not addund the annotation before they get created. Do the loop before you add them ot the map.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 24th 2012, 12:47:29 pm">August 24th 2012</span>
+								by <span class='authorname'>Chris Berry</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>You mean create an empty annotation object, and then add each annotation just as a plain array to the <code>anni</code> Annotation object and after that overwrite that to the empty array <code>allPins</code> ?    </p>
+<p>I&#39;m curious in why would that help ?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 24th 2012, 12:57:35 pm">August 24th 2012</span>
+								by <span class='authorname'>Nauris Pukis</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I can also remove the Images from the Pins and annotations, and they&#39;ll still crash.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 27th 2012, 1:57:28 am">August 27th 2012</span>
+								by <span class='authorname'>Nauris Pukis</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-246001">
+				
+						<section>
+							<p>This way you can determine if the break is in the creation of the annotation data or the adding of the annotation. Do you have an idea of how many annotation you care trying to create? Also consider using a try catch to track down the problem. </p>
+<pre><code class="hljs"><span class="hljs-keyword">try</span> {
+<span class="hljs-comment">//your loop</span>
+} <span class="hljs-keyword">catch</span>(e) {
+   alert(e.message);
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2012, 1:21:36 pm">August 24th 2012</span>
+								by <span class='authorname'>Chris Berry</span><br>
+								<a class="icon-bg icon-link" href="question/141440/titanium-map-annotations-crash-the-application#answer-246001" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I&#39;m trying to create around 130 Annotations. In a different application I use the same code-base, but even more Annotations (about 180) and there is no crash.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 27th 2012, 1:44:38 am">August 27th 2012</span>
+											by <span class='authorname'>Nauris Pukis</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Did you get anywhere with this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 27th 2012, 4:20:25 pm">August 27th 2012</span>
+											by <span class='authorname'>Chris Berry</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

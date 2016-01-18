@@ -1,0 +1,373 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>httpclient progressBar » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>httpclient progressBar</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>Im using httpclient to open connection to remote xml which give me data (name, description, …) of an image and its url.</p>
+<p>after getting url, i open another httpclient to download the image into the cache and save information about image into DB.</p>
+<p>after that i read information in DB to display image and its information from DB.</p>
+<p>i want to use progress bar to display progess of that…</p>
+<p>the problem is that i have two httpclient and browsing DB…</p>
+<p>here is my code :</p>
+<pre><code class="hljs">exports.getInfosMedia = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">param</span>)</span>{
+    <span class="hljs-keyword">var</span> L = <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/languages'</span>).L;
+
+    <span class="hljs-comment">//defaultImage with its information if in cache</span>
+        <span class="hljs-keyword">var</span> media = <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/GestionCache/getMediasFromCache'</span>).getInfosMediaFromCache(param.id);
+        <span class="hljs-keyword">if</span>(media.preview != <span class="hljs-literal">null</span>)
+            param.success(media);
+    }
+
+    <span class="hljs-comment">//check if image or its information have changed</span>
+    <span class="hljs-keyword">if</span>(Ti.Network.online){
+
+        <span class="hljs-keyword">var</span> client = Ti.Network.createHTTPClient({timeout: <span class="hljs-number">30000</span>});
+        client.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'https://site.com/api/photo/'</span> + param.id, <span class="hljs-literal">false</span>);
+
+        client.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            param.error(e.error);
+        };
+
+        client.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">try</span>{
+                <span class="hljs-keyword">var</span> doc = <span class="hljs-keyword">this</span>.responseXML;
+
+                <span class="hljs-keyword">var</span> mediaUpdatedAt = doc.getElementsByTagName(<span class="hljs-string">"updated_at"</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> name = doc.getElementsByTagName(<span class="hljs-string">'name'</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> description = doc.getElementsByTagName(<span class="hljs-string">'description'</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> size = doc.getElementsByTagName(<span class="hljs-string">'size'</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> digitized_at = doc.getElementsByTagName(<span class="hljs-string">'digitized_at'</span>).item(<span class="hljs-number">0</span>).text;
+
+                <span class="hljs-keyword">var</span> previewUpdatedAt, previewImage;
+                <span class="hljs-keyword">var</span> assets = doc.getElementsByTagName(<span class="hljs-string">'assets'</span>).item(<span class="hljs-number">0</span>).getElementsByTagName(<span class="hljs-string">'asset'</span>);
+                <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>,j=assets.length; i&lt;j; i++){
+                    <span class="hljs-keyword">if</span>(assets.item(i).getElementsByTagName(<span class="hljs-string">'atom:link'</span>).item(<span class="hljs-number">0</span>).getAttribute(<span class="hljs-string">'rel'</span>) == <span class="hljs-string">'preview'</span>){
+                        previewUpdatedAt = assets.item(i).getElementsByTagName(<span class="hljs-string">'updated_at'</span>).item(<span class="hljs-number">0</span>).text;
+                        previewImage = assets.item(i).getElementsByTagName(<span class="hljs-string">'url'</span>).item(<span class="hljs-number">0</span>).text;
+                    }
+                }
+
+                <span class="hljs-keyword">var</span> isUpToDate = <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/GestionCache/util'</span>).isMediaUpToDate(param.id, mediaUpdatedAt, previewUpdatedAt);
+                <span class="hljs-keyword">if</span>(isUpToDate.media == <span class="hljs-literal">false</span> || isUpToDate.preview == <span class="hljs-literal">false</span>){
+                    <span class="hljs-comment">//si pas à jour ou n'existe pas</span>
+                    <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/GestionCache/insertOrUpdateMedia'</span>).insertOrUpdateMedia(
+                        param.id, name, description, size, digitized_at, tags.join(), exifs.join(), mediaUpdatedAt, previewUpdatedAt, previewImage, isUpToDate.media, isUpToDate.preview,
+                        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">mediaUpdated</span>(<span class="hljs-params"></span>)</span>{
+                            media = <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/GestionCache/getMediasFromCache'</span>).getInfosMediaFromCache(param.id);
+                            param.success(media);
+                        },
+                        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">mediaNotUpdated</span>(<span class="hljs-params">Err</span>)</span>{
+                            error(L(<span class="hljs-string">'catchError'</span>));
+                        }
+                    );
+                }       
+               }    
+               <span class="hljs-keyword">catch</span>(Err){
+                      error(L(<span class="hljs-string">'catchError'</span>));
+               }
+        };
+
+        client.send();
+    }
+};
+</code></pre><p>thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 13th 2012, 1:38:29 pm">November 13th 2012</span>
+				by <span class='authorname'>Djamel ZAHAL</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>cache</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>progressbar</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-251038">
+				
+						<section>
+							<p>To get an event that will let you update a progress bar while the data is being received, use the <code>ondatastream</code> event of the HTTPClient object.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 13th 2012, 5:51:48 pm">November 13th 2012</span>
+								by <span class='authorname'>Shawn Lipscomb</span><br>
+								<a class="icon-bg icon-link" href="question/144663/httpclient-progressbar#answer-251038" rel="permalink">permalink</a>
+							</div>
+
+							<h5>10 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>i know that. in my case. i have httpclient and in onload event, it lunches another httpclients concurrently..so how to get the progress bar of all this activiy ?<br>thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2012, 6:42:15 am">November 14th 2012</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I only see one httpclient in your code.  To display a progress bar, you need to know 2 things: (1) the total number of &quot;steps&quot; in the process, and (2) the step number or percentage that you are currently on at any point in the process.  Do you know the total number of &quot;steps&quot;?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2012, 12:17:26 pm">November 14th 2012</span>
+											by <span class='authorname'>Shawn Lipscomb</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>in this function :</p>
+<pre><code class="hljs">equire(<span class="hljs-string">'BusinessLogic/GestionCache/insertOrUpdateMedia'</span>).insertOrUpdateMedia(
+                        param.id, name, description, size, digitized_at, tags.join(), exifs.join(), mediaUpdatedAt, previewUpdatedAt, previewImage, isUpToDate.media, isUpToDate.preview,
+                        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">mediaUpdated</span><span class="hljs-params">()</span></span>{
+                            media = <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/GestionCache/getMediasFromCache'</span>).getInfosMediaFromCache(param.id);
+                            param.success(media);
+                        },
+                        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">mediaNotUpdated</span><span class="hljs-params">(Err)</span></span>{
+                            <span class="hljs-built_in">error</span>(L(<span class="hljs-string">'catchError'</span>));
+                        }
+</code></pre><p>im opening httpClient to save image in cache (that&#39;s why you see callback (onload event for that httpclient).</p>
+<p>is it a bad practice to open another httpclient in onload event of another httpclient ?</p>
+<p>thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2012, 8:49:16 pm">November 14th 2012</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Appcelerator recommends only using a single httpclient in an app.  I can definitely see why using a second while in the onload event of a first one could cause a problem.  But if you&#39;re doing it, what&#39;s the problem you&#39;re having?  Determining the percentage of the entire process?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2012, 8:57:09 pm">November 14th 2012</span>
+											by <span class='authorname'>Shawn Lipscomb</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>can you explain me :  Appcelerator recommends only using a single httpclient in an app ?</p>
+<p>it means it is not recommanded to do something like that :</p>
+<p>ok, so you advice me to do something like that :<br><del>~</del><br>        var client = Ti.Network.createHTTPClient();<br>        client.open(&#39;GET&#39;, url);</p>
+<pre><code class="hljs">    client.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    };
+
+    client.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">try</span>{
+            <span class="hljs-keyword">var</span> doc = <span class="hljs-keyword">this</span>.responseXML;
+
+            client2 = Ti.Network.createHTTPClient();
+            client2.open(<span class="hljs-string">'GET'</span>, url);
+
+            client2.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                .....
+            }
+
+            client2.send();
+
+           }    
+           <span class="hljs-keyword">catch</span>(Err){
+           }
+    };
+
+    client.send();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2012, 9:05:38 pm">November 14th 2012</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>can you explain me : Appcelerator recommends only using a single httpclient in an app ?<br>it means it is not recommanded to do something like that :<br>ok, so you advice me to do something like that : </p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> client = Ti.Network.createHTTPClient(); client.open(<span class="hljs-string">'GET'</span>, url);
+    client.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    };
+
+    client.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">try</span>{
+            <span class="hljs-keyword">var</span> doc = <span class="hljs-keyword">this</span>.responseXML;
+
+            client2 = Ti.Network.createHTTPClient();
+            client2.open(<span class="hljs-string">'GET'</span>, url2);
+
+            client2.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                .....
+            }
+
+            client2.send();
+
+        }   
+        <span class="hljs-keyword">catch</span>(Err){
+        }
+    };
+
+    client.send();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="November 14th 2012, 9:06:24 pm">November 14th 2012</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Djamel, before recommending how you should code this, I have to ask if what you have is working or not.  Your original question was something about a progress bar…please clarify what this question is.</p>
+<p>If the HTTPClient code you have is working, then I wouldn&#39;t change it.  If it is not working, then I would recommend you redesign to use a single call to Ti.Network.createHTTPClient(), and then call open() and send() as many times as you need to.  But I would not call them from within the onload event…instead I&#39;d use the onload event to populate a list of other calls to make, and then asynchronously start another routine to loop through that list doing more open()s and send()s.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 15th 2012, 12:55:10 pm">November 15th 2012</span>
+											by <span class='authorname'>Shawn Lipscomb</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yes my origninal question was about progress bar.<br>but since you focuse on the organisation of httpclients. it is a problem i have (it generates timeout) and what you are saying interests me a lot. can you post an exemple of what you are saying please..</p>
+<p>i have lot of timeouts in my app and now im sure that the error is what you are saying.</p>
+<p>thank you.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 15th 2012, 1:17:39 pm">November 15th 2012</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>where do you will put the loop (in the onload event i think)..because the loop should be executed after the response of the first httpclient is received…so it is the same, no ?</p>
+<p>thank you</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 15th 2012, 9:28:39 pm">November 15th 2012</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Djamel, I am suggesting something like this (pseudocode):</p>
+<pre><code class="hljs">GlobalHTTPClient=Ti.Network.createHTTPClient();
+<span class="hljs-keyword">set</span> GlobalHTTPClient.onerror to something
+<span class="hljs-keyword">set</span> GlobalHTTPClient.onload to Func1
+ListOfItems=[];
+GlobalHTTPClient.<span class="hljs-keyword">open</span>('GET',url1);
+GlobalHTTPClient.send();
+
+Func1
+{
+  <span class="hljs-variable"><span class="hljs-keyword">var</span> ListXML</span>=GlobalHTTPClient.responseXML;
+  <span class="hljs-comment">// ahhh, I've got the list, so make an array...</span>
+  loop
+    ListOfItems.push(a piece of the ListXML);
+  until ListXML <span class="hljs-keyword">is</span> exhausted
+  <span class="hljs-comment">// now asynchronously launch the process of downloading the first item in the list</span>
+  setTimeout(GetTheItems,<span class="hljs-number">1</span>);
+}
+
+GetTheItems
+{
+  <span class="hljs-keyword">if</span> (ListOfItems not empty)
+  {
+    <span class="hljs-keyword">set</span> GlobalHTTPClient.onerror to something
+    <span class="hljs-keyword">set</span> GlobalHTTPClient.onload to Func2
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> OneItem</span>=ListOfItems.shift();
+    GlobalHTTPClient.<span class="hljs-keyword">open</span>('GET',url2...derived from OneItem);
+    GlobalHTTPClient.send();
+   }
+}
+
+Func2
+{
+  <span class="hljs-keyword">do</span> something with GlobalHTTPClient.responseXML;
+  <span class="hljs-comment">// now asynchronously launch the process of downloading the next item in the list</span>
+  setTimeout(GetTheItems,<span class="hljs-number">1</span>);
+}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="November 16th 2012, 1:45:14 pm">November 16th 2012</span>
+											by <span class='authorname'>Shawn Lipscomb</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

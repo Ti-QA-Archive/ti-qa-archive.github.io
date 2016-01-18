@@ -1,0 +1,286 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Basic JSON question (getting data out of the onload). » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Basic JSON question (getting data out of the onload).</h1>
+		</header>
+		<section>
+			<p>Hi all.</p>
+<p>Okay I&#39;m having some issues pulling data out of the &#39;onload&#39; for my JSON request…<br>Here is the code….</p>
+<pre><code class="hljs">             <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getCountryInfoJSON</span>(<span class="hljs-params"></span>)</span>{
+                    sendit = Ti.Network.createHTTPClient();
+                    sendit.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://blahblagcom/example.json'</span>);
+                    sendit.send();
+
+                sendit.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+                        <span class="hljs-keyword">var</span> countryJSON = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+                        Ti.API.info(<span class="hljs-string">'mapped response to '</span>+<span class="hljs-built_in">JSON</span>.stringify(countryJSON));
+                        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>;i&lt;countryJSON.length;i++)
+                        {
+                                <span class="hljs-keyword">var</span> countryName = countryJSON[i].results.countryName;
+                                <span class="hljs-keyword">var</span> riskLevel = countryJSON[i].results.riskLevel;
+                        }
+                        <span class="hljs-keyword">return</span> [countryName, riskLevel];
+                };
+
+                sendit.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+                    Ti.API.info(<span class="hljs-string">'JSON - Feed Error'</span>);
+                };
+            };
+
+            <span class="hljs-keyword">var</span> test = getCountryInfoJSON();
+            alert(test.countryName);
+</code></pre><p>Soooo I&#39;m returning countryName &amp; riskLevel out of the function and then attempting to alert the countryname to the screen, but no joy.</p>
+<p>Please can anyone help!</p>
+<p>Thank!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 15th 2012, 10:21:45 am">August 15th 2012</span>
+				by <span class='authorname'>Jason Etheridge</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>json</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-245362">
+				
+						<section>
+							<p>Nikhil and Ashutosh are touching on the issue, but they&#39;re not really coming out directly to tell you the fundamental problem.</p>
+<p>You have to understand the asynchronous nature of the HTTPClient requests.  You can&#39;t construct a simple function that you can call and get back a value.</p>
+<p>Control in your <code>getCountryInfoJSON()</code> will flow to the bottom of the function and return <em>before</em> any results are returned from the server.  So you can&#39;t call the function and expect to get anything back (at least not anything from the server – you <em>could</em> return something from the function if you want)</p>
+<p>But your <code>onload</code> should not return things – they&#39;re just swallowed up by the HTTPClient.  Remember, you&#39;re not actually calling the <code>onload</code> function yourself; it&#39;s triggered by HTTPClient when the results are returned from the server.</p>
+<p>One last thing – you may have an misunderstanding of objects vs. arrays in javascript.  Your return value </p>
+<pre><code class="hljs">return <span class="hljs-string">[countryName, riskLevel]</span>;
+</code></pre><p>is an array, but you&#39;re trying to access the values within as an object:</p>
+<pre><code class="hljs">alert<span class="hljs-list">(<span class="hljs-keyword">test</span>.countryName)</span><span class="hljs-comment">;</span>
+</code></pre><p>Fixing this won&#39;t do anything to solve your network data problems, but you need to have a good understanding of these sort of issues to be successful in large-scale javascript development.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 15th 2012, 11:19:12 am">August 15th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/141038/basic-json-question-getting-data-out-of-the-onload#answer-245362" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Jason Priebe: I have the same problem more or less. I understand what u are saying and it makes sense. Is there a workaround or a totally different way that could be recommended?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 18th 2012, 2:33:26 pm">September 18th 2012</span>
+											by <span class='authorname'>Martin Andersson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>There is NO workaround for asynchronous network requests.  It&#39;s intrinsic to the way HTTPClient works.  Any workaround you try to make will not end well.</p>
+<p>This is a difficult concept for new Titanium developers (and new AJAX developers, too).  But once you are used to it, it becomes second nature.</p>
+<p>You just have to get used to delaying some initialization of your UI until the network requests come back.  When the data is returned from the server, you can fire off your UI initialization code, passing it the data you received.</p>
+<p>Using good CommonJS module design helps keep things clean.  Example:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MyWindow</span> (<span class="hljs-params"></span>)
+</span>{
+    <span class="hljs-keyword">var</span> _self = Ti.UI.createWindow ({...});
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">initUI</span> (<span class="hljs-params">obj</span>)
+    </span>{
+        <span class="hljs-comment">// use obj to build/load user interface</span>
+    }
+
+    <span class="hljs-keyword">var</span> _xhr = Ti.Network.createHTTPClient();
+    _xhr.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://blahblagcom/example.json'</span>);
+    _xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> obj = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+        initUI(obj);
+    };
+    _xhr.send();
+
+    <span class="hljs-keyword">return</span> _self;
+}
+
+<span class="hljs-built_in">module</span>.exports = MyWindow;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="September 18th 2012, 2:51:30 pm">September 18th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This is probably a stupid Q, but how do I build&#x2F;load using obj? Good documentation for me to read? U guys are great answering fast as u are, even on old threads. Great job!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 18th 2012, 7:31:44 pm">September 18th 2012</span>
+											by <span class='authorname'>Martin Andersson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>When I say &quot;use obj to build&#x2F;load user interface&quot;, I&#39;m not implying that there&#39;s anything magic going on.  <code>obj</code> is just a placeholder for whatever data your application might get back from a JSON web service.  You use its properties to load up your user interface.</p>
+<p>If it is movie listings, you might create a bunch of TableViewRows from the movie listings and add them to a TableView.</p>
+<p>Maybe your web service returns a list of actions that the user can take, so you create a button for each action and add them to the window.</p>
+<p>Are you starting to understand the concept?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 18th 2012, 9:29:41 pm">September 18th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-245358">
+				
+						<section>
+							<p>Define the onload and onerror before executing <code>sendit.send()</code></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 15th 2012, 10:30:48 am">August 15th 2012</span>
+								by <span class='authorname'>Nikhil Nigade</span><br>
+								<a class="icon-bg icon-link" href="question/141038/basic-json-question-getting-data-out-of-the-onload#answer-245358" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Also, you could define a function as such outside <code>getCountryInfoJSON()</code>.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">logParams</span><span class="hljs-params">(countryName, riskLevel)</span> </span>{
+    Ti.API.info(countryName);
+    Ti.API.info(riskLevel); 
+}
+</code></pre><p>and then in your <code>onload</code> function:</p>
+<pre><code class="hljs">...
+
+for(...) {
+    countryName = countryJSON[i].results.countryName<span class="hljs-comment">;</span>
+    iskLevel = countryJSON[i].results.riskLevel<span class="hljs-comment">;</span>
+
+    logParams(countryName, riskLevel)<span class="hljs-comment">;</span>
+    countryName = null<span class="hljs-comment">; riskLevel = null;</span>
+}
+</code></pre><p>I&#39;ve also been stuck on the return xyz bit before, and this is a good working solution for it. You might want to replace <code>Ti.API.info</code> from my example code with <code>alert(...)</code> if needed.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 15th 2012, 10:35:08 am">August 15th 2012</span>
+											by <span class='authorname'>Nikhil Nigade</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-245360">
+				
+						<section>
+							<p>Hi jason, you need to do some changes, first write the send statement after the onload ,onerror methods, and second thing you can go further from your onload method so call any function from it or you can create any windowinside it pass the values(countryName or risklevel) to another window. I hope this will solve your problem.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 15th 2012, 10:59:50 am">August 15th 2012</span>
+								by <span class='authorname'>Ashutosh Chaturvedi</span><br>
+								<a class="icon-bg icon-link" href="question/141038/basic-json-question-getting-data-out-of-the-onload#answer-245360" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

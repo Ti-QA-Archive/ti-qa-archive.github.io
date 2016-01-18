@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy Model TableView Problems » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy Model TableView Problems</h1>
+		</header>
+		<section>
+			<p>I&#39;m new to Titanium Development and I&#39;m experiencing performance issues with a simple app.</p>
+<p>I&#39;m using version 3.0 with an Alloy Project.</p>
+<p>I have view with a controller with a search field, you type in the search field and this passes the data onto another controller with fetches an xml feed which saves the data to a collection (36 items) and updates the table view filtered by the search parameter.</p>
+<p>This all works fine but when I navigate back to the previous controller and repeat the search again and again the application gets progressively slower e.g 3,6,912,15 seconds to perform the search function on the first controller and push the listings controllers.</p>
+<p>If I dont save the database entries the application performs well.</p>
+<p>searchListings.js</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> diseases = Alloy.Collections.diseases;
+<span class="hljs-keyword">var</span> args = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">0</span>];
+
+
+<span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+xhr.open(<span class="hljs-string">'GET'</span>,<span class="hljs-string">'http://myxmlfeed'</span>,{timeout : <span class="hljs-number">5000</span>});
+xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+</span>{
+
+
+       <span class="hljs-keyword">for</span>(i=diseases.length-<span class="hljs-number">1</span>; i&gt;=<span class="hljs-number">0</span>; i--) {
+        <span class="hljs-keyword">var</span> model = diseases.at(i);
+        model.destroy();
+    };
+
+
+
+    <span class="hljs-keyword">var</span> doc = <span class="hljs-keyword">this</span>.responseXML.documentElement;
+
+
+    <span class="hljs-keyword">var</span> items = doc.getElementsByTagName(<span class="hljs-string">"disease"</span>);
+    <span class="hljs-keyword">var</span> x = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=<span class="hljs-number">0</span>;c&lt;items.length;c++)
+    {
+        <span class="hljs-keyword">var</span> item = items.item(c);
+        <span class="hljs-keyword">var</span> title = item.getElementsByTagName(<span class="hljs-string">"diseaseName"</span>).item(<span class="hljs-number">0</span>).text;
+
+    <span class="hljs-keyword">var</span> entry = Alloy.createModel(<span class="hljs-string">'diseases'</span>, {
+        title : title
+    });
+
+
+    <span class="hljs-comment">// add new model to the collection</span>
+    diseases.add(entry);
+
+    <span class="hljs-comment">// save the model to sql storage</span>
+    entry.save();
+
+    }
+
+    Titanium.API.info(<span class="hljs-string">'save complete'</span>);
+
+
+}
+xhr.send();
+
+
+diseases.fetch();
+
+$.diseaseWin.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+
+    $.diseaseTable = <span class="hljs-literal">null</span>; 
+    diseases = <span class="hljs-literal">null</span>; 
+
+    Titanium.API.info(<span class="hljs-string">'search closed'</span>);
+
+    $.destroy();
+
+
+});
+
+Titanium.API.info(<span class="hljs-string">'search text: '</span>+args.agrs1);
+</code></pre><p>searchListings.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Collection</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"diseases"</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"diseaseWin"</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"diseases"</span> &gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"diseaseTable"</span> <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"diseases"</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">Require</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"row"</span>/&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>I&#39;ve added an event (close) on the controllers window to see when the view is being removed from the navigation group stack and it is being called long after the controller is pooped. Is it not being released correctly?</p>
+<p>Many thanks in advance.</p>
+<p>Dave</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 10th 2013, 3:15:28 pm">January 10th 2013</span>
+				by <span class='authorname'>David Penney</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>alloy model</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>xml</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello David, </p>
+<p>It&#39;s been 7 months, does the problem persists for you? </p>
+<p>I&#39;m looking at something similar to this issue. What device was this tested on?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 18th 2013, 8:20:30 pm">July 18th 2013</span>
+								by <span class='authorname'>Eduardo Gomez</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Now when using tableviews I&#39;m not binding the collection to the tableview and finding the performance must faster so no more delays. I was using and iPhone 4. It&#39;s is running 5.1.1 this is one of our development devices an i don&#39;t think it&#39;s been updated since this post.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 19th 2013, 5:32:45 am">July 19th 2013</span>
+								by <span class='authorname'>David Penney</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

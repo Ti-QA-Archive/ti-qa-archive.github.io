@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Http client in synchronous mode » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Http client in synchronous mode</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I have this code : </p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">downloadImage</span><span class="hljs-params">(url, filename)</span></span>{
+    <span class="hljs-keyword">var</span> client = Ti.Network.createHTTPClient();
+
+    client.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    };
+
+    client.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">try</span>{
+            <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, filename);
+            file.write(<span class="hljs-keyword">this</span>.responseData);
+
+            <span class="hljs-keyword">return</span> file.nativePath;
+           }    
+           <span class="hljs-keyword">catch</span>(Err){
+               <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+           }
+    };
+
+    client.open(<span class="hljs-string">'GET'</span>, url, <span class="hljs-literal">false</span>);
+    client.send();
+}
+</code></pre><p>called here : </p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> nativePath</span> = downloadImage(logo, filename);
+</code></pre><p>my var nativePath is undefined and my function downloadImage doesn&#39;t execute onload or onerror callback.</p>
+<p>so how does httpclient in synchronous mode work ?</p>
+<p>thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 7th 2013, 8:23:02 am">March 7th 2013</span>
+				by <span class='authorname'>Kheiro Tou</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>callback</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>synchrone</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-258252">
+				
+						<section>
+							<p>You cant.  The httpClient is asynchronous and that behavious cannot be changed (You wouldnt want it to be blocking as your UI would freeze).  The answer is to supply a callback to receive the results.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">downloadImage</span><span class="hljs-params">(url, filename, onComplete)</span></span>{
+    <span class="hljs-keyword">var</span> client = Ti.Network.createHTTPClient();
+
+    client.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    };
+
+    client.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">try</span>{
+            <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, filename);
+            file.write(<span class="hljs-keyword">this</span>.responseData);
+
+            onComplete(file.nativePath);
+        }   
+        <span class="hljs-keyword">catch</span>(Err){
+        onComplete(<span class="hljs-literal">null</span>);
+        }
+    };
+
+    client.open(<span class="hljs-string">'GET'</span>, url, <span class="hljs-literal">false</span>);
+    client.send();
+}
+</code></pre><p>then</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> nativePath = <span class="hljs-literal">null</span>;
+
+downloadImage(logo, filename,  <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(filePath)</span></span>{
+
+    <span class="hljs-keyword">if</span> (filePath){
+        nativePath = filePath;
+    }
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 7th 2013, 9:35:07 am">March 7th 2013</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/149280/http-client-in-synchronous-mode#answer-258252" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

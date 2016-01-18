@@ -1,0 +1,430 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Get Route on a map - Solution (not a question) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Get Route on a map - Solution (not a question)</h1>
+		</header>
+		<section>
+			<p>Hi Everybody,<br>Below I present a simple solution to show the route on a mapview without using any third party modules.</p>
+<p>The solution works perfectly for IOS and Android, I am currently using Titanium version 2.1.4 on my Mac.</p>
+<p>Before I get to the solution, a little background, we used to compute routes using Google&#39;s kml API which was revoked by Google leaving us stranded. I did notice some third party modules in the marketplace, which although functioned, had lots of performance issues. On checking Google&#39;s new API I realized using it would be a piece of cake, and it does work fabulously. I have not tested this code for mobile web since we make exclusive android and IOS applications.</p>
+<p>Please test and let me know if the code can be improved. NOTE: The new Google API uses both xml and JSON return types. I used XML which can be easily replaced by JSON. You just need to replace the word &#39;xml&#39; by &#39;json&#39; in the request url and obviously the parsing will need to be different</p>
+<pre><code class="hljs">    <span class="hljs-comment">//WE USE mapView object TO DISPLAY THE MAP, PLEASE DECLARE IT BEFORE THIS CODE</span>
+    <span class="hljs-keyword">var</span> singleRoute = <span class="hljs-literal">null</span>;
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">GetRoutePoints</span>(<span class="hljs-params">startX, startY, destX, destY</span>) </span>{
+        <span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://maps.googleapis.com/maps/api/directions/xml?origin="</span>
+                + startX + <span class="hljs-string">","</span> + startY + <span class="hljs-string">"&amp;destination="</span> + destX + <span class="hljs-string">","</span> + destY
+                + <span class="hljs-string">"&amp;sensor=false"</span>;
+        <span class="hljs-keyword">var</span> request = Titanium.Network.createHTTPClient();
+        request.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            InitRouteData({
+                dashData : [ <span class="hljs-number">1</span>, <span class="hljs-keyword">this</span>.responseText ]
+            });
+        };
+        request.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            InitRouteData({
+                dashData : [ -<span class="hljs-number">1</span>, <span class="hljs-built_in">String</span>.serverErr ]
+            });
+        };
+        request.open(<span class="hljs-string">"GET"</span>, url);
+        request.send(<span class="hljs-literal">null</span>);
+
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">InitRouteData</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.dashData[<span class="hljs-number">0</span>] == -<span class="hljs-number">1</span>) {
+            alert(<span class="hljs-string">"Cannot Connect to the net"</span>);
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">if</span>(Ti.XML.parseString(e.dashData[<span class="hljs-number">1</span>]).getElementsByTagName(
+            <span class="hljs-string">'status'</span>).item(<span class="hljs-number">0</span>).text != <span class="hljs-string">"OK"</span>){
+                alert(<span class="hljs-string">"Cannot Show Route"</span>);
+                <span class="hljs-keyword">return</span>;
+            }
+            <span class="hljs-keyword">var</span> n = Ti.XML.parseString(e.dashData[<span class="hljs-number">1</span>]).getElementsByTagName(
+                    <span class="hljs-string">'step'</span>);
+            <span class="hljs-keyword">var</span> points = [];
+            <span class="hljs-keyword">for</span> ( <span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; n.length; i++) {
+                points.push({
+                    latitude : n.item(i).getElementsByTagName(<span class="hljs-string">'start_location'</span>)
+                            .item(<span class="hljs-number">0</span>).getElementsByTagName(<span class="hljs-string">'lat'</span>).item(<span class="hljs-number">0</span>).text,
+                    longitude : n.item(i)
+                            .getElementsByTagName(<span class="hljs-string">'start_location'</span>).item(<span class="hljs-number">0</span>)
+                            .getElementsByTagName(<span class="hljs-string">'lng'</span>).item(<span class="hljs-number">0</span>).text
+                });
+                <span class="hljs-keyword">if</span> (i == n - <span class="hljs-number">1</span>) {
+                    points.push({
+                        latitude : n.item(i).getElementsByTagName(
+                                <span class="hljs-string">'end_location'</span>).item(<span class="hljs-number">0</span>).getElementsByTagName(
+                                <span class="hljs-string">'lat'</span>).item(<span class="hljs-number">0</span>).text,
+                        longitude : n.item(i).getElementsByTagName(
+                                <span class="hljs-string">'end_location'</span>).item(<span class="hljs-number">0</span>).getElementsByTagName(
+                                <span class="hljs-string">'lng'</span>).item(<span class="hljs-number">0</span>).text
+                    });
+                }
+            }
+            singleRoute = {
+                name : <span class="hljs-string">"1"</span>,
+                points : points,
+                color : <span class="hljs-string">"blue"</span>,
+                width : <span class="hljs-number">4</span>
+            };
+            mapView.addRoute(singleRoute);
+        }
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">RemoveRoute</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">if</span> (singleRoute != <span class="hljs-literal">null</span>) {
+            mapView.removeRoute(singleRoute);
+        }
+    }
+</code></pre><p>Thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 23rd 2013, 4:17:11 am">January 23rd 2013</span>
+				by <span class='authorname'>Parijat Naik</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>addroute</span></li>
+					
+						<li><span class='tagname'>map</span></li>
+					
+						<li><span class='tagname'>mapview</span></li>
+					
+						<li><span class='tagname'>route</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Thanks.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 23rd 2013, 8:56:25 am">January 23rd 2013</span>
+								by <span class='authorname'>Ashish Nigam</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Json is better as XML. You can get JSON from google API</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 28th 2013, 6:50:38 pm">January 28th 2013</span>
+								by <span class='authorname'>Rainer Schleevoigt</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>@Rainer - look at the version I provided below; JSON, smooth points, named location and region focusing.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 28th 2013, 6:53:19 pm">January 28th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-255155">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>You might want to give my version a go, it has the following benefits over your version should you need to take advantage of them.</p>
+<ul>
+<li>The route is smooth, it follows the route rather than a straight line between the driving directions.</li>
+<li>You can pass named locations as well as lat&#x2F;lon pairs</li>
+<li>You can optionally tell the API to focus the results based on a region - in case the location names conflict in different countries.</li>
+</ul>
+<p>Usage examples;</p>
+<p><strong>Named locations Use</strong></p>
+<pre><code class="hljs"><span class="hljs-tag">addRoute</span>({
+    <span class="hljs-attribute">map</span>: map,
+    <span class="hljs-attribute">region</span>: <span class="hljs-string">'UK'</span>,
+    <span class="hljs-attribute">start</span>: <span class="hljs-string">'Cambridge'</span>,
+    <span class="hljs-attribute">stop</span>: <span class="hljs-string">'Birmingham'</span>
+});
+</code></pre><p><strong>Lat&#x2F;Lon pair Use</strong></p>
+<pre><code class="hljs"><span class="hljs-tag">addRoute</span>({
+    <span class="hljs-attribute">map</span>: map,
+    <span class="hljs-attribute">start</span>: <span class="hljs-string">'40.7142,-74.0064'</span>,
+    <span class="hljs-attribute">stop</span>: <span class="hljs-string">'39.9522,-75.1642'</span>
+});
+</code></pre><p><strong>Use of region</strong></p>
+<pre><code class="hljs"><span class="hljs-comment">// US</span>
+<span class="hljs-tag">addRoute</span>({
+    <span class="hljs-attribute">map</span>: map,
+    <span class="hljs-attribute">region</span>: <span class="hljs-string">'US'</span>,
+    <span class="hljs-attribute">start</span>: <span class="hljs-string">'Cambridge'</span>,
+    <span class="hljs-attribute">stop</span>: <span class="hljs-string">'Birmingham'</span>
+});
+<span class="hljs-comment">// UK</span>
+<span class="hljs-tag">addRoute</span>({
+    <span class="hljs-attribute">map</span>: map,
+    <span class="hljs-attribute">region</span>: <span class="hljs-string">'UK'</span>,
+    <span class="hljs-attribute">start</span>: <span class="hljs-string">'Cambridge'</span>,
+    <span class="hljs-attribute">stop</span>: <span class="hljs-string">'Birmingham'</span>
+});
+<span class="hljs-comment">// these have the same names in each country so the routes will be placed in the correct country</span>
+</code></pre><p>This is the code, it is a full app so you can easily test it, simply create a new default project and replace the contents of <strong>app.js</strong> with the code below.</p>
+<pre><code class="hljs"><span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.setBackgroundColor('<span class="hljs-comment">#000');</span>
+
+<span class="hljs-keyword">var</span> tab1;
+
+function decodeLine(encoded) {
+    <span class="hljs-keyword">var</span> len = encoded.length;
+    <span class="hljs-keyword">var</span> index = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">var</span> <span class="hljs-type">array</span> = [];
+    <span class="hljs-keyword">var</span> lat = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">var</span> lng = <span class="hljs-number">0</span>;
+
+    <span class="hljs-keyword">while</span> (index &lt; len) {
+        <span class="hljs-keyword">var</span> b;
+        <span class="hljs-keyword">var</span> shift = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">var</span> <span class="hljs-literal">result</span> = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">do</span> {
+            b = encoded.charCodeAt(index++) - <span class="hljs-number">63</span>;
+            <span class="hljs-literal">result</span> |= (b &amp; <span class="hljs-number">0x1f</span>) &lt;&lt; shift;
+            shift += <span class="hljs-number">5</span>;
+        } <span class="hljs-keyword">while</span> (b &gt;= <span class="hljs-number">0x20</span>);
+
+        <span class="hljs-keyword">var</span> dlat = ((<span class="hljs-literal">result</span> &amp; <span class="hljs-number">1</span>) ? ~(<span class="hljs-literal">result</span> &gt;&gt; <span class="hljs-number">1</span>) : (<span class="hljs-literal">result</span> &gt;&gt; <span class="hljs-number">1</span>));
+        lat += dlat;
+
+        shift = <span class="hljs-number">0</span>;
+        <span class="hljs-literal">result</span> = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">do</span> {
+            b = encoded.charCodeAt(index++) - <span class="hljs-number">63</span>;
+            <span class="hljs-literal">result</span> |= (b &amp; <span class="hljs-number">0x1f</span>) &lt;&lt; shift;
+            shift += <span class="hljs-number">5</span>;
+        } <span class="hljs-keyword">while</span> (b &gt;= <span class="hljs-number">0x20</span>);
+
+        <span class="hljs-keyword">var</span> dlng = ((<span class="hljs-literal">result</span> &amp; <span class="hljs-number">1</span>) ? ~(<span class="hljs-literal">result</span> &gt;&gt; <span class="hljs-number">1</span>) : (<span class="hljs-literal">result</span> &gt;&gt; <span class="hljs-number">1</span>));
+        lng += dlng;
+
+        <span class="hljs-type">array</span>.push([lat * <span class="hljs-number">1</span>e-<span class="hljs-number">5</span>, lng * <span class="hljs-number">1</span>e-<span class="hljs-number">5</span>]);
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-type">array</span>;
+}
+function addRoute(obj) {
+    <span class="hljs-keyword">var</span> xhr = <span class="hljs-type">Ti</span>.<span class="hljs-type">Network</span>.createHTTPClient();
+    xhr.onload = function (e) {
+        <span class="hljs-keyword">var</span> response = this.responseText;
+        <span class="hljs-keyword">var</span> json = <span class="hljs-type">JSON</span>.parse(response);
+
+        <span class="hljs-keyword">var</span> step = json.routes[<span class="hljs-number">0</span>].legs[<span class="hljs-number">0</span>].steps;
+        <span class="hljs-keyword">var</span> intStep = <span class="hljs-number">0</span>, intSteps = step.length, points = [];
+        <span class="hljs-keyword">var</span> decodedPolyline, intPoint = <span class="hljs-number">0</span>, intPoints = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">for</span> (intStep = <span class="hljs-number">0</span>; intStep &lt; intSteps; intStep = intStep + <span class="hljs-number">1</span>) {
+            decodedPolyline = decodeLine(step[intStep].polyline.points);
+            intPoints = decodedPolyline.length;
+            <span class="hljs-keyword">for</span> (intPoint = <span class="hljs-number">0</span>; intPoint &lt; intPoints; intPoint = intPoint + <span class="hljs-number">1</span>) {
+                <span class="hljs-keyword">if</span> (decodedPolyline[intPoint] != null) {
+                    points.push({
+                        latitude: decodedPolyline[intPoint][<span class="hljs-number">0</span>],
+                        longitude: decodedPolyline[intPoint][<span class="hljs-number">1</span>]
+                    });
+                }
+            }
+        }
+
+        <span class="hljs-keyword">var</span> route = {
+            name: '<span class="hljs-type">Example</span> <span class="hljs-type">Route</span>',
+            points: points,
+            color: '<span class="hljs-comment">#c60000',</span>
+            width: <span class="hljs-number">4</span>
+        };
+        obj.map.addRoute(route);    
+    };
+    xhr.onerror = function (e) {
+        <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.info('error', <span class="hljs-type">JSON</span>.stringify(e));
+    };
+    <span class="hljs-keyword">var</span> param = [
+        'destination=' + obj.stop,
+        'origin=' + obj.start,
+        'sensor=<span class="hljs-literal">false</span>'
+    ];
+    <span class="hljs-keyword">if</span> (obj.region) {
+        param.region = obj.region;
+    }
+    xhr.open('<span class="hljs-type">GET</span>', 'http://maps.googleapis.com/maps/api/directions/json?' + param.join('&amp;'));
+    xhr.send();
+} 
+
+<span class="hljs-keyword">var</span> win = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createWindow({
+    backgroundColor: '<span class="hljs-comment">#fff',</span>
+    title: '<span class="hljs-type">Test</span>'
+});
+tab1 = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createTab({
+    icon: '<span class="hljs-type">KS_nav_views</span>.png',
+    title: '<span class="hljs-type">Tab</span> <span class="hljs-number">1</span>',
+    window: win
+});
+
+<span class="hljs-keyword">var</span> region = {
+    latitude: <span class="hljs-number">40</span>.<span class="hljs-number">7142</span>,
+    longitude: -<span class="hljs-number">74</span>.<span class="hljs-number">0064</span>,
+    latitudeDelta: <span class="hljs-number">2</span>,
+    longitudeDelta: <span class="hljs-number">2</span>
+};
+<span class="hljs-keyword">var</span> anno = <span class="hljs-type">Ti</span>.<span class="hljs-type">Map</span>.createAnnotation({
+    animate: <span class="hljs-literal">true</span>,
+    latitude: region.latitude,
+    longitude: region.longitude,
+    pincolor: <span class="hljs-type">Ti</span>.<span class="hljs-type">Map</span>.<span class="hljs-type">ANNOTATION_RED</span>,
+    subtitle: '<span class="hljs-type">Start</span>',
+    title: <span class="hljs-string">"Boston,MA"</span>,
+});
+
+<span class="hljs-keyword">var</span> map = <span class="hljs-type">Ti</span>.<span class="hljs-type">Map</span>.createView({
+    animate: <span class="hljs-literal">true</span>,
+    annotations: [anno],
+    bottom: <span class="hljs-number">0</span>,
+    height: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">FILL</span>,
+    mapType: <span class="hljs-type">Ti</span>.<span class="hljs-type">Map</span>.<span class="hljs-type">STANDARD_TYPE</span>,
+    region: region,
+    regionFit: <span class="hljs-literal">true</span>,
+    top: <span class="hljs-number">60</span>,
+    userLocation: <span class="hljs-literal">true</span>,
+    width: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">FILL</span>
+});
+win.add(map);
+
+<span class="hljs-keyword">var</span> btn = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createButton({
+    height: <span class="hljs-number">50</span>,
+    left: <span class="hljs-number">10</span>,
+    right: <span class="hljs-number">10</span>,
+    title: '<span class="hljs-type">Add</span> <span class="hljs-type">Route</span>',
+    top: <span class="hljs-number">5</span>,
+    width: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">FILL</span>
+});
+win.add(btn);
+btn.addEventListener('click', function (e) {
+    addRoute({
+        map: map,
+        region: '<span class="hljs-type">UK</span>',
+        start: '<span class="hljs-type">Cambridge</span>',
+        stop: '<span class="hljs-type">Birmingham</span>'
+    });
+});
+
+<span class="hljs-keyword">var</span> tabGroup = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createTabGroup();
+tabGroup.addTab(tab1);
+tabGroup.open();
+</code></pre><p>It also works on Android and iOS the same as yours does.</p>
+<p>Let me know what you think;</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 23rd 2013, 8:56:58 am">January 23rd 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/147272/get-route-on-a-map---solution-not-a-question#answer-255155" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>very cool, your solution is excellent, mine was just a very rough way in which we can achieve routes, I hope yours will serve as a guide to anyone who needs to use routes in their apps with maps. Thanks!!.<br>P.S. you could make a great module out of it</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 24th 2013, 4:26:13 am">January 24th 2013</span>
+											by <span class='authorname'>Parijat Naik</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Malcolm</p>
+<p>I tested your code and it works great.</p>
+<p>But I need to draw multiple routes, but the code only draw 1.</p>
+<p>So if I call addRoute(obj) function multiple times, it only show me the last route.</p>
+<p>Any idea of how to fix it?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 27th 2014, 2:48:22 pm">November 27th 2014</span>
+											by <span class='authorname'>Hund Dunkel</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

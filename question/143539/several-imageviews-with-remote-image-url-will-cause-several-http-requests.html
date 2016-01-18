@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>several imageviews with remote image url will cause several http requests? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>several imageviews with remote image url will cause several http requests?</h1>
+		</header>
+		<section>
+			<p>titanium sdk:2.1.1  os:mac  platform:android<br>i have several imageviews,say 10. each of them has a remote image url. will this cause 10 http requests underground?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 16th 2012, 2:54:29 am">October 16th 2012</span>
+				by <span class='authorname'>kent hao</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>imageview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-249343">
+				
+						<section>
+							<p>No. you can cache the images and recycle:</p>
+<pre><code class="hljs">exports.cache = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">imageDirectoryName, url, imageViewObject, hires</span>) </span>{
+    <span class="hljs-keyword">var</span> isFresh = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">file</span>) </span>{
+        <span class="hljs-keyword">if</span> (file &amp;&amp; file.exists()) {
+            <span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>);
+            <span class="hljs-keyword">var</span> timestamp = file.modificationTimestamp();
+            <span class="hljs-keyword">var</span> mtime = moment(timestamp);
+            <span class="hljs-keyword">var</span> now = moment();
+            <span class="hljs-keyword">if</span> (now.diff(mtime) &gt; <span class="hljs-number">3600000</span>)
+                <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+    <span class="hljs-keyword">var</span> filename = Titanium.Utils.md5HexDigest(url) + <span class="hljs-string">'.jpg'</span>;
+    <span class="hljs-keyword">var</span> hiresfilename;
+    hiresfilename = filename.split(<span class="hljs-string">'.'</span>);
+    hiresfilename = hiresfilename[hiresfilename.length - <span class="hljs-number">2</span>] + <span class="hljs-string">'@2x'</span> + hiresfilename[hiresfilename.length - <span class="hljs-number">1</span>];
+    <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName, filename);
+    <span class="hljs-keyword">var</span> hiresfile = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName, hiresfilename);
+
+    <span class="hljs-keyword">if</span> (isFresh(file)) {
+        imageViewObject.image = file.nativePath;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">var</span> g = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName);
+        <span class="hljs-keyword">if</span> (!g.exists()) {
+            g.createDirectory();
+        };
+        <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span>) {
+                file.write(xhr.responseData);
+                file.remoteBackup = <span class="hljs-literal">false</span>;
+                <span class="hljs-keyword">if</span> (hires) {
+                    hiresfile.write(xhr.responseData);
+                    hiresfile.remoteBackup = <span class="hljs-literal">false</span>;
+                }
+                imageViewObject.image = file.nativePath;
+            };
+        };
+        xhr.open(<span class="hljs-string">'GET'</span>, url);
+        xhr.send();
+    };
+};
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 16th 2012, 4:11:21 am">October 16th 2012</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/143539/several-imageviews-with-remote-image-url-will-cause-several-http-requests#answer-249343" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>hi Schleevoigt,</p>
+<p>thanks for your answer. i learned your code, it&#39;s useful when you request the same image. But if the 10 imageviews have 10 different remote images, then in your code, there will be 10 http requests, right?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 16th 2012, 4:27:52 am">October 16th 2012</span>
+											by <span class='authorname'>kent hao</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Help with Webview » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Help with Webview</h1>
+		</header>
+		<section>
+			<ol>
+<li><p>Below is the codes i have so far i am trying to allow my webview to goback in history when the device back button is clicked on.</p>
+</li>
+<li><p>secondly i would like my webview to only open my url any other urls should be opened with the device default browser outside of my app.</p>
+</li>
+<li><p>lastly webview flashes when url is loaded this is because i added android:hardwareAccelerated=&quot;true&quot; to my android manifest file which is needed for youtube videos to play on my android devices. please i am new to appcelerator and help would be greatly appreciated. Thanks again<br>~~~<br>var win = Titanium.UI.createWindow({<br> title:&quot;Youtube&quot;,<br> backgroundColor:&quot;#000000&quot;,<br> showScrollbars:false,<br> backgroundImage:&quot;Default.png&quot;,<br> fullscreen:true,<br> statusBarHidden:true,<br> &#x2F;&#x2F;Our first screen will not have a navBar<br> &#x2F;&#x2F;but if you prefer you can keep the navBar visible.<br> navBarHidden:true,</p>
+<pre><code class="hljs"><span class="hljs-string">tabBarHidden:</span><span class="hljs-literal">true</span>,
+</code></pre></li>
+</ol>
+<p>});</p>
+<p>var webView = Titanium.UI.createWebView({<br>    url:&quot;http:&#x2F;&#x2F;mobile.mywebsite.com&quot;,<br>    showScrollbars:false,<br>    enableZoomControls:false,<br>    backgroundColor:&quot;#000000&quot;,<br>    disableBounce:true,<br>    backgroundImage:&quot;Default.png&quot;</p>
+<p>});<br>~~~</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 10th 2013, 1:39:06 pm">February 10th 2013</span>
+				by <span class='authorname'>Tunde Folorunsho</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>appcelerator</span></li>
+					
+						<li><span class='tagname'>webview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-256522">
+				
+						<section>
+							<p>1 - A navbar is not going to provide &quot;back&quot; capabilities to the webview.  Typically, you would use a navigation controller to manage discrete windows.  If you look at your code, it&#39;s fairly clear that there is no connection between the webview and the navbar of the window.  How would the navbar know to send a &quot;back&quot; command to the webview?</p>
+<p>You need to explicitly manage this yourself.  Add a button to your UI.  Use the WebView.canGoBack() function to determine whether you should enable the button.  Use the WebView.goBack() function to make the browser go back.</p>
+<p>2 - This is difficult.   To open a URL in the device&#39;s browser, you need to call Ti.Platform.openURL().  This call must be in your application&#39;s Javascript (it can&#39;t be in the web page&#39;s javascript, since the web page doesn&#39;t have access to the entire Ti API).  You need to fire an application-level event from the webview, with a listener in your application code.  The listener will make the call to Ti.Platform.openURL().</p>
+<p>Here&#39;s the rub: if the HTML is originating from an external server, the Javascript in the page cannot access the Ti API at all.  So it can&#39;t even fire the application-level event.  </p>
+<p>One approach is this: instead of having the WebView load the page, use an HTTPClient to load the HTML, process it to inject some javascript that will intercept clicks on links and fire the app event, and then take the resulting HTML&#x2F;Javascript and load it into the WebView as a <em>local</em> document.  This will allow the document&#39;s Javascript to access the Ti API and fire the app event.</p>
+<p>Another alternative is the &quot;link queue&quot; technique that Beau Liddell outlines in <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;18321&#x2F;open-link-in-safari-onclick-within-webview">this post</a>.  He lets the webview load the document directly, and then uses evalJS() to run some Javascript within the document to alter all the hyperlinks.  He then uses evalJS() every 1&#x2F;3 second to check whether a link has been clicked.  It looks like a particularly clever technique, but I&#39;ve never tried it myself.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 11th 2013, 11:39:13 am">February 11th 2013</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/148081/help-with-webview#answer-256522" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

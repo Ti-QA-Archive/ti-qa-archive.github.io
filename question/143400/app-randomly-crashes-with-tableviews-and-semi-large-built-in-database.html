@@ -1,0 +1,371 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>App randomly crashes with TableViews and semi-large built-in database » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>App randomly crashes with TableViews and semi-large built-in database</h1>
+		</header>
+		<section>
+			<p>I can&#39;t find a pattern to this or why the app crashes. I used XCode to look for leaks and there really isn&#39;t anything of significance. The app goes through nested Windows that contain TableViews within a TabGroup. The database is fairly large - close to 1 MB. There are a lot of rows that are returned at times, but the app is consuming roughly under 2 MB of memory before it crashes. It does seem to take a while to crash it, but it&#39;s still a crash, and I don&#39;t like it. Sometimes instead of crashing, the TabGroup and the top bar disappears - and it&#39;s completely non-functional. The only way to make it work is to manually close the app and reopen it.</p>
+<p>Here is what my code looks like from one of my Windows. I can&#39;t really post all the code, but it looks very much the same between Windows. Am I not following best practices? I can&#39;t figure this out, and I am new to Titanium.</p>
+<pre><code class="hljs">(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-comment">// create var for the currentWindow</span>
+    <span class="hljs-keyword">var</span> currentWin = Ti.UI.currentWindow;
+
+    <span class="hljs-comment">// get product category passed to Window</span>
+    <span class="hljs-keyword">var</span> prodCat = Ti.UI.currentWindow.prodCat;
+
+    <span class="hljs-comment">// set the data from the database to the array</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setData</span><span class="hljs-params">()</span> </span>{
+
+        <span class="hljs-keyword">var</span> db = Ti.Database.install(<span class="hljs-string">'/db/ngpcertified.sqlite'</span>,<span class="hljs-string">'ngpcertified'</span>);
+
+        <span class="hljs-keyword">var</span> query;
+
+        <span class="hljs-comment">// If product is dairy, make sure not to get alternative dairy products</span>
+
+        <span class="hljs-keyword">if</span> (prodCat == <span class="hljs-string">'Dairy'</span>) {
+            query = <span class="hljs-string">"SELECT BrandName FROM ngpcertified WHERE Categories LIKE '%Dairy Products%' AND Categories NOT LIKE '%Alternative Dairy Products%' UNION SELECT BrandName FROM noupc WHERE Categories LIKE '%Dairy%' AND Categories NOT LIKE '%Alternative Dairy Products%'"</span>;
+        } <span class="hljs-keyword">else</span> {
+            query = <span class="hljs-string">"SELECT DISTINCT BrandName FROM ngpcertified WHERE Categories LIKE '%"</span>+ prodCat
+                +<span class="hljs-string">"%' UNION SELECT DISTINCT BrandName FROM noupc WHERE Categories LIKE '%"</span>+ prodCat +<span class="hljs-string">"%' ORDER BY BrandName"</span>;
+        }
+
+        <span class="hljs-keyword">var</span> rows = db.execute(query);
+
+        <span class="hljs-comment">// create the array</span>
+        <span class="hljs-keyword">var</span> dataArray = [];
+
+        <span class="hljs-comment">// Create a table row that takes user to All Products</span>
+        dataArray.push({title: <span class="hljs-string">'All '</span>+ prodCat +<span class="hljs-string">' Products'</span>, path:<span class="hljs-string">"/ui/common/product_all_category.js"</span>, font:{fontWeight:<span class="hljs-string">'bold'</span>, fontSize:<span class="hljs-number">16</span>}, hasChild:<span class="hljs-literal">true</span>});
+
+        <span class="hljs-keyword">while</span> (rows.isValidRow())
+        {
+            dataArray.push({title:<span class="hljs-string">''</span> + rows.fieldByName(<span class="hljs-string">'BrandName'</span>) + <span class="hljs-string">''</span>, font:{fontWeight:<span class="hljs-string">'normal'</span>, fontSize:<span class="hljs-number">16</span>}, hasChild:<span class="hljs-literal">true</span>, path:<span class="hljs-string">'/ui/common/product_list.js'</span>});
+            rows.next();    
+        };
+
+        rows.close();
+        db.close();
+
+        <span class="hljs-comment">// set the array to the tableView</span>
+        tableview.setData(dataArray);
+    };
+
+    <span class="hljs-comment">// create table view</span>
+    <span class="hljs-keyword">var</span> tableview = Ti.UI.createTableView({});
+
+    <span class="hljs-keyword">var</span> win, prodName;
+    tableview.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+    </span>{
+        <span class="hljs-keyword">if</span> (e.rowData.path)
+        {
+            win = Ti.UI.createWindow({
+                url:e.rowData.path,
+                title:e.rowData.title,
+                backgroundColor:<span class="hljs-string">'white'</span>
+            });
+
+            prodName = e.rowData.title;
+            win.prodCat = Ti.UI.currentWindow.prodCat;
+            win.prodName = prodName;
+            Ti.UI.currentTab.open(win);
+        }
+    });
+
+    currentWin.add(tableview);
+    setData();
+})();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 11th 2012, 9:05:28 pm">October 11th 2012</span>
+				by <span class='authorname'>Kyle Day</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+						<li><span class='tagname'>table</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Have you tried adding className properties for your table rows? I&#39;ve found Titanium apps to be quite unstable without them, especially in Android (I&#39;m assuming you&#39;re talking about on the iPhone here).</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 11th 2012, 9:28:12 pm">October 11th 2012</span>
+								by <span class='authorname'>Chris Dunstall</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Ok, I am reading about className. Do I define a font, etc on each row with a className? I am confused. Is there a way to define a class. Or does adding an identical className to each row automatically increase performance somehow?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 11th 2012, 9:40:29 pm">October 11th 2012</span>
+								by <span class='authorname'>Kyle Day</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Ok, I added className to all rows. Didn&#39;t make a difference. Still crashes. I figured out if I open and close enough TableViews in a certain order, the crash is kind of predictable. As if I reach a memory limit. But I don&#39;t has memory stays at ~2 MB. I restructured code so there is no SetData() function too. No difference.</p>
+<p>Any tips on how to make tables NOT crash on iPhone. If you don&#39;t have a lot of tables and data, I think it&#39;s likely you would never see this crash.</p>
+<p>If it&#39;s somewhat predictable after opening and closing Windows&#x2F;Tables a certain amount of times, what could be going wrong if there is no memory issues?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 12th 2012, 1:32:10 am">October 12th 2012</span>
+								by <span class='authorname'>Kyle Day</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-249132">
+				
+						<section>
+							<p>Yes, iPhone. What would be the purpose of the className properties. I have to dive into documentation I guess. But will that require me to rewrite code?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 11th 2012, 9:32:05 pm">October 11th 2012</span>
+								by <span class='authorname'>Kyle Day</span><br>
+								<a class="icon-bg icon-link" href="question/143400/app-randomly-crashes-with-tableviews-and-semi-large-built-in-database#answer-249132" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249134">
+				
+						<section>
+							<p>you may want try <a href="https:&#x2F;&#x2F;marketplace.appcelerator.com&#x2F;apps&#x2F;1976">this module</a> if you think it&#39;s because of the large data set. It will give you paging ability. It was intended for web services but is also configurable to work with local data.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 12th 2012, 3:01:34 am">October 12th 2012</span>
+								by <span class='authorname'>Alexander Bauer</span><br>
+								<a class="icon-bg icon-link" href="question/143400/app-randomly-crashes-with-tableviews-and-semi-large-built-in-database#answer-249134" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi, thanks. This app is already going to cost me $100 for special web services, so there is no way I can put $20 a month on top of that.</p>
+<p>I think it&#39;s because of large data sets, but I&#39;m experimenting with workarounds. Apple and most users may not catch or encounter this bug, but I still want it ironed out. Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 12th 2012, 3:10:19 am">October 12th 2012</span>
+											by <span class='authorname'>Kyle Day</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-249143">
+				
+						<section>
+							<p>I found an (ugly) solution&#x2F;workaround. The app won&#39;t crash with the added events at the bottom. Only problem is I want to store the getCenter() point where the table left off before I destroyed it. My brain needs a break can&#39;t think of a solution right now, but I know there is one.</p>
+<p>I was trying to create an empty view and pass with the BugFixView.getCenter(), but this is now getting really ugly. And I couldn&#39;t figure it out anyway.</p>
+<p>Any help at saving a center point variable for each window is appreciated. </p>
+<pre><code class="hljs">(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-comment">// create var for the currentWindow</span>
+    <span class="hljs-keyword">var</span> currentWin = Ti.UI.currentWindow;
+    <span class="hljs-keyword">var</span> tableview;
+
+    <span class="hljs-keyword">var</span> populate = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-comment">// get product category passed to Window</span>
+        <span class="hljs-keyword">var</span> prodCat = Ti.UI.currentWindow.prodCat;
+
+        <span class="hljs-comment">// create table view</span>
+        tableview = Ti.UI.createTableView({});
+
+        <span class="hljs-keyword">var</span> win, prodName;
+        tableview.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+        </span>{
+            <span class="hljs-keyword">if</span> (e.rowData.path)
+            {
+                win = Ti.UI.createWindow({
+                    url:e.rowData.path,
+                    title:e.rowData.title,
+                    backgroundColor:<span class="hljs-string">'white'</span>
+                });
+
+                prodName = e.rowData.title;
+                win.prodCat = Ti.UI.currentWindow.prodCat;
+                win.prodName = prodName;
+                Ti.UI.currentTab.open(win);
+            }
+        });
+
+        currentWin.add(tableview);
+
+        <span class="hljs-keyword">var</span> db = Ti.Database.install(<span class="hljs-string">'/db/ngpcertified.sqlite'</span>,<span class="hljs-string">'ngpcertified'</span>);
+
+        <span class="hljs-keyword">var</span> query;
+
+        <span class="hljs-comment">// If product is dairy, make sure not to get alternative dairy products</span>
+
+        <span class="hljs-keyword">if</span> (prodCat == <span class="hljs-string">'Dairy'</span>) {
+            query = <span class="hljs-string">"SELECT BrandName FROM ngpcertified WHERE Categories LIKE '%Dairy Products%' AND Categories NOT LIKE '%Alternative Dairy Products%' UNION SELECT BrandName FROM noupc WHERE Categories LIKE '%Dairy%' AND Categories NOT LIKE '%Alternative Dairy Products%'"</span>;
+        } <span class="hljs-keyword">else</span> {
+            query = <span class="hljs-string">"SELECT DISTINCT BrandName FROM ngpcertified WHERE Categories LIKE '%"</span>+ prodCat
+                +<span class="hljs-string">"%' UNION SELECT DISTINCT BrandName FROM noupc WHERE Categories LIKE '%"</span>+ prodCat +<span class="hljs-string">"%' ORDER BY BrandName"</span>;
+        }
+
+        <span class="hljs-keyword">var</span> rows = db.execute(query);
+
+        <span class="hljs-comment">// create the array</span>
+        <span class="hljs-keyword">var</span> dataArray = [];
+
+        <span class="hljs-comment">// Create a table row that takes user to All Products</span>
+        dataArray.push({title: <span class="hljs-string">'All '</span>+ prodCat +<span class="hljs-string">' Products'</span>, path:<span class="hljs-string">"/ui/common/product_all_category.js"</span>, font:{fontWeight:<span class="hljs-string">'bold'</span>, fontSize:<span class="hljs-number">16</span>}, hasChild:<span class="hljs-literal">true</span>});
+
+        <span class="hljs-keyword">while</span> (rows.isValidRow())
+        {
+            dataArray.push({title:<span class="hljs-string">''</span> + rows.fieldByName(<span class="hljs-string">'BrandName'</span>) + <span class="hljs-string">''</span>, font:{fontWeight:<span class="hljs-string">'normal'</span>, fontSize:<span class="hljs-number">16</span>}, className: <span class="hljs-string">'products'</span>, hasChild:<span class="hljs-literal">true</span>, path:<span class="hljs-string">'/ui/common/product_list.js'</span>});
+            rows.next();    
+        };
+
+        rows.close();
+        db.close();
+
+        <span class="hljs-comment">// set the array to the tableView</span>
+        tableview.setData(dataArray);
+    }
+
+    <span class="hljs-comment">// remove and repopulate tables so app doesn't crash</span>
+    currentWin.addEventListener(<span class="hljs-string">'blur'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        currentWin.remove(tableview);
+        tableview = <span class="hljs-literal">null</span>;
+    });
+    currentWin.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        populate();
+    });
+})();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 12th 2012, 5:36:02 am">October 12th 2012</span>
+								by <span class='authorname'>Kyle Day</span><br>
+								<a class="icon-bg icon-link" href="question/143400/app-randomly-crashes-with-tableviews-and-semi-large-built-in-database#answer-249143" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I forgot to mention, the problem the table is destroyed and recreated so it loses its center position. When the user goes back to the window, they are all the way at the top.</p>
+<p>It works, just a tad annoying since it&#39;s not the usual behavior of a table.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 12th 2012, 5:38:19 am">October 12th 2012</span>
+											by <span class='authorname'>Kyle Day</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

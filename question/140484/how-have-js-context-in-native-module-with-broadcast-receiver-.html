@@ -1,0 +1,217 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How have JS context in native module with Broadcast receiver ? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How have JS context in native module with Broadcast receiver ?</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I try to create an Android module using Broadcast receiver to detect network change.</p>
+<p>My broadcast receiver works and I can call a callBack method, but when my application is closed, I have an error about V8 runtime disposed.</p>
+<p>I try to create to use the same mechanism lie service using an url property to give js file to my module.<br>After that I use KrollRuntime.runModule to execute this code. Is works if my application run but if it was closed runModule wait the next starting.</p>
+<p>Is there an other way to have a JS context in my module (something around KrollProxy) an evaluate my js code ?</p>
+<p>Thanks,</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 2nd 2012, 2:04:23 pm">August 2nd 2012</span>
+				by <span class='authorname'>Sébastien Boury</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>broadcast receiver</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>service</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-244392">
+				
+						<section>
+							<p>I managed to create a native intentService that executes javascript code.<br>Here the code it works (I use activity count to have V8 runtime even if the application is minimized).<br>I saw in there is a last fix to add service count. I could use it when this version will be released.</p>
+<pre><code class="hljs">...
+<span class="hljs-keyword">protected</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onHandleIntent</span><span class="hljs-params">(Intent intent)</span> </span>{
+    KrollRuntime.incrementActivityRefCount();
+    <span class="hljs-keyword">try</span> {
+        KrollRuntime.getInstance().evalString(
+                        KrollAssetHelper.readAsset(getPath(<span class="hljs-string">"background.js"</span>)), 
+                        getPath(<span class="hljs-string">"background.js"</span>));                
+    }
+    <span class="hljs-keyword">finally</span> {
+        KrollRuntime.decrementActivityRefCount();
+    }
+}
+
+<span class="hljs-comment">/**
+ * To have absolue path
+ * <span class="hljs-doctag">@param</span> url
+ * <span class="hljs-doctag">@return</span>
+ */</span>
+<span class="hljs-keyword">private</span> <span class="hljs-function">String <span class="hljs-title">getPath</span><span class="hljs-params">(String url)</span> </span>{
+    String fullUrl = url;
+    <span class="hljs-keyword">if</span> (!fullUrl.contains(<span class="hljs-string">"://"</span>) &amp;&amp; !fullUrl.startsWith(<span class="hljs-string">"/"</span>)) {
+        fullUrl = <span class="hljs-keyword">new</span> TiUrl(url).baseUrl + fullUrl;
+    }
+
+    <span class="hljs-keyword">if</span> (fullUrl.startsWith(TiC.URL_APP_PREFIX)) {
+        fullUrl = fullUrl.replaceAll(<span class="hljs-string">"app:/"</span>, <span class="hljs-string">"Resources"</span>);
+
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (fullUrl.startsWith(TiC.URL_ANDROID_ASSET_RESOURCES)) {
+        fullUrl = fullUrl.replaceAll(<span class="hljs-string">"file:///android_asset/"</span>, <span class="hljs-string">""</span>);
+    }
+
+    <span class="hljs-keyword">return</span> fullUrl;
+    }
+...
+</code></pre><p>But I still have one last issue, when the process is closed. The broadcast receiver triggers process starting, but in this case the Runtime doesn&#39;t seem complete and KrollRuntime.incrementActivityRefCount hang.<br>I think it&#39;s the CountDownLatch which wait but I don&#39;t know how have good runtime in this case.</p>
+<p>Someone can I help me please ?<br>Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 3rd 2012, 10:55:04 am">August 3rd 2012</span>
+								by <span class='authorname'>Sébastien Boury</span><br>
+								<a class="icon-bg icon-link" href="question/140484/how-have-js-context-in-native-module-with-broadcast-receiver-#answer-244392" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-265523">
+				
+						<section>
+							<p>I need to know the answer to this as well. Did you figure this out? I&#39;ve created a foreground service through a module I&#39;ve made, but if I close the app the js no longer runs despite the fact that the service continues to.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 7th 2013, 11:30:04 pm">July 7th 2013</span>
+								by <span class='authorname'>John Louderback</span><br>
+								<a class="icon-bg icon-link" href="question/140484/how-have-js-context-in-native-module-with-broadcast-receiver-#answer-265523" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-265529">
+				
+						<section>
+							<p>To,<br>  Sebastien Boury</p>
+<p>Sir,I&#39;m facing problem while creating a module  using Broadcast receiver to detect network change.Can u please share the code for the broadcast receiver which you have used to create a broadcast receiver.<br>Sir,please mail me at this email id:vishwanathkoolp@gmail.com</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 8th 2013, 6:06:57 am">July 8th 2013</span>
+								by <span class='authorname'>Ethan Hunt</span><br>
+								<a class="icon-bg icon-link" href="question/140484/how-have-js-context-in-native-module-with-broadcast-receiver-#answer-265529" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I&#39;m just a new in Titanium world. Now, I&#39;m facing the same problem with you (using broadcast receiver to detect network change). If you solve to problem, please send me your solution by comment here or email me at khanh.tran3005@gmail.com</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 31st 2014, 5:57:09 am">July 31st 2014</span>
+											by <span class='authorname'>Toshiya Momota</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

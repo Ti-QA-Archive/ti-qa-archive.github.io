@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS fix to calculate the label height » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS fix to calculate the label height</h1>
+		</header>
+		<section>
+			<p>This is a quick fix for those of you who (like me) are tired of various complicated workarounds for label height calculation. Note that this fix is for iOS.</p>
+<ul>
+<li>Navigate to iOS titanium SDK, mine is in <code>&amp;#x2F;Library&amp;#x2F;Application Support&amp;#x2F;Titanium&amp;#x2F;mobilesdk&amp;#x2F;osx&amp;#x2F;2.1.4.GA&amp;#x2F;iphone&amp;#x2F;Classes</code>.</li>
+<li>Open <code>TiUiLabelProxy.m</code> in xcode. Doubleclicking that file should do fine.</li>
+<li><p>Scroll to the bottom of the file. Just before @end insert this code:</p>
+<pre><code class="hljs">-(<span class="hljs-keyword">id</span>)suggestHeight:(<span class="hljs-keyword">id</span>)arg
+{
+  <span class="hljs-built_in">CGFloat</span> height = <span class="hljs-number">0</span>;
+
+  <span class="hljs-comment">// resolve arg</span>
+  <span class="hljs-keyword">if</span> (arg != <span class="hljs-literal">nil</span> &amp;&amp; [arg isKindOfClass:[<span class="hljs-built_in">NSArray</span> class]])
+  {
+      <span class="hljs-built_in">NSArray</span> *args = (<span class="hljs-built_in">NSArray</span> *)arg;
+      <span class="hljs-keyword">if</span> (args<span class="hljs-variable">.count</span> &gt; <span class="hljs-number">0</span>)
+          arg = [args objectAtIndex:<span class="hljs-number">0</span>];
+      <span class="hljs-keyword">else</span>
+          arg = <span class="hljs-literal">nil</span>;
+  }
+
+  <span class="hljs-comment">// if no arg then use defined width for the label</span>
+  <span class="hljs-keyword">if</span> (arg == <span class="hljs-literal">nil</span>)
+      arg = [<span class="hljs-keyword">self</span> valueForKey:<span class="hljs-string">@"width"</span>];
+
+  <span class="hljs-comment">// if arg set then compute the width</span>
+  <span class="hljs-keyword">if</span> (arg != <span class="hljs-literal">nil</span>)
+  {
+      TiDimension d = [TiUtils dimensionValue:arg];
+      <span class="hljs-built_in">CGFloat</span> width = <span class="hljs-number">0</span>;
+      <span class="hljs-keyword">if</span> (d<span class="hljs-variable">.type</span> == TiDimensionTypeDip)
+          width = d<span class="hljs-variable">.value</span>;
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (d<span class="hljs-variable">.type</span> == TiDimensionTypePercent &amp;&amp; <span class="hljs-keyword">self</span><span class="hljs-variable">.parent</span> != <span class="hljs-literal">nil</span>)
+          width = [<span class="hljs-keyword">self</span><span class="hljs-variable">.parent</span><span class="hljs-variable">.size</span><span class="hljs-variable">.width</span> floatValue] * d<span class="hljs-variable">.value</span>;
+      <span class="hljs-keyword">if</span> (width&gt;<span class="hljs-number">0</span>)
+          height = [<span class="hljs-keyword">self</span> contentHeightForWidth:width];
+  }
+
+  <span class="hljs-keyword">return</span> [<span class="hljs-built_in">NSNumber</span> numberWithFloat:height];
+}
+</code></pre></li>
+<li>Save the file and close xcode.</li>
+<li>Open your project in titanium studio, make sure the SDK is set to the one you modified (2.1.4.GA in my case).</li>
+<li>Clean your project (Menu: Project&gt;Clean)</li>
+</ul>
+<p>Now if you create a label like this:<br><code>var lbl = Ti.UI.createLabel({width:256,text:&amp;#39;Some text to measure&amp;#39;,font:{fontFamily:&amp;#39;Helvetica Neue&amp;#39;,fontSize:16},...    });</code> you can easily get height by calling <code>lbl.suggestHeight();</code>. You can optionally supply an argument if you need a height for custom width: <code>lbl.suggestHeight(200);</code>.</p>
+<p>Happy coding!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 21st 2013, 10:14:42 am">January 21st 2013</span>
+				by <span class='authorname'>Ondrej Urik</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>calculate</span></li>
+					
+						<li><span class='tagname'>height</span></li>
+					
+						<li><span class='tagname'>label</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Thanks for sharing this…keep updating forum by your excellence.. :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 21st 2013, 10:21:33 am">January 21st 2013</span>
+								by <span class='authorname'>Sarafaraz Babi</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-255028">
+				
+						<section>
+							<p>Hi</p>
+<p>May I ask why you could not have used <strong>Ti.UI.SIZE</strong> for labels when you have unknown heights, if you combine this with a parent view or window that uses the <strong>layout</strong> property with either <strong>horizontal</strong> or <strong>vertical</strong> then there is rarely a need to determine the height.</p>
+<p>I am genuinely interested, could you let me have a code snippet and scenario, if I am missing something I like to fill in the gaps and you appear to have spent time going through this.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 21st 2013, 10:22:59 am">January 21st 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/147190/ios-fix-to-calculate-the-label-height#answer-255028" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Main reason? To use less resources where possible. I know I can use vertical layout or off screen view composition techniques and <a href="http:&#x2F;&#x2F;www.google.co.uk&#x2F;search?q=appcelerator+label+height">other ways</a> to determine the height etc. But I was looking for more programmatic approach that would allow me to pre-compose views before they are added to their respective parents and&#x2F;or rendered. And since many of the iOS projects I work with use dynamic data (with unknown size&#x2F;length) that are used to setup a fairly complex views, I had to come up with a solution that&#39;d fit my needs.</p>
+<p>Code snippet? Take <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;135568&#x2F;how-to-calculate-size-of-a-label-without-adding-it-to-a-view">this</a> for example - toImage is clunky. That method above is less resource hungry.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2013, 10:48:18 am">January 21st 2013</span>
+											by <span class='authorname'>Ondrej Urik</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I agree it can be a pain sometimes and I would never suggest; toImage() for dimensions nor would I use off-screen composition.</p>
+<p>I have some very complex layouts in many projects and never need to dynamically determine the height of labels or other objects as there are ways to achieve it without these.</p>
+<p>There are also of course <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.UI.View-method-getRect">getRect</a> and <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.UI.View-method-getSize">getSize</a> as well as the event <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.UI.View-event-postlayout">postlayout</a> although this can cause more problems if not used when you are fully alert :)</p>
+<p>As I said, I am interested and eager to learn situations that cannot be easily solved, I am not suggesting what you are doing is wrong in anyway - just that I have not had to deal a situation that causes this work-around.  So knowing what to expect before I hit it is useful.</p>
+<p>So if you have code to share where this is required I would love to see it.  If not I understand and thanks for the input you have already shared.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2013, 10:58:31 am">January 21st 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-268012">
+				
+						<section>
+							<p>Here&#39;s one example use case where this native method is needed…</p>
+<p>Consider a situation where you need to resize &#x2F; animate a UIView&#39;s height based on the size of each child element, but each child (UILabel, etc) has relative dimensions that are dynamically rendered via <code>Ti.UI.SIZE</code>.  You want to animate, or &quot;grow&quot;, the parent container, but invoking getRect() or getSize() on the table or individual rows yields no value. Using postLayout() fails as it&#39;s invoked repeatedly during resize routine and doesn&#39;t contain the actual height and can be rather messy.  toImage() yields a workable result, but it&#39;s not elegant, not memory efficient and is prone to crashes.</p>
+<p>A solution: you need native access to the parent dimensions. Invoke suggestHeight() on the tableview after the data is rendered to determine the post height, then animate the container height.</p>
+<pre><code class="hljs">var h = view.children[<span class="hljs-number">0</span>].suggestHeight(<span class="hljs-number">260</span>);
+ $.box.animate({
+    height:h+<span class="hljs-number">60</span>, <span class="hljs-comment">// tableview + header</span>
+    duration:<span class="hljs-number">300</span>
+ });
+</code></pre><p>Video of final effect: <a href="https:&#x2F;&#x2F;www.monosnap.com&#x2F;file&#x2F;y1DzE5ZUxxFVEfc903bEZr9q6CsvXL">https:&#x2F;&#x2F;www.monosnap.com&#x2F;file&#x2F;y1DzE5ZUxxFVEfc903bEZr9q6CsvXL</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 3rd 2013, 3:26:07 pm">September 3rd 2013</span>
+								by <span class='authorname'>TZ Martin</span><br>
+								<a class="icon-bg icon-link" href="question/147190/ios-fix-to-calculate-the-label-height#answer-268012" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

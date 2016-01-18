@@ -1,0 +1,325 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Profiling and cleaning up objects » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Profiling and cleaning up objects</h1>
+		</header>
+		<section>
+			<p>I believe I have a memory leak issue with this section of code.  While profiling it on my MAC using Instruments, I can see my number of #Living objects continue to grow while it is executing.  If I comment the code out, it appears that the number of #Living objects returns to the predicted number of objects repeatedly.</p>
+<p>Quick summary it creates status messages on the screen after the user attempts to upload records.  I clear out the array and rebuild it with the messages each time.  I believe the problem is that the object created by the createStatus function isn&#39;t being &#39;disposed&#39; of properly.  Should I create a function that explicitly sets my status = null, status.removeEventListener(&#39;click&#39;) and statusMsg = null?  The section near &#39;&#x2F;&#x2F; Clear status management array&#39; is when I attempt clean up the object by setting that reference to null.  </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> createStatus = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">severity, msg</span>) </span>{
+        <span class="hljs-keyword">var</span> color;
+        <span class="hljs-keyword">switch</span>(severity) {
+            <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
+                color = <span class="hljs-string">'#a0d080'</span>;
+                <span class="hljs-comment">// Green</span>
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-number">2</span>:
+                color = <span class="hljs-string">'#fbec5d'</span>;
+                <span class="hljs-comment">// Maize</span>
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-number">3</span>:
+                color = <span class="hljs-string">'#ffc0cb'</span>;
+                <span class="hljs-comment">// Pink</span>
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">default</span>:
+                color = <span class="hljs-string">"#ffffff"</span>;
+                <span class="hljs-keyword">break</span>
+        }
+
+        <span class="hljs-keyword">var</span> status = Ti.UI.createView({
+            top : <span class="hljs-string">'10dp'</span>,
+            width : <span class="hljs-string">'80%'</span>,
+            height : <span class="hljs-string">'50dp'</span>,
+            backgroundColor : color,
+            border : <span class="hljs-string">'1dp'</span>,
+            borderColor : <span class="hljs-string">'#000000'</span>
+        });
+        status.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            status.visible = <span class="hljs-literal">false</span>;
+        });
+        <span class="hljs-keyword">var</span> statusMsg = Ti.UI.createLabel({
+            <span class="hljs-comment">//top: '5dp',</span>
+            text : msg
+        });
+        status.add(statusMsg);
+
+        status.clear = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+            status.remo
+        }
+
+        <span class="hljs-keyword">return</span> status;
+    }
+
+    <span class="hljs-comment">// Shows actions pending for the device.  It is always visible and it allows the user to see a</span>
+    <span class="hljs-comment">// the status of their records.</span>
+
+    <span class="hljs-keyword">var</span> statusMsg = [];
+
+    <span class="hljs-keyword">var</span> statusContainer = Ti.UI.createView({
+        layout: <span class="hljs-string">'vertical'</span>,
+        height: Ti.UI.SIZE
+    });
+
+    <span class="hljs-keyword">var</span> updateStatusLabel = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_args</span>) </span>{
+        <span class="hljs-keyword">var</span> db = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lib/flkdb'</span>);
+        <span class="hljs-comment">// Clear status management array</span>
+        <span class="hljs-keyword">if</span>(statusMsg.length &gt; <span class="hljs-number">0</span>){
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>, sl; i&lt;sl; i++){
+                statusMsg[i] = <span class="hljs-literal">null</span>;
+            }
+        }
+        statusMsg = [];
+        <span class="hljs-comment">// Remove the current statuses from the container</span>
+        <span class="hljs-keyword">var</span> viewCount = statusContainer.children.length;
+        <span class="hljs-keyword">if</span>(viewCount &gt; <span class="hljs-number">0</span>){
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;viewCount; i++){
+                statusContainer.remove(statusContainer.children[((viewCount-<span class="hljs-number">1</span>)-i)]);
+            }
+        }
+
+        <span class="hljs-comment">// Update the message</span>
+        <span class="hljs-keyword">var</span> status = db.dbStatus();
+        <span class="hljs-keyword">if</span>(status.recs === <span class="hljs-number">0</span> &amp;&amp; status.pending === <span class="hljs-number">0</span>){
+            statusMsg.push(createStatus(<span class="hljs-number">1</span>, <span class="hljs-string">"No records to upload."</span>));
+        }
+        <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">typeof</span> _args !== <span class="hljs-string">'undefined'</span> &amp;&amp; _args.status === <span class="hljs-literal">true</span>) {
+            statusMsg.push(createStatus(<span class="hljs-number">1</span>, _args.statusMsg));
+        }
+        <span class="hljs-keyword">if</span> (status.recs &gt; <span class="hljs-number">0</span>) {
+            statusMsg.push(createStatus(<span class="hljs-number">2</span>, status.recs + <span class="hljs-string">" record(s) need to be uploaded.  Press UPLOAD to update."</span>));
+        }
+        <span class="hljs-keyword">if</span> (status.pending &gt; <span class="hljs-number">0</span>) {
+            statusMsg.push(createStatus(<span class="hljs-number">2</span>, status.pending + <span class="hljs-string">" record(s) are pending.  Press UPLOAD to verify status."</span>));
+        }
+        <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">typeof</span> _args !== <span class="hljs-string">'undefined'</span> &amp;&amp; _args.errorStatus === <span class="hljs-literal">true</span>) {
+            <span class="hljs-comment">// There was an error, display it</span>
+            statusMsg.push(createStatus(<span class="hljs-number">3</span>, _args.errorMsg));
+        }
+
+        <span class="hljs-keyword">if</span> (statusMsg.length &gt; <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, m=statusMsg.length; i &lt; m; i++) {
+                statusContainer.add(statusMsg[i]);
+            }
+        }
+    }
+    dashboardView.updateStatus = updateStatusLabel;
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 13th 2013, 6:42:57 pm">February 13th 2013</span>
+				by <span class='authorname'>Martin Grasso</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>memory leak</span></li>
+					
+						<li><span class='tagname'>profiling</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>The status.clear fragment was the start of what I&#39;m talking about above.  I started writing it and then decided to ask about it.  That code wasn&#39;t present in my testing, but I forgot to remove it in my post.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 13th 2013, 6:44:44 pm">February 13th 2013</span>
+								by <span class='authorname'>Martin Grasso</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Found a bug:</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span>(statusMsg.length &gt; <span class="hljs-number">0</span>){
+            <span class="hljs-keyword">for</span>(var i=<span class="hljs-number">0</span>, sl<span class="hljs-comment">; i&lt;sl; i++){</span>
+                statusMsg[i] = <span class="hljs-literal">null</span><span class="hljs-comment">;</span>
+            }
+        }
+</code></pre><p> Now reads:</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span>(statusMsg.length &gt; <span class="hljs-number">0</span>){
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>, sl=statusMsg.length; i&lt;sl; i++){
+                <span class="hljs-comment">//statusMsg[i].clear();</span>
+                statusMsg[i] = <span class="hljs-literal">null</span>;
+            }
+        }
+</code></pre><p>Retesting this in my profiler now.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 13th 2013, 7:08:21 pm">February 13th 2013</span>
+								by <span class='authorname'>Martin Grasso</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-256749">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>You seem suitably knowledgeable to know where to look for the leak info, have you watched this video that talks about what sort of things cause memory leaks?</p>
+<ul>
+<li><a href="http:&#x2F;&#x2F;vimeo.com&#x2F;29804284">Rick Blalock: Your Apps are Leaking - Controlling Memory Leaks</a></li>
+</ul>
+<p>Worth a look, I learnt more than I did before I started, really helped me nail my memory leak.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 13th 2013, 7:32:27 pm">February 13th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/148246/profiling-and-cleaning-up-objects#answer-256749" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Malcolm.  I&#39;ll review it.  I was using the documentation on checking for memory leaks to figure out what to look for.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2013, 7:35:05 pm">February 13th 2013</span>
+											by <span class='authorname'>Martin Grasso</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-256741">
+				
+						<section>
+							<p>Try to put your code into self-invoking function: </p>
+<pre><code class="hljs">(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">//your code</span>
+})();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 13th 2013, 6:46:43 pm">February 13th 2013</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/148246/profiling-and-cleaning-up-objects#answer-256741" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This is a code fragment of a much larger definition for a dashboard screen.  Are you saying to wrap the entire piece of code in the self-invoking function or each of these functions?  These functions reside inside of another creating function for the window.  Currently, I don&#39;t have anything wrapped in the code you suggested.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2013, 7:02:32 pm">February 13th 2013</span>
+											by <span class='authorname'>Martin Grasso</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Or use <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;CommonJS_Modules_in_Titanium">CommonJS</a>. See more best practices <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Best_Practices_and_Recommendations">here</a>.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 13th 2013, 7:26:01 pm">February 13th 2013</span>
+											by <span class='authorname'>Adam Paxton</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yep, wrap everything. The point is in avoiding usage of global scope&#x2F;global variables. Self-invoking function will create local scope that will be destroyed when it finishes with execution.</p>
+<p>You can read more here: <a href="http:&#x2F;&#x2F;zenborgium.blogspot.com&#x2F;2012&#x2F;04&#x2F;ultimate-answer-to-titanium-memory.html">http:&#x2F;&#x2F;zenborgium.blogspot.com&#x2F;2012&#x2F;04&#x2F;ultimate-answer-to-titanium-memory.html</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 14th 2013, 8:40:40 am">February 14th 2013</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

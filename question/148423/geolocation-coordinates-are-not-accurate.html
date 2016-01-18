@@ -1,0 +1,502 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Geolocation coordinates are not accurate » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Geolocation coordinates are not accurate</h1>
+		</header>
+		<section>
+			<p>I&#39;ve enabled the accuracy to accuracy_best but it&#39;s not nearly as accurate as i&#39;d like(It hops from 15 meters out of range to 300 or so) and the GPS locations i receive seem very short(Digit wise). I&#39;m assuming it can be alot more accurate but i can&#39;t figure out how to get larger coordinates(Therefore more accurate)</p>
+<p>Here&#39;s my code: (titanium sdk 3.0.0. Developing for Android 2.2+ and iOS)</p>
+<pre><code class="hljs">Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>, saveCoordinates);
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">saveCoordinates</span>(<span class="hljs-params">e</span>) </span>{
+    getLocation();
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getLocation</span>(<span class="hljs-params"></span>) </span>{
+    Titanium.Geolocation.accuracy = Titanium.Geolocation.ACCURACY_BEST;
+    Titanium.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        <span class="hljs-keyword">if</span> (e.error) {
+            noGPSLabel = Ti.UI.createLabel( {
+                color: <span class="hljs-string">'#FF0000'</span>,
+                font: { fontWeight:<span class="hljs-string">'bold'</span>, fontSize: <span class="hljs-number">16</span> },
+                text: <span class="hljs-string">"No GPS loc found."</span>,
+                top: <span class="hljs-number">230</span>,
+                width: <span class="hljs-number">300</span>
+            });
+            viewStart.add(noGPSLabel);
+            stopTracking();
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">if</span> (GPSSaved != <span class="hljs-literal">null</span>) {
+                viewStop.remove(GPSSaved);
+            }
+            <span class="hljs-keyword">var</span> longitude = <span class="hljs-string">''</span>;
+            <span class="hljs-keyword">var</span> latitude = <span class="hljs-string">''</span>;
+            longitude = e.coords.longitude;
+            latitude = e.coords.latitude;
+            <span class="hljs-keyword">if</span> (lastKnownLat != latitude &amp;&amp;  lastKnownLon != longitude) {
+                <span class="hljs-keyword">var</span> now = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+                <span class="hljs-keyword">var</span> timeStamp = now.getTime();
+                GPSholder.push({<span class="hljs-string">'latitude'</span>: latitude, <span class="hljs-string">'longitude'</span>: longitude, <span class="hljs-string">'device_time'</span>: timeStamp});
+                <span class="hljs-keyword">if</span> (Titanium.Network.online &amp;&amp; !sending) {
+                    <span class="hljs-keyword">var</span> xhr=Titanium.Network.createHTTPClient();
+                    sending = <span class="hljs-literal">true</span>;    
+
+                    toSend = toSend.concat(GPSholder);
+                    GPSholder = [];
+
+                    xhr.open(<span class="hljs-string">"POST"</span>,<span class="hljs-string">"http://xxxxxxx.com/push_positions.php"</span>);         
+                    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+                        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.status == <span class="hljs-string">'200'</span>){
+                            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.readyState == <span class="hljs-number">4</span>){
+                                <span class="hljs-keyword">var</span> result =<span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+                                <span class="hljs-keyword">var</span> msg = <span class="hljs-string">""</span>;
+                                <span class="hljs-keyword">if</span> (result.result == <span class="hljs-number">1</span>) {
+                                    GPSSaved = Ti.UI.createLabel( {
+                                        color: <span class="hljs-string">'#FFF'</span>,
+                                        font: { fontWeight:<span class="hljs-string">'bold'</span>, fontSize: <span class="hljs-number">16</span> },
+                                        text: <span class="hljs-string">'longi:'</span> + longitude + <span class="hljs-string">' - lati: '</span> + latitude + <span class="hljs-string">' - lati: '</span> + timeStamp,
+                                        top: <span class="hljs-number">230</span>,
+                                        width: <span class="hljs-number">300</span>
+                                    });
+                                    viewStop.add(GPSSaved);
+                                    lastKnownLat = latitude;
+                                    lastKnownLon = longitude;
+                                    toSend = [];
+                                } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (result.result == -<span class="hljs-number">3</span>) {
+                                    GPSSaved = Ti.UI.createLabel( {
+                                        color: <span class="hljs-string">'#FFF'</span>,
+                                        font: { fontWeight:<span class="hljs-string">'bold'</span>, fontSize: <span class="hljs-number">16</span> },
+                                        text: <span class="hljs-string">'GPS not saved'</span>,
+                                        top: <span class="hljs-number">230</span>,
+                                        width: <span class="hljs-number">300</span>
+                                    });
+                                    viewStop.add(GPSSaved);
+                                }
+                            }           
+                         }
+                         sending = <span class="hljs-literal">false</span>;
+                    }
+                    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{ 
+                        sending = <span class="hljs-literal">false</span>;
+                    };
+
+                    xhr.setRequestHeader(<span class="hljs-string">"Content-Type"</span>,<span class="hljs-string">"application/x-www-form-urlencoded"</span>);
+                    <span class="hljs-keyword">var</span> str = <span class="hljs-built_in">JSON</span>.stringify(toSend);
+                    Ti.API.info(str);
+                    <span class="hljs-keyword">var</span> params = {
+                        auth_key : auth_key,
+                        locations : str
+                    };
+                    xhr.send(params);
+                }
+             }
+        }
+    });
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 18th 2013, 8:40:58 am">February 18th 2013</span>
+				by <span class='authorname'>T Engwer</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>accuracy</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-257015">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>The problem you have is that using the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.Geolocation-method-getCurrentPosition">getCurrentPosition</a> method.  If you read the documentation you will find that Android never checks for a new location, iOS will but only if it can be bothered.</p>
+<p>There is a better way, much easier and gives you what you want.  Give me a minute I will dig out a CommonJS module for you.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 18th 2013, 8:52:56 am">February 18th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/148423/geolocation-coordinates-are-not-accurate#answer-257015" rel="permalink">permalink</a>
+							</div>
+
+							<h5>17 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Ok, i&#39;ll be happy to see what you dig up. For the record; I do get new positions from my app. Just not very accurate ;-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 8:54:21 am">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This is something I created for another person, it uses the event handler for <strong>location</strong> and gives you a very easy to use interface to the information.  You can play with it to meet your needs.</p>
+<p><strong>location.js</strong></p>
+<pre><code class="hljs">Ti.Geolocation.setPurpose(<span class="hljs-string">'Testing Location Services'</span>); 
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">callback</span>;
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">locationHandler</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.success === undefined || e.success) {
+        <span class="hljs-keyword">if</span> (typeof (<span class="hljs-keyword">callback</span>) === <span class="hljs-string">'function'</span>) {
+            <span class="hljs-keyword">callback</span>(e.coords);
+        }
+    }
+} 
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">start</span><span class="hljs-params">(obj)</span> </span>{
+    <span class="hljs-keyword">callback</span> = obj.action;
+    Ti.Geolocation.addEventListener(<span class="hljs-string">"location"</span>, locationHandler);
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">stop</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">callback</span> = undefined;
+    Ti.Geolocation.removeEventListener(<span class="hljs-string">"location"</span>, locationHandler);
+}
+exports.start = start;
+exports.stop = stop;
+</code></pre><p><strong>usage</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> location = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/location'</span>);
+btnStart.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    location.start({
+        action: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">'Location Callback: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+        }
+    });
+});
+btnStop.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    location.stop();
+});
+</code></pre><p>This uses a callback to receive the location information which is thrown to the console tab.  Add it to a label or whatever you need when you are on the device.</p>
+<p>Happy tracking!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 8:55:51 am">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>setPurpose doesn&#39;t work(Perhaps just on Android?). The rest does though. Thanks!</p>
+<p>I&#39;ve just tested it by the way. And although the code works. It&#39;s not accurate at all. I&#39;m seeing my location on a map. And it&#39;s off by like 2 kilometers or so…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 9:21:34 am">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes, sorry the setPurpose is iOS only,  Weird it does not silently ignore when not on iOS when most other things do.</p>
+<p>Have you set the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.Geolocation-method-setAccuracy">setAccuracy</a> with something like <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.Geolocation-property-ACCURACY_HIGH">ACCURACY_HIGH</a>?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 9:26:22 am">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I did now. It&#39;s more accurate now. But still not as accurate as it can be(On my android phone). I still have a lot less digits than a coordinate can have. So i pretty much have the same result as i had when asking my question. But with a different approach to the listeners.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 9:36:21 am">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I am knocking a test app now on Android to test, will report back.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 9:39:36 am">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok, I think it&#39;s neglectible now though. Is there a fast&#x2F;easy way to not make it get coords not closer than 5 seconds apart by the way? Or should i write a setTimeout-ish workaround?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 9:45:49 am">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>When you say &quot;negligible&quot; did you mean the accuracy is OK now?</p>
+<p>I agree about the amount of data you get being too much.</p>
+<p>There are some Android specific methods that will help you though;</p>
+<pre><code class="hljs">gpsProvider = Ti.Geolocation.Android.createLocationProvider({
+    name: Ti.Geolocation.PROVIDER_GPS,
+    minUpdateTime: <span class="hljs-number">60</span>, 
+    minUpdateDistance: <span class="hljs-number">100</span>
+});
+Ti.Geolocation.Android.addLocationProvider(gpsProvider);
+</code></pre><p>Check out the documentation for <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.Geolocation.Android">Titanium.Geolocation.Android</a> I have not had a play with this yet but looks promising.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 10:21:23 am">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The word is negligible.. Right, didn&#39;t know.<br> I&#39;ve just tested it with a 20 minute walk. It came out awful, haha! It stopped sending after 2 hits or so. But i noticed that, again, the location was off by several kilometers again…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 10:44:02 am">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve tried fooling around with the Android rules but can&#39;t really seem to figure out how it works exactly( I started Titanium a week or so ago).</p>
+<p>And with that i think i need an exception for android because i&#39;m developing for iOS aswel… Does the code you provided work properly with iOS? Because that would mean only an exception should be made for Android with those rules you posted about.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 1:32:42 pm">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Just created a simple app with the same code from above as well as a map and set the map to move with the returned location data.  It works a treat on a local walk around the area of my office.  Have it working on the latest iOS and latest Android.  Trying the Android on 2.3 to see if there is any difference.  The Android 4.2 was extremely accurate and responded very fast.</p>
+<p>Will let you know how the next test goes and let you have the code to try yourself.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 1:49:02 pm">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Awesome</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 1:51:45 pm">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Doing last tests now, code over in the next 30 minutes, it is very simple but it does show things working.</p>
+<p>BTW Android 2.3 was not as smooth as 4.2 but was as accurate.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 3:03:04 pm">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Here you go, our simple test rig;</p>
+<p><strong>app.js</strong></p>
+<pre><code class="hljs">Ti.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+Ti.App.idleTimerDisabled = <span class="hljs-literal">true</span>;
+
+<span class="hljs-keyword">var</span> win4 = Ti.UI.createWindow({  
+    backgroundColor: <span class="hljs-string">'#fff'</span>,
+    title: <span class="hljs-string">'Geo Location'</span>,
+    keepScreenOn: <span class="hljs-literal">true</span>
+});
+
+<span class="hljs-keyword">var</span> btnStart = Ti.UI.createButton({
+    height: <span class="hljs-number">40</span>,
+    left: <span class="hljs-number">10</span>,
+    title: <span class="hljs-string">'Start'</span>,
+    top: <span class="hljs-number">10</span>,
+    width: <span class="hljs-number">145</span>
+});
+win4.add(btnStart);
+<span class="hljs-keyword">var</span> btnStop = Ti.UI.createButton({
+    height: <span class="hljs-number">40</span>,
+    right: <span class="hljs-number">10</span>,
+    title: <span class="hljs-string">'Stop'</span>,
+    top: <span class="hljs-number">10</span>,
+    width: <span class="hljs-number">145</span>
+});
+win4.add(btnStop);
+<span class="hljs-keyword">var</span> btnRefresh = Ti.UI.createButton({
+    height: <span class="hljs-number">40</span>,
+    left: <span class="hljs-number">10</span>,
+    right: <span class="hljs-number">10</span>,
+    title: <span class="hljs-string">'Refresh'</span>,
+    top: <span class="hljs-number">60</span>,
+    width: Ti.UI.FILL
+});
+win4.add(btnRefresh);
+<span class="hljs-keyword">var</span> delta = <span class="hljs-number">0.005</span>;
+<span class="hljs-keyword">var</span> location = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/location'</span>);
+btnStart.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    alert(<span class="hljs-string">'START'</span>);
+    location.start({
+        action: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-comment">// Ti.API.info('Location Callback: ' + JSON.stringify(e));</span>
+            win4.setTitle(<span class="hljs-string">'Heading '</span> + e.heading + <span class="hljs-string">'\u00b0'</span>);
+            mapview.setLocation({
+                latitude: e.latitude,
+                longitude: e.longitude,
+                animate: <span class="hljs-literal">false</span>,
+                latitudeDelta: delta,
+                longitudeDelta: delta
+            });
+        }
+    });
+});
+btnStop.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+    location.stop();
+    alert(<span class="hljs-string">'STOPPED'</span>);
+});
+
+<span class="hljs-keyword">var</span> mapview = Ti.Map.createView({
+    bottom: <span class="hljs-number">0</span>,
+    height: <span class="hljs-number">300</span>,
+    mapType: Ti.Map.STANDARD_TYPE,
+    region: {
+        latitude: <span class="hljs-number">0</span>,
+        longitude: <span class="hljs-number">0</span>, 
+        latitudeDelta: delta,
+        longitudeDelta: delta
+    },
+    animate:<span class="hljs-literal">true</span>,
+    regionFit:<span class="hljs-literal">true</span>,
+    userLocation:<span class="hljs-literal">true</span>
+});
+
+win4.add(mapview);
+
+btnRefresh.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    alert(<span class="hljs-string">'REFRESH'</span>)
+    Ti.Geolocation.accuracy = Titanium.Geolocation.ACCURACY_BEST;
+    Ti.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        mapview.setLocation({
+                latitude: e.coords.latitude,
+                longitude: e.coords.longitude,
+                animate: <span class="hljs-literal">false</span>,
+                latitudeDelta: delta,
+                longitudeDelta: delta
+            });
+    });
+});
+win4.open();
+</code></pre><p>It uses the same <strong>location.js</strong> as provided before.</p>
+<p>This was tested on iOS 6.1, Android 2.3 and Android 4.2.  All were accurate, 2.3 not as smooth as the others but otherwise worked well.</p>
+<p>Tests performed by walking up and down streets in an area of low buildings.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 3:24:32 pm">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ll take a look at it tomorrow. I&#39;ll let you know! Thanks for the effort either way!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 3:34:48 pm">February 18th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You are welcome, we were doing something similar later this week anyway I just juggled my schedule.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2013, 3:53:39 pm">February 18th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Just started now. Just a heads up: The buttons don&#39;t work in iOS. Haven&#39;t yet figured out why though.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 19th 2013, 6:42:24 am">February 19th 2013</span>
+											by <span class='authorname'>T Engwer</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ti.Network.httpClient not sending multipart data correctly » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ti.Network.httpClient not sending multipart data correctly</h1>
+		</header>
+		<section>
+			<p>I&#39;m developing a mobile app for android which has to work with a new web service. The web service uses basic JSON in its communication but files are sent to it using multipart&#x2F;form-data format. The JSON messages are sent fine but when sending an image from the gallery, the htppClient immediately calls the error callback function. The error object has status code 0 and no error message. On the server side, the server has received multiple packets, some have just the header and some have the start of the message: the form part and the start of the image.</p>
+<p>I&#39;ve tried building the message myself like this:</p>
+<pre><code class="hljs"><span class="hljs-built_in">var</span> xhr = Ti<span class="hljs-built_in">.</span>Network<span class="hljs-built_in">.</span>createHTTPClient();
+<span class="hljs-built_in">var</span> url = <span class="hljs-attribute">...</span>; <span class="hljs-comment">//I've left the url out</span>
+xhr<span class="hljs-built_in">.</span>open(<span class="hljs-string">"POST"</span>, url);
+xhr<span class="hljs-built_in">.</span>setRequestHeader(<span class="hljs-string">"Content-Type"</span>, <span class="hljs-string">"multipart/form-data;boundary=AaB03x"</span>);
+<span class="hljs-attribute">...</span>
+<span class="hljs-built_in">var</span> <span class="hljs-keyword">header</span> = <span class="hljs-string">"--AaB03x\r\nContent-Disposition: \"form-data\";name=\"object\""</span>;
+<span class="hljs-keyword">header</span> += <span class="hljs-attribute">...</span><span class="hljs-comment">//Just adding more lines to the form part of the message body</span>
+<span class="hljs-attribute">...</span>
+<span class="hljs-built_in">var</span> endString = <span class="hljs-string">"--AaB03x--"</span>;
+<span class="hljs-built_in">var</span> fullContent = <span class="hljs-keyword">header</span>+<span class="hljs-built_in">data</span><span class="hljs-built_in">.</span>blob+endString; <span class="hljs-comment">//Data is a javascript object passed to this method from controller</span>
+xhr<span class="hljs-built_in">.</span>send(fullContent);
+</code></pre><p>I&#39;ve also put the message into a buffer, converted that to blob and sent that. The end result is the same. Few packets are sent, some with data, some with only header and the first part of the binary file and some with only header. And almost immediately after invoking <code>send()</code>, the httpclient calls the onerror function.</p>
+<p>Anyone else having this problem and have you found ways around it? I&#39;m using Titanium SDK 2.1.4 in Ubuntu 12.10. As devices I&#39;ve used Samsung Galaxy S GT-i9000 (with Android 4.0.4 installed) and Acer Iconia Tab A200 (Android 4.0.3).</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 14th 2012, 12:28:38 pm">November 14th 2012</span>
+				by <span class='authorname'>Jukka Stranden</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>6 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>An actual runnable code and stack traces might help to diagnose the issue.</p>
+<p>Also, what is your remote server?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 14th 2012, 2:25:57 pm">November 14th 2012</span>
+								by <span class='authorname'>Eduardo Gomez</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#39;m afraid I cannot discuss the remote server until it is published as it is being developed by another company and I have a rather strict NDA to follow.</p>
+<p>However, I have made some progress with this problem and it turned out that I had used the network component &quot;incorrectly&quot;. I tried to generate the packet myself which caused it to fail. If I let Titanium build it, then it works. So now I&#39;m just doing it like this:</p>
+<pre><code class="hljs">
+<span class="hljs-comment">/**
+ * Sends image to server
+ * <span class="hljs-doctag">@param</span>{Object} blob image blob from image file
+ * <span class="hljs-doctag">@param</span>{Function} callback function to call when data transfer is successful
+ * <span class="hljs-doctag">@param</span>{Function} errorCallback function to call if data transfer fails
+*/</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> sendImage</span> = function(blob, callback, errorCallback) {
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> url</span> = <span class="hljs-string">"http://example.com/photo/"</span>; <span class="hljs-comment">//Fake url for this example</span>
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> xhr</span> = Ti.Ui.createHTTPClient();
+    xhr.<span class="hljs-keyword">open</span>(<span class="hljs-string">"POST"</span>, url);
+    xhr.setRequestHeader(<span class="hljs-string">"X-Auth-ApiKey"</span>, <span class="hljs-string">"apikey"</span>);<span class="hljs-comment">//I had to remove the server url from this.</span>
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> infoAsJson</span> = {<span class="hljs-string">"fileType"</span>: <span class="hljs-string">"photo"</span>, <span class="hljs-string">"id"</span>: <span class="hljs-string">""</span>};
+
+    xhr.setOnload(callback);
+    xhr.setOnerror(errorCallback);
+
+    xhr.send({info: JSON.stringify(infoAsJson), file: blob});
+}
+</code></pre><p>I have my send function a bit differently in the actual application in the sense that it copies the image file to external application storage before sending. This is done to ensure that Titanium gets the MIME-type right for the image when sending it. If I try to put a blob directly from gallery image, Titanium tries to send it as txt file. This function works for all downloaded images and photos that I have in my SD card that were taken with my previous phone (Nokia 6300i).</p>
+<p>What is puzzling me now is that I cannot send photos that I have taken with my current phone (Samsung Galaxy S GT-i9000). I cannot send the photos that I&#39;ve taken since changing to Android 4.0.4 or photos that I took when I was still using Samsung&#39;s official firmware (2.2.x and 2.3.3). The phone tries to send the start of the image again and again few times and then fails with status code 0. I&#39;m puzzled as to why this is. Other operations work fine and the file is copied perfectly to the external application folder. Just the sending fails. Perhaps there&#39;s some weird header information or something in the files that mess it up. I&#39;ll post a sample photo here later.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 11th 2012, 6:36:32 am">December 11th 2012</span>
+								by <span class='authorname'>Jukka Stranden</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Here&#39;s a link to the image:<br><a href="http:&#x2F;&#x2F;koti.mbnet.fi&#x2F;sfhaven&#x2F;kraasaa&#x2F;sample.jpg">Sample image. About 1.7 MB</a><br>It does have quite a lot of metadata in it. Certainly more than the camera photos from my old Nokia. That one only had Camera: 6300i and date.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 11th 2012, 7:28:30 am">December 11th 2012</span>
+								by <span class='authorname'>Jukka Stranden</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>And I&#39;ll continue this a bit. I&#39;ve run <code>adb logcat</code> when running the application in my phone. When I try to send the photo, the onsendstream event will run from 0 to 0.03 and then start again from 0. After about four times of this, the data transfer will fail with this error:</p>
+<pre><code class="hljs">E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>: (TiHttpClient-<span class="hljs-number">4</span>) [<span class="hljs-number">973</span>,<span class="hljs-number">13872</span>] HTTP Error (java<span class="hljs-class">.net</span><span class="hljs-class">.SocketException</span>): sendto failed: EPIPE (Broken pipe)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>: java<span class="hljs-class">.net</span><span class="hljs-class">.SocketException</span>: sendto failed: EPIPE (Broken pipe)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at libcore<span class="hljs-class">.io</span><span class="hljs-class">.IoBridge</span><span class="hljs-class">.maybeThrowAfterSendto</span>(IoBridge<span class="hljs-class">.java</span>:<span class="hljs-number">496</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at libcore<span class="hljs-class">.io</span><span class="hljs-class">.IoBridge</span><span class="hljs-class">.sendto</span>(IoBridge<span class="hljs-class">.java</span>:<span class="hljs-number">465</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at java<span class="hljs-class">.net</span><span class="hljs-class">.PlainSocketImpl</span><span class="hljs-class">.write</span>(PlainSocketImpl<span class="hljs-class">.java</span>:<span class="hljs-number">507</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at java<span class="hljs-class">.net</span><span class="hljs-class">.PlainSocketImpl</span><span class="hljs-class">.access</span>$<span class="hljs-number">100</span>(PlainSocketImpl<span class="hljs-class">.java</span>:<span class="hljs-number">46</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at java<span class="hljs-class">.net</span><span class="hljs-class">.PlainSocketImpl</span><span class="hljs-variable">$PlainSocketOutputStream</span>.<span class="hljs-function"><span class="hljs-title">write</span><span class="hljs-params">(PlainSocketImpl.java:<span class="hljs-number">269</span>)</span></span>
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.io</span><span class="hljs-class">.AbstractSessionOutputBuffer</span><span class="hljs-class">.flushBuffer</span>(AbstractSessionOutputBuffer<span class="hljs-class">.java</span>:<span class="hljs-number">87</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.io</span><span class="hljs-class">.AbstractSessionOutputBuffer</span><span class="hljs-class">.flush</span>(AbstractSessionOutputBuffer<span class="hljs-class">.java</span>:<span class="hljs-number">94</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.AbstractHttpClientConnection</span><span class="hljs-class">.doFlush</span>(AbstractHttpClientConnection<span class="hljs-class">.java</span>:<span class="hljs-number">169</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.SocketHttpClientConnection</span><span class="hljs-class">.close</span>(SocketHttpClientConnection<span class="hljs-class">.java</span>:<span class="hljs-number">192</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.conn</span><span class="hljs-class">.DefaultClientConnection</span><span class="hljs-class">.close</span>(DefaultClientConnection<span class="hljs-class">.java</span>:<span class="hljs-number">161</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.conn</span><span class="hljs-class">.AbstractPooledConnAdapter</span><span class="hljs-class">.close</span>(AbstractPooledConnAdapter<span class="hljs-class">.java</span>:<span class="hljs-number">158</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.protocol</span><span class="hljs-class">.HttpRequestExecutor</span><span class="hljs-class">.execute</span>(HttpRequestExecutor<span class="hljs-class">.java</span>:<span class="hljs-number">125</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.client</span><span class="hljs-class">.DefaultRequestDirector</span><span class="hljs-class">.execute</span>(DefaultRequestDirector<span class="hljs-class">.java</span>:<span class="hljs-number">428</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.client</span><span class="hljs-class">.AbstractHttpClient</span><span class="hljs-class">.execute</span>(AbstractHttpClient<span class="hljs-class">.java</span>:<span class="hljs-number">555</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.client</span><span class="hljs-class">.AbstractHttpClient</span><span class="hljs-class">.execute</span>(AbstractHttpClient<span class="hljs-class">.java</span>:<span class="hljs-number">653</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at org<span class="hljs-class">.apache</span><span class="hljs-class">.http</span><span class="hljs-class">.impl</span><span class="hljs-class">.client</span><span class="hljs-class">.AbstractHttpClient</span><span class="hljs-class">.execute</span>(AbstractHttpClient<span class="hljs-class">.java</span>:<span class="hljs-number">637</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at ti<span class="hljs-class">.modules</span><span class="hljs-class">.titanium</span><span class="hljs-class">.network</span><span class="hljs-class">.TiHTTPClient</span><span class="hljs-variable">$ClientRunnable</span>.<span class="hljs-function"><span class="hljs-title">run</span><span class="hljs-params">(TiHTTPClient.java:<span class="hljs-number">1186</span>)</span></span>
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at java<span class="hljs-class">.lang</span><span class="hljs-class">.Thread</span><span class="hljs-class">.run</span>(Thread<span class="hljs-class">.java</span>:<span class="hljs-number">856</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>: Caused by: libcore<span class="hljs-class">.io</span><span class="hljs-class">.ErrnoException</span>: sendto failed: EPIPE (Broken pipe)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at libcore<span class="hljs-class">.io</span><span class="hljs-class">.Posix</span><span class="hljs-class">.sendtoBytes</span>(Native Method)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at libcore<span class="hljs-class">.io</span><span class="hljs-class">.Posix</span><span class="hljs-class">.sendto</span>(Posix<span class="hljs-class">.java</span>:<span class="hljs-number">146</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at libcore<span class="hljs-class">.io</span><span class="hljs-class">.BlockGuardOs</span><span class="hljs-class">.sendto</span>(BlockGuardOs<span class="hljs-class">.java</span>:<span class="hljs-number">177</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     at libcore<span class="hljs-class">.io</span><span class="hljs-class">.IoBridge</span><span class="hljs-class">.sendto</span>(IoBridge<span class="hljs-class">.java</span>:<span class="hljs-number">463</span>)
+E/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>:     ... <span class="hljs-number">16</span> more
+I/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">11260</span>)</span></span>: (TiHttpClient-<span class="hljs-number">4</span>) [<span class="hljs-number">19</span>,<span class="hljs-number">13891</span>] Sending error sendto failed: EPIPE (Broken pipe)
+I/ALERT   (<span class="hljs-number">11260</span>): (KrollRuntimeThread) [<span class="hljs-number">1</span>,<span class="hljs-number">13892</span>] Status: <span class="hljs-number">0</span>
+I/ALERT   (<span class="hljs-number">11260</span>): (KrollRuntimeThread) [<span class="hljs-number">31</span>,<span class="hljs-number">13923</span>] Error sending photo. Error reads:
+</code></pre><p>The two Alerts in the end are alert dialogs my application creates. It gets just status code 0 and no error message at all. I did some testing and removed the metadata from a photo with GIMP, put the photo back into the phone and tried sending it. The transfer failed with same result as above. However, when I compressed the image in GIMP and sent it, the data transfer was successful. I&#39;m completely baffled why this behaves like this.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 13th 2012, 10:57:56 am">December 13th 2012</span>
+								by <span class='authorname'>Jukka Stranden</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>More info. I&#39;ve tested this on couple of devices now: my phone which is running Android 4.0.4, my Acer Iconia Tab A200 which is running Android 4.0.3 and Asus Nexus 7 which is running Android 4.2.1. Nexus 7 sends the data correctly and so this error behavior seems to occur in Android 4.0.x devices. However, as it is a very small sample size, I cannot be certain. I&#39;ll look for more devices to test this on and then report what I find.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 17th 2012, 10:59:33 am">December 17th 2012</span>
+								by <span class='authorname'>Jukka Stranden</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Okay, solved this. I was compiling against API level 8 when my device was running API level 15. I&#39;ve now set the API level in AndroidManifest.xml as follows:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">uses-sdk</span> <span class="hljs-attribute">android:minSdkVersion</span>=<span class="hljs-value">"8"</span> 
+      <span class="hljs-attribute">android:targetSdkVersion</span>=<span class="hljs-value">"15"</span> /&gt;</span>
+</code></pre><p>I&#39;ve had no problems since then. Sorry for the slew of my own comments here.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 18th 2012, 9:35:35 am">December 18th 2012</span>
+								by <span class='authorname'>Jukka Stranden</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

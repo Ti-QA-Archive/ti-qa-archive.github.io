@@ -1,0 +1,537 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS module with custom camera view using AVFoundation » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS module with custom camera view using AVFoundation</h1>
+		</header>
+		<section>
+			<p>Hi, I&#39;m trying to make a module that returns a view with stream of output from the camera as its background (I want to ultimately develop a fully custom camera view without the iris animation.</p>
+<p>I read a good amount of tutorial on creating a custom camera view using AVFoundation, but I still couldn&#39;t get it to work with Titanium. I find the tutorial on how to make modules and the module dev guide project extremely lacking.</p>
+<p>Here is my current code, which does not produce anything (just blank… without any errors). This is pretty much a modified version of this http:&#x2F;&#x2F;www.benjaminloulier.com&#x2F;posts&#x2F;ios4-and-direct-access-to-the-camera</p>
+<p>MyModuleView.m</p>
+<pre><code class="hljs">
+<span class="hljs-preprocessor">#import <span class="hljs-title">"ComMbCamView.h"</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">"ComMbCamViewProxy.h"</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">&lt;AVFoundation/AVFoundation.h&gt;</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">&lt;ImageIO/ImageIO.h&gt;</span></span>
+<span class="hljs-preprocessor">#import <span class="hljs-title">&lt;CoreMedia/CoreMedia.h&gt;</span></span>
+
+
+<span class="hljs-class"><span class="hljs-keyword">@implementation</span> <span class="hljs-title">ComMbCamView</span></span>
+
+<span class="hljs-keyword">@synthesize</span> captureSession = _captureSession;
+<span class="hljs-keyword">@synthesize</span> imageView = _imageView;
+<span class="hljs-keyword">@synthesize</span> customLayer = _customLayer;
+<span class="hljs-keyword">@synthesize</span> prevLayer = _prevLayer;
+
+
+- (<span class="hljs-keyword">void</span>) dealloc
+{
+    <span class="hljs-keyword">self</span><span class="hljs-variable">.imageView</span> = <span class="hljs-literal">nil</span>;
+    <span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span> = <span class="hljs-literal">nil</span>;
+    <span class="hljs-keyword">self</span><span class="hljs-variable">.prevLayer</span> = <span class="hljs-literal">nil</span>;
+    RELEASE_TO_NIL(square);
+    [<span class="hljs-keyword">super</span> dealloc];
+}
+
+-(<span class="hljs-keyword">void</span>)initializeState
+{
+
+    [<span class="hljs-keyword">super</span> initializeState];
+
+    <span class="hljs-keyword">self</span><span class="hljs-variable">.imageView</span> = <span class="hljs-literal">nil</span>;
+    <span class="hljs-keyword">self</span><span class="hljs-variable">.prevLayer</span> = <span class="hljs-literal">nil</span>;
+    <span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span> = <span class="hljs-literal">nil</span>;
+
+}
+
+-(<span class="hljs-built_in">UIView</span>*)square
+{
+    <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@"[DEBUG] !!!!!!! square"</span>);
+    <span class="hljs-comment">// Return the square view. If this is the first time then allocate and</span>
+    <span class="hljs-comment">// initialize it.</span>
+    <span class="hljs-keyword">if</span> (square == <span class="hljs-literal">nil</span>) {
+
+        square = [[<span class="hljs-built_in">UIView</span> alloc] initWithFrame:[<span class="hljs-keyword">self</span> frame]];
+        [<span class="hljs-keyword">self</span> addSubview:square];
+
+
+        <span class="hljs-built_in">AVCaptureDeviceInput</span> *captureInput = [<span class="hljs-built_in">AVCaptureDeviceInput</span>
+                                              deviceInputWithDevice:[<span class="hljs-built_in">AVCaptureDevice</span> defaultDeviceWithMediaType:<span class="hljs-built_in">AVMediaTypeVideo</span>]
+                                              error:<span class="hljs-literal">nil</span>];
+
+        <span class="hljs-built_in">AVCaptureVideoDataOutput</span> *captureOutput = [[<span class="hljs-built_in">AVCaptureVideoDataOutput</span> alloc] init];
+
+        captureOutput<span class="hljs-variable">.alwaysDiscardsLateVideoFrames</span> = <span class="hljs-literal">YES</span>;
+
+        <span class="hljs-comment">//captureOutput.minFrameDuration = CMTimeMake(1, 10);</span>
+
+        <span class="hljs-built_in">dispatch_queue_t</span> queue;
+        queue = dispatch_queue_create(<span class="hljs-string">"cameraQueue"</span>, <span class="hljs-literal">NULL</span>);
+        [captureOutput setSampleBufferDelegate:<span class="hljs-keyword">self</span> queue:queue];
+        dispatch_release(queue);
+
+        <span class="hljs-comment">// Set the video output to store frame in BGRA (It is supposed to be faster)</span>
+        <span class="hljs-built_in">NSString</span>* key = (<span class="hljs-built_in">NSString</span>*)kCVPixelBufferPixelFormatTypeKey;
+        <span class="hljs-built_in">NSNumber</span>* value = [<span class="hljs-built_in">NSNumber</span> numberWithUnsignedInt:kCVPixelFormatType_32BGRA];
+        <span class="hljs-built_in">NSDictionary</span>* videoSettings = [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObject:value forKey:key];
+        [captureOutput setVideoSettings:videoSettings];
+        <span class="hljs-comment">/*And we create a capture session*/</span>
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.captureSession</span> = [[<span class="hljs-built_in">AVCaptureSession</span> alloc] init];
+        <span class="hljs-comment">/*We add input and output*/</span>
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.captureSession</span> addInput:captureInput];
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.captureSession</span> addOutput:captureOutput];
+        <span class="hljs-comment">/*We use medium quality, ont the iPhone 4 this demo would be laging too much, the conversion in UIImage and CGImage demands too much ressources for a 720p resolution.*/</span>
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.captureSession</span> setSessionPreset:<span class="hljs-built_in">AVCaptureSessionPresetMedium</span>];
+        <span class="hljs-comment">/*We add the Custom Layer (We need to change the orientation of the layer so that the video is displayed correctly)*/</span>
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span> = [<span class="hljs-built_in">CALayer</span> layer];
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span><span class="hljs-variable">.frame</span> = square<span class="hljs-variable">.bounds</span>;
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span><span class="hljs-variable">.transform</span> = <span class="hljs-built_in">CATransform3DRotate</span>(<span class="hljs-built_in">CATransform3DIdentity</span>, M_PI/<span class="hljs-number">2.0</span>f, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span><span class="hljs-variable">.contentsGravity</span> = k<span class="hljs-built_in">CAGravityResizeAspectFill</span>;
+        [square<span class="hljs-variable">.layer</span> addSublayer:<span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span>];
+        <span class="hljs-comment">/*We add the imageView*/</span>
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.imageView</span> = [[<span class="hljs-built_in">UIImageView</span> alloc] init];
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.imageView</span><span class="hljs-variable">.frame</span> = <span class="hljs-built_in">CGRectMake</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">100</span>, <span class="hljs-number">100</span>);
+        [square addSubview:<span class="hljs-keyword">self</span><span class="hljs-variable">.imageView</span>];
+        <span class="hljs-comment">/*We add the preview layer*/</span>
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.prevLayer</span> = [<span class="hljs-built_in">AVCaptureVideoPreviewLayer</span> layerWithSession: <span class="hljs-keyword">self</span><span class="hljs-variable">.captureSession</span>];
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.prevLayer</span><span class="hljs-variable">.frame</span> = <span class="hljs-built_in">CGRectMake</span>(<span class="hljs-number">100</span>, <span class="hljs-number">0</span>, <span class="hljs-number">100</span>, <span class="hljs-number">100</span>);
+        <span class="hljs-keyword">self</span><span class="hljs-variable">.prevLayer</span><span class="hljs-variable">.videoGravity</span> = <span class="hljs-built_in">AVLayerVideoGravityResizeAspectFill</span>;
+        [square<span class="hljs-variable">.layer</span> addSublayer: <span class="hljs-keyword">self</span><span class="hljs-variable">.prevLayer</span>];
+        <span class="hljs-comment">/*We start the capture*/</span>
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.captureSession</span> startRunning];
+
+    }
+
+    <span class="hljs-keyword">return</span> square;
+}
+
+-(<span class="hljs-keyword">void</span>)frameSizeChanged:(<span class="hljs-built_in">CGRect</span>)frame bounds:(<span class="hljs-built_in">CGRect</span>)bounds
+{
+    <span class="hljs-keyword">if</span> (square != <span class="hljs-literal">nil</span>){
+        [TiUtils setView:square positionRect:bounds];
+    }
+}
+
+<span class="hljs-preprocessor">#pragma mark -</span>
+<span class="hljs-preprocessor">#pragma mark AVCaptureSession delegate</span>
+- (<span class="hljs-keyword">void</span>)captureOutput:(<span class="hljs-built_in">AVCaptureOutput</span> *)captureOutput
+didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+       fromConnection:(<span class="hljs-built_in">AVCaptureConnection</span> *)connection
+{
+    <span class="hljs-comment">/*We create an autorelease pool because as we are not in the main_queue our code is
+     not executed in the main thread. So we have to create an autorelease pool for the thread we are in*/</span>
+
+    <span class="hljs-built_in">NSAutoreleasePool</span> * pool = [[<span class="hljs-built_in">NSAutoreleasePool</span> alloc] init];
+
+    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+    <span class="hljs-comment">/*Lock the image buffer*/</span>
+    CVPixelBufferLockBaseAddress(imageBuffer,<span class="hljs-number">0</span>);
+    <span class="hljs-comment">/*Get information about the image*/</span>
+    uint8_t *baseAddress = (uint8_t *)CVPixelBufferGetBaseAddress(imageBuffer);
+    size_t bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer);
+    size_t width = CVPixelBufferGetWidth(imageBuffer);
+    size_t height = CVPixelBufferGetHeight(imageBuffer);
+
+    <span class="hljs-comment">/*Create a CGImageRef from the CVImageBufferRef*/</span>
+    <span class="hljs-built_in">CGColorSpaceRef</span> colorSpace = <span class="hljs-built_in">CGColorSpaceCreateDeviceRGB</span>();
+    <span class="hljs-built_in">CGContextRef</span> newContext = <span class="hljs-built_in">CGBitmapContextCreate</span>(baseAddress, width, height, <span class="hljs-number">8</span>, bytesPerRow, colorSpace, k<span class="hljs-built_in">CGBitmapByteOrder32Little</span> | k<span class="hljs-built_in">CGImageAlphaPremultipliedFirst</span>);
+    <span class="hljs-built_in">CGImageRef</span> newImage = <span class="hljs-built_in">CGBitmapContextCreateImage</span>(newContext);
+
+    <span class="hljs-comment">/*We release some components*/</span>
+    <span class="hljs-built_in">CGContextRelease</span>(newContext);
+    <span class="hljs-built_in">CGColorSpaceRelease</span>(colorSpace);
+
+    [<span class="hljs-keyword">self</span><span class="hljs-variable">.customLayer</span> performSelectorOnMainThread:<span class="hljs-keyword">@selector</span>(setContents:) withObject: (<span class="hljs-keyword">id</span>) newImage waitUntilDone:<span class="hljs-literal">YES</span>];
+
+    <span class="hljs-built_in">UIImage</span> *image= [<span class="hljs-built_in">UIImage</span> imageWith<span class="hljs-built_in">CGImage</span>:newImage scale:<span class="hljs-number">1.0</span> orientation:<span class="hljs-built_in">UIImageOrientationRight</span>];
+
+    <span class="hljs-comment">/*We relase the CGImageRef*/</span>
+    <span class="hljs-built_in">CGImageRelease</span>(newImage);
+
+    [<span class="hljs-keyword">self</span><span class="hljs-variable">.imageView</span> performSelectorOnMainThread:<span class="hljs-keyword">@selector</span>(setImage:) withObject:image waitUntilDone:<span class="hljs-literal">YES</span>];
+
+    <span class="hljs-comment">/*We unlock the  image buffer*/</span>
+    CVPixelBufferUnlockBaseAddress(imageBuffer,<span class="hljs-number">0</span>);
+
+    [pool drain];
+}
+
+<span class="hljs-keyword">@end</span>
+</code></pre><p>viewProxy is blank (default state). I also tried to implement this inside of viewProxy&#39;s didViewAttach method, but it also produced the same result (blank screen).</p>
+<p>I also used different methods like the one explained here http:&#x2F;&#x2F;red-glasses.com&#x2F;index.php&#x2F;tutorials&#x2F;ios4-take-photos-with-live-video-preview-using-avfoundation&#x2F; which was a lot simpler. This didn&#39;t work either (the same… blank screen without any errors). The logs do output, so the methods also do fire.</p>
+<p>Anyone has any idea why it&#39;s not working? Any suggestions?</p>
+<p>Thanks a lot.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 5th 2012, 5:42:55 am">December 5th 2012</span>
+				by <span class='authorname'>Charles Ko</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>avfoundation</span></li>
+					
+						<li><span class='tagname'>camera</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>How do you try in Titanium? I mean the way you use it in  titanium and code used to create cameraView in titanium.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 5th 2012, 6:44:42 am">December 5th 2012</span>
+								by <span class='authorname'>Ashish Nigam</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#39;m doing it in a very straight forward way just like the default example.</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> = Ti.UI.createWindow();
+<span class="hljs-variable"><span class="hljs-keyword">var</span> myModule</span> = require(<span class="hljs-string">"my.module"</span>);
+<span class="hljs-variable"><span class="hljs-keyword">var</span> cameraView</span> = myModule.createView();
+win.<span class="hljs-keyword">open</span>();
+win.add(cameraView);
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="December 5th 2012, 2:27:27 pm">December 5th 2012</span>
+								by <span class='authorname'>Charles Ko</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Charles,</p>
+<p>I am looking to do something similar myself. Just wondering if you had any crashes etc. with the preview and how you were able to fix them if you did.<br>Also, were you still able to build your project for the simulator? I know the preview won&#39;t display given that there is no camera available, but I would like to test other features of the application.</p>
+<p>Regards</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 1st 2013, 12:55:08 pm">May 1st 2013</span>
+								by <span class='authorname'>Michael Browne</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Any more word on whether this worked correctly or not? I&#39;d love to know if this is feasible! Thanks!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 7th 2013, 9:49:00 pm">June 7th 2013</span>
+								by <span class='authorname'>Michael Fogg</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>4</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-252205">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>At a quick look, it seems that your custom view named <code>square</code> is never created…</p>
+<p>Try with:</p>
+<pre><code class="hljs"><span class="hljs-tag">-</span>(void)<span class="hljs-tag">frameSizeChanged</span>:(CGRect)<span class="hljs-tag">frame</span> <span class="hljs-tag">bounds</span>:(CGRect)<span class="hljs-tag">bounds</span>
+{
+    <span class="hljs-attr_selector">[TiUtils setView:self.square positionRect:bounds]</span>;
+}
+</code></pre><p><code>self.square</code> calls the <code>-(UIView*)square</code> accessor method, thus initializing your view.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 5th 2012, 10:14:21 am">December 5th 2012</span>
+								by <span class='authorname'>Olivier Morandi</span><br>
+								<a class="icon-bg icon-link" href="question/145399/ios-module-with-custom-camera-view-using-avfoundation#answer-252205" rel="permalink">permalink</a>
+							</div>
+
+							<h5>10 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Oliver</p>
+<p>I have some NSLog methods in -(UIView*)square method. It seems to be firing.</p>
+<p>I have the following code</p>
+<pre><code class="hljs">
+<span class="hljs-tag">-</span>(void)<span class="hljs-tag">frameSizeChanged</span>:(CGRect)<span class="hljs-tag">frame</span> <span class="hljs-tag">bounds</span>:(CGRect)<span class="hljs-tag">bounds</span>
+{
+    <span class="hljs-tag">if</span> (square != nil){
+        <span class="hljs-attr_selector">[TiUtils setView:square positionRect:bounds]</span>;
+    }
+}
+</code></pre><p>The only difference is that it doesn&#39;t do anything if square is nil and I&#39;m accessing square through just calling square, not self.square. Do you think this will make any difference?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 2:33:06 pm">December 5th 2012</span>
+											by <span class='authorname'>Charles Ko</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yeah, that&#39;s actually the point of my answer ;-)<br>If you want the method <code>-(UIView*)square</code> to be called you need to reference the <code>square</code> property (i.e. <code>self.square</code>), not the ivar.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 3:12:36 pm">December 5th 2012</span>
+											by <span class='authorname'>Olivier Morandi</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes!!! That was it! Thanks a lot!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 5:53:16 pm">December 5th 2012</span>
+											by <span class='authorname'>Charles Ko</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Charles, have you developed a module to use avcapture? is it available somewhere? I&#39;m interested on this. Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 20th 2013, 11:48:30 am">June 20th 2013</span>
+											by <span class='authorname'>Inzori DevTeam</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey guys, so I did go ahead and create a module that allows you to do the following:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> CustomCamera</span> = require(<span class="hljs-string">"path/to/module"</span>);
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> preview_display</span> = CustomCamera.createView({
+    height: <span class="hljs-number">300</span>,
+    width: <span class="hljs-number">300</span>
+});
+
+<span class="hljs-comment">// Take Photo</span>
+preview_display.takePhoto();
+
+<span class="hljs-comment">// Switch Cameras</span>
+preview_display.switchCameras();
+
+<span class="hljs-comment">// Flash On</span>
+preview_display.flashOn();
+
+<span class="hljs-comment">// Flash Off</span>
+preview_display.flashOff();
+</code></pre><p>For my needs, it&#39;s currently setup where once you take a photo the new photo actually just replaces the preview_display view so I do something like:</p>
+<pre><code class="hljs">preview_display.<span class="hljs-function"><span class="hljs-title">toImage</span><span class="hljs-params">()</span></span>
+</code></pre><p>to get the actual image.</p>
+<p>I&#39;m FAR from an objective-c developer but spent a week or so on it getting it to work how I wanted (lots of trial and error). I LOVE how much more flexible I can be with this and am going to continue to work on it and make it open source so some people who actually know objective-c can help make it even better :)</p>
+<p>I&#39;ll be posting it to github and making a post about it here this weekend once I&#39;ve cleaned it up a bit.</p>
+<p>Now I don&#39;t have to have the default lens animation (which is really the only thing I didn&#39;t like :) )!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 20th 2013, 3:06:12 pm">June 20th 2013</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Michael<br>Thanks for that.<br>Can you share with me your code on Github ?<br>I will have a look and see if I can help on the objective C part.<br>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 24th 2013, 10:20:27 am">June 24th 2013</span>
+											by <span class='authorname'>Ben A</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Ben, sorry about the delay here! Got held up on a couple things this weekend and will try to get it up there tonight. I just need to write up a quick demo for it and clean up some of my comments :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 25th 2013, 10:59:11 am">June 25th 2013</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Michael, ok great ! I&#39;m waiting for you :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 25th 2013, 1:59:43 pm">June 25th 2013</span>
+											by <span class='authorname'>Ben A</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Ben, </p>
+<p>Unfortunately, I didn&#39;t have time to go through and clean it all up, etc. BUT I wanted to post it for you anyways to get started with it and I&#39;ll go through and clean it asap.</p>
+<p>Just posted it at <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;154132&#x2F;titanium-custom-camera-module-iphone">http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;154132&#x2F;titanium-custom-camera-module-iphone</a> !</p>
+<p>It&#39;s available on <a href="https:&#x2F;&#x2F;github.com&#x2F;mikefogg&#x2F;SquareCamera">Github</a>.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 9:55:44 am">June 26th 2013</span>
+											by <span class='authorname'>Michael Fogg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Michael,<br>Thanks for sharing. Actually I&#39;ve updated my iPhone to iOS 7 for another project and obviously the module doesn&#39;t work even if I tried to compile it with iOS 7 SDK.<br>I have to wait Titanium Release OR downgrade to iOS 6.<br>I will try that this week end :)<br>Thanks again and I will keep you posted about updates in my side :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 28th 2013, 6:25:35 am">June 28th 2013</span>
+											by <span class='authorname'>Ben A</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-252196">
+				
+						<section>
+							<p>Hi</p>
+<p>As far as I can tell you are simply trying to have the camera displayed, you control the interface and when the pictures are taken?</p>
+<p>If so you can do that by creating a custom view which acts as an overlay to the camera, these will then ONLY use your UI and ignore the default UI.  You can add pretty much anything you can normally do on a view, like buttons, pictures, labels etc.  You can animate things within that view and you can manually call the takePicture method to respond to your own button to take a picture.</p>
+<p>These are things you should be looking at;</p>
+<ul>
+<li><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;#!&#x2F;api&#x2F;Titanium.Media-method-takePicture">takePicture</a></li>
+<li><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;#!&#x2F;api&#x2F;Titanium.Media-method-showCamera">showCamera</a>  using   <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;#!&#x2F;api&#x2F;CameraOptionsType">CameraOptionsType</a>  specifically the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;#!&#x2F;api&#x2F;CameraOptionsType-property-overlay">overlay</a> option</li>
+</ul>
+<p>This should get you started.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 5th 2012, 8:21:20 am">December 5th 2012</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/145399/ios-module-with-custom-camera-view-using-avfoundation#answer-252196" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Malcolm. I did take a look at this solution, but since there is limited control over the screen (e.g. can&#39;t hide the iris animation), we decided to go with a custom camera view, which is only achievable via a module.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 2:29:13 pm">December 5th 2012</span>
+											by <span class='authorname'>Charles Ko</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You are welcome - looks like Olivier has managed to sort you out perfectly.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2012, 5:59:39 pm">December 5th 2012</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-264917">
+				
+						<section>
+							<p>Just a quick comment for anyone who gets here to check out: <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;154132&#x2F;titanium-custom-camera-module-iphone">http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;154132&#x2F;titanium-custom-camera-module-iphone</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 26th 2013, 9:56:25 am">June 26th 2013</span>
+								by <span class='authorname'>Michael Fogg</span><br>
+								<a class="icon-bg icon-link" href="question/145399/ios-module-with-custom-camera-view-using-avfoundation#answer-264917" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

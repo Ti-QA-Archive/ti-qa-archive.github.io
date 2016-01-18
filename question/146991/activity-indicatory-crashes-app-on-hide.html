@@ -1,0 +1,462 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Activity Indicatory crashes app on .hide() » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Activity Indicatory crashes app on .hide()</h1>
+		</header>
+		<section>
+			<p>Hello I am currently using the default rssReader app in my applications.  However a recent bug keeps crashing the Android app when hiding the activity indicator on both the table view and detail view.</p>
+<pre><code class="hljs">/Application Window Component Constructor
+<span class="hljs-comment">//Android Application Window</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ApplicationWindow</span><span class="hljs-params">(navController)</span> </span>{
+    <span class="hljs-comment">//declare module dependencies</span>
+    <span class="hljs-keyword">var</span> rss = <span class="hljs-keyword">require</span>(<span class="hljs-string">'data/rssReader'</span>),
+        MasterView = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/blogs/GradingTexas'</span>),
+        DetailView = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/blogs/GradingTexasDetail'</span>);
+
+    <span class="hljs-comment">//create object instance</span>
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+        title:<span class="hljs-string">'Grading Texas'</span>,
+        backgroundColor:<span class="hljs-string">'#eaeaea'</span>,
+        <span class="hljs-comment">//exitOnClose:true,</span>
+        navBarHidden:<span class="hljs-keyword">true</span>,
+        activity: {
+            onCreateOptionsMenu: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-keyword">var</span> menu = e.menu;
+                <span class="hljs-keyword">var</span> menuItem = menu.add({ title: <span class="hljs-string">"Refresh"</span> });
+                menuItem.setIcon(<span class="hljs-string">"images/refresh_icon.png"</span>);
+                menuItem.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                        refreshRSS();
+                });
+            }
+        }
+
+    });
+
+    <span class="hljs-keyword">var</span> masterView = <span class="hljs-keyword">new</span> MasterView();
+    <span class="hljs-keyword">var</span> actInd = Ti.UI.createActivityIndicator({
+        message: <span class="hljs-string">'Loading...'</span>,
+        color: <span class="hljs-string">'#eaeaea'</span>
+    });
+    <span class="hljs-keyword">self</span>.add(masterView);
+
+    <span class="hljs-comment">//Add title bar to controller</span>
+    <span class="hljs-keyword">var</span> my_navbar = Ti.UI.createLabel({
+            height : <span class="hljs-string">'20dp'</span>,
+            backgroundColor : <span class="hljs-string">'#333'</span>,
+            color : <span class="hljs-string">'#fff'</span>,
+            text : <span class="hljs-string">'Grading Texas'</span>,
+            top : <span class="hljs-string">'0dp'</span>,
+            width : <span class="hljs-string">'100%'</span>
+    });     
+    <span class="hljs-keyword">self</span>.add(my_navbar);
+
+    <span class="hljs-comment">//add behavior for master view</span>
+    masterView.addEventListener(<span class="hljs-string">'itemSelected'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">// Create a detail view window</span>
+        <span class="hljs-keyword">var</span> detailView = <span class="hljs-keyword">new</span> DetailView();
+        <span class="hljs-keyword">var</span> detailContainerWindow = Ti.UI.createWindow({
+            title: <span class="hljs-string">'Article'</span>,
+            navBarHidden: <span class="hljs-keyword">true</span>,
+            backgroundColor:<span class="hljs-string">'#eaeaea'</span>
+        });
+        detailContainerWindow.add(detailView);
+        detailContainerWindow.add(my_navbar);
+
+        <span class="hljs-comment">// Show an activity dialog in the status bar while the article loads</span>
+        <span class="hljs-keyword">var</span> pb;
+
+        detailContainerWindow.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            pb = Titanium.UI.createActivityIndicator({
+                location: Ti.UI.ActivityIndicator.STATUS_BAR,
+                type: Ti.UI.ActivityIndicator.DETERMINANT,
+                    message:<span class="hljs-string">'Loading article...'</span>,
+            });
+            pb.show();
+        });
+
+        detailView.addEventListener(<span class="hljs-string">'articleLoaded'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            pb.hide();
+        });
+
+        detailView.showArticle(e.link);
+
+        detailView.showTitle(e.title);
+        detailView.showDate(e.pubDate);
+
+        navController.open(detailContainerWindow);
+    });
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">refreshRSS</span><span class="hljs-params">()</span> </span>{
+        rss.loadRssFeed({
+            start: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ actInd.show(); },
+            error: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ actInd.hide(); },
+            success: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+                masterView.refreshRssTable(data);
+                actInd.hide();
+            }
+        });
+    }
+
+    <span class="hljs-comment">// refresh RSS when ApplicationWindow opens</span>
+    <span class="hljs-keyword">self</span>.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        refreshRSS();
+    });
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+module.exports = ApplicationWindow;
+</code></pre><p>Android is 2.3.3<br>Titanium SDK is 3.0.1</p>
+<p>Your Help is appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 16th 2013, 2:47:19 pm">January 16th 2013</span>
+				by <span class='authorname'>Andrew Corliss</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>activity indicator</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>rss</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Also the first line should have a double &#x2F;&#x2F; for commenting I just did not copy it all the way.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 16th 2013, 2:48:17 pm">January 16th 2013</span>
+								by <span class='authorname'>Andrew Corliss</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-254704">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>You have code we do not have access to so I cannot test what you have - that should be OK though.</p>
+<p>I am guessing that you are unaware of the recent changes (3.0.0) to the way Android uses the Activity indicator.  The old method meant that Android and iOS used the same feature two different ways.</p>
+<ul>
+<li>Android simply declared an activity indicator and then use <strong>show</strong> or <strong>hide</strong> as required.</li>
+<li>iOS declared an activity indicator but had to add it to the windows or view BEFORE using <strong>show</strong> or <strong>hide</strong> as required.</li>
+</ul>
+<p>This made it harder for cross platform usage.  Which is why (I guess) they changed it.</p>
+<p>The method now for BOTH Android and iOS is the same as it used to be for iOS only.</p>
+<p>Your code does not add the activity indicator to a window or a view before showing and hiding so that may be the problem area.</p>
+<p>As you have to add it to something keep in mind adding it BEFORE items that are then placed on top - may make the activity indicator hidden or obscured by the view above it.  So consider where you add it.</p>
+<p>Note this change in the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.UI.ActivityIndicator">activity indicator documentation</a>;</p>
+<p><em>The activity indicator is a view like any other view, and must be added to a window or other top-level view before it can be shown. Note that, unlike most views, the activity indicator is hidden by default and must be shown explicitly.</em></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 16th 2013, 3:18:38 pm">January 16th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/146991/activity-indicatory-crashes-app-on-hide#answer-254704" rel="permalink">permalink</a>
+							</div>
+
+							<h5>9 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>So I basically just have to find the right place to add the activity indicator for the SDK 3.0.0.</p>
+<p>correct?</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 3:30:16 pm">January 16th 2013</span>
+											by <span class='authorname'>Andrew Corliss</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Unfortunately yes :-(</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 3:39:33 pm">January 16th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok, so after i find a spot to add in the activity indicator once you exit from the detail view the app crashes.</p>
+<p>any thoughts?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 4:01:30 pm">January 16th 2013</span>
+											by <span class='authorname'>Andrew Corliss</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Here is my code</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> rss = <span class="hljs-keyword">require</span>(<span class="hljs-string">'data/rssReader'</span>),
+        MasterView = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/blogs/GradingTexas'</span>),
+        DetailView = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/blogs/GradingTexasDetail'</span>);
+    <span class="hljs-comment">//create object instance</span>
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+        title:<span class="hljs-string">'Grading Texas'</span>,
+        backgroundColor:<span class="hljs-string">'#eaeaea'</span>,
+        exitOnClose:<span class="hljs-keyword">true</span>,
+        navBarHidden:<span class="hljs-keyword">true</span>,
+        activity: {
+            onCreateOptionsMenu: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                <span class="hljs-keyword">var</span> menu = e.menu;
+                <span class="hljs-keyword">var</span> menuItem = menu.add({ title: <span class="hljs-string">"Refresh"</span> });
+                menuItem.setIcon(<span class="hljs-string">"images/refresh_icon.png"</span>);
+                menuItem.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                        refreshRSS();
+                });
+            }
+        }
+
+    });
+
+    <span class="hljs-keyword">var</span> masterView = <span class="hljs-keyword">new</span> MasterView();
+    <span class="hljs-keyword">var</span> actInd = Ti.UI.createActivityIndicator({
+        message: <span class="hljs-string">'Loading...'</span>,
+        color: <span class="hljs-string">'#eaeaea'</span>
+    });
+    <span class="hljs-comment">//self.add(actInd);</span>
+    <span class="hljs-keyword">self</span>.add(masterView);
+
+    <span class="hljs-comment">//Add title bar to controller</span>
+    <span class="hljs-keyword">var</span> my_navbar = Ti.UI.createLabel({
+            height : <span class="hljs-string">'20dp'</span>,
+            backgroundColor : <span class="hljs-string">'#333'</span>,
+            color : <span class="hljs-string">'#fff'</span>,
+            text : <span class="hljs-string">'Grading Texas'</span>,
+            top : <span class="hljs-string">'0dp'</span>,
+            width : <span class="hljs-string">'100%'</span>
+    });     
+    <span class="hljs-comment">//self.add(my_navbar);</span>
+
+    <span class="hljs-comment">//add behavior for master view</span>
+    masterView.addEventListener(<span class="hljs-string">'itemSelected'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">// Create a detail view window</span>
+        <span class="hljs-keyword">var</span> detailView = <span class="hljs-keyword">new</span> DetailView();
+        <span class="hljs-keyword">var</span> detailContainerWindow = Ti.UI.createWindow({
+            title: <span class="hljs-string">'Article'</span>,
+            navBarHidden: <span class="hljs-keyword">true</span>,
+            backgroundColor:<span class="hljs-string">'#eaeaea'</span>,
+            top: <span class="hljs-string">'20dp'</span>
+        });
+        detailContainerWindow.add(detailView);
+        <span class="hljs-comment">//detailContainerWindow.add(my_navbar);</span>
+
+        <span class="hljs-comment">// Show an activity dialog in the status bar while the article loads</span>
+        <span class="hljs-keyword">var</span> pb;
+
+        detailContainerWindow.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            pb = Titanium.UI.createActivityIndicator({
+                location: Ti.UI.ActivityIndicator.STATUS_BAR,
+                type: Ti.UI.ActivityIndicator.DETERMINANT,
+                    message:<span class="hljs-string">'Loading article...'</span>,
+            });
+            <span class="hljs-keyword">self</span>.add(pb);
+            pb.show();
+        });
+
+        detailView.addEventListener(<span class="hljs-string">'articleLoaded'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            <span class="hljs-comment">//This is throwing the error</span>
+            pb.hide();
+        });
+
+        detailView.showArticle(e.link);
+
+        detailView.showTitle(e.title);
+        detailView.showDate(e.pubDate);
+
+        navController.open(detailContainerWindow);
+    });
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">refreshRSS</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">self</span>.add(actInd);
+        rss.loadRssFeed({
+            start: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ actInd.show(); },
+            error: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ actInd.hide(); },
+            success: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+                masterView.refreshRssTable(data);
+                actInd.hide();
+            }
+        });
+    }
+
+    <span class="hljs-comment">// refresh RSS when ApplicationWindow opens</span>
+    <span class="hljs-keyword">self</span>.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        refreshRSS();
+    });
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+
+};
+module.exports = ApplicationWindow;
+</code></pre><p>Now the error that is returned is<br>Uncaught Typeerror:  Cannot call method &#39;.hide()&#39; of undefined refer to pb.hide();</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 4:06:03 pm">January 16th 2013</span>
+											by <span class='authorname'>Andrew Corliss</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I am guessing for the same reasons as before, I cannot run your app, but noticed these lines are incorrect;</p>
+<p>This is based on the fact that the properties you are using for the <strong>activityIndicator</strong> method are actually meant for the Android specific <strong>progressIndicator</strong> method.</p>
+<p>This syntax was not in your original code so something big changed - since you asked the question.</p>
+<p>If you are going to use the Progress version rather than the Activity version then DO NOT add it to the view and&#x2F;or window.</p>
+<pre><code class="hljs"><span class="hljs-title">pb</span> = <span class="hljs-type">Titanium</span>.<span class="hljs-type">UI</span>.createActivityIndicator({
+   location: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">ActivityIndicator</span>.<span class="hljs-type">STATUS_BAR</span>,
+   <span class="hljs-typedef"><span class="hljs-keyword">type</span>: <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.<span class="hljs-type">ActivityIndicator</span>.<span class="hljs-type">DETERMINANT</span>,</span>
+...
+</code></pre><p>and should be</p>
+<pre><code class="hljs"><span class="hljs-label">pb</span> = Ti.UI.<span class="hljs-keyword">Android.createProgressIndicator({
+</span><span class="hljs-label">    location:</span> Titanium.UI.<span class="hljs-keyword">Android.PROGRESS_INDICATOR_STATUS_BAR,
+</span><span class="hljs-label">    type:</span> Ti.UI.<span class="hljs-keyword">Android.PROGRESS_INDICATOR_DETERMINANT,
+</span><span class="hljs-label">...</span>
+</code></pre><p>Does this make any difference?</p>
+<p>You are trying to confuse me - I can tell :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 4:28:49 pm">January 16th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yeah I went ahead and just took that out.  Since it was causing my problem but not really adding significant difference to the app.</p>
+<p>THanks :)</p>
+<p>Now I just need to figure out if the actual app is bugged that crashes it or the emulator when hitting the back button from the detail view.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 4:31:35 pm">January 16th 2013</span>
+											by <span class='authorname'>Andrew Corliss</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I have not code enough code to work through to offer advice yet, but if you get more information - ask away and I will help through it.</p>
+<p>A very simple process i use when trying to trace a &quot;stupid&quot; (read hard to find) problem, some find this too basic but I cannot tell you how many times it has helped.</p>
+<p>Litter your code with debug;</p>
+<pre><code class="hljs">Ti.API.info(<span class="hljs-string">'bug 1'</span>);
+<span class="hljs-comment">// your normal line of code</span>
+Ti.API.info(<span class="hljs-string">'bug 2'</span>);
+<span class="hljs-comment">// your normal line of code</span>
+Ti.API.info(<span class="hljs-string">'bug 3'</span>);
+<span class="hljs-comment">// your normal line of code</span>
+Ti.API.info(<span class="hljs-string">'bug 4'</span>);
+</code></pre><p>You can start by doing a 50&#x2F;50 approach then narrowing down the use of the debug lines.  Always use a number at the end to make sure each one you expected is reached.</p>
+<p>The one is does not reach is below a problem area.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2013, 4:43:12 pm">January 16th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Did this you answer your question?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 19th 2013, 4:42:53 pm">January 19th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I am hoping your Activity Indicator problems have gone now.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 22nd 2013, 7:46:59 pm">January 22nd 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

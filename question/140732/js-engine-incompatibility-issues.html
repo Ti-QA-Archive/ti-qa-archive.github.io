@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>JS Engine Incompatibility Issues » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>JS Engine Incompatibility Issues</h1>
+		</header>
+		<section>
+			<p>Hi all,</p>
+<p>Well once again, I am faced with problems between the Android JS engine and the iOS JS engine employed by Titanium.  Very simple and basic code that worked and continues to work in Android does not execute properly when ran on iOS simulator with all kinds of scoping incompatibilities between the two platforms.</p>
+<p>At app startup, I cache some functions that I need to call at a later time in the application into an object that I have created in the Ti.App space. </p>
+<pre><code class="hljs">Ti.App.BluePrints.Styles[Ti.App.ViewNames.CALLFAXLOG_VIEW] = {<span class="hljs-function"><span class="hljs-keyword">func</span>: <span class="hljs-title">func</span>, <span class="hljs-title">updated</span>: <span class="hljs-title">new</span> <span class="hljs-title">Date</span><span class="hljs-params">()</span>};</span>
+</code></pre><p>Ti.App.BluePrints.Styles is a simple dictionary object that holds these registration objects that I can call later.  I set several breakpoints in iOS where these are being registered and no exceptions are raised when stuff the values into the object a startup.  However, at runtime, Ti.App.BluePrints.Styles is ALWAYS empty!  I&#39;ve tried different many different ways of changing the code, but it is all basic js code that would run in any browser (less Ti specific objects and api).</p>
+<p>There are several files that make this call, all registering functions that create view definitions which then format the current view (size, positioning, etc) very similar to CSS&#x2F;JSS.  When the view is loaded, the application searches for the view definition that was previously cache on startup and applies to the view, formatting it as desired.</p>
+<p>Later in the application, when I try to load a previously registered function always fails on iOS saying indicating that the Ti.BluePrints.Styles object is always empty:</p>
+<pre><code class="hljs">BluePrints.getDesign = function(<span class="hljs-comment">/*string*/</span><span class="hljs-keyword">view</span>) {
+        <span class="hljs-keyword">var</span> design;
+        <span class="hljs-keyword">var</span> func;
+        <span class="hljs-comment">// Check to see if design requested is already loaded and if so,</span>
+        <span class="hljs-comment">// use it, otherwise, load it</span>
+        <span class="hljs-keyword">var</span> styles = Ti.<span class="hljs-keyword">App</span>.BluePrints.Styles;
+        <span class="hljs-keyword">var</span> <span class="hljs-keyword">reg</span> = styles[<span class="hljs-keyword">view</span>];
+        <span class="hljs-keyword">var</span> bpUpdated = Ti.<span class="hljs-keyword">App</span>.lastOrientationChange;
+        <span class="hljs-keyword">if</span> (!bpUpdated) {
+            Ti.<span class="hljs-keyword">App</span>.lastOrientationChange = new <span class="hljs-literal">Date</span>().getTime();
+            bpUpdated = Ti.<span class="hljs-keyword">App</span>.lastOrientationChange;
+        };
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">reg</span> &amp;&amp; <span class="hljs-keyword">reg</span>.updated &gt;= bpUpdated) {
+            design = <span class="hljs-keyword">reg</span>.design;
+        } <span class="hljs-keyword">else</span> {
+            func = <span class="hljs-keyword">reg</span>.func;
+            design = func();
+            <span class="hljs-keyword">reg</span>.updated = new <span class="hljs-literal">Date</span>().getTime();
+            <span class="hljs-keyword">reg</span>.design = design;
+        };
+
+        <span class="hljs-keyword">return</span> design;
+    };
+</code></pre><p>the line, var styles = Ti.App.BluePrints.Styles; ALWAYS returns a Styles object that is empty.  I&#39;ve tried switch from using a dictionary object to hold the registrations to using an array and spinning through it to find the registrations.  Just like when the Ti.App.BluePrints.Styles object is always empty, using it as an array it&#39;s length is always zero.</p>
+<p>I have placed breakpoints in several files that register their functions and ensured that there are not execptions raised when populating Ti.BluePrints.Styles, but even if I declare a variable immediately after the below call, it still shows the object as empty, even though I&#39;ve verified that it is being set correctly, etc.</p>
+<pre><code class="hljs">Ti.App.BluePrints.Styles[Ti.App.ViewNames.CALLFAXLOG_VIEW] = {<span class="hljs-function"><span class="hljs-keyword">func</span>: <span class="hljs-title">func</span>, <span class="hljs-title">updated</span>: <span class="hljs-title">new</span> <span class="hljs-title">Date</span><span class="hljs-params">()</span>};</span>
+</code></pre><p>I can generally put up with the constant IDE restarts, hang ups, extremely slow workflow and general instability of the IDE, but I absolutely cannot live with basic JS code that does not compile on both platforms.  </p>
+<p>Do I literally have to have to code both platforms concurrently step by step just to verify that non-UI, basic JS code works?  That adds to the productivity squashing workflow already inherent in Titanium and this is the 3rd time that I have had to go back and refactor major parts of the code because very basic js code doesn&#39;t port from one platform to the other and the reason for incompatibility seems to be different each time.</p>
+<p>Yes, I have kept the global space clean, yes I use commonJS when I can and yes, I do try to leverage 15 years of development experience in a variety of different languages, platforms, frameworks, etc to bear when trying to figure these things out, but there is literally nothing I can see that I can do.  Without core logic code that is portable and consistent across platforms, what is the value proposition of using Titanium reduced to?  A chance to spend $7K annually so that you can develop two separate projects concurrently as you would do if you went the native route?  </p>
+<p>Any suggestions?</p>
+<p>Thanks,</p>
+<p>Lee</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 8th 2012, 4:45:58 pm">August 8th 2012</span>
+				by <span class='authorname'>Lee Jenkins</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>engine</span></li>
+					
+						<li><span class='tagname'>incompatibilities</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>You mention keeping the global space clean and using CommonJS, yet the issues you are having here are using the global space and not using CommonJS.</p>
+<p>What you are trying to accomplish can be done with using CommonJS. Have you read the following:</p>
+<p><a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;CommonJS+Modules+in+Titanium">https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;CommonJS+Modules+in+Titanium</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 8th 2012, 5:16:53 pm">August 8th 2012</span>
+								by <span class='authorname'>Matt Berg</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I second Matt&#39;s answer – I found some months ago that I had to make a whole-hearted commitment to CommonJS to build stable and manageable Ti mobile apps.</p>
+<p>I&#39;m pretty sure that adding properties to Ti.App has been discouraged for some time, and I believe that doing so can have unintended side effects.  The namespace approach has also been discredited (although I&#39;ll admit that <em>plenty</em> of examples still persist using both techniques, and even Appcelerator&#39;s docs still outline the namespace approach).</p>
+<p>If you use a pure CommonJS design, you won&#39;t need to do that sort of thing.  You can store those lookups in a singleton class that is accessible everywhere within your app with a simple require().</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 8th 2012, 5:38:36 pm">August 8th 2012</span>
+								by <span class='authorname'>Jason Priebe</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I thirdie that, Ti cannot be used as a global user object. One of the first things I tried when refactoring to CommonJS.</p>
+<p>I have a &#39;global&#39; object, that I push around when I require files. Not a hassle, and works like a charm</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 8th 2012, 6:22:12 pm">August 8th 2012</span>
+								by <span class='authorname'>Esben Maaløe</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-244798">
+				
+						<section>
+							<p>Thank you for the comments.  I cannot use commonJS for all my needs because Titanium caches the results of the commonJS loading.  I have found that not only is the object itself cached, but if the object contains functions, the results of those functions are cached when the file is loaded.  Each successive call to one of these functions of a cached commonJS object (for instance one that tests for orientation) the result returned always the same as the first time its evaluated.</p>
+<p>I cannot expose the full breadth of our code over a forum, but I should point out that all of my code is enclosed in anonymous functions as well and only adds to the Ti.App namespace for those resources that are not feasible to implement as commonJS.  Either way, I hardly think that it has much bearing on why I can declare a variable or add an attribute to an already declared object and then in later execution of the code the JS engines pretends that the value&#x2F;attribute was not set, though I clearly set a break point and  verify that the value is getting set.</p>
+<p>Also, as I pointed out, everything works well on Android and it is not my code as far I can see, but the behaviors demonstrated by the respective javascript engines.  None of my code in fringe, pretty basic non-complex code structures…on purpose because I know from previous experience how unstable Ti can behave, especially in regard to JS.</p>
+<p>This is not my first rodeo with cross platform development and I am well aware of the challenges inherent in xplat development from incompatible api, opposing UI metaphors, etc, etc.  One thing I do know is that if I cannot have core logic that is compatible between platforms while abstracting out UI peculiarities, I do not have an xplat tool, I have one tool that requires that I write an app twice.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 8th 2012, 7:57:50 pm">August 8th 2012</span>
+								by <span class='authorname'>Lee Jenkins</span><br>
+								<a class="icon-bg icon-link" href="question/140732/js-engine-incompatibility-issues#answer-244798" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Ti used to be pretty unstable, but I would say they have made huge improvements in that regard. CommonJS definitely takes getting used to as an approach. What you have shown in the code examples can be done via CommonJS (even the caching issues), just requires a different mindset.</p>
+<p>Bottom line is you can&#39;t pollute the global space in that manner. It just won&#39;t work on iPhone. I went through that pain last year with that style as well, so I fully understand where you are coming from. Just know it can be accomplished with some re-architecture.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 9th 2012, 8:30:59 pm">August 9th 2012</span>
+											by <span class='authorname'>Matt Berg</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

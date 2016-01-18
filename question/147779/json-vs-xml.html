@@ -1,0 +1,698 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>JSON vs XML » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>JSON vs XML</h1>
+		</header>
+		<section>
+			<p>Running on Ti SDK 3.0.1, Mac OSX Mountain Lion, dev targets are iOS and Android. I have a working app that retrieves rss feed via XML.  But when I tried to convert same code using JSON, my table view that holds the data is blank and no errors reported. What am I doing wrong? I will like to use JSON due to its lightweight so your help is appreciated. Here are the relevant codes:</p>
+<p>XML client code that works:</p>
+<pre><code class="hljs">exports.fetchRSSData = function(url) {
+    <span class="hljs-comment">// Pulls the RSS feed data and returns it to caller</span>
+<span class="hljs-comment">//    var xhr = Titanium.Network.createHTTPClient();</span>
+    url = (url) ? url : <span class="hljs-string">"http://developer.appcelerator.com/blog/feed"</span>; <span class="hljs-comment">// default blog rss feed url</span>
+
+var xhr = Ti.Network.createHTTPClient({
+    onload: function() {
+        var xml = <span class="hljs-keyword">this</span>.responseXML;
+        var channel = xml.documentElement.getElementsByTagName(<span class="hljs-string">"channel"</span>);
+
+        <span class="hljs-comment">// begin looping through blog posts</span>
+        var data = [];
+        var items = xml.documentElement.getElementsByTagName(<span class="hljs-string">"item"</span>);
+        <span class="hljs-keyword">for</span> (var i=<span class="hljs-number">0</span>;i&lt;items.length;i++) {
+            data.push({
+                postTitle: items.item(i).getElementsByTagName(<span class="hljs-string">"title"</span>).item(0).text,
+                postLink: items.item(i).getElementsByTagName(<span class="hljs-string">"link"</span>).item(0).text,
+                pubDate: parseDate(items.item(i).getElementsByTagName(<span class="hljs-string">"pubDate"</span>).item(0).text)
+
+            });
+        }
+        <span class="hljs-comment">// fire an app-level event to notify the UI that the blog data is available</span>
+        Ti.App.fireEvent(<span class="hljs-string">'net:podDataReturned'</span>,{
+            blogTitle: channel.item(0).getElementsByTagName(<span class="hljs-string">"title"</span>).item(0).text,
+            blogPosts: data
+        });
+    },
+
+    onerror: function(e) {
+    Ti.API.debug(<span class="hljs-string">"STATUS: "</span> + <span class="hljs-keyword">this</span>.status);
+    Ti.API.debug(<span class="hljs-string">"TEXT:   "</span> + <span class="hljs-keyword">this</span>.responseXML);
+    Ti.API.debug(<span class="hljs-string">"ERROR:  "</span> + e.<span class="hljs-keyword">error</span>);
+    alert(<span class="hljs-string">'There was an error retrieving the remote data. Try again.'</span>);
+    },
+    timeout:5000
+});
+
+    xhr.open(<span class="hljs-string">'GET'</span>,url);
+    xhr.setRequestHeader(<span class="hljs-string">'User-Agent'</span>, <span class="hljs-string">'my user agent'</span>)
+    xhr.send();
+}; <span class="hljs-comment">// end getSermon()</span>
+</code></pre><p><a href="http:&#x2F;&#x2F;tinypic.com&#x2F;r&#x2F;mmwm7s&#x2F;6">XML table view</a> </p>
+<p>JSON version of code:</p>
+<pre><code class="hljs">exports.fetchRSSData = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">url</span>) </span>{
+    <span class="hljs-comment">// Pulls the RSS feed data and returns it to caller</span>
+<span class="hljs-comment">//    var xhr = Titanium.Network.createHTTPClient();</span>
+    url = (url) ? url : <span class="hljs-string">"http://developer.appcelerator.com/blog/feed"</span>; <span class="hljs-comment">// default blog rss feed url</span>
+
+<span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+    onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+<span class="hljs-comment">/*
+        var xml = this.responseXML;
+        var channel = xml.documentElement.getElementsByTagName("channel");
+*/</span>
+        <span class="hljs-keyword">var</span> jsonObj = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+        <span class="hljs-keyword">var</span> channel = jsonObj.channel;
+        <span class="hljs-comment">// begin looping through blog posts</span>
+        <span class="hljs-keyword">var</span> data = [];
+<span class="hljs-comment">//        var items = xml.documentElement.getElementsByTagName("item");</span>
+        <span class="hljs-keyword">var</span> items = jsonObj.item;
+        Ti.API.info(items.length);
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>;i&lt;items.length;i++) {
+            data.push({
+                postTitle: jsonObj.item(i).title,
+                postLink: jsonObj.item(i).link,
+                pubDate: parseDate(jsonObj.item(i).pubDate)
+
+            });
+        }
+        <span class="hljs-comment">// fire an app-level event to notify the UI that the blog data is available</span>
+        Ti.App.fireEvent(<span class="hljs-string">'net:podDataReturned'</span>,{
+            blogTitle: channel.title,
+            blogPosts: data
+        });
+    },
+
+    onerror: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.debug(<span class="hljs-string">"STATUS: "</span> + <span class="hljs-keyword">this</span>.status);
+    Ti.API.debug(<span class="hljs-string">"TEXT:   "</span> + <span class="hljs-keyword">this</span>.responseXML);
+    Ti.API.debug(<span class="hljs-string">"ERROR:  "</span> + e.error);
+    alert(<span class="hljs-string">'There was an error retrieving the remote data. Try again.'</span>);
+    },
+    timeout:<span class="hljs-number">5000</span>
+});
+
+    xhr.open(<span class="hljs-string">'GET'</span>,url);
+    xhr.setRequestHeader(<span class="hljs-string">'User-Agent'</span>, <span class="hljs-string">'my user agent'</span>)
+    xhr.send();
+}; <span class="hljs-comment">// end getSermon()</span>
+</code></pre><p><a href="http:&#x2F;&#x2F;tinypic.com&#x2F;r&#x2F;s5v8co&#x2F;6">JSON tableview</a> </p>
+<p>Calling function:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> sermonRSS = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-comment">// Builds the RSS reader window</span>
+
+    <span class="hljs-keyword">var</span> b = Titanium.UI.createButton({title:<span class="hljs-string">'Menu'</span>});
+    <span class="hljs-keyword">var</span> margin = TU.UI.Sizer.getDimension (<span class="hljs-number">10</span>);
+    <span class="hljs-built_in">require</span>(<span class="hljs-string">'/includes/getSermon'</span>).fetchRSSData(<span class="hljs-string">'http://www.lightsource.com/ministry/the-potters-house/subscribe/podcast.xml'</span>); 
+
+    <span class="hljs-keyword">var</span> rssWindow = Titanium.UI.createWindow({  
+        title:<span class="hljs-string">'Audio Sermons'</span>,
+        backgroundColor:TU.UI.Theme.darkBackgroundColor,
+        barColor:TU.UI.Theme.barColor
+    });
+    <span class="hljs-comment">// create the tableview</span>
+    tv = Titanium.UI.createTableView({
+
+            top: margin,
+            borderRadius: margin,
+            borderColor:TU.UI.Theme.borderColor,
+            backgroundColor: TU.UI.Theme.backgroundColor,
+            separatorColor: TU.UI.Theme.textColor,
+
+    });
+    rssWindow.add(tv);
+
+    <span class="hljs-comment">// helper function for adding rows, we'll need this later</span>
+    <span class="hljs-keyword">var</span> addTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">tblData</span>)</span>{
+
+        <span class="hljs-keyword">var</span> rowh = TU.UI.Sizer.getDimension (<span class="hljs-number">70</span>);
+        <span class="hljs-keyword">var</span> tableRows = []; <span class="hljs-comment">// an array to hold our rows</span>
+        <span class="hljs-keyword">var</span> imgV = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> pDate = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> tblView = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> titleview = <span class="hljs-string">'null'</span>;
+        <span class="hljs-keyword">var</span> itemCount = <span class="hljs-number">14</span>;
+
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;tblData.length; i++) {
+            <span class="hljs-keyword">if</span>(i &lt;= itemCount ) {
+
+            tblView = Ti.UI.createTableViewRow({
+<span class="hljs-comment">//                title: tblData[i].postTitle,</span>
+                link: tblData[i].postLink,
+                className: <span class="hljs-string">'itemRow'</span>,
+<span class="hljs-comment">//                font:TU.UI.Theme.fonts.mediumBold,</span>
+                selectedBackgroundColor: TU.UI.Theme.highlightColor,
+                backgroundColor: TU.UI.Theme.backgroundColor,
+                color: TU.UI.Theme.textColor,
+                rightImage: <span class="hljs-string">'/images/icons/rightArrow.png'</span>,
+                height:rowh
+            });
+
+            titleview = Ti.UI.createLabel({
+                text: tblData[i].postTitle,
+                color: TU.UI.Theme.textColor,
+                font:TU.UI.Theme.fonts.mediumBold,
+                height: <span class="hljs-string">'50dp'</span>,
+                left: <span class="hljs-string">'73dp'</span>,
+                right: <span class="hljs-string">'5dp'</span>
+            });
+
+            imgV = Ti.UI.createImageView({
+            image: <span class="hljs-string">'/images/icons/jakes.png'</span>,
+            height: <span class="hljs-number">42</span>, 
+            width: <span class="hljs-number">36</span>, 
+            left: <span class="hljs-number">5</span>,
+            top: <span class="hljs-number">3</span>
+            });
+
+            <span class="hljs-comment">// Date region</span>
+            pDate = Ti.UI.createLabel({
+            text: tblData[i].pubDate,
+            textAlign: <span class="hljs-string">'center'</span>,
+            color: TU.UI.Theme.textColor,
+            font:TU.UI.Theme.fonts.small,
+            height: <span class="hljs-string">'auto'</span>,
+            width: <span class="hljs-string">'42dp'</span>,
+            left: <span class="hljs-string">'3dp'</span>,
+            bottom: <span class="hljs-string">'3dp'</span>
+            });
+            tblView.add(imgV);
+            tblView.add(pDate);
+            tblView.add(titleview);
+            tableRows.push(tblView); 
+        }
+        tv.setData(tableRows);    
+        } <span class="hljs-comment">// end of if test that limits number of items retrieved from the feed        </span>
+    };
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 2nd 2013, 2:41:39 pm">February 2nd 2013</span>
+				by <span class='authorname'>adebisi oladipupo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>rss feed</span></li>
+					
+						<li><span class='tagname'>xml</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-255976">
+				
+						<section>
+							<p>Hi</p>
+<p>The problem you have is that the URL you are calling does not return JSON it only returns XML, specifically the RSS specification of XML.  It is not possible to run JSON.parse on the returned XML to convert it to an object as the returned data must be a textual version of the JSON object in order to be parsed.</p>
+<p>The first part of the returned XML file is;</p>
+<pre><code class="hljs"><span class="hljs-pi">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+...
+<span class="hljs-tag">&lt;<span class="hljs-title">channel</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">title</span>&gt;</span>Appcelerator Developer Center<span class="hljs-tag">&lt;/<span class="hljs-title">title</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">atom:link</span> <span class="hljs-attribute">href</span>=<span class="hljs-value">"http://developer.appcelerator.com/blog/feed"</span> <span class="hljs-attribute">rel</span>=<span class="hljs-value">"self"</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"application/rss+xml"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">link</span>&gt;</span>http://developer.appcelerator.com/blog<span class="hljs-tag">&lt;/<span class="hljs-title">link</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">description</span>&gt;</span>Appcelerator Developer Blog<span class="hljs-tag">&lt;/<span class="hljs-title">description</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">lastBuildDate</span>&gt;</span>Thu, 31 Jan 2013 04:42:34 +0000<span class="hljs-tag">&lt;/<span class="hljs-title">lastBuildDate</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">language</span>&gt;</span>en<span class="hljs-tag">&lt;/<span class="hljs-title">language</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">sy:updatePeriod</span>&gt;</span>hourly<span class="hljs-tag">&lt;/<span class="hljs-title">sy:updatePeriod</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">sy:updateFrequency</span>&gt;</span>1<span class="hljs-tag">&lt;/<span class="hljs-title">sy:updateFrequency</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">generator</span>&gt;</span>http://wordpress.org/?v=3.3.1<span class="hljs-tag">&lt;/<span class="hljs-title">generator</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">item</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">title</span>&gt;</span>BlackBerry SDK Preview Update<span class="hljs-tag">&lt;/<span class="hljs-title">title</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">link</span>&gt;</span>http://developer.appcelerator.com/blog/2013/01/blackberry-sdk-preview-update.html<span class="hljs-tag">&lt;/<span class="hljs-title">link</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">comments</span>&gt;</span>http://developer.appcelerator.com/blog/2013/01/blackberry-sdk-preview-update.html#comments<span class="hljs-tag">&lt;/<span class="hljs-title">comments</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">pubDate</span>&gt;</span>Thu, 31 Jan 2013 04:42:34 +0000<span class="hljs-tag">&lt;/<span class="hljs-title">pubDate</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">dc:creator</span>&gt;</span>Ingo Muschenetz<span class="hljs-tag">&lt;/<span class="hljs-title">dc:creator</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">category</span>&gt;</span><span class="hljs-cdata">&lt;![CDATA[ @en]]&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">category</span>&gt;</span>
+</code></pre><p>It would need to have been more like this to work;</p>
+<pre><code class="hljs"><span class="hljs-collection">{
+    <span class="hljs-string">"title"</span>: <span class="hljs-string">"Appcelerator Developer Center"</span>,
+    <span class="hljs-string">"href"</span>: <span class="hljs-string">"http://developer.appcelerator.com/blog/feed"</span>, 
+    ...
+    <span class="hljs-string">"item"</span>: <span class="hljs-collection">[
+        <span class="hljs-string">"title"</span>: <span class="hljs-string">"BlackBerry SDK Preview Update"</span>,
+        <span class="hljs-string">"link"</span>: <span class="hljs-string">"http://developer.appcelerator.com/blog/2013/01/blackberry-sdk-preview-update.html"</span>,
+        <span class="hljs-string">"comments"</span>: <span class="hljs-string">"http://developer.appcelerator.com/blog/2013/01/blackberry-sdk-preview-update.html#comments"</span>,
+        ...
+    ]</span>
+}</span>
+</code></pre><p>Sorry</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 2nd 2013, 2:57:46 pm">February 2nd 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/147779/json-vs-xml#answer-255976" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Partner, glad to see you back all well.  The url that should be passed is one that has been converted using YQL console (i.e. the REST query entry.  Sorry I should have indicated that in the code I posted.  Here&#39;s the JSON results in YQL console after querying http:&#x2F;&#x2F;ipoenheavens.com&#x2F;feed.xml:</p>
+<pre><code class="hljs">cbfunc({
+ <span class="hljs-string">"query"</span>: {
+  <span class="hljs-string">"count"</span>: <span class="hljs-number">11</span>,
+  <span class="hljs-string">"created"</span>: <span class="hljs-string">"2013-02-02T17:07:11Z"</span>,
+  <span class="hljs-string">"lang"</span>: <span class="hljs-string">"en-US"</span>,
+  <span class="hljs-string">"diagnostics"</span>: {
+   <span class="hljs-string">"publiclyCallable"</span>: <span class="hljs-string">"true"</span>,
+   <span class="hljs-string">"url"</span>: {
+    <span class="hljs-string">"execution-start-time"</span>: <span class="hljs-string">"1"</span>,
+    <span class="hljs-string">"execution-stop-time"</span>: <span class="hljs-string">"959"</span>,
+    <span class="hljs-string">"execution-time"</span>: <span class="hljs-string">"958"</span>,
+    <span class="hljs-string">"proxy"</span>: <span class="hljs-string">"DEFAULT"</span>,
+    <span class="hljs-string">"content"</span>: <span class="hljs-string">"http://www.iopenheavens.com/feed.xml"</span>
+   },
+   <span class="hljs-string">"user-time"</span>: <span class="hljs-string">"960"</span>,
+   <span class="hljs-string">"service-time"</span>: <span class="hljs-string">"958"</span>,
+   <span class="hljs-string">"build-version"</span>: <span class="hljs-string">"33614"</span>
+  },
+  <span class="hljs-string">"results"</span>: {
+   <span class="hljs-string">"item"</span>: [
+    {
+     <span class="hljs-string">"title"</span>: <span class="hljs-string">" Basic Goals of a Christian"</span>,
+     <span class="hljs-string">"link"</span>: <span class="hljs-string">"\n     http://iopenheavens.com/media/basic_christian_goals.mp3\n      "</span>,
+     <span class="hljs-string">"guid"</span>: <span class="hljs-string">"http://iopenheavens.com/media/basic_christian_goals.mp3"</span>,
+     <span class="hljs-string">"description"</span>: <span class="hljs-string">"The Basic Goals of A Christian, A message by Pastor E.A Adeboye. God bless you as you listen."</span>,
+     <span class="hljs-string">"pubDate"</span>: <span class="hljs-string">"Mon, 27 Oct 2010 17:00:00 GMT"</span>,
+     <span class="hljs-string">"enclosure"</span>: {
+      <span class="hljs-string">"length"</span>: <span class="hljs-string">"24139131"</span>,
+      <span class="hljs-string">"type"</span>: <span class="hljs-string">"audio/mp3"</span>,
+      <span class="hljs-string">"url"</span>: <span class="hljs-string">"http://iopenheavens.com/media/basic_christian_goals.mp3"</span>
+     },
+     <span class="hljs-string">"category"</span>: [
+      <span class="hljs-string">"Religion &amp; Spirituality"</span>,
+      {
+       <span class="hljs-string">"text"</span>: <span class="hljs-string">"Christianity"</span>,
+       <span class="hljs-string">"category"</span>: [
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Spirituality"</span>
+        },
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Holiness"</span>
+        },
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Righteousness"</span>
+        }
+       ]
+      }
+     ],
+     <span class="hljs-string">"author"</span>: <span class="hljs-string">"Pastor E.A Adeboye"</span>,
+     <span class="hljs-string">"subtitle"</span>: <span class="hljs-string">"Basic Goals of a Christian. "</span>,
+     <span class="hljs-string">"summary"</span>: <span class="hljs-string">"The Basic Goals of A Christian, A message by Pastor E.A Adeboye. God bless you as you listen "</span>,
+     <span class="hljs-string">"explicit"</span>: <span class="hljs-string">"no"</span>,
+     <span class="hljs-string">"duration"</span>: <span class="hljs-string">"50:17"</span>,
+     <span class="hljs-string">"keywords"</span>: <span class="hljs-string">"Pastor E.A Adeboye, podcast, podcasting, podcaster, daddy go, Pastor Adeboye, RCCG, Basic Goals of a Christianl"</span>
+    },
+    {
+     <span class="hljs-string">"title"</span>: <span class="hljs-string">" When God Pay You A Visit"</span>,
+     <span class="hljs-string">"link"</span>: <span class="hljs-string">"\n     http://iopenheavens.com/media/When_God_Pay_You_A_Visit.mp3\n      "</span>,
+     <span class="hljs-string">"guid"</span>: <span class="hljs-string">"http://iopenheavens.com/media/When_God_Pay_You_A_Visit.mp3"</span>,
+     <span class="hljs-string">"description"</span>: <span class="hljs-string">"When God Pay You A Visit, A message by Pastor E.A Adeboye. God bless you as you listen."</span>,
+     <span class="hljs-string">"pubDate"</span>: <span class="hljs-string">"Fri, 22 Oct 2010 13:00:00 GMT"</span>,
+     <span class="hljs-string">"enclosure"</span>: {
+      <span class="hljs-string">"length"</span>: <span class="hljs-string">"56948314"</span>,
+      <span class="hljs-string">"type"</span>: <span class="hljs-string">"audio/mp3"</span>,
+      <span class="hljs-string">"url"</span>: <span class="hljs-string">"http://iopenheavens.com/media/When_God_Pay_You_A_Visit.mp3"</span>
+     },
+     <span class="hljs-string">"category"</span>: [
+      <span class="hljs-string">"Religion &amp; Spirituality"</span>,
+      {
+       <span class="hljs-string">"text"</span>: <span class="hljs-string">"Christianity"</span>,
+       <span class="hljs-string">"category"</span>: [
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Spirituality"</span>
+        },
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Holiness"</span>
+        },
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Righteousness"</span>
+        }
+       ]
+      }
+     ],
+     <span class="hljs-string">"author"</span>: <span class="hljs-string">"Pastor E.A Adeboye"</span>,
+     <span class="hljs-string">"subtitle"</span>: <span class="hljs-string">"When God Pay You A Visit "</span>,
+     <span class="hljs-string">"summary"</span>: <span class="hljs-string">"When God Pay You A Visit, A message by Pastor E.A Adeboye. God bless you as you listen "</span>,
+     <span class="hljs-string">"explicit"</span>: <span class="hljs-string">"no"</span>,
+     <span class="hljs-string">"duration"</span>: <span class="hljs-string">"39:32"</span>,
+     <span class="hljs-string">"keywords"</span>: <span class="hljs-string">"Pastor E.A Adeboye, podcast, podcasting, podcaster, daddy go, Pastor Adeboye, RCCG, When God Pay You A Visit"</span>
+    },
+    {
+     <span class="hljs-string">"title"</span>: <span class="hljs-string">" The Power of the Tongue"</span>,
+     <span class="hljs-string">"link"</span>: <span class="hljs-string">"\n     http://iopenheavens.com/media/The_Power_Of_The_Tongue.mp3\n      "</span>,
+     <span class="hljs-string">"guid"</span>: <span class="hljs-string">"http://iopenheavens.com/media/The_Power_Of_The_Tongue.mp3"</span>,
+     <span class="hljs-string">"description"</span>: <span class="hljs-string">"The Power of the Tongue, A message by Pastor E.A Adeboye. God bless you as you listen."</span>,
+     <span class="hljs-string">"pubDate"</span>: <span class="hljs-string">"Thursday, 11 Nov 2010 18:00:00 GMT"</span>,
+     <span class="hljs-string">"enclosure"</span>: {
+      <span class="hljs-string">"length"</span>: <span class="hljs-string">"18785239"</span>,
+      <span class="hljs-string">"type"</span>: <span class="hljs-string">"audio/mp3"</span>,
+      <span class="hljs-string">"url"</span>: <span class="hljs-string">"http://iopenheavens.com/media/The_Power_Of_The_Tongue.mp3"</span>
+     },
+     <span class="hljs-string">"category"</span>: [
+      <span class="hljs-string">"Religion &amp; Spirituality"</span>,
+      {
+       <span class="hljs-string">"text"</span>: <span class="hljs-string">"Christianity"</span>,
+       <span class="hljs-string">"category"</span>: [
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Spirituality"</span>
+        },
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Holiness"</span>
+        },
+        {
+         <span class="hljs-string">"text"</span>: <span class="hljs-string">"Righteousness"</span>
+        }
+       ]
+      }
+     ],
+</code></pre><p>and the REST code I am using for url: http:&#x2F;&#x2F;query.yahooapis.com&#x2F;v1&#x2F;public&#x2F;yql?q=select%20*%20from%20feed%20where%20url%3D\&#39;http%3A%2F%2Fwww.iopenheavens.com%2Ffeed.xml\&#39;&amp;format=json&amp;diagnostics=true</p>
+<p>Thanks for your help. Since I have a working version of this code, I will love your help more importantly on the q&amp;a for playing youtube video on android that you promise to take another look at. I am unable to proceed with my android implementation since the video is the most important of my app and is not working in android. Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2013, 3:21:10 pm">February 2nd 2013</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks - walking better now - I will return to the YouTube stuff tomorrow when I am back to my dev machine.</p>
+<p>This code though should be fixed if you tweak the middle section.</p>
+<pre><code class="hljs"><span class="hljs-label">var</span> <span class="hljs-keyword">items </span>= jsonObj.query.results.<span class="hljs-keyword">item;
+</span><span class="hljs-label">Ti.API.info</span>(<span class="hljs-keyword">items.length);
+</span>
+<span class="hljs-label">for</span> (var i<span class="hljs-number">=0</span><span class="hljs-comment">;i&lt;items.length;i++) {</span>
+    <span class="hljs-preprocessor">data</span>.<span class="hljs-keyword">push({
+</span><span class="hljs-label">        postTitle:</span> <span class="hljs-keyword">item.title,
+</span><span class="hljs-label">        postLink:</span> <span class="hljs-keyword">item.link,
+</span><span class="hljs-label">        pubDate:</span> parseDate(<span class="hljs-keyword">item.pubDate)
+</span>    })<span class="hljs-comment">;</span>
+}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2013, 3:49:36 pm">February 2nd 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>BTW I found this query works well and produces a clean return for your data;</p>
+<pre><code class="hljs"><span class="hljs-operator"><span class="hljs-keyword">select</span> * <span class="hljs-keyword">from</span> rss <span class="hljs-keyword">where</span> <span class="hljs-keyword">url</span>=<span class="hljs-string">"http://www.iopenheavens.com/feed.xml"</span></span>
+</code></pre><p>The <a href="http:&#x2F;&#x2F;query.yahooapis.com&#x2F;v1&#x2F;public&#x2F;yql?q=select%20*%20from%20rss%20where%20url%3D%22http%3A%2F%2Fwww.iopenheavens.com%2Ffeed.xml%22&amp;format=json&amp;callback=">query url</a> as follows;</p>
+<pre><code class="hljs">http:<span class="hljs-regexp">//query</span>.yahooapis.com/v1/public/yql?<span class="hljs-keyword">q</span>=<span class="hljs-keyword">select</span><span class="hljs-variable">%20</span>*<span class="hljs-variable">%20from</span><span class="hljs-variable">%20rss</span><span class="hljs-variable">%20where</span><span class="hljs-variable">%20url</span><span class="hljs-variable">%3D</span><span class="hljs-variable">%22http</span><span class="hljs-variable">%3A</span><span class="hljs-variable">%2F</span><span class="hljs-variable">%2Fwww</span>.iopenheavens.com<span class="hljs-variable">%2Ffeed</span>.xml<span class="hljs-variable">%22</span>&amp;<span class="hljs-keyword">format</span>=json&amp;callback=
+</code></pre><p>This turns off the debug and the function wrapper so the results are nice and simple.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2013, 3:51:14 pm">February 2nd 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Is the query url above to be used with the XML call and not the JSON code version, right?  ANd thanks for taking a look at the android youtube code tomorrow.  I truly appreciate your help.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2013, 4:08:46 pm">February 2nd 2013</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I tried to use that url and calling the JSON version of my code but still got an empty tableview with no error reported. I also tweaked the middle section of the code as you suggested above.  Pls advise on the code snippets that you used to get the JSON version to work. </p>
+<p>I prefer the JSON version if I can get it to work and populate the tableview.  Thx my friend.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2013, 4:21:38 pm">February 2nd 2013</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I missed a couple of lines, that is what happens when I am not near my machine to test.</p>
+<pre><code class="hljs"><span class="hljs-label">var</span> <span class="hljs-keyword">items </span>= jsonObj.query.results.<span class="hljs-keyword">item;
+</span><span class="hljs-label">var</span> <span class="hljs-keyword">item </span>= {}<span class="hljs-comment">; // this one</span>
+<span class="hljs-label">Ti.API.info</span>(<span class="hljs-keyword">items.length);
+</span>
+<span class="hljs-label">for</span> (var i<span class="hljs-number">=0</span><span class="hljs-comment">;i&lt;items.length;i++) {</span>
+    <span class="hljs-keyword">item </span>= <span class="hljs-keyword">items[intItem]; </span>// <span class="hljs-keyword">and </span>this one
+    <span class="hljs-preprocessor">data</span>.<span class="hljs-keyword">push({
+</span><span class="hljs-label">        postTitle:</span> <span class="hljs-keyword">item.title,
+</span><span class="hljs-label">        postLink:</span> <span class="hljs-keyword">item.link,
+</span><span class="hljs-label">        pubDate:</span> parseDate(<span class="hljs-keyword">item.pubDate)
+</span>    })<span class="hljs-comment">;</span>
+}
+</code></pre><p>This should work when you use the JSON version.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2013, 5:05:01 pm">February 2nd 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This is something I just knocked up on the iPad, it should work without fault - I checked it a few times.</p>
+<p>First a simple download wrapper</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">download</span>(<span class="hljs-params">obj</span>) </span>{
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+    xhr.setTimeout(obj.timeout || <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>);
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        response = <span class="hljs-keyword">this</span>.responseText;
+        json = <span class="hljs-built_in">JSON</span>.parse(response);
+        intRecords = json.length;
+        <span class="hljs-keyword">if</span> (obj.success) {
+            obj.success(json);
+        }
+    };
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (obj.error) {
+            obj.error(e);
+        }
+        <span class="hljs-keyword">return</span> [];
+    };
+    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span>(obj.progress) !== <span class="hljs-string">'undefined'</span>) {
+            obj.progress({
+                progress: <span class="hljs-built_in">parseFloat</span>((e.progress * <span class="hljs-number">100</span>), <span class="hljs-number">10</span>)
+            });
+        }
+    };
+    xhr.open(<span class="hljs-string">'GET'</span>, obj.url);
+    xhr.send();
+}
+</code></pre><p>Then a table and the download call, this is using the URL I gave you earlier;</p>
+<pre><code class="hljs"><span class="hljs-label">var</span> tbl = Ti.UI.createTableView({
+<span class="hljs-label">    height:</span> Ti.UI.FILL,
+<span class="hljs-label">    width:</span> Ti.UI.FILL
+})<span class="hljs-comment">;</span>
+<span class="hljs-label">win1.add</span>(tbl)<span class="hljs-comment">;</span>
+
+<span class="hljs-label">download</span>({
+<span class="hljs-label">    url:</span> <span class="hljs-string">'http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20rss%20where%20url%3D%22http%3A%2F%2Fwww.iopenheavens.com%2Ffeed.xml%22&amp;format=json&amp;callback='</span>,
+<span class="hljs-label">    success:</span> <span class="hljs-preprocessor">function</span> (e) {
+        var <span class="hljs-preprocessor">data</span> = [], <span class="hljs-keyword">items </span>= e.query.results.<span class="hljs-keyword">item, </span><span class="hljs-keyword">item </span>= {}<span class="hljs-comment">;</span>
+        var intItems = <span class="hljs-keyword">items.length, </span>intItem = <span class="hljs-number">0</span><span class="hljs-comment">;</span>
+
+        for (intItem = <span class="hljs-number">0</span><span class="hljs-comment">; intItem &lt; intItems; intItem = intItem + 1) {</span>
+            <span class="hljs-keyword">item </span>= <span class="hljs-keyword">items[intItem];
+</span>            Ti.API.info(JSON.<span class="hljs-keyword">stringify(item));
+</span>            <span class="hljs-preprocessor">data</span>.<span class="hljs-keyword">push({
+</span><span class="hljs-label">                title:</span> <span class="hljs-keyword">item.title,
+</span><span class="hljs-label">                postLink:</span> <span class="hljs-keyword">item.link,
+</span><span class="hljs-label">                pubDate:</span> new Date(<span class="hljs-keyword">item.pubDate)
+</span>            })<span class="hljs-comment">;</span>
+        }
+        tbl.setData(<span class="hljs-preprocessor">data</span>)<span class="hljs-comment">;</span>
+    },
+<span class="hljs-label">    error:</span> <span class="hljs-preprocessor">function</span> (e) {
+        alert(<span class="hljs-string">'error'</span>)<span class="hljs-comment">;</span>
+    }
+})<span class="hljs-comment">;</span>
+</code></pre><p>Obviously you can tweak it as you need.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2013, 5:07:47 pm">February 2nd 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Malcolm, please excuse if I am too dumb to implement your code.  I combined the code into one JS file that is called onClick event from another table. I see all the data retrieved from the remote JSON call printed to the console but I am just not getting the tableVivew populated. Table is still blank and so can&#39;t test if the link works via the table listener event I included.  I have tried revising this code all day but same problem. Here&#39;s the code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> sermonRSS = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-comment">// Builds the RSS reader window</span>
+
+    <span class="hljs-keyword">var</span> b = Titanium.UI.createButton({title:<span class="hljs-string">'Menu'</span>});
+    <span class="hljs-keyword">var</span> margin = TU.UI.Sizer.getDimension (<span class="hljs-number">10</span>);
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">download</span>(<span class="hljs-params">obj</span>) </span>{
+        <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+        xhr.setTimeout(obj.timeout || <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>);
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+            response = <span class="hljs-keyword">this</span>.responseText;
+            json = <span class="hljs-built_in">JSON</span>.parse(response);
+            intRecords = json.length;
+            <span class="hljs-keyword">if</span> (obj.success) {
+                obj.success(json);
+            }
+    };
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (obj.error) {
+            obj.error(e);
+        }
+        <span class="hljs-keyword">return</span> [];
+    };
+    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span>(obj.progress) !== <span class="hljs-string">'undefined'</span>) {
+            obj.progress({
+                progress: <span class="hljs-built_in">parseFloat</span>((e.progress * <span class="hljs-number">100</span>), <span class="hljs-number">10</span>)
+            });
+        }
+    };
+    xhr.open(<span class="hljs-string">'GET'</span>, obj.url);
+    xhr.setRequestHeader(<span class="hljs-string">'User-Agent'</span>, <span class="hljs-string">'my user agent'</span>);
+    xhr.send();
+}
+
+<span class="hljs-keyword">var</span> rssWindow = Titanium.UI.createWindow({  
+        title:<span class="hljs-string">'Audio Sermons'</span>,
+        backgroundColor:TU.UI.Theme.darkBackgroundColor,
+        barColor:TU.UI.Theme.barColor
+});
+    <span class="hljs-comment">// create the tableview</span>
+    tv = Titanium.UI.createTableView({
+
+            top: margin,
+            borderRadius: margin,
+            borderColor:TU.UI.Theme.borderColor,
+            backgroundColor: TU.UI.Theme.backgroundColor,
+            separatorColor: TU.UI.Theme.textColor
+
+    });
+    rssWindow.add(tv);
+
+
+    download({
+        url: <span class="hljs-string">'http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20rss%20where%20url%3D%22http%3A%2F%2Fwww.iopenheavens.com%2Ffeed.xml%22&amp;format=json&amp;callback='</span>,
+        success: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">var</span> data = [], items = e.query.results.item, item = {};
+            <span class="hljs-keyword">var</span> intItems = items.length, intItem = <span class="hljs-number">0</span>;
+
+            <span class="hljs-keyword">for</span> (intItem = <span class="hljs-number">0</span>; intItem &lt; intItems; intItem = intItem + <span class="hljs-number">1</span>) {
+                item = items[intItem];
+                Ti.API.info(<span class="hljs-built_in">JSON</span>.stringify(item));
+                data.push({
+                    title: item.title,
+                    postLink: item.link,
+                    pubDate: <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(item.pubDate)
+                });
+            }
+            tv.setData(data);
+
+        },
+        error: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+            alert(<span class="hljs-string">'error'</span>);
+        }
+    });
+
+    <span class="hljs-comment">// add click event listener to open blog post when row is tapped</span>
+
+    tv.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> ArticleWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'includes/podcastPlayer'</span>);
+        <span class="hljs-keyword">var</span> articlewindow = <span class="hljs-keyword">new</span> ArticleWindow(e.rowData);
+        articlewindow.open({modal:<span class="hljs-literal">true</span>});
+    });
+
+    <span class="hljs-keyword">return</span> rssWindow;
+}; 
+
+<span class="hljs-built_in">module</span>.exports = sermonRSS;
+</code></pre><p>Though I have a working version in XML but I really want the JSON version to work in order to gain some efficiency in my app.  Thx for never being tired of my questions.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2013, 12:46:40 am">February 3rd 2013</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

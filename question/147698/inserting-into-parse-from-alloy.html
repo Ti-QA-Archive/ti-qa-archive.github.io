@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Inserting into PARSE from Alloy » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Inserting into PARSE from Alloy</h1>
+		</header>
+		<section>
+			<p>Im using parse for the database in my project and Im having no problem connecting to it and I can delete records by id but im having a tough time selecting and inserting records. Im using the createObject call to insert the records</p>
+<pre><code class="hljs">
+<span class="hljs-type">ParseClient</span>.prototype.createObject = function(_class, data, callback){
+    <span class="hljs-keyword">var</span> url = baseURL+'classes/'+_class;
+    <span class="hljs-keyword">var</span> params = {
+        <span class="hljs-keyword">method</span>: '<span class="hljs-type">POST</span>',
+        body: data
+    };
+
+    this._request(url, params, callback);
+};
+
+
+
+<span class="hljs-type">ParseClient</span>.prototype._request = function(url, params, callback) {
+    <span class="hljs-keyword">if</span> (typeof params === 'function'){
+        callback = params;
+        params = {};
+    }
+
+
+    params = params || {};
+
+    // <span class="hljs-type">Clean</span> up the call <span class="hljs-keyword">type</span>, defaulting to <span class="hljs-type">GET</span> <span class="hljs-keyword">if</span> no <span class="hljs-keyword">method</span> <span class="hljs-type">set</span>
+    params.<span class="hljs-keyword">method</span> = params.<span class="hljs-keyword">method</span> || '<span class="hljs-type">GET</span>';
+    params.<span class="hljs-keyword">method</span> = params.<span class="hljs-keyword">method</span>.toUpperCase();
+
+    // <span class="hljs-type">If</span> <span class="hljs-keyword">not</span> specified, use a <span class="hljs-number">20</span> second timeout
+    params.timeout = ('timeout' <span class="hljs-keyword">in</span> params) ? params.timeout : <span class="hljs-number">15000</span>;
+    params.body = params.body || {};
+    params.query = params.query || {};
+    params.url = url || baseURL;
+    //params.url += url;
+    params.headers = params.headers || {};
+    params.headers['X-<span class="hljs-type">Parse</span>-<span class="hljs-type">Application</span>-<span class="hljs-type">Id</span>'] = appId;
+    params.headers['X-<span class="hljs-type">Parse</span>-<span class="hljs-type">REST</span>-<span class="hljs-type">API</span>-<span class="hljs-type">Key</span>'] = apiKey;
+    <span class="hljs-keyword">if</span> (!params.headers['<span class="hljs-type">Content</span>-<span class="hljs-type">Type</span>']){
+        params.headers['<span class="hljs-type">Content</span>-<span class="hljs-type">Type</span>'] = 'application/json';
+    }
+    params.headers['<span class="hljs-type">Accept</span>'] = params.headers['<span class="hljs-type">Accept</span>'] || 'application/json';
+    <span class="hljs-keyword">if</span>(!('login' <span class="hljs-keyword">in</span> params) || !params.login){
+        params.headers['X-<span class="hljs-type">Parse</span>-<span class="hljs-type">Session</span>-<span class="hljs-type">Token</span>'] = this.getSessionToken();
+    }
+
+    // <span class="hljs-type">Need</span> to clear some properties depending on <span class="hljs-keyword">method</span>
+    <span class="hljs-keyword">if</span> ((params.<span class="hljs-keyword">method</span> === '<span class="hljs-type">GET</span>') || (params.<span class="hljs-keyword">method</span> === '<span class="hljs-type">DELETE</span>')){
+        params.body = null;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span> (params.<span class="hljs-keyword">type</span> === 'image'){
+            params.body = params.body;
+        } <span class="hljs-keyword">else</span> {
+            params.body = <span class="hljs-type">JSON</span>.stringify(params.body);
+        }
+        params.query = null;
+    }
+
+
+    <span class="hljs-keyword">var</span> xhr = <span class="hljs-type">Ti</span>.<span class="hljs-type">Network</span>.createHTTPClient({
+        onsendstream: function(e){
+            <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.error(e.progress);
+        }
+    });
+
+    xhr.setTimeout(params.timeout);
+
+    xhr.onerror = function(e) {
+        callback(<span class="hljs-number">0</span>,this.responseText, this.status, this);
+    };
+
+    xhr.onload = function() {
+        callback(<span class="hljs-number">1</span>,this.responseText, this.status);
+    };
+
+
+    //params = params.replace(/\./g, '_');
+
+    xhr.open(params.<span class="hljs-keyword">method</span>, params.url);
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> params.headers) {
+        xhr.setRequestHeader(key, params.headers[key]);
+    }
+    xhr.send(params.body);
+};
+</code></pre><p>Ive tried doing:</p>
+<pre><code class="hljs">Parse.<span class="hljs-function"><span class="hljs-title">createObject</span><span class="hljs-params">(<span class="hljs-string">'review'</span>,<span class="hljs-string">"comment:woot,movie:The New Movie,stars:3"</span>,callback)</span></span>
+</code></pre><p>and tried making an array</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> reviewdata = [{movie: <span class="hljs-string">"The Grudge"</span>, stars: <span class="hljs-string">"3"</span>}];
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">callback</span> = Parse.createObject(<span class="hljs-string">'review'</span>,reviewdata,<span class="hljs-keyword">callback</span>)
+alert (<span class="hljs-keyword">callback</span>);
+</code></pre><p>but neither are working and returning an error of &quot;1&quot; which is not a very descriptive error.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 31st 2013, 1:50:59 pm">January 31st 2013</span>
+				by <span class='authorname'>Anthony Catalano</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>parse</span></li>
+					
+						<li><span class='tagname'>parse.com</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-255868">
+				
+						<section>
+							<p>Tank god theres a debugger in the GUI..I opened it up in debugging mode and it appears to be invalid json<br>{&quot;code&quot;:107,&quot;error&quot;:&quot;invalid json: \&quot;{\\&quot;movie\\&quot;:\\&quot;The Grudge2\\&quot;,\\&quot;stars\\&quot;:3,\\&quot;comment\\&quot;:\\&quot;lamer\\&quot;}\&quot;&quot;}</p>
+<p>I didn&#39;t format the json string right :)</p>
+<pre><code class="hljs">Parse.<span class="hljs-function"><span class="hljs-title">createObject</span><span class="hljs-params">(<span class="hljs-string">'review'</span>,{ <span class="hljs-string">"movie"</span>: <span class="hljs-string">"The Wall"</span> ,<span class="hljs-string">"stars"</span>:<span class="hljs-number">5</span>, <span class="hljs-string">"comment"</span>:<span class="hljs-string">"Best musical movie ever made!!"</span> },callback)</span></span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 31st 2013, 2:58:33 pm">January 31st 2013</span>
+								by <span class='authorname'>Anthony Catalano</span><br>
+								<a class="icon-bg icon-link" href="question/147698/inserting-into-parse-from-alloy#answer-255868" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

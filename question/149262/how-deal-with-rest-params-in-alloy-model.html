@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How deal with REST params in alloy model? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How deal with REST params in alloy model?</h1>
+		</header>
+		<section>
+			<p>Hi Guys! </p>
+<p>I&#39;m trying to do this: I have a model (like an article from newspaper), and a collection of news (grouped for topics, or sections, etc). I have to get the model from REST WebServices (not implemented by me). I have two kind of web services. One of them gives me the news from a particular section. </p>
+<p>The webservice url looks like that http:&#x2F;&#x2F;example.com&#x2F;ws&#x2F;news?session=alfasfdasdf&amp;section=X<br>(as it works on a browser)</p>
+<p>According <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;146866&#x2F;how-to-let-my-alloy-model-backbone-fetch-data-from-rest-service">this</a> I&#39;ve tried to set the adapter (restapi.js) to my model and vice versa.</p>
+<p>The Model</p>
+<pre><code class="hljs">exports.definition = {
+    config : {
+        <span class="hljs-built_in">debug</span>:<span class="hljs-number">1</span>,
+        adapter : {
+            <span class="hljs-built_in">type</span> : <span class="hljs-string">"restapi"</span>,
+            collection_name : <span class="hljs-string">"news"</span>
+        }
+    },
+    extendModel : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span></span> {
+        _.extend(Model.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+            id : <span class="hljs-string">'idSection'</span>,
+            url: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+            <span class="hljs-keyword">return</span> <span class="hljs-string">'http://domain.name.com/WSDocs/retrievenews?session=slfjkassdlfa'</span>
+            }
+        });
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span></span> {
+        _.extend(Collection.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+            },
+        });
+        <span class="hljs-keyword">return</span> Collection;
+    }
+}
+</code></pre><p>The Adapter</p>
+<pre><code class="hljs">...
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'read'</span>:
+            <span class="hljs-keyword">if</span> (model.id) {        
+                <span class="hljs-keyword">params</span>.url = <span class="hljs-keyword">params</span>.url + <span class="hljs-string">'='</span> + model.id;
+            }
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">params</span>.urlparams) {
+                <span class="hljs-keyword">params</span>.url += <span class="hljs-string">"&amp;"</span> + encodeData(<span class="hljs-keyword">params</span>.urlparams);
+            }
+            apiCall(<span class="hljs-keyword">params</span>, function(_response) {                
+                <span class="hljs-keyword">if</span> (_response.success) {
+                    <span class="hljs-keyword">var</span> data = JSON.parse(_response.responseText);
+                    <span class="hljs-keyword">var</span> values = [];
+                    model.length = <span class="hljs-number">0</span>;
+                    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> data) {
+                        <span class="hljs-keyword">var</span> item = {};
+                        item = data[i];
+                        <span class="hljs-keyword">if</span> (item.id == undefined) {
+                            item.id = guid();
+                        }
+                        values.push(item);
+                        model.length++;
+                    }
+        <span class="hljs-keyword">params</span>.success((model.length === <span class="hljs-number">1</span>) ? values[<span class="hljs-number">0</span>] : values, _response.responseText);
+                    model.trigger(<span class="hljs-string">"fetch"</span>);
+
+                } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">params</span>.error(JSON.parse(_response.responseText), _response.responseText);
+                    Ti.API.error(<span class="hljs-string">'[REST API] ERROR: '</span> + _response.responseText)
+                }
+            })
+            <span class="hljs-keyword">break</span>;
+    }
+
+};
+...
+</code></pre><p>The controller</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">news</span> = Alloy.createCollection('<span class="hljs-keyword">news</span>');
+<span class="hljs-keyword">var</span> sectionOne = <span class="hljs-keyword">news</span>.<span class="hljs-literal">get</span>('1');
+<span class="hljs-comment">//Gives nothing.</span>
+</code></pre><p>I guess failing giving the model the settings, because model.id and urlparams both appear as empty in the adapter. Other point, if I set the entire url by hand (including section and its value as part of url) I can see the response in the adapter (or in a browser). How can I set the model properties? Any other example or idea? Thanks a lot!</p>
+<p>Antonio</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 6th 2013, 10:20:57 pm">March 6th 2013</span>
+				by <span class='authorname'>Antonio Gómez</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>adapter</span></li>
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>collection</span></li>
+					
+						<li><span class='tagname'>model</span></li>
+					
+						<li><span class='tagname'>rest</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hi Antonio, </p>
+<p>Did  you solved this?</p>
+<p>I&#39;m new to Alloy, Making  WS call from Alloy is confusing , Whats the use of Adapter and how Model is used. </p>
+<p>plz help me</p>
+<p>Thanks,<br>Saamy</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 15th 2013, 1:46:41 pm">March 15th 2013</span>
+								by <span class='authorname'>Saminathan Ponnusamy</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Saminathan,</p>
+<p>Not really this way. Sorry. I made a hack without models which worked for me. By retrieving ws info in json format and keeping it on js objects as &quot;traditional&quot; mode. Good luck!</p>
+<p>Antonio</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 25th 2013, 7:33:35 am">March 25th 2013</span>
+								by <span class='authorname'>Antonio Gómez</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

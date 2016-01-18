@@ -1,0 +1,444 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>MASlidingMenu moving from one menu item to another. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>MASlidingMenu moving from one menu item to another.</h1>
+		</header>
+		<section>
+			<p>Hello has anyone used MASlidingMenu?</p>
+<p>I am trying to open a different menu item.<br>I&#39;m pretty sure you must use fireEvent but it dosent seem to work</p>
+<p>MASlidingMenu:</p>
+<pre><code class="hljs">
+
+<span class="javascript"><span class="hljs-keyword">var</span> platform = Ti.Platform.osname;
+
+<span class="hljs-keyword">var</span> MASlidingMenu = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">args</span>) </span>{
+    <span class="hljs-keyword">var</span> self = Ti.UI.createWindow({exitOnClose:<span class="hljs-literal">false</span>});
+
+    <span class="hljs-keyword">var</span> left = args.left,
+        view, <span class="hljs-comment">//the current view... start with 0</span>
+        views = [],
+        menuRows = [],
+        events = {}, <span class="hljs-comment">//holder for our custom events</span>
+        draggable = args.draggable || <span class="hljs-literal">true</span>,
+        ledge,
+        threshold,
+        half = {
+            width: <span class="hljs-literal">undefined</span>,
+            height: <span class="hljs-literal">undefined</span>
+        },
+        duration = {
+            slide: <span class="hljs-number">200</span>,
+            swipe: <span class="hljs-number">150</span>,
+            bounce: <span class="hljs-number">100</span>,
+            change_out: <span class="hljs-number">120</span>,
+            change_in: <span class="hljs-number">300</span>
+        },
+        bounce = <span class="hljs-number">8</span>,
+        shadow = {
+            shadowRadius: <span class="hljs-number">2</span>,
+            shadowOpacity: <span class="hljs-number">0.6</span>,
+            shadowOffset: {
+                x: <span class="hljs-number">4</span>,
+                y: <span class="hljs-number">0</span>
+            },
+            shadowColor: <span class="hljs-string">'black'</span>
+        },
+        current = <span class="hljs-string">'view'</span>,
+        sliding = {
+            center: <span class="hljs-number">0</span>,
+            offset: <span class="hljs-number">0</span>
+        };
+
+    <span class="hljs-comment">// Our Identity Matrix for all animations using transform</span>
+    <span class="hljs-keyword">var</span> twoD = Ti.UI.create2DMatrix();
+
+    <span class="hljs-keyword">var</span> open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        <span class="hljs-comment">// Add the menu first</span>
+        <span class="hljs-keyword">if</span>(left !== <span class="hljs-literal">undefined</span> &amp;&amp; left.toString().indexOf(<span class="hljs-string">'TableView'</span>) !== -<span class="hljs-number">1</span>) {
+            self.add(left);
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">throw</span> <span class="hljs-string">"'left' property must be a Titanium Table view proxy... was:"</span> + left.toString();
+        }
+
+        <span class="hljs-comment">// Here we will process the table rows just as if they were tabs in a tabgroup</span>
+        <span class="hljs-comment">// Making sure we check all the table sections</span>
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; left.data.length; i++)
+        {
+            <span class="hljs-comment">// Make sure we check all the table rows</span>
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> j = <span class="hljs-number">0</span>; j &lt; left.data[i].rowCount; j++)
+            {
+                <span class="hljs-keyword">var</span> row = left.data[i].rows[j];
+
+                <span class="hljs-comment">//only work with rows that have a view... in case some are buttons or decoration</span>
+                <span class="hljs-keyword">if</span>(row.navView !== <span class="hljs-literal">undefined</span>) {
+                    <span class="hljs-keyword">var</span> View;
+
+                    <span class="hljs-comment">// here we will accept nything but a window...</span>
+                    <span class="hljs-keyword">if</span>(row.navView.toString().indexOf(<span class="hljs-string">'Window'</span>) === -<span class="hljs-number">1</span>) {
+                        View = row.navView;
+                    } <span class="hljs-keyword">else</span> {
+                        <span class="hljs-keyword">throw</span> <span class="hljs-string">"ViewSlider can only accept UI Views as the table row view property for now"</span>;
+                        <span class="hljs-comment">//Maybe in the future just copy all children of a window to a view?</span>
+                    }
+                    View.width = Ti.Platform.displayCaps.platformWidth;
+                    View.height = Ti.UI.FILL;
+
+                    views.push(View);
+
+                    <span class="hljs-comment">// Hide all but the first one... but add them to self so they load and reduce lag... just like ios tabgroup...</span>
+                    self.add(View);
+                    <span class="hljs-keyword">if</span>(views.length &gt; <span class="hljs-number">1</span>) {
+                        View.visible = <span class="hljs-literal">false</span>;
+                    }
+
+                } <span class="hljs-keyword">else</span> {
+                    views.push({}); <span class="hljs-comment">// keep our index correct...</span>
+                }
+            }
+        }
+        view = views[<span class="hljs-number">0</span>]; <span class="hljs-comment">// set the first view</span>
+
+        ledge = view.width * <span class="hljs-number">0.8</span>,
+        threshold = view.width * <span class="hljs-number">0.2</span>,
+        half = {
+            width: view.width / <span class="hljs-number">2</span>,
+            height: view.height / <span class="hljs-number">2</span>
+        };
+        left.zIndex = <span class="hljs-number">1</span>;
+        view.zIndex = <span class="hljs-number">2</span>;
+
+        <span class="hljs-keyword">if</span>(draggable) {
+            addEvents();
+        }
+
+        left.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">var</span> newView;
+            <span class="hljs-keyword">if</span>(views[e.index].toString() !== <span class="hljs-string">"object"</span>) {
+                newView = views[e.index];
+                changeView(newView);
+            }
+
+            fireEvent(<span class="hljs-string">'switch'</span>, {
+                view: newView,
+                index: views.indexOf(newView),
+                menuRow: e.rowData
+            });
+        });
+        addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            slideView(<span class="hljs-string">'left'</span>);
+        });
+        addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            slideView(<span class="hljs-string">'view'</span>);
+        });
+        addEventListener(<span class="hljs-string">'toggle'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">if</span>(current === <span class="hljs-string">'view'</span>) {
+                slideView(<span class="hljs-string">'left'</span>);
+            } <span class="hljs-keyword">else</span> {
+                slideView(<span class="hljs-string">'view'</span>);
+            }
+        });
+        self.open();
+    };
+
+    <span class="hljs-keyword">var</span> addEventListener = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">name, callback</span>) </span>{
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">typeof</span> events[name] !== <span class="hljs-string">'array'</span>) {
+            events[name] = [];
+        }
+
+        events[name].push(callback);
+    };
+
+    <span class="hljs-keyword">var</span> fireEvent = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">name, args</span>) </span>{
+        args.event = name;
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> callback <span class="hljs-keyword">in</span> events[name]) {
+            events[name][callback](args);
+        }
+    };
+
+    <span class="hljs-keyword">var</span> onCurrentChanged = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        shadow.shadowOffset.x = -<span class="hljs-number">4</span>;
+        left.zIndex = -<span class="hljs-number">1</span>;
+    };
+
+    <span class="hljs-keyword">var</span> slideView = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">position</span>) </span>{
+
+        <span class="hljs-keyword">var</span> delta_xs;
+        delta_xs = {
+            left: ledge,
+            view: <span class="hljs-number">0</span>
+        };
+        view.animate({
+            center: {
+                x: delta_xs[position] + half.width,
+                y: half.height
+            },
+            duration: duration.slide
+        });
+        current = position;
+        onCurrentChanged();
+    };
+
+    <span class="hljs-keyword">var</span> viewTouchstart = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'starting'</span>);
+        sliding.offset = e.x - half.width;
+        sliding.center = view.rect.x + half.width;
+    };
+
+    <span class="hljs-keyword">var</span> viewTouchmove = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> delta_x;
+
+        delta_x = e.x - sliding.offset + view.rect.x;
+        delta_x -= half.width;
+
+        touchStarted = <span class="hljs-literal">false</span>;
+
+        <span class="hljs-comment">// //Minimum movement is 30</span>
+        <span class="hljs-keyword">if</span>( delta_x &gt; <span class="hljs-number">30</span> ){
+            touchStarted = <span class="hljs-literal">true</span>;
+        }
+
+        <span class="hljs-keyword">if</span>(touchStarted) {
+
+            fireEvent(<span class="hljs-string">'sliding'</span>, {
+                distance: delta_x
+            });
+
+            <span class="hljs-keyword">if</span> ((delta_x &gt; <span class="hljs-number">0</span> &amp;&amp; !left)) {
+                <span class="hljs-keyword">return</span>;
+            }
+            <span class="hljs-keyword">if</span> (<span class="hljs-built_in">Math</span>.abs(delta_x) &gt; ledge) {
+                <span class="hljs-keyword">return</span>;
+            }
+            <span class="hljs-keyword">if</span> (delta_x &gt; <span class="hljs-number">0</span> &amp;&amp; current !== <span class="hljs-string">'left'</span>) {
+                current = <span class="hljs-string">'left'</span>;
+                onCurrentChanged();
+            } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (delta_x === <span class="hljs-number">0</span> &amp;&amp; current !== <span class="hljs-string">'view'</span>) {
+                current = <span class="hljs-string">'view'</span>;
+                onCurrentChanged();
+            }
+
+            view.animate({
+                transform: twoD.translate(delta_x, <span class="hljs-number">0</span>),
+                duration: <span class="hljs-number">0</span>
+            });
+
+        }
+
+    };
+
+    <span class="hljs-keyword">var</span> viewTouchend = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> delta_x;
+
+        delta_x = e.x - sliding.offset + view.rect.x ;
+        delta_x -= half.width;
+
+        <span class="hljs-keyword">if</span> ((delta_x &gt; <span class="hljs-number">0</span> &amp;&amp; !left)) {
+            <span class="hljs-keyword">return</span>;
+        }
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">Math</span>.abs(delta_x) &gt; ledge) {
+            <span class="hljs-keyword">return</span>;
+        }
+
+        <span class="hljs-keyword">if</span>(sliding.center - half.width === <span class="hljs-number">0</span> &amp;&amp; delta_x &gt; threshold) {
+            Ti.API.info(<span class="hljs-string">'1'</span>);
+            <span class="hljs-keyword">if</span> (delta_x &gt; <span class="hljs-number">0</span>) {
+                delta_x = ledge;
+                current = <span class="hljs-string">'left'</span>;
+            } <span class="hljs-keyword">else</span> {
+                delta_x = <span class="hljs-number">0</span>;
+                current = <span class="hljs-string">'view'</span>;
+            }
+
+            view.animate({
+                transform: twoD.translate(<span class="hljs-number">260</span>, <span class="hljs-number">0</span>),
+                duration: duration.bounce
+            });
+        } <span class="hljs-keyword">else</span> {
+            delta_x = sliding.center - half.width;
+            <span class="hljs-keyword">if</span> (delta_x === <span class="hljs-number">0</span>) {
+                current = <span class="hljs-string">'view'</span>;
+            } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (delta_x &gt; <span class="hljs-number">0</span>) {
+                current = <span class="hljs-string">'left'</span>;
+            }
+            view.animate({
+                transform: twoD.translate(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>),
+                duration: duration.swipe
+            });
+        }
+        onCurrentChanged();
+    };
+
+    <span class="hljs-keyword">var</span> addEvents = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span>(view.toString() === <span class="hljs-string">"[object TiUIiPhoneNavigationGroup]"</span>) {
+            view.window.addEventListener(<span class="hljs-string">'touchstart'</span>, viewTouchstart);
+            view.window.addEventListener(<span class="hljs-string">'touchmove'</span>, viewTouchmove);
+            view.window.addEventListener(<span class="hljs-string">'touchend'</span>, viewTouchend);
+            view.window.addEventListener(<span class="hljs-string">'touchcancel'</span>, viewTouchend);
+        } <span class="hljs-keyword">else</span> {
+            view.addEventListener(<span class="hljs-string">'touchstart'</span>, viewTouchstart);
+            view.addEventListener(<span class="hljs-string">'touchmove'</span>, viewTouchmove);
+            view.addEventListener(<span class="hljs-string">'touchend'</span>, viewTouchend);
+            view.addEventListener(<span class="hljs-string">'touchcancel'</span>, viewTouchend);
+        }
+    };
+
+    <span class="hljs-keyword">var</span> removeEvents = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span>(view.toString() === <span class="hljs-string">"[object TiUIiPhoneNavigationGroup]"</span>) {
+            view.window.removeEventListener(<span class="hljs-string">'touchstart'</span>, viewTouchstart);
+            view.window.removeEventListener(<span class="hljs-string">'touchmove'</span>, viewTouchmove);
+            view.window.removeEventListener(<span class="hljs-string">'touchend'</span>, viewTouchend);
+        } <span class="hljs-keyword">else</span> {
+            view.removeEventListener(<span class="hljs-string">'touchstart'</span>, viewTouchstart);
+            view.removeEventListener(<span class="hljs-string">'touchmove'</span>, viewTouchmove);
+            view.removeEventListener(<span class="hljs-string">'touchend'</span>, viewTouchend);
+        }
+    };
+
+    <span class="hljs-keyword">var</span> changeView = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">newView</span>) </span>{
+        <span class="hljs-keyword">if</span> (view !== newView) {
+            newView.hide();
+            newView.center = {
+                x: half.width,
+                y: half.height
+            };
+            newView.width = Ti.Platform.displayCaps.platformWidth;
+            newView.height = Ti.UI.FILL;
+        }
+
+        view.animate({
+            transform: twoD.translate(view.rect.x + (Ti.Platform.displayCaps.platformWidth - view.rect.x), <span class="hljs-number">0</span>), <span class="hljs-comment">//twoD.translate(delta_x, 0),</span>
+            duration: duration.change_out
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+            <span class="hljs-keyword">if</span>(draggable) {
+                removeEvents();
+            }
+            view.hide();
+            view = newView;
+            current = <span class="hljs-string">'view'</span>;
+            view.show();
+
+            <span class="hljs-keyword">if</span>(draggable) {
+                addEvents();
+            }
+            view.animate({
+                transform: twoD.translate(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>),
+                duration: duration.change_in
+            });
+        });
+    };
+
+
+    <span class="hljs-comment">// API properties</span>
+    <span class="hljs-keyword">this</span>.draggable = draggable;
+
+    <span class="hljs-comment">// API methods</span>
+    <span class="hljs-keyword">this</span>.slideView = slideView;
+    <span class="hljs-keyword">this</span>.addEventListener = addEventListener;
+    <span class="hljs-keyword">this</span>.fireEvent = fireEvent;
+    <span class="hljs-keyword">this</span>.open = open;
+    <span class="hljs-keyword">this</span>.activeView = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">return</span> view;
+    };
+};
+
+<span class="hljs-built_in">module</span>.exports = MASlidingMenu;</span>
+</code></pre><p>code i am trying to use to change to a different view on the fly:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> results = <span class="hljs-keyword">new</span> ViewResults();
+
+slidingMenu.fireEvent(<span class="hljs-string">'switch'</span>, {
+               view: results
+            });
+</code></pre><p>Im also wanting to pass a JSON object to the results window too.<br>is this possible?</p>
+<p>Thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 23rd 2012, 9:04:10 pm">October 23rd 2012</span>
+				by <span class='authorname'>Michael Sagar</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>maslidingmenu</span></li>
+					
+						<li><span class='tagname'>view</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>wont let me add MASlidingMenu so here is the github link:</p>
+<pre><code class="hljs"><span class="hljs-string">https:</span><span class="hljs-comment">//github.com/appersonlabs/MASlidingMenu</span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="October 23rd 2012, 9:05:43 pm">October 23rd 2012</span>
+								by <span class='authorname'>Michael Sagar</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

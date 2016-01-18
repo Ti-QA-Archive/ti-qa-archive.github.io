@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Dynamically update tableview rows from a local sqlite database. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Dynamically update tableview rows from a local sqlite database.</h1>
+		</header>
+		<section>
+			<p>I can get the first 10 rows to load, but it is stuck at loading. How can get the second half to update?</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.currentWindow;
+
+<span class="hljs-keyword">var</span> db = Ti.Database.install(<span class="hljs-string">'../products.sqlite'</span>, <span class="hljs-string">'products'</span>);
+<span class="hljs-keyword">var</span> prodCat = Ti.UI.currentWindow.prodCat;
+<span class="hljs-keyword">var</span> data = [];
+<span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT  * FROM abbreviationsList WHERE header ="'</span> + prodCat + <span class="hljs-string">'" '</span>);
+    <span class="hljs-keyword">var</span> row = rows.fieldByName(<span class="hljs-string">'zabbreviation'</span>);
+
+<span class="hljs-keyword">var</span> lastRow = <span class="hljs-number">10</span>;
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; lastRow; c++) {
+
+
+    data[c] = {
+        title : rows.fieldByName(<span class="hljs-string">'zabbreviation'</span>)
+    };
+        rows.next();
+
+}
+
+<span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView({
+    data : data
+});
+
+win.add(tableView);
+
+
+
+<span class="hljs-keyword">var</span> updating = <span class="hljs-literal">false</span>;
+<span class="hljs-keyword">var</span> loadingRow = Ti.UI.createTableViewRow({
+    title : <span class="hljs-string">"Loading..."</span>
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">beginUpdate</span><span class="hljs-params">()</span> </span>{
+    updating = <span class="hljs-literal">true</span>;
+
+    tableView.appendRow(loadingRow);
+
+    <span class="hljs-comment">// just mock out the reload</span>
+    setTimeout(endUpdate, <span class="hljs-number">2000</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">endUpdate</span><span class="hljs-params">()</span> </span>{
+    updating = <span class="hljs-literal">false</span>;
+
+    tableView.deleteRow(lastRow, {
+        animationStyle : Titanium.UI.iPhone.RowAnimationStyle.NONE
+    });
+
+    <span class="hljs-comment">// simulate loading</span>
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = lastRow; c &lt; lastRow + <span class="hljs-number">10</span>; c++) {
+        tableView.appendRow({
+            title : rows.fieldByName(<span class="hljs-string">'zabbreviation'</span>)
+        }, {
+            animationStyle : Titanium.UI.iPhone.RowAnimationStyle.NONE
+        });
+    }
+    lastRow += <span class="hljs-number">10</span>;
+
+    <span class="hljs-comment">// just scroll down a bit to the new rows to bring them into view</span>
+    tableView.scrollToIndex(lastRow - <span class="hljs-number">9</span>, {
+        animated : <span class="hljs-literal">true</span>,
+        position : Ti.UI.iPhone.TableViewScrollPosition.BOTTOM
+    });
+
+    navActInd.hide();
+}
+
+<span class="hljs-keyword">var</span> lastDistance = <span class="hljs-number">0</span>;
+<span class="hljs-comment">// calculate location to determine direction</span>
+
+tableView.addEventListener(<span class="hljs-string">'scroll'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">var</span> offset = e.contentOffset.y;
+    <span class="hljs-keyword">var</span> height = e.size.height;
+    <span class="hljs-keyword">var</span> total = offset + height;
+    <span class="hljs-keyword">var</span> theEnd = e.contentSize.height;
+    <span class="hljs-keyword">var</span> distance = theEnd - total;
+
+    <span class="hljs-comment">// going down is the only time we dynamically load,</span>
+    <span class="hljs-comment">// going up we can safely ignore -- note here that</span>
+    <span class="hljs-comment">// the values will be negative so we do the opposite</span>
+    <span class="hljs-keyword">if</span> (distance &lt; lastDistance) {
+        <span class="hljs-comment">// adjust the % of rows scrolled before we decide to start fetching</span>
+        <span class="hljs-keyword">var</span> nearEnd = theEnd * <span class="hljs-number">.75</span>;
+
+        <span class="hljs-keyword">if</span> (!updating &amp;&amp; (total &gt;= nearEnd)) {
+            beginUpdate();
+        }
+    }
+    lastDistance = distance;
+});
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 13th 2012, 2:40:12 am">December 13th 2012</span>
+				by <span class='authorname'>Michael Zaladonis</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>dynamic</span></li>
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+						<li><span class='tagname'>tableviewrow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-252644">
+				
+						<section>
+							<p>Hi Michael,</p>
+<p>have you refere <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;KitchenSink&#x2F;blob&#x2F;master&#x2F;Resources&#x2F;ui&#x2F;handheld&#x2F;ios&#x2F;baseui&#x2F;table_view_dynamic_scroll.js">Kitchen sink Dynamic scrolling tableView</a> there is good example in it.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 13th 2012, 3:16:43 am">December 13th 2012</span>
+								by <span class='authorname'>Nitin Chavda</span><br>
+								<a class="icon-bg icon-link" href="question/145674/dynamically-update-tableview-rows-from-a-local-sqlite-database#answer-252644" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-252645">
+				
+						<section>
+							<p>I got it to work with this code from the old kitchen sink. Thanks.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.currentWindow;
+<span class="hljs-keyword">var</span> db = Ti.Database.install(<span class="hljs-string">'../products.sqlite'</span>, <span class="hljs-string">'products'</span>);
+
+<span class="hljs-keyword">var</span> prodCat = Ti.UI.currentWindow.prodCat;
+
+<span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT * FROM abbreviationsList WHERE header ="'</span> + prodCat + <span class="hljs-string">'" '</span> );
+<span class="hljs-keyword">var</span> data = [];
+<span class="hljs-keyword">var</span> lastRow = <span class="hljs-number">10</span>;
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=<span class="hljs-number">0</span>;c&lt;lastRow;c++)
+{
+    data[c] = {title:rows.fieldByName(<span class="hljs-string">'zabbreviation'</span>) };
+    rows.next();
+}
+
+
+<span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView({
+    data: data
+});
+
+
+<span class="hljs-comment">// create the array</span>
+win.add(tableView);
+
+<span class="hljs-keyword">var</span> navActInd = Titanium.UI.createView
+    ({
+        font: {fontFamily:<span class="hljs-string">'Helvetica Neue'</span>, fontSize:<span class="hljs-number">18</span>,fontWeight:<span class="hljs-string">'bold'</span>},
+        color: <span class="hljs-string">'Black'</span>,
+        message:<span class="hljs-string">'Loading...'</span>,
+        width:<span class="hljs-string">'auto'</span>,
+        top:<span class="hljs-string">'50dp'</span>,
+        left:<span class="hljs-string">'100dp'</span> ,
+        height:<span class="hljs-string">'80dp'</span>,
+    });
+win.add(navActInd);
+
+<span class="hljs-keyword">var</span> updating = <span class="hljs-literal">false</span>;
+<span class="hljs-keyword">var</span> loadingRow = Ti.UI.createTableViewRow({title:<span class="hljs-string">"Loading..."</span>});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">beginUpdate</span><span class="hljs-params">()</span>
+</span>{
+    updating = <span class="hljs-literal">true</span>;
+    navActInd.show();
+
+    tableView.appendRow(loadingRow);
+
+    <span class="hljs-comment">// just mock out the reload</span>
+    setTimeout(endUpdate,<span class="hljs-number">2000</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">endUpdate</span><span class="hljs-params">()</span>
+</span>{
+    updating = <span class="hljs-literal">false</span>;
+
+    tableView.deleteRow(lastRow,{animationStyle:Titanium.UI.iPhone.RowAnimationStyle.NONE});
+
+    <span class="hljs-comment">// simulate loading</span>
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=lastRow;c&lt;lastRow+<span class="hljs-number">10</span>;c++)
+    {
+        tableView.appendRow({title:rows.fieldByName(<span class="hljs-string">'zabbreviation'</span>) },{animationStyle:Titanium.UI.iPhone.RowAnimationStyle.NONE});
+    rows.next();
+    }
+    lastRow += <span class="hljs-number">10</span>;
+
+    <span class="hljs-comment">// just scroll down a bit to the new rows to bring them into view</span>
+    tableView.scrollToIndex(lastRow-<span class="hljs-number">9</span>,{animated:<span class="hljs-literal">true</span>,position:Ti.UI.iPhone.TableViewScrollPosition.BOTTOM});
+
+    navActInd.hide();
+}
+
+<span class="hljs-keyword">var</span> lastDistance = <span class="hljs-number">0</span>; <span class="hljs-comment">// calculate location to determine direction</span>
+
+tableView.addEventListener(<span class="hljs-string">'scroll'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">var</span> offset = e.contentOffset.y;
+    <span class="hljs-keyword">var</span> height = e.size.height;
+    <span class="hljs-keyword">var</span> total = offset + height;
+    <span class="hljs-keyword">var</span> theEnd = e.contentSize.height;
+    <span class="hljs-keyword">var</span> distance = theEnd - total;
+
+    <span class="hljs-comment">// going down is the only time we dynamically load,</span>
+    <span class="hljs-comment">// going up we can safely ignore -- note here that</span>
+    <span class="hljs-comment">// the values will be negative so we do the opposite</span>
+    <span class="hljs-keyword">if</span> (distance &lt; lastDistance)
+    {
+        <span class="hljs-comment">// adjust the % of rows scrolled before we decide to start fetching</span>
+        <span class="hljs-keyword">var</span> nearEnd = theEnd * <span class="hljs-number">.75</span>;
+
+        <span class="hljs-keyword">if</span> (!updating &amp;&amp; (total &gt;= nearEnd))
+        {
+            beginUpdate();
+        }
+    }
+    lastDistance = distance;
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 13th 2012, 3:25:27 am">December 13th 2012</span>
+								by <span class='authorname'>Michael Zaladonis</span><br>
+								<a class="icon-bg icon-link" href="question/145674/dynamically-update-tableview-rows-from-a-local-sqlite-database#answer-252645" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Urgent: how to clear/reset Titanium remote image cache (Android)? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Urgent: how to clear/reset Titanium remote image cache (Android)?</h1>
+		</header>
+		<section>
+			<p>Hi, we are receiving a lot of reports from our Android users about our apps (at least 2 different ones) abruptly becoming UNABLE to display ANY remote image. </p>
+<p>Once an app gets the problem, it is stuck there and DELETING THE APP and reinstalling does NOT solve the problem.</p>
+<p>We experienced the issue in different apps and tracked it down to Titanium internally managed remote image cache, which in fact is stored under &#x2F;sdcard&#x2F;Android&#x2F;data&#x2F;&lt;app id&gt;&#x2F;cache&#x2F;_tmp&#x2F; and as such is<br>not wiped away by app deletion. Manually wiping the dir solved the problem for ALL the cases we tried.</p>
+<p>Somehow, remote image cache gets corrupted (no idea how, we do not deal with it directly) and stops working. </p>
+<p>Now, as of our knowledge, our Titanium code cannot access directly the cache path (which IS NOT the path returned as Ti.Filesystem.applicationCacheDirectory), so we cannot do anything to work around the issue.</p>
+<p>Again, this is a significant problem which means LOST USERS: anybody we cannot reach with complex and embarassing instructions to use file managers will NEVER be able to use our app again…</p>
+<p>Could you Appcelerator guys add a method to clean the cache?<br>Or at least move it back to a place which is cleaned up upon delete&#x2F;reinstall? </p>
+<p>Thanks.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 5th 2012, 8:47:33 am">November 5th 2012</span>
+				by <span class='authorname'>Banzai Mobile</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>cache</span></li>
+					
+						<li><span class='tagname'>images</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>remote</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-251819">
+				
+						<section>
+							<p>Hi, I found a reliable solution and I&#39;m sharing it here.<br>Of course, it should be called very early, before any image access in the app.</p>
+<pre><code class="hljs">   zapImageCache = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">var</span> appDataDir, cacheDir, dir, externalRoot;
+      <span class="hljs-keyword">if</span> (Ti.Filesystem.isExternalStoragePresent()) {
+        appDataDir = Ti.Filesystem.getFile(<span class="hljs-string">'appdata://'</span>).nativePath;
+        externalRoot = appDataDir.substring(<span class="hljs-number">0</span>, appDataDir.lastIndexOf(<span class="hljs-string">'/'</span>));
+        cacheDir = <span class="hljs-string">""</span> + externalRoot + <span class="hljs-string">"/Android/data/"</span> + Ti.App.id + <span class="hljs-string">"/cache/_tmp/remote-cache"</span>;
+        dir = Ti.Filesystem.getFile(cacheDir);
+      } <span class="hljs-keyword">else</span> {
+        dir = Ti.Filesystem.getFile(Ti.Filesystem.applicationCacheDirectory, <span class="hljs-string">'_tmp'</span>, <span class="hljs-string">'remote-cache'</span>);
+      }
+      <span class="hljs-keyword">if</span> (dir.exists()) {
+        dir.deleteDirectory(<span class="hljs-literal">true</span>);
+      }
+      <span class="hljs-keyword">return</span> dir.createDirectory();
+    };
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 28th 2012, 8:28:58 am">November 28th 2012</span>
+								by <span class='authorname'>Banzai Mobile</span><br>
+								<a class="icon-bg icon-link" href="question/144356/urgent-how-to-clearreset-titanium-remote-image-cache-android#answer-251819" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Works perfect</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 12th 2015, 5:29:47 am">March 12th 2015</span>
+											by <span class='authorname'>Shahzad Ali</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>4</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-250566">
+				
+						<section>
+							<p>When working with temporary images I always use a GUID (Titanium.Platform.getUUID())<br>Then the image path is always different when you want it to be, so it isn&#39;t cached, and as it&#39;s in the temp directory I leave Android to clear it up.. </p>
+<p>My app also uses a web-view so to stop that caching anything I add a GUID as a querystring to the end of a path:</p>
+<p>path&#x2F;cache-this-if-you-can.png?324234-324-23423-32-43-4324</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 5th 2012, 10:45:02 am">November 5th 2012</span>
+								by <span class='authorname'>Mark Henderson</span><br>
+								<a class="icon-bg icon-link" href="question/144356/urgent-how-to-clearreset-titanium-remote-image-cache-android#answer-250566" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>it&#39;s an old browser trick works a dream..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 5th 2012, 10:45:38 am">November 5th 2012</span>
+											by <span class='authorname'>Mark Henderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Mark, we also use the same (old) trick to circumvent unwanted caching.</p>
+<p>This is however a different problem: we get NO image at all for ANY ImageView with &quot;image&quot; property set to a remote URL, because the internal Ti mechanism that normally caches them transparently gets somehow unable to read its own data.<br>Again, if we delete the cache dir manually, the problem vanishes.</p>
+<p>So, either Appcelerator finds and fixes the corruption bug, or we need a way to access the cache dir and empty it within the app startup code. The remote images cache dir IS NOT managed by Android at all.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 5th 2012, 12:45:46 pm">November 5th 2012</span>
+											by <span class='authorname'>Banzai Mobile</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I see, and when you set the image to a remoteURL it fades in when it loads or something right?<br>You could re-create this behaviour yourself with your own xhr request and then set .image when it has loaded and you&#39;ve saved it using the trick above but what a ball ache that would be.. I&#39;d Jira it..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 5th 2012, 12:50:38 pm">November 5th 2012</span>
+											by <span class='authorname'>Mark Henderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes, we could recreate the basic behavior as you suggest, but we would not be as efficient as Titanium, e.g. in a long tableview, Ti retrieves images ONLY for rows that come into view.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 5th 2012, 3:56:43 pm">November 5th 2012</span>
+											by <span class='authorname'>Banzai Mobile</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-266255">
+				
+						<section>
+							<p>can i save my iamges in cacheDirectory in android for caching as i am saving images in ApplicationDatDictionary but is there any time for cacheDirectory after that it delete Automatically?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 23rd 2013, 5:57:48 am">July 23rd 2013</span>
+								by <span class='authorname'>Jayesh  Joshi</span><br>
+								<a class="icon-bg icon-link" href="question/144356/urgent-how-to-clearreset-titanium-remote-image-cache-android#answer-266255" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-286435">
+				
+						<section>
+							<p>Thanks Banzai. Faced the same problem, your solution works perfact (Y)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 12th 2015, 5:29:11 am">March 12th 2015</span>
+								by <span class='authorname'>Shahzad Ali</span><br>
+								<a class="icon-bg icon-link" href="question/144356/urgent-how-to-clearreset-titanium-remote-image-cache-android#answer-286435" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-251035">
+				
+						<section>
+							<p>I too seem to be facing this problem.  Causing me to waste quite a bit of time trying to come up with a solution… any progress from your end?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 13th 2012, 5:36:05 pm">November 13th 2012</span>
+								by <span class='authorname'>Enrique Leon</span><br>
+								<a class="icon-bg icon-link" href="question/144356/urgent-how-to-clearreset-titanium-remote-image-cache-android#answer-251035" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-251809">
+				
+						<section>
+							<p>Here is my code to clear image cache, hope it helps.</p>
+<pre><code class="hljs">
+var f = Ti.Filesystem.getFile(Ti.Filesystem.applicationCacheDirectory);
+var <span class="hljs-type">list</span> = f.getDirectoryListing();
+<span class="hljs-keyword">for</span> (i=<span class="hljs-number">0</span>,<span class="hljs-property">length</span> =<span class="hljs-type">list</span>.<span class="hljs-property">length</span>;i&lt;<span class="hljs-property">length</span>;i++){
+Ti.Filesystem.getFile(Ti.Filesystem.applicationCacheDirectory+<span class="hljs-type">list</span>[i]).deleteFile();
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 28th 2012, 4:51:39 am">November 28th 2012</span>
+								by <span class='authorname'>Arlo Huang</span><br>
+								<a class="icon-bg icon-link" href="question/144356/urgent-how-to-clearreset-titanium-remote-image-cache-android#answer-251809" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Yes, but unfortunately the image cache is NOT under Ti.Filesystem.applicationCacheDirectory on devices with external storage available.<br>Please see my own answer.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 28th 2012, 8:26:56 am">November 28th 2012</span>
+											by <span class='authorname'>Banzai Mobile</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for bringing to our attention Banzai.</p>
+<p>Addressing this specific issue here: <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-11881">TIMOB-11881</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 28th 2012, 3:05:20 pm">November 28th 2012</span>
+											by <span class='authorname'>Eduardo Gomez</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

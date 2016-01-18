@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Why does only my Android distribution build throw this exception? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Why does only my Android distribution build throw this exception?</h1>
+		</header>
+		<section>
+			<p>My mobile application has worked fine when testing in the Android emulator, building to my device for testing, however in preparing for final testing and submission to Google Play, I can install the .apk just fine onto the device, but it will not run.</p>
+<p>When examining the device logs in DDMS as well as from the device itself, the app goes through all of the startup and then hangs.</p>
+<p>The only error at that point (and there are none before this) is:</p>
+<p><strong>Exception occurred at ti:&#x2F;events.js:138: Uncaught Error: addListener only takes instances of Function. The listener for event &quot;click&quot; is &quot;undefined&quot;</strong></p>
+<p>Why does the app work when running in emulator, compile and install on the device with running &#39;Android Device&#39;, but not the distribution build?</p>
+<p>I have re-built and commented out code many times trying to figure out why this error is occurring. I understand the error, there are just no clues as to what is causing it.</p>
+<p>While I searched extensively, the answers I could find were associated with re-describing the exception. I did notice that the distribution build process is different then the emulator or run on device processes, for example catching some IF statements that had nothing to do.</p>
+<p>My iOS version is just fine and is already in the App Store.</p>
+<p><strong>How do I diagnose the real issue and has anybody seen this before and solved it?</strong></p>
+<p>Titanium SDK: 3.0.0.GA</p>
+<p>Device Platform &amp; version: Android 2.3.4</p>
+<p>Device: HTC Incredible</p>
+<p>Operating System: OSX 10.7</p>
+<p>Titanium Studio, build: 3.0.1.201212181159</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 17th 2013, 10:44:21 pm">January 17th 2013</span>
+				by <span class='authorname'>Tim Christensen</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>addlistener</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>distribution</span></li>
+					
+						<li><span class='tagname'>exception</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Just in case someone comes across this issue via search, I figured out the issue. First, for those new to Android compilation for distribution, the difference is that the .js files are compiled with the Closure compiler, compressing the .js files through a variety of techniques – some of which have some requirements for the source code.</p>
+<p>One of those is the answer to the issue. In my case, literally the event WAS undefined, at least according to the Closure compiler – and it only effected non-public callback functions.</p>
+<p>For example if this might be your .js file:</p>
+<p>Below does NOT work – note the call back function BELOW the where the .addEventListener function is:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MyWindow</span>(<span class="hljs-params"></span>)
+    </span>{
+    <span class="hljs-keyword">var</span> win = ....
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createATableRow</span>(<span class="hljs-params"></span>)
+        </span>{
+        <span class="hljs-keyword">var</span> button ....
+
+        button.addEventListener(<span class="hljs-string">'click'</span>, buttonClickEvent);
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buttonClickEvent</span>(<span class="hljs-params"></span>)
+            </span>{
+
+            };        
+
+        <span class="hljs-keyword">return</span> row;
+        }
+
+    <span class="hljs-keyword">return</span> win;
+    };
+
+<span class="hljs-built_in">module</span>.exports = MyWindow;
+</code></pre><p>Below DOES work – note the position of the callback function:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MyWindow</span>(<span class="hljs-params"></span>)
+    </span>{
+    <span class="hljs-keyword">var</span> win = ....
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createATableRow</span>(<span class="hljs-params"></span>)
+        </span>{
+        <span class="hljs-keyword">var</span> button ....
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buttonClickEvent</span>(<span class="hljs-params"></span>)
+            </span>{
+
+            };
+
+        button.addEventListener(<span class="hljs-string">'click'</span>, buttonClickEvent);
+
+        <span class="hljs-keyword">return</span> row;
+        }
+
+    <span class="hljs-keyword">return</span> win;
+    };
+
+<span class="hljs-built_in">module</span>.exports = MyWindow;
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="February 8th 2013, 3:17:00 am">February 8th 2013</span>
+								by <span class='authorname'>Tim Christensen</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-254823">
+				
+						<section>
+							<p>HI Tim, Thats strange that you getting this only at distribution build, but as the developer and distribution build are different so possibility is also there.</p>
+<p><strong>according to the error, some where in your project you are adding eventListener and not passing function as an argument, though you can pass function only, so check for that</strong></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 18th 2013, 3:36:06 am">January 18th 2013</span>
+								by <span class='authorname'>Ashish Nigam</span><br>
+								<a class="icon-bg icon-link" href="question/147069/why-does-only-my-android-distribution-build-throw-this-exception#answer-254823" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Ahish, I have run through every .addEventListener twice and all of them contain a function either as a reference to a function or &#39;event&#39;,function(e).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 18th 2013, 4:58:35 am">January 18th 2013</span>
+											by <span class='authorname'>Tim Christensen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>can you provide code for <strong>all you click events</strong> where it says for undefined.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 18th 2013, 5:02:35 am">January 18th 2013</span>
+											by <span class='authorname'>Ashish Nigam</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ashish, I cannot do that unfortunately. There is no other exception messaging indicating where the error is specifically, that is the problem. All I get is: Exception occurred at ti:&#x2F;events.js:138: Uncaught Error: addListener only takes instances of Function. The listener for event &quot;click&quot; is &quot;undefined&quot;</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 18th 2013, 5:06:53 am">January 18th 2013</span>
+											by <span class='authorname'>Tim Christensen</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>ok, then go ahead with manual debugging and try with click Events.<br>Good Luck.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 18th 2013, 5:25:47 am">January 18th 2013</span>
+											by <span class='authorname'>Ashish Nigam</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

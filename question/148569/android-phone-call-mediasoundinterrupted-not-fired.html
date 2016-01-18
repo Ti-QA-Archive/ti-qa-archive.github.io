@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android Phone call Media.sound.interrupted not fired » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android Phone call Media.sound.interrupted not fired</h1>
+		</header>
+		<section>
+			<p>OSX with the newest Titanium Studio and SDK (3.0.2)</p>
+<p>Android Galaxy Samsung Nexus (and any other device I&#39;ve tried) will not fire the event associated with the following code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> sound = Ti.Media.createSound({allowBackground:<span class="hljs-literal">true</span>,preload:<span class="hljs-literal">true</span>});
+sound.url = <span class="hljs-string">'somefile.mp3'</span>;
+sound.addEventListener(<span class="hljs-string">'interrupted'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{ 
+    Ti.API.error(<span class="hljs-string">"Some other event has interrupted playback"</span>);
+});
+</code></pre><p>The expected behavior is an Ti.API.error saying &quot;some other event has interrupted playback&quot;;</p>
+<p>The behavior I want is for the Media.Sound object to be able to play in the background, but pause if interrupted by a phone call (whether or not the app is in the foreground at the time). Is this even possible?</p>
+<p>Now I know that this has been a topic of conversation a few times on this board but I went pretty far into this and still have not found a solution.</p>
+<p>I&#39;ve made sure to include the following (obvious) permissions in android manifest:</p>
+<pre><code class="hljs">            &lt;uses-permission android:<span class="hljs-property">name</span>=<span class="hljs-string">"android.permission.READ_PHONE_STATE"</span>/&gt;
+            &lt;uses-permission android:<span class="hljs-property">name</span>=<span class="hljs-string">"android.permission.PROCESS_OUTGOING_CALLS"</span>/&gt;
+</code></pre><p>Some of the documentation says this works for Android, some says it doesn&#39;t. I&#39;ve never been able to get it to work on Android.</p>
+<p>I decided I would take a custom module approach and try to incorporate some stuff into an (existing) module, so…</p>
+<p>I&#39;ve tried the following in my MANIFEST</p>
+<pre><code class="hljs">                    <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.audiobooksnow.abnzip2.IncomingCallReceiver"</span> &gt;</span>
+                      <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.PHONE_STATE"</span> /&gt;</span>
+                      <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">receiver</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.audiobooksnow.abnzip2.OutgoingCallReceiver"</span> &gt;</span>
+                      <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.NEW_OUTGOING_CALL"</span> /&gt;</span>
+                      <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">receiver</span>&gt;</span>
+</code></pre><p>In this case I set up a Titanium module that includes two classes (you guessed, it Incoming and Outgoing Call Receiver) which are BroadcastReceiver objects. The event never makes it to the BroadcastReceiver Objects…but the module works fine otherwise (given, I may not have the module code correct)</p>
+<p>Here is the class in the module that should receive the event (notice it doesn&#39;t have any @Kroll directives I wonder if I need something special there?)</p>
+<pre><code class="hljs">package com.audiobooksnow.abnzip2;
+
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> org.appcelerator.kroll.annotations.Kroll;</span>
+
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> android.content.BroadcastReceiver;</span>
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> android.content.Context;</span>
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> android.content.Intent;</span>
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> android.os.Bundle;</span>
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> android.telephony.TelephonyManager;</span>
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> android.util.Log;</span>
+<span class="hljs-preprocessor"><span class="hljs-keyword">import</span> android.widget.Toast;</span>
+
+<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IncomingCallReceiver</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">BroadcastReceiver</span> {</span>
+
+    @Override
+    <span class="hljs-keyword">public</span> void onReceive(Context context, Intent intent) {
+        System.out.println(<span class="hljs-string">"TEST"</span>);
+        System.out.println(<span class="hljs-string">"TEST"</span>);
+        System.out.println(<span class="hljs-string">"TEST"</span>);
+        System.out.println(<span class="hljs-string">"TEST"</span>);
+        System.out.println(<span class="hljs-string">"TEST"</span>);
+        Bundle bundle = intent.getExtras();
+
+        <span class="hljs-keyword">if</span>(<span class="hljs-literal">null</span> == bundle)
+            <span class="hljs-keyword">return</span>;
+
+        <span class="hljs-built_in">Log</span>.i(<span class="hljs-string">"IncomingCallReceiver"</span>,bundle.toString());
+
+        String state = bundle.getString(TelephonyManager.EXTRA_STATE);
+
+        <span class="hljs-built_in">Log</span>.i(<span class="hljs-string">"IncomingCallReceiver"</span>,<span class="hljs-string">"State: "</span>+ state);
+
+        <span class="hljs-keyword">if</span>(state.equalsIgnoreCase(TelephonyManager.EXTRA_STATE_RINGING))
+        {
+            String phonenumber = bundle.getString(TelephonyManager.EXTRA_INCOMING_NUMBER);
+
+            <span class="hljs-built_in">Log</span>.i(<span class="hljs-string">"IncomingCallReceiver"</span>,<span class="hljs-string">"Incomng Number: "</span> + phonenumber);
+
+            String info = <span class="hljs-string">"Detect Calls sample application\nIncoming number: "</span> + phonenumber;
+
+            Toast.makeText(context, info, Toast.LENGTH_LONG).show();
+        }
+    }
+
+}
+</code></pre><p>So, that approach didn&#39;t work either. I&#39;m getting desperate here and thought I&#39;d reach out to the community to see if someone has found any answers to the questions:</p>
+<p>https:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;117852&#x2F;detecting-phone-call-on-android<br>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;148475&#x2F;how-to-handle-phone-call-interupt</p>
+<p>This one is particularly helpful in that it gives no indication of how it might be done, but it pointed me in the direction of using custom module code:<br>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;123976&#x2F;intercept-incoming-phone-call-in-android</p>
+<p>There were a handful of others too and they&#39;re all old and DON&#39;T have a solution other than &#39;No you can&#39;t do this make a module for yourself&#39; …Well I&#39;ve tried that and no dice.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 21st 2013, 12:22:59 am">February 21st 2013</span>
+				by <span class='authorname'>David Horton</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>interrupted</span></li>
+					
+						<li><span class='tagname'>media</span></li>
+					
+						<li><span class='tagname'>phone</span></li>
+					
+						<li><span class='tagname'>sound</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Full code of my Android manifest:</p>
+<pre><code class="hljs">   <span class="hljs-tag">&lt;<span class="hljs-title">android</span> <span class="hljs-attribute">xmlns:android</span>=<span class="hljs-value">"http://schemas.android.com/apk/res/android"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">manifest</span> <span class="hljs-attribute">android:versionCode</span>=<span class="hljs-value">"13"</span> <span class="hljs-attribute">android:versionName</span>=<span class="hljs-value">"3.9"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">uses-permission</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.permission.WRITE_EXTERNAL_STORAGE"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">uses-permission</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.permission.MOUNT_UNMOUNT_FILESYSTEMS"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">uses-permission</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.permission.READ_PHONE_STATE"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">uses-permission</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.permission.PROCESS_OUTGOING_CALLS"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">application</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">activity</span> <span class="hljs-attribute">android:alwaysRetainTaskState</span>=<span class="hljs-value">"true"</span>
+                    <span class="hljs-attribute">android:configChanges</span>=<span class="hljs-value">"keyboardHidden|orientation"</span>
+                    <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"AudiobooksNow"</span>
+                    <span class="hljs-attribute">android:name</span>=<span class="hljs-value">".AudiobooksNowActivity"</span>
+                    <span class="hljs-attribute">android:screenOrientation</span>=<span class="hljs-value">"portrait"</span> <span class="hljs-attribute">android:theme</span>=<span class="hljs-value">"@style/Theme.Titanium"</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.MAIN"</span>/&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span>/&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>                                                          
+                <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.audiobooksnow.abnzip2.IncomingCallReceiver"</span> &gt;</span>
+                  <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.PHONE_STATE"</span> /&gt;</span>
+                  <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-title">receiver</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.audiobooksnow.abnzip2.OutgoingCallReceiver"</span> &gt;</span>
+                  <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.NEW_OUTGOING_CALL"</span> /&gt;</span>
+                  <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-title">receiver</span>&gt;</span>                 
+            <span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">manifest</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">android</span>&gt;</span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="February 21st 2013, 12:42:10 am">February 21st 2013</span>
+								by <span class='authorname'>David Horton</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-257213">
+				
+						<section>
+							<p>After some deliberation and a lot of head banging, I came up with a solution and I&#39;d like to share it with you today.</p>
+<p>The above manifest is correct. Use it. </p>
+<p>The java class for IncomingCallReceiver needs the following added underneath the &#39;OnReceive&#39;:</p>
+<pre><code class="hljs">        KrollDict arg1<span class="hljs-comment">;</span>
+        appContext.fireAppEvent("CallInterrupt", arg1)<span class="hljs-comment">;</span>
+</code></pre><p>Now just add an event listener in your app:</p>
+<pre><code class="hljs"><span class="hljs-tag">Ti</span><span class="hljs-class">.App</span><span class="hljs-class">.AddEventListener</span>('CallInterrupt",<span class="hljs-function">function</span>(e) {
+<span class="hljs-comment">/*your desired behavior here*/</span>
+});
+</code></pre><h3 id="this-theoretically-will-work-with-any-of-the-intent-filters-so-i-hope-this-helps-somebody-">This theoretically will work with ANY of the intent filters, so I hope this helps somebody.</h3>
+<h4 id="special-thanks-to-this-article-http-x2f-x2f-developer-appcelerator-com-x2f-question-x2f-119219-x2f-other-types-than-interval-service-on-android-for-getting-me-on-the-right-track-http-x2f-x2f-developer-appcelerator-com-x2f-question-x2f-119219-x2f-other-types-than-interval-service-on-android">Special thanks to [this article]{http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;119219&#x2F;other-types-than-interval-service-on-android} for getting me on the right track: http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;119219&#x2F;other-types-than-interval-service-on-android</h4>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 21st 2013, 12:56:09 am">February 21st 2013</span>
+								by <span class='authorname'>David Horton</span><br>
+								<a class="icon-bg icon-link" href="question/148569/android-phone-call-mediasoundinterrupted-not-fired#answer-257213" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi, I tried to reproduce the same process but I fail, can you share the module you created or .Java file<br>thank you</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 16th 2013, 9:23:20 pm">March 16th 2013</span>
+											by <span class='authorname'>Bouyakhsass achraf</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This link information, and the manifest I&#39;ve mentioned were what I used to get my listener working, in addition to hooking up my existing module with it. you might also want to check the second link I posted for some useful Java  troubleshooting tips and more example code.</p>
+<p>I can&#39;t remember the module code exactly but it involves a separate file as in example #2:</p>
+<p>example 1 : http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;119219&#x2F;other-types-than-interval-service-on-android</p>
+<p>example 2: http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;123976&#x2F;intercept-incoming-phone-call-in-android</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 18th 2013, 3:36:18 pm">March 18th 2013</span>
+											by <span class='authorname'>David Horton</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

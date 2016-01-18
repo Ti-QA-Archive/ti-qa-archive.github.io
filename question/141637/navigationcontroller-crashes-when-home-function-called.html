@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>NavigationController crashes when home() function called » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>NavigationController crashes when home() function called</h1>
+		</header>
+		<section>
+			<p>I based my app on NavigationController built by Kevin https:&#x2F;&#x2F;github.com&#x2F;appcelerator-developer-relations&#x2F;Forging-Titanium&#x2F;tree&#x2F;master&#x2F;ep-002. It was working all right, but now with update to titanium sdk 2.1 and iOS5.1 it started crashing when I invoke home() function with 3+ windows in the stack. </p>
+<p>Whats curious is that the close event handler on windows does not get called when they are being closed using home(), but when they get closed using back button it gets called. Could it be that there are some race conditions that prevent windows from being properly closed?</p>
+<p>How do I go about resolving this? I am thinking of rewriting home() function so that it would use sequential event handlers to pop windows off the stack. I&#39;ll post some code if successful.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 29th 2012, 8:36:29 pm">August 29th 2012</span>
+				by <span class='authorname'>Mike Starov</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I rewrote navigation controller and made it work. Perhaps this will be useful to some one else. See code on <a href="https:&#x2F;&#x2F;github.com&#x2F;xsaero00&#x2F;Ti-Navigation-Controller">github</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 30th 2012, 3:43:30 pm">August 30th 2012</span>
+								by <span class='authorname'>Mike Starov</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-246290">
+				
+						<section>
+							<p>I was able to resolve issue with following code. But it only works with IPhone. Android does not call my auxilary close event handler. Anybody know why? Does Android not support multiple event handlers?</p>
+<pre><code class="hljs">exports.NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    Ti.API.log(<span class="hljs-string">"Home function."</span>);
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.windowStack.length &gt; <span class="hljs-number">1</span>) {
+        <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+        <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+        <span class="hljs-comment">// setup chain reaction</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = windows.length - <span class="hljs-number">1</span>; i &gt; <span class="hljs-number">1</span>; i--) {
+            (<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(otherWindow)</span></span>{
+                windows[i].addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                    Ti.API.log(<span class="hljs-string">"Event 'auxilary close': "</span> + <span class="hljs-keyword">this</span>.title + <span class="hljs-string">" chain closing "</span> + otherWindow.title );
+                    (that.navGroup) ? that.navGroup.close(otherWindow,{animated:<span class="hljs-literal">false</span>}) : otherWindow.close();
+                });
+            })(windows[i - <span class="hljs-number">1</span>]);
+        };
+
+        (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[windows.length - <span class="hljs-number">1</span>]) : windows[windows.length - <span class="hljs-number">1</span>].close();
+    }
+
+    Ti.API.log(<span class="hljs-string">"End Home. Stack: "</span> + <span class="hljs-keyword">this</span>.windowStack.map(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(v)</span> </span>{<span class="hljs-keyword">return</span> v.title}));
+};
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 29th 2012, 10:04:34 pm">August 29th 2012</span>
+								by <span class='authorname'>Mike Starov</span><br>
+								<a class="icon-bg icon-link" href="question/141637/navigationcontroller-crashes-when-home-function-called#answer-246290" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I ran into this issue as well as an iOS issue that you couldn&#39;t add custom back buttons. I&#39;ve modified this controller but I&#39;m not sure how much help it&#39;s going to be mine&#39;s not as modular as this one but hopefully it might be somewhat useful for you. <a href="https:&#x2F;&#x2F;bitbucket.org&#x2F;herronj&#x2F;educore&#x2F;src&#x2F;981674bb2006&#x2F;Resources&#x2F;lib&#x2F;core.js#cl-161">code example: at bitbucket</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 29th 2012, 11:31:10 pm">August 29th 2012</span>
+											by <span class='authorname'>Joel Herron</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I improved code and made it work with Android as well as iPhone. See code at <a href="https:&#x2F;&#x2F;github.com&#x2F;xsaero00&#x2F;Ti-Navigation-Controller">github</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 30th 2012, 3:41:53 pm">August 30th 2012</span>
+											by <span class='authorname'>Mike Starov</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

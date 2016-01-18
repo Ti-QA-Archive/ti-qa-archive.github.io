@@ -1,0 +1,194 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Run service on boot_completed android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Run service on boot_completed android</h1>
+		</header>
+		<section>
+			<p>Hello,</p>
+<p>I was wondering how i can start a service when the boot_completed broadcast is send out by android itself.<br>I think i only need a correct module to do this but i&#39;m not sure.<br>i have this so far:</p>
+<p>in my tiap.xml:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">uses-permission</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.permission.RECEIVE_BOOT_COMPLETED"</span> /&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.example.app.BootReceiver"</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.BOOT_COMPLETED"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">action</span>&gt;</span>       
+          <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">receiver</span>&gt;</span>
+</code></pre><p>first the user permission this is of course needed.<br>then the receiver &quot;BootReceiver&quot;, this is what i think is going wrong, i have placed the  BootReceiver inside my root of resources as BootReceiver.java with the following code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">package</span> com.example.app;
+
+<span class="hljs-keyword">import</span> android.content.BroadcastReceiver;
+<span class="hljs-keyword">import</span> android.content.Context;
+<span class="hljs-keyword">import</span> android.content.Intent;
+
+<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BootReceiver</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">BroadcastReceiver</span> </span>{
+    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> String TAG = <span class="hljs-string">"BootReceiver"</span>;
+
+    <span class="hljs-annotation">@Override</span>
+    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onReceive</span><span class="hljs-params">(Context context, Intent intent)</span> </span>{
+
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.isServiceRunning(context)) {
+            Log.d(TAG, <span class="hljs-string">"Start of service is not necessary, it is already running"</span>);
+            <span class="hljs-keyword">return</span>;
+        }
+
+
+        Log.d(TAG, <span class="hljs-string">"Starting Service"</span>);
+
+        Intent serviceIntent = <span class="hljs-keyword">new</span> Intent(<span class="hljs-string">"com.example.app.BackgroundNotificationService"</span>);
+        serviceIntent.putExtra(<span class="hljs-string">"interval"</span>, <span class="hljs-number">1000</span>*<span class="hljs-number">60</span>*<span class="hljs-number">1000</span>L); <span class="hljs-comment">// 1000mins</span>
+        context.startService(serviceIntent);
+
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">boolean</span> <span class="hljs-title">isServiceRunning</span><span class="hljs-params">(Context context)</span> </span>{
+
+        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        <span class="hljs-keyword">for</span> (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
+            <span class="hljs-keyword">if</span> (<span class="hljs-string">"com.example.app.BackgroundNotificationService"</span>.equals(service.service.getClassName()))
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+    }
+
+}
+</code></pre><p>As you can see i am trying to start service called BackgroundNotification which will set alarms at certain scheduled dates.</p>
+<p>The only thing that happens when device is rebooted is that the app is in the process list, but the service doesn&#39;t run.</p>
+<p>Hope anyone can help me with this one! thanks in advance!</p>
+<p>P.S. The java file is raw code saved as BootReceiver.java (don&#39;t know if this is the correct way).</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 20th 2013, 1:45:26 pm">February 20th 2013</span>
+				by <span class='authorname'>Maikel Tunnissen</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>boot completed</span></li>
+					
+						<li><span class='tagname'>broadcastreceiver</span></li>
+					
+						<li><span class='tagname'>reboot</span></li>
+					
+						<li><span class='tagname'>service</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Now i got the module working, the module runs (i can see log files from inside a function) but when i start a service with intent, the app crashes the service is javascript so i guess this cant be run from a background broadcastreceiver?</p>
+<p>service:</p>
+<pre><code class="hljs"><span class="hljs-type">Ti</span>.<span class="hljs-keyword">include</span>(<span class="hljs-symbol">'global</span>.js');
+global_addNotifications<span class="hljs-literal">()</span>;
+</code></pre><p>is it possible to make this work?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 26th 2013, 9:54:43 am">February 26th 2013</span>
+								by <span class='authorname'>Maikel Tunnissen</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Maikel, any progress on this issue? Trying the same…</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 1st 2013, 7:44:46 pm">June 1st 2013</span>
+								by <span class='authorname'>Oscar Kneib</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-263872">
+				
+						<section>
+							<p>Hi Maikel, how did you managed to compile the .java file? Mine is not either included in the gen folder. Also the broadcast receiver seems to not be registered correctly by the OS, even if the generated manifest contains the correct instructions.<br>Thanks for any answer</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 5th 2013, 11:55:35 am">June 5th 2013</span>
+								by <span class='authorname'>Lorenzo Cesana</span><br>
+								<a class="icon-bg icon-link" href="question/148539/run-service-on-bootcompleted-android#answer-263872" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

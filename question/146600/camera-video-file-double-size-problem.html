@@ -1,0 +1,467 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Camera video file double size problem » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Camera video file double size problem</h1>
+		</header>
+		<section>
+			<p>I&#39;m testing this on iPhone&#x2F;iPad devices using 2.1.3.GA and 3.0.0.GA sdk versions.</p>
+<ul>
+<li>Application: I&#39;m recording HQ video files using the iPhone camera.</li>
+<li>Problem: If I record a 100mb video file, the application shows 200mb usage on data&#x2F;documents storage. If I delete the file, the application shows now 100mb on data&#x2F;documents and it&#39;s impossible to release this space. It seems that there&#39;s a temporary… or cache .. or whatever file that is not being deleted after saving the video file to the &quot;disk&quot;.</li>
+<li>Workaround: Uninstall and reinstall the application to release space … which is annoying.</li>
+</ul>
+<p>I will post some code to reproduce this behavior.<br>It basically opens the camera with one button, lists all files from all the accessible folders with the second button, and deletes all saved video files with the third one.</p>
+<p>Steps to reproduce this problem :</p>
+<ol>
+<li><p>1 - Install the application to a device.</p>
+</li>
+<li><p>2 - Check app size (Settings-&gt;General-&gt;Usage and look for the app… it should be around 5Mb and 0Mb on data&#x2F;documents).</p>
+</li>
+<li><p>3 - Open the app, press the &quot;camera&quot; button and record 1 minute of video or so.</p>
+</li>
+<li><p>4 - Press the &quot;list files console&quot; button and check the console output on Xcode to check the new file size. (you can check this on iTunes sharing files also as the app is set to share the files).</p>
+</li>
+<li><p>5 - Check app size (repeat step 2) … you will see that it&#39;s: [video size * 2 + 5mb].</p>
+</li>
+<li><p>6 - Go back to the app and press the &quot;delete all files&quot; button.</p>
+</li>
+<li><p>7 - Repeat steps 4 and 5 to check sizes. You will see that the file is no longer listed but the app size is [video size + 5mb] </p>
+</li>
+</ol>
+<p>So.. imagine this situation with a 5Gb video file… it will take 10Gb when saved and release only half of the space when deleted.</p>
+<p>Paste this code on app.js to reproduce it and let me know if I&#39;m doing something wrong please!! this is driving me nuts!:</p>
+<pre><code class="hljs">
+<span class="hljs-comment">// open a single window</span>
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    backgroundColor:<span class="hljs-string">'red'</span>
+});
+
+<span class="hljs-keyword">var</span> btn = Ti.UI.createButton({
+    title: <span class="hljs-string">'camera'</span>,
+   top: <span class="hljs-number">10</span>,
+   width: <span class="hljs-number">300</span>,
+   height: <span class="hljs-number">50</span>    
+});
+btn.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    showCam();
+});
+win.add(btn);
+
+<span class="hljs-keyword">var</span> btn2 = Ti.UI.createButton({
+    title: <span class="hljs-string">'list file console'</span>,
+    top: <span class="hljs-number">70</span>,
+    height:<span class="hljs-number">50</span>,
+    width:<span class="hljs-number">300</span>
+})
+
+btn2.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    getSavedFiles();
+});
+win.add(btn2);
+
+
+<span class="hljs-keyword">var</span> btn3 = Ti.UI.createButton({
+    title: <span class="hljs-string">'delete all files'</span>,
+    top: <span class="hljs-number">140</span>,
+    height:<span class="hljs-number">50</span>,
+    width:<span class="hljs-number">300</span>
+})
+
+btn3.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    deleteAll();
+});
+win.add(btn3);
+
+
+win.open();
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showCam</span>(<span class="hljs-params"></span>)</span>{
+    Titanium.Media.showCamera({
+
+        success:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">event</span>)
+        </span>{
+
+            saveToDisk(<span class="hljs-string">'VIDEO'</span>,event.media, <span class="hljs-literal">true</span>);    
+            Ti.Media.hideCamera();    
+        },
+        cancel:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+        </span>{
+        },
+        error:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">error</span>)
+        </span>{
+
+            <span class="hljs-keyword">var</span> a = Titanium.UI.createAlertDialog({title:L(<span class="hljs-string">'error_message_title'</span>)});
+            <span class="hljs-keyword">if</span> (error.code == Titanium.Media.NO_CAMERA)
+            {
+                a.setMessage(L(<span class="hljs-string">'run_test_on_device'</span>));
+            }
+            <span class="hljs-keyword">else</span>
+            {
+                a.setMessage(<span class="hljs-string">'Unexpected error: '</span> + error.code);
+            }
+            a.show();
+        },
+        showControls:<span class="hljs-literal">true</span>,    
+        mediaTypes: Ti.Media.MEDIA_TYPE_VIDEO,
+        videoQuality: Ti.Media.QUALITY_HIGH,
+        cameraFlashMode: Ti.Media.CAMERA_FLASH_OFF,
+        videoMaximumDuration:<span class="hljs-number">86400000</span>,  
+        allowEditing: <span class="hljs-literal">false</span>, 
+        autohide: <span class="hljs-literal">false</span>     
+    });
+}
+
+
+<span class="hljs-keyword">var</span> saveToDisk= <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">type,data,isSave</span>)</span>{
+    <span class="hljs-keyword">var</span> filename = createFilename(type);
+
+    <span class="hljs-keyword">var</span> mediaFile = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,filename);
+    mediaFile.write(data);        
+}
+
+<span class="hljs-keyword">var</span> createFilename = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">type</span>)</span>{
+    <span class="hljs-comment">// create name based on timestamp</span>
+
+    <span class="hljs-keyword">var</span> today = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+    <span class="hljs-keyword">var</span> sToday = today.getFullYear().toString();
+    <span class="hljs-keyword">var</span> the_month;
+    <span class="hljs-keyword">if</span> (today.getMonth()+<span class="hljs-number">1</span> &lt; <span class="hljs-number">10</span>){
+        the_month = <span class="hljs-string">'0'</span> + (today.getMonth()+<span class="hljs-number">1</span>).toString();
+    }<span class="hljs-keyword">else</span>{
+        the_month = (today.getMonth()+<span class="hljs-number">1</span>).toString();
+    }
+    sToday += the_month;
+    <span class="hljs-keyword">var</span> the_day;
+    <span class="hljs-keyword">if</span> (today.getDate() &lt; <span class="hljs-number">10</span>){
+        the_day = <span class="hljs-string">'0'</span> + today.getDate().toString();
+    }<span class="hljs-keyword">else</span>{
+        the_day = today.getDate().toString();
+    }
+    sToday += the_day;
+    <span class="hljs-keyword">var</span> the_hour;
+    <span class="hljs-keyword">if</span> (today.getHours() &lt; <span class="hljs-number">10</span>){
+        the_hour = <span class="hljs-string">'0'</span> + today.getHours().toString();
+    }<span class="hljs-keyword">else</span>{
+        the_hour = today.getHours().toString();
+    }
+    sToday += the_hour;
+    <span class="hljs-keyword">var</span> the_minutes;
+    <span class="hljs-keyword">if</span> (today.getMinutes() &lt; <span class="hljs-number">10</span>){
+        the_minutes = <span class="hljs-string">'0'</span> + today.getMinutes().toString();
+    }<span class="hljs-keyword">else</span>{
+        the_minutes = today.getMinutes().toString();
+    }
+    sToday += the_minutes;
+    <span class="hljs-keyword">var</span> the_seconds;
+    <span class="hljs-keyword">if</span> (today.getSeconds() &lt; <span class="hljs-number">10</span>){
+        the_seconds = <span class="hljs-string">'0'</span> + today.getSeconds().toString();
+    }<span class="hljs-keyword">else</span>{
+        the_seconds = today.getSeconds().toString();
+    }
+    sToday += the_seconds;
+    <span class="hljs-keyword">var</span> ext = <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">switch</span>(type){
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'PHOTO'</span>:
+            ext = <span class="hljs-string">'jpg'</span>;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'VIDEO'</span>:
+            ext = <span class="hljs-string">'mov'</span>;
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'AUDIO'</span>:
+            ext = <span class="hljs-string">'wav'</span>;
+            <span class="hljs-keyword">break</span>;
+    }
+    sToday += <span class="hljs-string">'.'</span> + ext;
+    <span class="hljs-keyword">return</span> sToday;
+}
+</code></pre><pre><code class="hljs">
+<span class="hljs-variable"><span class="hljs-keyword">var</span> getSavedFiles</span> = function(){
+    <span class="hljs-comment">// List all folders trying to find where the space is.</span>
+
+     <span class="hljs-comment">// Cache folder</span>
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirFullPath</span> = Ti.Filesystem.applicationCacheDirectory ;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dir</span> = Titanium.Filesystem.getFile(dirFullPath);
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirItems</span> = dir.getDirectoryListing();
+
+    <span class="hljs-keyword">for</span> ( <span class="hljs-variable"><span class="hljs-keyword">var</span> i</span>=dirItems.length-<span class="hljs-number">1</span>; i&gt;=<span class="hljs-number">0</span>; i-- ) {
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> itemFullPath</span> = dirFullPath + Titanium.Filesystem.separator + dirItems[i].toString();
+        Ti.API.info('File cache fodler #'+i+': '+itemFullPath);            
+
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> item</span> = Ti.Filesystem.getFile(itemFullPath);
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> blob</span>= item.read();
+        Ti.API.info('size: '+ blob.length/<span class="hljs-number">1024</span>/<span class="hljs-number">1024</span>+ ' mb');
+
+        item=<span class="hljs-literal">null</span>;
+        blob=<span class="hljs-literal">null</span>;        
+    }
+
+    <span class="hljs-comment">// resources foldes</span>
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirFullPath</span> = Ti.Filesystem.resourcesDirectory ;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dir</span> = Titanium.Filesystem.getFile(dirFullPath);
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirItems</span> = dir.getDirectoryListing();
+
+    <span class="hljs-keyword">for</span> ( <span class="hljs-variable"><span class="hljs-keyword">var</span> i</span>=dirItems.length-<span class="hljs-number">1</span>; i&gt;=<span class="hljs-number">0</span>; i-- ) {
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> itemFullPath</span> = dirFullPath + Titanium.Filesystem.separator + dirItems[i].toString();
+        Ti.API.info('File resources fodler #'+i+': '+itemFullPath);    
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> item</span> = Ti.Filesystem.getFile(itemFullPath);
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> blob</span>= item.read();
+        Ti.API.info('size: '+ blob.length/<span class="hljs-number">1024</span>/<span class="hljs-number">1024</span>+ ' mb');    
+        item=<span class="hljs-literal">null</span>;
+        blob=<span class="hljs-literal">null</span>;                    
+    }
+
+    <span class="hljs-comment">// temp folder</span>
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirFullPath</span> = Ti.Filesystem.tempDirectory ;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dir</span> = Titanium.Filesystem.getFile(dirFullPath);
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirItems</span> = dir.getDirectoryListing();
+
+    <span class="hljs-keyword">for</span> ( <span class="hljs-variable"><span class="hljs-keyword">var</span> i</span>=dirItems.length-<span class="hljs-number">1</span>; i&gt;=<span class="hljs-number">0</span>; i-- ) {
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> itemFullPath</span> = dirFullPath + Titanium.Filesystem.separator + dirItems[i].toString();
+        Ti.API.info('File temp fodler #'+i+': '+itemFullPath);
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> item</span> = Ti.Filesystem.getFile(itemFullPath);        
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> blob</span>= item.read();
+        Ti.API.info('size: '+ blob.length/<span class="hljs-number">1024</span>/<span class="hljs-number">1024</span>+ ' mb');
+        item=<span class="hljs-literal">null</span>;
+        blob=<span class="hljs-literal">null</span>;        
+    }
+
+
+    <span class="hljs-comment">// app data folder    </span>
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirFullPath</span> = Ti.Filesystem.applicationDataDirectory ;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dir</span> = Titanium.Filesystem.getFile(dirFullPath);
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirItems</span> = dir.getDirectoryListing();
+    <span class="hljs-keyword">for</span> ( <span class="hljs-variable"><span class="hljs-keyword">var</span> i</span>=dirItems.length-<span class="hljs-number">1</span>; i&gt;=<span class="hljs-number">0</span>; i-- ) {
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> itemFullPath</span> = dirFullPath + Titanium.Filesystem.separator + dirItems[i].toString();
+        Ti.API.info('File data fodler #'+i+': '+itemFullPath);        
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> item</span> = Ti.Filesystem.getFile(itemFullPath);
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> blob</span>= item.read();
+        Ti.API.info('size: '+ blob.length/<span class="hljs-number">1024</span>/<span class="hljs-number">1024</span>+ ' mb');
+
+        item=<span class="hljs-literal">null</span>;
+        blob=<span class="hljs-literal">null</span>;
+    }
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> a</span> = Titanium.UI.createAlertDialog({title:''});
+    a.setMessage('Done!');
+    a.show();
+}
+
+
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> deleteAll</span> = function() {
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirFullPath</span> = Ti.Filesystem.applicationDataDirectory ;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dir</span> = Titanium.Filesystem.getFile(dirFullPath);
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirItems</span> = dir.getDirectoryListing();
+    <span class="hljs-keyword">for</span> ( <span class="hljs-variable"><span class="hljs-keyword">var</span> i</span>=dirItems.length-<span class="hljs-number">1</span>; i&gt;=<span class="hljs-number">0</span>; i-- ) {
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> itemFullPath</span> = dirFullPath + Titanium.Filesystem.separator + dirItems[i].toString();
+        Ti.API.info('delete file data fodler #'+i+': '+itemFullPath);        
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> item</span> = Ti.Filesystem.getFile(itemFullPath);
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> blob</span>= item.read();
+        Ti.API.info('size: '+ blob.length/<span class="hljs-number">1024</span>/<span class="hljs-number">1024</span>+ ' mb');
+        item.write('',<span class="hljs-literal">false</span>);
+        item.deleteFile();        
+        item=<span class="hljs-literal">null</span>;        
+        blob=<span class="hljs-literal">null</span>;        
+
+    }
+
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> a</span> = Titanium.UI.createAlertDialog({title:''});
+    a.setMessage('Done!');
+    a.show();
+
+
+}
+</code></pre><p>Thank you for any clue!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 8th 2013, 2:20:50 pm">January 8th 2013</span>
+				by <span class='authorname'>Inzori DevTeam</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>camera</span></li>
+					
+						<li><span class='tagname'>double</span></li>
+					
+						<li><span class='tagname'>release</span></li>
+					
+						<li><span class='tagname'>space</span></li>
+					
+						<li><span class='tagname'>video</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>The same happens with Kitchensink sample.<br>Go to Phone tab -&gt; Camera -&gt; Video record and record 10 minutes of video…. then watch kitchensink app eating your free space!!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 29th 2013, 8:35:36 pm">January 29th 2013</span>
+								by <span class='authorname'>Inzori DevTeam</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-255772">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>I don&#39;t think you break anything. Indeed, I don&#39;t see nowhere  a &quot;delete tmp file&quot; routine.<br>You might  want to delete te temp files at a later stage of the app, not exactly when you close the camera - just to be safe -  but I think this you can determine by experimenting only :(</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 30th 2013, 12:26:08 pm">January 30th 2013</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/146600/camera-video-file-double-size-problem#answer-255772" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for the answer.<br>I&#39;m deleting the folder here: </p>
+<pre><code class="hljs">Ti.API.info('Delete <span class="hljs-keyword">if</span> <span class="hljs-keyword">it</span> <span class="hljs-keyword">is</span> a directory: ' + <span class="hljs-property">item</span>.deleteDirectory(<span class="hljs-constant">true</span>)    );
+</code></pre><p>Yeah… I know… I will code better in the real app.<br>It&#39;s working so far… I&#39;ll consider your suggestion and delete the files a bit later.</p>
+<p>thank you!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 30th 2013, 12:58:56 pm">January 30th 2013</span>
+											by <span class='authorname'>Inzori DevTeam</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-255766">
+				
+						<section>
+							<p>After debugging MediaModule.m I found that a MOV file is being saved under &#x2F;tmp&#x2F;random_directory&#x2F;capture.MOV every time I close the camera after recording a video.</p>
+<p>This function in MediaModule.m is the responsible for saving this file: </p>
+<pre><code class="hljs">(<span class="hljs-typename">void</span>)<span class="hljs-string">imagePickerController:</span>(UIImagePickerController *)picker_ <span class="hljs-string">didFinishPickingMediaWithInfo:</span>(NSDictionary *)editingInfo
+</code></pre><p>But these tmp files are not being deleted … (maybe they are needed later… I am just beginning to test what happens if I delete all those subdirectories after closing the camera).</p>
+<p>For now, this is working on my test project. I&#39;m calling this function on the &quot;success&quot; callback after closing the camera… I have to test it on the real app:</p>
+<pre><code class="hljs">function deleteTempFolders(){
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirFullPath</span> = Ti.Filesystem.tempDirectory ;
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dir</span> = Titanium.Filesystem.getFile(dirFullPath);
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dirItems</span> = dir.getDirectoryListing();
+
+    Ti.API.info('Looking here: ' + dirFullPath );
+
+    <span class="hljs-keyword">for</span> ( <span class="hljs-variable"><span class="hljs-keyword">var</span> i</span>=dirItems.length-<span class="hljs-number">1</span>; i&gt;=<span class="hljs-number">0</span>; i-- ) {
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> itemFullPath</span> = dirFullPath + dirItems[i].toString();
+        Ti.API.info('Tmp <span class="hljs-keyword">object</span> #'+i+': '+itemFullPath);
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> item</span> = Ti.Filesystem.getFile(itemFullPath);        
+        Ti.API.info('Delete <span class="hljs-keyword">if</span> it <span class="hljs-keyword">is</span> a directory: ' + item.deleteDirectory(<span class="hljs-literal">true</span>)    );
+    }
+
+
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> a</span> = Titanium.UI.createAlertDialog({title:''});
+    a.setMessage('deleted tmp!');
+    a.show();    
+}
+</code></pre><p>Can anyone at appcelerator tell me if I&#39;m breaking anything important by deleting the tmp folder just like this?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 30th 2013, 11:10:11 am">January 30th 2013</span>
+								by <span class='authorname'>Inzori DevTeam</span><br>
+								<a class="icon-bg icon-link" href="question/146600/camera-video-file-double-size-problem#answer-255766" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

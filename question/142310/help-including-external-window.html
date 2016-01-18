@@ -1,0 +1,225 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Help including external window » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Help including external window</h1>
+		</header>
+		<section>
+			<p>I&#39;m creating a tabbed application with the template provided by titanium. I would like to split each window in a content file. I tried to do it for the contents of home, but it gives me error: could not find module.<br>I exported the whole project in a zip file to help identify the error.<br><a href="http:&#x2F;&#x2F;www.mediafire.com&#x2F;?ecx2e5ht127nm3h">Download Project File</a></p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 17th 2012, 8:02:38 am">September 17th 2012</span>
+				by <span class='authorname'>Filippo Perbellini</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>external file</span></li>
+					
+						<li><span class='tagname'>multi windows manage</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-247392">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>You&#39;re mixing two different models – the CommonJS model (good) and the multi-context model (bad).</p>
+<p>Let me show you how to make a pure CommonJS solution.  You&#39;re very close already.  But you&#39;ve got a problem in your  HomeContent.js; your function doesn&#39;t return anything.  See my fix below:</p>
+<pre><code class="hljs">function <span class="hljs-type">HomeContent</span>() {
+
+    <span class="hljs-keyword">var</span> win1 = <span class="hljs-type">Titanium</span>.<span class="hljs-type">UI</span>.createWindow(<span class="hljs-decorator">{...}</span>);
+    <span class="hljs-keyword">var</span> messageView = <span class="hljs-type">Titanium</span>.<span class="hljs-type">UI</span>.createView(<span class="hljs-decorator">{...}</span>);
+
+    <span class="hljs-keyword">var</span> label1 = <span class="hljs-type">Ti</span>.<span class="hljs-type">UI</span>.createLabel(<span class="hljs-decorator">{...}</span>);
+
+    messageView.add(label1);
+    win1.add(messageView);
+
+        // <span class="hljs-type">HERE</span>'S <span class="hljs-type">THE</span> <span class="hljs-type">FIX</span>:  make sure you <span class="hljs-keyword">return</span> your <span class="hljs-type">Window</span> <span class="hljs-keyword">object</span>!
+        <span class="hljs-keyword">return</span> win1;
+}
+module.exports = <span class="hljs-type">HomeContent</span>;
+</code></pre><p>When you use the module, you don&#39;t use the <code>url</code> property of a window.  Using that property is an older technique that will cause you problems.  There is a lot of sample code out in the wild that uses this technique, but you should not use it anymore.</p>
+<p>Instead, once you&#39;ve built the CommonJS module, use it like this:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ApplicationTabGroup</span>(<span class="hljs-params">Window</span>) </span>{
+    <span class="hljs-comment">//create module instance</span>
+    <span class="hljs-keyword">var</span> self = Ti.UI.createTabGroup();
+
+    <span class="hljs-keyword">var</span> HomeContent = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/common/HomeContent'</span>);
+    <span class="hljs-comment">//create app tabs</span>
+    <span class="hljs-keyword">var</span> win1 = <span class="hljs-keyword">new</span> HomeContent();
+    <span class="hljs-keyword">var</span> tab1 = Ti.UI.createTab({
+        title: L(<span class="hljs-string">'home'</span>),
+        icon: <span class="hljs-string">'/images/KS_nav_ui.png'</span>,
+        <span class="hljs-built_in">window</span>: win1
+    });
+    win1.containingTab = tab1;
+    ....
+}
+</code></pre><p>Interestingly, you&#39;re using CommonJS properly with your ApplicationWindow.js.  However, when you require() it, I would recommend that you use the leading &quot;&#x2F;&quot;, like this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Window = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/handheld/ApplicationWindow'</span>);
+</code></pre><p>For clarity, I would also recommend that you use a variable name that is the same as the module name:</p>
+<pre><code class="hljs"><span class="hljs-built_in">var</span> ApplicationWindow = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/handheld/ApplicationWindow'</span>);
+
+<span class="hljs-built_in">var</span> win2 = <span class="hljs-literal">new</span> ApplicationWindow (L(<span class="hljs-string">'teatro'</span>));
+<span class="hljs-attribute">...</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 17th 2012, 10:21:55 am">September 17th 2012</span>
+								by <span class='authorname'>Jason Priebe</span><br>
+								<a class="icon-bg icon-link" href="question/142310/help-including-external-window#answer-247392" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-247391">
+				
+						<section>
+							<p>I tried to insert url:&#39;win2.js&#39; but doesn&#39;t work.. please, can anyone help me? :(</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 17th 2012, 10:20:34 am">September 17th 2012</span>
+								by <span class='authorname'>Filippo Perbellini</span><br>
+								<a class="icon-bg icon-link" href="question/142310/help-including-external-window#answer-247391" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-247404">
+				
+						<section>
+							<p>thanks! :) but now doing what you told me to do you, is missing the tab bar.. :(</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 17th 2012, 11:44:41 am">September 17th 2012</span>
+								by <span class='authorname'>Filippo Perbellini</span><br>
+								<a class="icon-bg icon-link" href="question/142310/help-including-external-window#answer-247404" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>sorry, now I have delete the lastest 2 line of code in app.js and the app work fine!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 17th 2012, 11:52:19 am">September 17th 2012</span>
+											by <span class='authorname'>Filippo Perbellini</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Keep trying.  The changes I sent you should not get rid of the tab bar.  Keep in mind that for the sake of keeping the code short, I did not re-copy <em>all</em> of your code.  I&#39;m just showing you the important parts.</p>
+<p>I think that you should start a bit smaller.  Create a &quot;test&quot; project and put all your code into two files: app.js, where you create the tabgroup, and HomeContent.js where you put your CommonJS custom window code.</p>
+<p>Get that working.  Make sure you fully understand the use of the TabGroup and the CommonJS design pattern.  I recommend reading <a href="http:&#x2F;&#x2F;smorgasbork.com&#x2F;component&#x2F;content&#x2F;article&#x2F;38-titanium-mobile&#x2F;135-titanium-mobile-beyond-the-prototype">these articles</a>.</p>
+<p>If it still doesn&#39;t work, post the two files and I&#39;ll take a look at it.  But don&#39;t post 100MB project files.  You could have reduced the size dramatically simply by doing a &quot;clean&quot; before you posted.  When people are volunteering their time to help you, the least you can do is to reduce the problem to the smallest possible case so it can be efficiently analyzed by other people.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 17th 2012, 11:53:47 am">September 17th 2012</span>
+											by <span class='authorname'>Jason Priebe</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

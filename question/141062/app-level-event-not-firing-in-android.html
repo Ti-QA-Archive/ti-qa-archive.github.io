@@ -1,0 +1,402 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>App level event not firing in Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>App level event not firing in Android</h1>
+		</header>
+		<section>
+			<p>I have an app level event to refresh a tableview when the gps obtains a location (or not).</p>
+<p>The problem I&#39;m having is that the event is not firing in Android. It works fine in iOS (what a surprise!), however.</p>
+<p>The strange and face-palming thing is that if I write a simple event to output a debug a message or show an alert dialog, it works, but my actual function isn&#39;t.</p>
+<p>I&#39;ve double checked all typing and spelling to make sure I haven&#39;t made a typo… can anyone else see what I&#39;m doing wrong?</p>
+<p>Synopsis of what I&#39;m trying to do is to ascertain the device&#39;s location and if it&#39;s obtainable to add a table row at the top of the tableview to provide a link to the closest location, then it adds the stored locations to the tableview from the db.</p>
+<p>Code:</p>
+<pre><code class="hljs"><span class="hljs-comment">// This resides in a function that creates the table view</span>
+csu.module.maps.createMainWindow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+    csu.module.maps.getCurrentPosition();
+    <span class="hljs-keyword">var</span> locationList = csu.module.maps.dbGetMaps(); <span class="hljs-comment">// Obtains locations from SQLite DB</span>
+
+    <span class="hljs-comment">// other code</span>
+
+    <span class="hljs-comment">// If GPS is enabled, add a 'This Campus' row, if not just add the stored locations</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">updateLocationMapList</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> tableData = [];
+        Ti.API.debug(<span class="hljs-string">'Checking if GPS is enabled before adding nearest campus'</span>);
+
+        <span class="hljs-keyword">if</span> (Ti.Geolocation.locationServicesEnabled) {
+            <span class="hljs-keyword">var</span> nearestCampusRow = Ti.UI.createTableViewRow({
+                height: m_Config.tableViewRowHeight,
+                hasChild: <span class="hljs-literal">true</span>,
+                custom: <span class="hljs-literal">true</span>,
+                className: <span class="hljs-string">'location'</span>
+            });
+
+            <span class="hljs-keyword">var</span> nearestCampusLabel = Ti.UI.createLabel(m_Styles.locationLabel);
+            nearestCampusLabel.text = <span class="hljs-string">'This Campus'</span>;
+            nearestCampusRow.add(nearestCampusLabel);
+            tableData.push(nearestCampusRow);
+        } 
+
+        <span class="hljs-keyword">var</span> len = locationList.length;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; len; i++) {
+            <span class="hljs-keyword">var</span> location = locationList[i];
+
+            <span class="hljs-keyword">var</span> locationRow = Ti.UI.createTableViewRow({
+                height: m_Config.tableViewRowHeight,
+                hasChild: <span class="hljs-literal">true</span>,
+                location: location,
+                custom: <span class="hljs-literal">false</span>,
+                className: <span class="hljs-string">'location'</span>
+            });
+
+            <span class="hljs-keyword">var</span> locationLabel = Ti.UI.createLabel(m_Styles.locationLabel);
+            locationLabel.text = location.title;
+            locationRow.add(locationLabel);
+            tableData.push(locationRow);
+        }
+
+        mainTableView.setData(tableData);
+    };
+    Ti.App.addEventListener(<span class="hljs-string">'csu-mobile:updateLocationList'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.debug(<span class="hljs-string">'Event Listener for update Location list here.'</span>);
+        updateLocationMapList();
+    });
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">testEvent</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.debug(<span class="hljs-string">'Testing event firing'</span>);
+    };
+    Ti.App.addEventListener(<span class="hljs-string">'app:testEventListening'</span>, testEvent);
+
+    <span class="hljs-comment">// other code</span>
+};
+
+...
+
+csu.module.maps.getCurrentPosition = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.Geolocation.purpose = <span class="hljs-string">"GPS user coordinates"</span>;
+    Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_NEAREST_TEN_METERS;
+    Ti.Geolocation.distanceFilter = <span class="hljs-number">10</span>;
+
+    Ti.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+
+        Ti.App.fireEvent(<span class="hljs-string">'app:testEventListening'</span>);
+        <span class="hljs-keyword">if</span> (!e.success || e.error) {
+            Ti.UI.createAlertDialog({
+                message: <span class="hljs-string">'Unable to determine current location/GPS is turned off.'</span>
+            }).show();
+            Ti.API.debug(<span class="hljs-string">'Error: '</span> + e.error);
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.debug(<span class="hljs-string">'Location: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e.coords));
+
+            csu.module.maps.currentPos = {
+                longitude: e.coords.longitude,
+                latitude: e.coords.latitude
+            };
+        }
+        Ti.API.debug(<span class="hljs-string">'Fire event to update the map list.'</span>);
+        Ti.App.fireEvent(<span class="hljs-string">'csu-mobile:updateLocationList'</span>);
+    });
+};
+</code></pre><p>Console output:</p>
+<pre><code class="hljs">[<span class="hljs-link_label">DEBUG</span>][<span class="hljs-link_reference">TiAPI   ( 1027)</span>] Retrieving locations from remote source
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">GeolocationModule( 1027)</span>] (KrollRuntimeThread) [2587,4520] unable to get current position, location is null
+[<span class="hljs-link_label">DEBUG</span>][<span class="hljs-link_reference">TiAPI   ( 1027)</span>] Error: location is currently unavailable.
+[<span class="hljs-link_label">DEBUG</span>][<span class="hljs-link_reference">TiAPI   ( 1027)</span>] Fire event to update the map list.
+</code></pre><p>Notice the test event code isn&#39;t being called either.</p>
+<p>Now, when I move the test event outside of the function csu.module.maps.createMainWindow, the test event fires:</p>
+<pre><code class="hljs">[<span class="hljs-link_label">DEBUG</span>][<span class="hljs-link_reference">TiAPI   ( 1119)</span>] Retrieving locations from remote source
+[<span class="hljs-link_label">ERROR</span>][<span class="hljs-link_reference">GeolocationModule( 1119)</span>] (KrollRuntimeThread) [2561,4587] unable to get current position, location is null
+[<span class="hljs-link_label">DEBUG</span>][<span class="hljs-link_reference">TiAPI   ( 1119)</span>] Testing event firing <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-title">--</span> <span class="hljs-attribute">HERE</span>
+[<span class="hljs-attribute">DEBUG</span>][<span class="hljs-attribute">TiAPI</span>   ( <span class="hljs-attribute">1119</span>)] <span class="hljs-attribute">Error:</span> <span class="hljs-attribute">location</span> <span class="hljs-attribute">is</span> <span class="hljs-attribute">currently</span> <span class="hljs-attribute">unavailable.</span>
+[<span class="hljs-attribute">DEBUG</span>][<span class="hljs-attribute">TiAPI</span>   ( <span class="hljs-attribute">1119</span>)] <span class="hljs-attribute">Fire</span> <span class="hljs-attribute">event</span> <span class="hljs-attribute">to</span> <span class="hljs-attribute">update</span> <span class="hljs-attribute">the</span> <span class="hljs-attribute">map</span> <span class="hljs-attribute">list.</span></span></span>
+</code></pre><p>Why is this the case? I have, in other parts of the app, events being fired from an HttpClient onload callback and these work fine, but this isn&#39;t.  Is it something that Ti.Geolocation.getCurrentPosition is doing (or not doing)?</p>
+<p>Using:</p>
+<ul>
+<li>Ti SDK : 2.1.0 GA</li>
+<li>Android runtime: v8</li>
+</ul>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 16th 2012, 1:08:57 am">August 16th 2012</span>
+				by <span class='authorname'>Chris Dunstall</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>application</span></li>
+					
+						<li><span class='tagname'>event</span></li>
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+						<li><span class='tagname'>events</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>No sooner have I posted the question that I had a bit of a brain wave… I moved the call to <code>csu.module.maps.getCurrentPosition</code> to after the update function with the event listener and it works… </p>
+<p>It looks like processes the code top down so that if you call something defined after the call, it doesn&#39;t know about it. :&#x2F;</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 16th 2012, 1:13:13 am">August 16th 2012</span>
+								by <span class='authorname'>Chris Dunstall</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I should add that this doesn&#39;t fix my problem. I need to be able to update the tableview from inside that function, not outside it…</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 16th 2012, 2:26:36 am">August 16th 2012</span>
+								by <span class='authorname'>Chris Dunstall</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>did you updated the code above to reflect you changes?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 16th 2012, 3:31:46 am">August 16th 2012</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-245412">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>us a callback that passes the new location into the function, if you post the updated code it would be easier to provide guidance</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 16th 2012, 3:32:53 am">August 16th 2012</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/141062/app-level-event-not-firing-in-android#answer-245412" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Aaron,</p>
+<p>I think I&#39;ve solved the problem now:</p>
+<pre><code class="hljs"><span class="hljs-comment">// This resides in a function that creates the table view</span>
+csu.module.maps.createMainWindow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-keyword">var</span> locationList = csu.module.maps.dbGetMaps(); <span class="hljs-comment">// Obtains locations from SQLite DB</span>
+
+    <span class="hljs-comment">// other code</span>
+
+    <span class="hljs-comment">// If GPS is enabled, add a 'This Campus' row, if not just add the stored locations</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">updateLocationMapList</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> tableData = [];
+        Ti.API.debug(<span class="hljs-string">'Checking if GPS is enabled before adding nearest campus'</span>);
+
+        <span class="hljs-keyword">if</span> (Ti.Geolocation.locationServicesEnabled) {
+            <span class="hljs-keyword">var</span> nearestCampusRow = Ti.UI.createTableViewRow({
+                height: m_Config.tableViewRowHeight,
+                hasChild: <span class="hljs-literal">true</span>,
+                custom: <span class="hljs-literal">true</span>,
+                className: <span class="hljs-string">'location'</span>
+            });
+
+            <span class="hljs-keyword">var</span> nearestCampusLabel = Ti.UI.createLabel(m_Styles.locationLabel);
+            nearestCampusLabel.text = <span class="hljs-string">'This Campus'</span>;
+            nearestCampusRow.add(nearestCampusLabel);
+            tableData.push(nearestCampusRow);
+        } 
+
+        <span class="hljs-keyword">var</span> len = locationList.length;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; len; i++) {
+            <span class="hljs-keyword">var</span> location = locationList[i];
+
+            <span class="hljs-keyword">var</span> locationRow = Ti.UI.createTableViewRow({
+                height: m_Config.tableViewRowHeight,
+                hasChild: <span class="hljs-literal">true</span>,
+                location: location,
+                custom: <span class="hljs-literal">false</span>,
+                className: <span class="hljs-string">'location'</span>
+            });
+
+            <span class="hljs-keyword">var</span> locationLabel = Ti.UI.createLabel(m_Styles.locationLabel);
+            locationLabel.text = location.title;
+            locationRow.add(locationLabel);
+            tableData.push(locationRow);
+        }
+
+        mainTableView.setData(tableData);
+    };
+    Ti.App.addEventListener(<span class="hljs-string">'csu-mobile:updateLocationList'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.debug(<span class="hljs-string">'Event Listener for update Location list here.'</span>);
+        updateLocationMapList();
+    });
+
+    csu.module.maps.getCurrentPosition(); <span class="hljs-comment">// &lt;-- It works here</span>
+
+    <span class="hljs-comment">// other code</span>
+};
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">testEvent</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.debug(<span class="hljs-string">'Testing event firing'</span>);
+};
+Ti.App.addEventListener(<span class="hljs-string">'app:testEventListening'</span>, testEvent);
+
+
+csu.module.maps.getCurrentPosition = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.Geolocation.purpose = <span class="hljs-string">"GPS user coordinates"</span>;
+    Ti.Geolocation.accuracy = Ti.Geolocation.ACCURACY_NEAREST_TEN_METERS;
+    Ti.Geolocation.distanceFilter = <span class="hljs-number">10</span>;
+
+    Ti.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+
+        Ti.App.fireEvent(<span class="hljs-string">'app:testEventListening'</span>);
+        <span class="hljs-keyword">if</span> (!e.success || e.error) {
+            Ti.UI.createAlertDialog({
+                message: <span class="hljs-string">'Unable to determine current location/GPS is turned off.'</span>
+            }).show();
+            Ti.API.debug(<span class="hljs-string">'Error: '</span> + e.error);
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.debug(<span class="hljs-string">'Location: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e.coords));
+
+            csu.module.maps.currentPos = {
+                longitude: e.coords.longitude,
+                latitude: e.coords.latitude
+            };
+        }
+        Ti.API.debug(<span class="hljs-string">'Fire event to update the map list.'</span>);
+        Ti.App.fireEvent(<span class="hljs-string">'csu-mobile:updateLocationList'</span>);
+    });
+};
+</code></pre><p>Let me know if I&#39;m doing anything screwy, but it seems to work when I call the getCurrentPosition function after it&#39;s been defined and added as an event listener.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 16th 2012, 3:48:51 am">August 16th 2012</span>
+											by <span class='authorname'>Chris Dunstall</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>looks good based on what I can see here… carry on !!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 16th 2012, 3:56:30 am">August 16th 2012</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If you don&#39;t mind me asking while I&#39;ve got you, what&#39;s the accepted alternative for <code>Ti.Geolocation.locationServicesEnabled</code> on post Android 2.2 devices for determining if the GPS is off?</p>
+<p>Do I just go off the fact that the current location is null?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 16th 2012, 4:02:52 am">August 16th 2012</span>
+											by <span class='authorname'>Chris Dunstall</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>i would read up on this</p>
+<p><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;#!&#x2F;api&#x2F;Titanium.Geolocation.Android-property-manualMode">http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;2.1&#x2F;#!&#x2F;api&#x2F;Titanium.Geolocation.Android-property-manualMode</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 16th 2012, 4:18:44 am">August 16th 2012</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Aaron. Have a tick. ;)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 16th 2012, 5:33:28 am">August 16th 2012</span>
+											by <span class='authorname'>Chris Dunstall</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

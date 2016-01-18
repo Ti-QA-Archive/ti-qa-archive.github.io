@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Intermittent Fatal signal 11 error during file write on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Intermittent Fatal signal 11 error during file write on Android</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been wracking my brains on this for three weeks now.  I&#39;d appreciate any insights.  </p>
+<p>The only aspect that is consistent is that the error happens after an image is downloaded is written to the device&#39;s memory with the write command.</p>
+<p>Unfortunately the same image that crashed the application before will work fine in later attempts - even after emptying the application&#39;s cache in the Android system preferences.</p>
+<p>This is both and iOS &#x2F; Android application.  Images are downloaded before being presented in an image view because there are some differences in how both platforms must access the image before extracting height and width data.  There is also a queue system on board to monitor the amount of images that are being processed at any one time.</p>
+<p>Currently only one image can be downloaded and processed at any one time.</p>
+<p>This application does not have any issues running in iOS.  This is an Android only error.</p>
+<p>See &quot;THE CRASH HAPPENS INTERMITTENTLY ON THE NEXT LINE&quot; in the code below.  When the crash happens, the application force closes on f.write.</p>
+<p>TECH</p>
+<pre><code class="hljs">Application type: mobile
+Titanium SDK: <span class="hljs-number">3.0</span><span class="hljs-number">.2</span>.GA
+Platform &amp; version: Android SDK <span class="hljs-number">11</span>
+Device: Razr M
+Host OS: Android ICS <span class="hljs-number">4.1</span><span class="hljs-number">.1</span>
+Titanium Studio: build: <span class="hljs-number">3.0</span><span class="hljs-number">.2</span><span class="hljs-number">.201302191606</span>
+</code></pre><p>CODE</p>
+<pre><code class="hljs">py.ui.cachedImageView = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(basedir, uri, place, cacheage)</span> </span>{
+    <span class="hljs-keyword">var</span> filename = py.ui.imageQueue[place][<span class="hljs-string">"url"</span>].split(<span class="hljs-string">'/'</span>);
+    filename = filename[filename.length - <span class="hljs-number">1</span>];
+    <span class="hljs-keyword">if</span> (py.ui.imageQueue[place][<span class="hljs-string">'pass'</span>] == <span class="hljs-number">2</span>) filename = filename + <span class="hljs-string">"_hd"</span>;
+
+        <span class="hljs-keyword">var</span> d = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, basedir);
+        <span class="hljs-keyword">if</span> (!d.exists()) {
+            d.createDirectory();
+        }
+
+    <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, basedir, filename);
+
+        <span class="hljs-keyword">if</span> (f.exists()) {
+            Ti.App.fireEvent(<span class="hljs-string">'py.ui.cachedImageViewLoaded'</span>,{<span class="hljs-string">'loaded'</span>: <span class="hljs-literal">true</span>, <span class="hljs-string">'place'</span>: place, <span class="hljs-string">'filename'</span>: filename, <span class="hljs-string">'basedir'</span>: basedir, <span class="hljs-string">'status'</span>: <span class="hljs-string">"200"</span>});
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">// retrieve remote image.</span>
+            <span class="hljs-keyword">var</span> req = Ti.Network.createHTTPClient();
+            req.setTimeout(<span class="hljs-number">5000</span>);
+
+            req.open(<span class="hljs-string">'GET'</span>, uri);
+            req.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                <span class="hljs-keyword">if</span> (req.readyState == <span class="hljs-number">4</span> &amp;&amp; req.status == <span class="hljs-number">200</span>) {
+                    Ti.API.info(<span class="hljs-string">"ReponseHeader Type: "</span> + req.getResponseHeader(<span class="hljs-string">"Content-Type"</span>));
+                    <span class="hljs-keyword">var</span> responseType = req.getResponseHeader(<span class="hljs-string">"Content-Type"</span>).split(<span class="hljs-string">"/"</span>);
+                    <span class="hljs-keyword">if</span> (responseType[<span class="hljs-number">0</span>] == <span class="hljs-string">"image"</span> &amp;&amp; req.responseData){
+                        Ti.API.info(<span class="hljs-string">"writing URI to file: "</span> + uri);
+                        Ti.API.info(<span class="hljs-string">"To Directory: "</span> + Ti.Filesystem.applicationDataDirectory + basedir + <span class="hljs-string">"/"</span> + filename);
+                        <span class="hljs-comment">// THE CRASH HAPPENS INTERMITTENTLY ON THE NEXT LINE</span>
+                f.write(req.responseData);
+                        Ti.API.info(<span class="hljs-string">"Write Successful"</span>);
+
+                <span class="hljs-comment">// disregard if imageQueue has been removed during the time it took to connect</span>
+                        <span class="hljs-keyword">if</span> (py.ui.imageQueue.length == <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span>;
+
+                        Ti.App.fireEvent(<span class="hljs-string">'py.ui.cachedImageViewLoaded'</span>,{<span class="hljs-string">'loaded'</span>: <span class="hljs-literal">true</span>, <span class="hljs-string">'place'</span>: place, <span class="hljs-string">'filename'</span>: filename, <span class="hljs-string">'basedir'</span>: basedir, <span class="hljs-string">'status'</span>: req.status});
+
+                    } <span class="hljs-keyword">else</span> {
+                        Ti.App.fireEvent(<span class="hljs-string">'py.ui.cachedImageViewLoaded'</span>,{<span class="hljs-string">'loaded'</span>: <span class="hljs-literal">false</span>, <span class="hljs-string">'place'</span>: place, <span class="hljs-string">'filename'</span>: filename, <span class="hljs-string">'basedir'</span>: basedir, <span class="hljs-string">'status'</span>: <span class="hljs-number">404</span>});
+                    }
+
+                } <span class="hljs-keyword">else</span> {
+                    Ti.App.fireEvent(<span class="hljs-string">'py.ui.cachedImageViewLoaded'</span>,{<span class="hljs-string">'loaded'</span>: <span class="hljs-literal">false</span>, <span class="hljs-string">'place'</span>: place, <span class="hljs-string">'filename'</span>: filename, <span class="hljs-string">'basedir'</span>: basedir, <span class="hljs-string">'status'</span>: req.status});
+                }
+            }
+            req.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+                Ti.App.fireEvent(<span class="hljs-string">'py.ui.cachedImageViewLoaded'</span>,{<span class="hljs-string">'loaded'</span>: <span class="hljs-literal">false</span>, <span class="hljs-string">'place'</span>: place, <span class="hljs-string">'filename'</span>: filename, <span class="hljs-string">'basedir'</span>: basedir, <span class="hljs-string">'status'</span>: req.status});
+            }
+            req.send();
+        }
+    }
+</code></pre><p>LOGS</p>
+<pre><code class="hljs"><span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.134</span>: D/<span class="hljs-function"><span class="hljs-title">TiProperties</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: (KrollRuntimeThread) [<span class="hljs-number">1</span>,<span class="hljs-number">52290</span>] getInt called with key:ti<span class="hljs-class">.android</span><span class="hljs-class">.httpclient</span><span class="hljs-class">.maxbuffersize</span>, def:<span class="hljs-number">524288</span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.134</span>: D/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: (KrollRuntimeThread) [<span class="hljs-number">1</span>,<span class="hljs-number">52291</span>] open request method=GET url=http:<span class="hljs-comment">//lh3.ggpht.com/EtDJ4XoZIB1J043iVInI1hEH9rYL9udIqL7CIyzbL9oXVGb6RiLy6_4cWYhypzkRQ80tJ2LBJfeNRCQ6ipf63g=w267?0.8721161696594208</span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.134</span>: D/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: (KrollRuntimeThread) [<span class="hljs-number">1</span>,<span class="hljs-number">52292</span>] Instantiating host with hostString=<span class="hljs-string">'lh3.ggpht.com'</span>, port=<span class="hljs-string">'-1'</span>, scheme=<span class="hljs-string">'http'</span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.134</span>: D/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: (KrollRuntimeThread) [<span class="hljs-number">0</span>,<span class="hljs-number">52292</span>] Setting ready state to <span class="hljs-number">1</span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.134</span>: D/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: (KrollRuntimeThread) [<span class="hljs-number">0</span>,<span class="hljs-number">52292</span>] Instantiating http request with method=<span class="hljs-string">'GET'</span> and this url:
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.134</span>: D/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: (KrollRuntimeThread) [<span class="hljs-number">0</span>,<span class="hljs-number">52292</span>] http:<span class="hljs-comment">//lh3.ggpht.com/EtDJ4XoZIB1J043iVInI1hEH9rYL9udIqL7CIyzbL9oXVGb6RiLy6_4cWYhypzkRQ80tJ2LBJfeNRCQ6ipf63g%3Dw267?0.8721161696594208</span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.144</span>: D/<span class="hljs-function"><span class="hljs-title">TiHttpClient</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: (KrollRuntimeThread) [<span class="hljs-number">1</span>,<span class="hljs-number">52293</span>] Leaving <span class="hljs-function"><span class="hljs-title">send</span><span class="hljs-params">()</span></span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.395</span>: I/<span class="hljs-function"><span class="hljs-title">TiAPI</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>:  ReponseHeader Type: image/jpeg
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.395</span>: I/<span class="hljs-function"><span class="hljs-title">TiAPI</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>:  writing URI to file: http:<span class="hljs-comment">//lh3.ggpht.com/EtDJ4XoZIB1J043iVInI1hEH9rYL9udIqL7CIyzbL9oXVGb6RiLy6_4cWYhypzkRQ80tJ2LBJfeNRCQ6ipf63g=w267?0.8721161696594208</span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.395</span>: I/<span class="hljs-function"><span class="hljs-title">TiAPI</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>:  To Directory: appdata-private:<span class="hljs-comment">//detailcache/EtDJ4XoZIB1J043iVInI1hEH9rYL9udIqL7CIyzbL9oXVGb6RiLy6_4cWYhypzkRQ80tJ2LBJfeNRCQ6ipf63g</span>
+<span class="hljs-number">03</span>-<span class="hljs-number">05</span> <span class="hljs-number">15</span>:<span class="hljs-number">05</span>:<span class="hljs-number">59.395</span>: A/<span class="hljs-function"><span class="hljs-title">libc</span><span class="hljs-params">(<span class="hljs-number">2204</span>)</span></span>: Fatal signal <span class="hljs-number">11</span> (SIGSEGV) at <span class="hljs-number">0</span>x0000000c (code=<span class="hljs-number">1</span>), thread <span class="hljs-number">2248</span> (KrollRuntimeThr)
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 5th 2013, 10:01:24 pm">March 5th 2013</span>
+				by <span class='authorname'>Francis Meetze</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>intermittent issues</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Any luck figuring this out?  I&#39;m hitting intermittent crashes with the same <code>f.write(req.responseData);</code> command</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 19th 2013, 2:17:45 am">April 19th 2013</span>
+								by <span class='authorname'>Nicholas Jansma</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I don&#39;t know if it will help your situation, but I was able to resolve this.  In my case, if I re-acquired the File object in the <code>.onload()</code>, the 100% repro crash disappeared.  It appears that hanging on to the original File object through the <code>onload</code> callback caused the cash.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 19th 2013, 2:52:19 am">April 19th 2013</span>
+								by <span class='authorname'>Nicholas Jansma</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>sorry my English is very bad<br>you must initialize the variable f again in the onload function.<br>Try putting<br>var f = Ti.Filesystem.getFile (Ti.Filesystem.applicationDataDirectory, basedir, filename);<br>just before f.write (req.responseData);</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 15th 2014, 4:39:49 pm">May 15th 2014</span>
+								by <span class='authorname'>Matias Parodi</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-261329">
+				
+						<section>
+							<p>the same here, I don&#39;t know if this is something that appeared in recent titanium sdk versions, but definitely is a pain. I have problems downloading images and also pdf files. Some of them write correctly, but most times the app crashes both on emulator and device. Sometimes the file is not created, other times the app is created but content has 0 bytes. Any solution?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 22nd 2013, 3:04:03 pm">April 22nd 2013</span>
+								by <span class='authorname'>Javier Rayon</span><br>
+								<a class="icon-bg icon-link" href="question/149203/intermittent-fatal-signal-11-error-during-file-write-on-android#answer-261329" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Also, this ticket seems to be related…. https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-13138</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 22nd 2013, 3:10:48 pm">April 22nd 2013</span>
+											by <span class='authorname'>Javier Rayon</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

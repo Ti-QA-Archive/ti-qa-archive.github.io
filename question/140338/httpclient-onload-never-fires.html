@@ -1,0 +1,538 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HttpClient onLoad never fires » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HttpClient onLoad never fires</h1>
+		</header>
+		<section>
+			<p>So, I&#39;ve been using this same code for a while, but it just recently stopped working, and I&#39;m not sure why. The first time I do a set of calls to the server, it works fine. But if I go back a screen, and then try to do the same calls again, it doesn&#39;t work. Sometimes it fails on the first call, sometimes the second, but it happens like this: A call is made to my web server, which receives it, and returns data. However, the onLoad for the HttpClient is never called, and neither is the onError. I put it all in a try catch, too, but that doesn&#39;t catch anything.</p>
+<p>Anybody else had a similar problem&#x2F;know of a fix? This happens for iOS, but not for android, and it happens both in the simulator and on the device.</p>
+<p>Here&#39;s my code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+        xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+            TI.API.info(<span class="hljs-string">"Error while contacting: "</span> + serviceURL + serviceFunction + queryString);
+            Ti.API.info(<span class="hljs-string">"error status: "</span> + <span class="hljs-keyword">this</span>.status);
+            Ti.API.info(e);
+            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.status === <span class="hljs-number">0</span>) { <span class="hljs-comment">// timeout</span>
+                eventHandler.fireEvent(<span class="hljs-string">'app:main:applicationFailedLoading'</span>);
+            }
+            Ti.API.error(<span class="hljs-string">'Bad Server =&gt;'</span> + e.error);
+            errorCallback(e, <span class="hljs-keyword">this</span>.status);
+        };
+        <span class="hljs-keyword">var</span> url = Ti.App.Properties.getString(<span class="hljs-string">"journalingURL"</span>) + serviceURL + serviceFunction + queryString;
+        <span class="hljs-comment">//Ti.API.info('GET url: ' + url);</span>
+        xhr.open(<span class="hljs-string">'GET'</span>, url);
+
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+            Ti.API.info(<span class="hljs-string">'RAW='</span> + <span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.status == <span class="hljs-number">200</span>){
+                <span class="hljs-comment">//Ti.API.info('got my response, http status code ' + this.status);</span>
+                <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.readyState == <span class="hljs-number">4</span>){
+                    <span class="hljs-keyword">var</span> response = JSON.parse(<span class="hljs-keyword">this</span>.responseText);
+                    <span class="hljs-comment">//Ti.API.info('Response = ' + response);</span>
+                    <span class="hljs-keyword">callback</span>(response);
+                }<span class="hljs-keyword">else</span>{
+                    alert(<span class="hljs-string">'HTTP Ready State != 4'</span>);
+                }
+            }<span class="hljs-keyword">else</span>{
+                alert(<span class="hljs-string">'HTTP Error Response Status Code = '</span> + <span class="hljs-keyword">this</span>.status);
+                Ti.API.error(<span class="hljs-string">'Error=&gt;'</span> + <span class="hljs-keyword">this</span>.response);
+            }
+        }
+
+        <span class="hljs-keyword">if</span>(JOURNAL.login &amp;&amp; JOURNAL.login.authToken) { <span class="hljs-comment">// We're logged in, so pass the auth token in the header</span>
+            <span class="hljs-keyword">var</span> headerInfo = <span class="hljs-string">".ASPXAUTH"</span> + <span class="hljs-string">"="</span> + JOURNAL.login.authToken
+            <span class="hljs-comment">//Ti.API.info("header info: "  + headerInfo)</span>
+            xhr.setRequestHeader(<span class="hljs-string">"Cookie"</span>, <span class="hljs-string">".ASPXAUTH"</span> + <span class="hljs-string">"="</span> + JOURNAL.login.authToken);
+        }
+
+        xhr.timeout = <span class="hljs-number">10000</span>;
+        Ti.API.info(<span class="hljs-string">'sending GET to: '</span> + url);
+        xhr.send();
+    }
+    <span class="hljs-keyword">catch</span>(e) {
+        alert(e);
+    }
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 30th 2012, 11:02:52 am">July 30th 2012</span>
+				by <span class='authorname'>Colin DeClue</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>7</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>7 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-244053">
+				
+						<section>
+							<p>Hi Colin</p>
+<p>A few things to try;</p>
+<ul>
+<li>If you call the URL manually using a browser does it always fire back data?</li>
+<li>If it does, what is the status code of the subsequent calls it the URL you are using goes to a static file you  may be receiving a status code of 304 - basically means the contents have not changed, so use your own cache version.  If that is the case, you will need to either cache the last response or make sure the response is always 200.</li>
+<li>Are you always getting a 200 status code?</li>
+<li>Try the routine without the &#39;readystate&#39; if block.</li>
+<li>If you still have a problem, add an interlaced line by line error counter log - see below.</li>
+</ul>
+<pre><code class="hljs">Ti.API.<span class="hljs-literal">log</span>('<span class="hljs-keyword">test</span> [something]: 1);
+<span class="hljs-keyword">line</span> of normal code
+Ti.API.<span class="hljs-literal">log</span>('<span class="hljs-keyword">test</span> [something]: 2);
+<span class="hljs-keyword">line</span> of normal code
+Ti.API.<span class="hljs-literal">log</span>('<span class="hljs-keyword">test</span> [something]: 3);
+<span class="hljs-keyword">line</span> of normal code
+Ti.API.<span class="hljs-literal">log</span>('<span class="hljs-keyword">test</span> [something]: 4);
+<span class="hljs-keyword">line</span> of normal code
+Ti.API.<span class="hljs-literal">log</span>('<span class="hljs-keyword">test</span> [something]: 5);
+</code></pre><p>This way you can see in the debug log the last point in which the process ran each time.  Where it stops should point you to why it stops.</p>
+<p>Try these and let me know how it goes.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 30th 2012, 11:16:20 am">July 30th 2012</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/140338/httpclient-onload-never-fires#answer-244053" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>When it doesn&#39;t work, I&#39;m not getting any status code. If you notice, in the onload function, I have a line that spits out the response text immediately. When this doesn&#39;t work, that line doesn&#39;t fire. I&#39;ve got a breakpoint on the server, so I know the server is getting the request and responding, but the onload never happens.</p>
+<p>Since the server is getting the request, I know that the code runs all the way to the xhr.send(), so that kind of makes the debugging thing pointless…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 11:44:41 am">July 30th 2012</span>
+											by <span class='authorname'>Colin DeClue</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Colin</p>
+<p>I have run your code as best I can, having used my own <code>url</code> and placeholder variable for your <code>JOURNAL.login.authToken</code> and it works each time I try it without any issues.</p>
+<p>I also made the change Trevor spotted and I missed, by placing the <code>open()</code> function above the send line.</p>
+<pre><code class="hljs">xhr.<span class="hljs-keyword">open</span>(<span class="hljs-string">'GET'</span>, url);
+xhr.<span class="hljs-keyword">send</span>();
+</code></pre><p>My Callback function simply alerts the response.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">callback</span><span class="hljs-params">(r)</span> </span>{
+    alert(r);
+}
+</code></pre><p>This correctly displays the results of my test JSON object every time.</p>
+<p>You mention the same code worked fine and you have not changed it.  Then it may well be something with the <code>authToken</code> and cookie. When passed to the server.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 12:00:34 pm">July 30th 2012</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I don&#39;t think the authToken and cookie stuff are causing the problem, because the server is receiving the cookie and authorizing just fine. (There&#39;d be a 401 error if the cookie were incorrect).</p>
+<p>Something I&#39;ve noticed: If I induce a timeout, (by not running past a breakpoint on the server) we hit the onerror function, but only the first time. If I send the request a second time (when it wouldn&#39;t return to onload before) it also doens&#39;t fire for the timeout. I put a function in the onreadystatechange, and am monitoring that. It switches to 3, but then never to 4. So, that appears to be it&#39;s receiving the response, but then failing somehow.</p>
+<p>What&#39;s of note, though, is that it switches to 3 immediately, even if I&#39;m attempting to induce a timeout. So there&#39;s some error happening, but the httpclient just fails silently instead of calling onerror.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 12:33:02 pm">July 30th 2012</span>
+											by <span class='authorname'>Colin DeClue</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Actually, it switches to 3 immediately either way. That is, whether it will eventually work or not.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 12:48:58 pm">July 30th 2012</span>
+											by <span class='authorname'>Colin DeClue</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Just as a test (humour me), simplify the actual URL call by removing the authToken and cookie and then use a very basic server page that does not use a script - hard code a test json return directly into the page.</p>
+<p>Hopefully doing this will at least point to either the code javascript which provided it has been tweaked as suggested should be fine, or the server side.</p>
+<p>Once we can settle on the direction we can then figure out why this problem persits.</p>
+<p>If you still have an issue, please provide your revised javascript and an example json output from the api - sanitised of course.  Also how long does the api take to complete when run outside of this code and are you running PHP&#x2F;ASP&#x2F;ASP.NET etc?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 1:53:37 pm">July 30th 2012</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I posted how I fixed it below. Calling it another time just fixes it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 2:28:21 pm">July 30th 2012</span>
+											by <span class='authorname'>Colin DeClue</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-244054">
+				
+						<section>
+							<p>Hi Colin</p>
+<p>Put the onload before the open ….</p>
+<p>T…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 30th 2012, 11:31:07 am">July 30th 2012</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/140338/httpclient-onload-never-fires#answer-244054" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Didn&#39;t make any difference.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 11:44:54 am">July 30th 2012</span>
+											by <span class='authorname'>Colin DeClue</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Great catch Colin I missed that one as part of the issue.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 12:01:48 pm">July 30th 2012</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I meant great catch Trevor rather than Colin - sorry</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 12:12:16 pm">July 30th 2012</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-244066">
+				
+						<section>
+							<p>Hi Colin,</p>
+<p>A couple other things I would try: </p>
+<ul>
+<li>Put the <code>onload</code> and <code>onerror</code> inside the <code>createHTTPClient</code> block (like below)</li>
+<li>Uncomment all of the code inside <code>unload</code> except for a simple <code>Ti.API.info</code> statement</li>
+<li>If 1 and 2 don&#39;t work, then try uncommenting out your <code>setRequestHeader</code> statement. That may be causing a server issue.</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient({
+        onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+            TI.API.info(<span class="hljs-string">"Error while contacting: "</span> + serviceURL + serviceFunction + queryString);
+            Ti.API.info(<span class="hljs-string">"error status: "</span> + <span class="hljs-keyword">this</span>.status);
+            Ti.API.info(e);
+            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.status === <span class="hljs-number">0</span>) { <span class="hljs-comment">// timeout</span>
+                eventHandler.fireEvent(<span class="hljs-string">'app:main:applicationFailedLoading'</span>);
+            }
+            Ti.API.error(<span class="hljs-string">'Bad Server =&gt;'</span> + e.error);
+            errorCallback(e, <span class="hljs-keyword">this</span>.status);
+        },
+        onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+            Ti.API.info(<span class="hljs-string">"TEST - If this works, uncomment the code below..."</span>);
+            <span class="hljs-comment">// Ti.API.info('RAW=' + this.responseText);</span>
+            <span class="hljs-comment">// if(this.status == 200){</span>
+            <span class="hljs-comment">//     //Ti.API.info('got my response, http status code ' + this.status);</span>
+            <span class="hljs-comment">//     if(this.readyState == 4){</span>
+            <span class="hljs-comment">//         var response = JSON.parse(this.responseText);</span>
+            <span class="hljs-comment">//         //Ti.API.info('Response = ' + response);</span>
+            <span class="hljs-comment">//         callback(response);</span>
+            <span class="hljs-comment">//     }else{</span>
+            <span class="hljs-comment">//         alert('HTTP Ready State != 4');</span>
+            <span class="hljs-comment">//     }</span>
+            <span class="hljs-comment">// }else{</span>
+            <span class="hljs-comment">//     alert('HTTP Error Response Status Code = ' + this.status);</span>
+            <span class="hljs-comment">//     Ti.API.error('Error=&gt;' + this.response);</span>
+            <span class="hljs-comment">// }</span>
+        },
+        timeout: <span class="hljs-number">10000</span>
+    });
+
+    <span class="hljs-keyword">var</span> url = Ti.App.Properties.getString(<span class="hljs-string">"journalingURL"</span>) + serviceURL + serviceFunction + queryString;
+    <span class="hljs-comment">//Ti.API.info('GET url: ' + url);</span>
+    xhr.open(<span class="hljs-string">'GET'</span>, url);
+
+    <span class="hljs-keyword">if</span>(JOURNAL.login &amp;&amp; JOURNAL.login.authToken) { <span class="hljs-comment">// We're logged in, so pass the auth token in the header</span>
+        <span class="hljs-keyword">var</span> headerInfo = <span class="hljs-string">".ASPXAUTH"</span> + <span class="hljs-string">"="</span> + JOURNAL.login.authToken
+        <span class="hljs-comment">//Ti.API.info("header info: "  + headerInfo)</span>
+        <span class="hljs-comment">// COMMENT OUT THE LINE BELOW IF THE ISSUE PERSISTS</span>
+        xhr.setRequestHeader(<span class="hljs-string">"Cookie"</span>, <span class="hljs-string">".ASPXAUTH"</span> + <span class="hljs-string">"="</span> + JOURNAL.login.authToken);
+    }
+
+    Ti.API.info(<span class="hljs-string">'sending GET to: '</span> + url);
+    xhr.send();
+}
+<span class="hljs-keyword">catch</span>(e) {
+    alert(e);
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 30th 2012, 1:50:18 pm">July 30th 2012</span>
+								by <span class='authorname'>David Knell</span><br>
+								<a class="icon-bg icon-link" href="question/140338/httpclient-onload-never-fires#answer-244066" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I ended up doing most of this stuff suggested here, but none of it made a difference.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 2:29:09 pm">July 30th 2012</span>
+											by <span class='authorname'>Colin DeClue</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-244069">
+				
+						<section>
+							<p>I ended up fixing this by adding my own timeout functionality. Basically, if we get to ready state 3, I set a timeout of 10 seconds. If we load data or find an error, we handle that the normal way, and clear any timeouts we&#39;ve created. Otherwise, we call the function passed in (which just calls the whole GET code, again). The next time the GET code is called, it works just fine.</p>
+<p>I&#39;m chalking it up to an error in Titanium and moving on.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 30th 2012, 2:25:26 pm">July 30th 2012</span>
+								by <span class='authorname'>Colin DeClue</span><br>
+								<a class="icon-bg icon-link" href="question/140338/httpclient-onload-never-fires#answer-244069" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Shame - as I cannot get this to fail the same way my end and use the HTTPClient functionality as the basis for most of the apps I have created.</p>
+<p>If you have an externally accessible url I can access and a test JOURNAL.login.authToken and you want someone outside to test let me know.  We can pass the secured stuff outside the public domain of course.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 2:31:54 pm">July 30th 2012</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In case you missed it, this only happens in iOS. With android, it works perfectly. So, it doesn&#39;t appear to be a server error.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 30th 2012, 2:35:13 pm">July 30th 2012</span>
+											by <span class='authorname'>Colin DeClue</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-272340">
+				
+						<section>
+							<p>Hi<br>I have the same issue. Any resolution?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 9th 2013, 5:42:00 pm">December 9th 2013</span>
+								by <span class='authorname'>Preethika Muthupurushothaman</span><br>
+								<a class="icon-bg icon-link" href="question/140338/httpclient-onload-never-fires#answer-272340" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-272469">
+				
+						<section>
+							<p>I also have a similar problem. I&#39;m making XML-RPC calls using a modified version of mimic.js. If I make an XMLRPC call it responds correctly but if I then make another XMLRPC call the onerror is fired with a code -1 i.e. a timeout. If I wait a few seconds after the first call before I make the second call then the second call responds correctly.</p>
+<p>I know that the server is receiving my request and sending the correct response but the second call onload does not get fired, only onerror with a timeout, unless, as I&#39;ve said, I introduce delays which is unacceptable.</p>
+<p>Any resolution would be greatly appreciated.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 12th 2013, 1:51:37 pm">December 12th 2013</span>
+								by <span class='authorname'>Victor Leitch</span><br>
+								<a class="icon-bg icon-link" href="question/140338/httpclient-onload-never-fires#answer-272469" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Can you ask this as a new question please.</p>
+<p>Nobody is really going to pick it up and run with a 1yr old question</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 13th 2013, 3:42:49 pm">December 13th 2013</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-244055">
+				
+						<section>
+							<p>Hi Colin, look for Kitchen Sink twitter.js or any XHR request containg js file. it may help you finding bug in your code.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 30th 2012, 12:02:55 pm">July 30th 2012</span>
+								by <span class='authorname'>Ashish Nigam</span><br>
+								<a class="icon-bg icon-link" href="question/140338/httpclient-onload-never-fires#answer-244055" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

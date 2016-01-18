@@ -1,0 +1,311 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Overriding android:back button » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Overriding android:back button</h1>
+		</header>
+		<section>
+			<p>I want to override the functionality of the android:back button with my own custom code.<br>I am maintaining a stack of windows that i have opened using the following code.</p>
+<pre><code class="hljs"><span class="hljs-comment">/*
+value object passed 
+     var value = {
+         window: winHome,
+          key:"home"
+     };
+*/</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushWindow</span><span class="hljs-params">(value)</span>
+</span>{
+    value.window.addEventListener(<span class="hljs-string">'android:back'</span>,closeAppWindow);
+    Ti.App.stack.push(value);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">popWindow</span><span class="hljs-params">()</span>
+</span>{
+ <span class="hljs-keyword">return</span> Ti.App.stack.pop();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">closeAppWindow</span><span class="hljs-params">(e)</span>
+</span>{
+     e.source.removeEventListener(<span class="hljs-string">'android:back'</span>,closeAppWindow);
+     Ti.App.fireEvent(<span class="hljs-string">'android:back'</span>);    
+}
+Ti.App.addEventListener(<span class="hljs-string">'android:back'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">var</span> obj = popWindow();
+    obj.window.close();    
+    obj.window = <span class="hljs-literal">null</span>;    
+});
+</code></pre><p>Say i have the following sequence of windows: home-&gt;win1-&gt;win2-&gt;win3.<br>To go back a window i have to press the back button.</p>
+<ol>
+<li><p>win3-&gt;win2 : If i press back button on win2, win2 gets closed and win1 is shown.</p>
+</li>
+<li><p>win3-&gt;win2-&gt;win3-&gt;win2 : If i press back button on win2, win2 and win1 both get closed and home is displayed.</p>
+</li>
+<li><p>win3-&gt;win2-&gt;win3-&gt;win2-&gt;win3-&gt;win2: If i press back button on win2, the app exits.</p>
+</li>
+</ol>
+<p>What is the problem here?</p>
+<p>Titanium SDK version 3.0.0<br>Device: Samsung Galaxy S2 , Android 4.0.3</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 5th 2013, 11:38:58 am">March 5th 2013</span>
+				by <span class='authorname'>Harsh Pathak</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>back button</span></li>
+					
+						<li><span class='tagname'>close window</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>It seems that whenever the previous activity resumes on the click of the android:back button, an event listener is created again!<br>I rewrote the code in the following way.<br>After jumping between n number of times between win2 and win3, i get the alert: &quot;Finishing Activity&quot; n times because closeAppWindow() is being called n times.<br>Can someone tell me what should i do about this?</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushWindow</span><span class="hljs-params">(value)</span>
+</span>{
+    <span class="hljs-keyword">var</span> prevWin = popWindow();
+    <span class="hljs-keyword">if</span>(prevWin)
+    {
+        prevWin.window.removeEventListener(<span class="hljs-string">'android:back'</span>,closeAppWindow);
+        pushWindow(prevWin);
+    }
+    value.window.addEventListener(<span class="hljs-string">'android:back'</span>,closeAppWindow);
+    Ti.App.stack.push(value);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">popWindow</span><span class="hljs-params">()</span>
+</span>{
+ <span class="hljs-keyword">return</span> Ti.App.stack.pop();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">closeAppWindow</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">var</span> obj = popWindow();
+    <span class="hljs-keyword">if</span>(obj.window === e.source)  <span class="hljs-comment">//if source is a window</span>
+    {
+        e.source.close();
+        e.source = <span class="hljs-literal">null</span>;
+        alert(<span class="hljs-string">'Closing Window'</span>);
+    }
+    <span class="hljs-keyword">else</span>                        <span class="hljs-comment">//if source is an activity</span>
+    {
+        e.source.finish();
+        alert(<span class="hljs-string">'Finishing Activity'</span>);
+    }    
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="March 6th 2013, 7:05:14 am">March 6th 2013</span>
+								by <span class='authorname'>Harsh Pathak</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-258108">
+				
+						<section>
+							<p>hum my initial thought without testing it, is that your firing the android:back event more than once..</p>
+<p>so you have the android:back added to the window and then to the application.. REALLY…</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">closeAppWindow</span><span class="hljs-params">(e)</span>
+</span>{
+    e.source.removeEventListener(<span class="hljs-string">'android:back'</span>,closeAppWindow);
+    Ti.App.fireEvent(<span class="hljs-string">'popthewindow'</span>);   
+}
+Ti.App.addEventListener(<span class="hljs-string">'popthewindow'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">var</span> obj = popWindow();
+    obj.window.close(); 
+    obj.window = <span class="hljs-literal">null</span>;  
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 5th 2013, 11:45:58 am">March 5th 2013</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/149175/overriding-androidback-button#answer-258108" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I tried that too. Still doesn&#39;t work.<br>Also i have tried writing this same code individually for each window. But i am still stuck.<br>Is there anything else i can do. Or any alternative method?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 5th 2013, 11:53:28 am">March 5th 2013</span>
+											by <span class='authorname'>Harsh Pathak</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>ok think I my have spotted it ….</p>
+<pre><code class="hljs">
+var prevWin = popWindow<span class="hljs-literal">()</span>;
+    <span class="hljs-keyword">if</span>(prevWin)
+    {
+        prevWin.window.removeEventListener(<span class="hljs-symbol">'android</span>:back',closeAppWindow);
+        pushWindow(prevWin);
+    }
+    <span class="hljs-keyword">value</span>.window.addEventListener(<span class="hljs-symbol">'android</span>:back',closeAppWindow);
+    <span class="hljs-type">Ti</span>.<span class="hljs-type">App</span>.stack.push(<span class="hljs-keyword">value</span>);
+}
+</code></pre><p>Does not remove the event listener. </p>
+<p>prevWin is an array ,, so</p>
+<pre><code class="hljs">
+prevWin.window.removeEventListener(<span class="hljs-string">'android:back'</span>,closeAppWindow);
+        pushWindow(prevW<span class="hljs-keyword">in</span>);
+</code></pre><p>should be something like</p>
+<pre><code class="hljs">
+prevWin[prevWin.<span class="hljs-property">length</span> - <span class="hljs-number">1</span>].window.removeEventListener('android:<span class="hljs-keyword">back</span>',closeAppWindow);
+</code></pre><p>Sorry not physically tested it but basically, it cannot remove the event listener from an object which doesn&#39;t exists, so everytime you open the window another event listner is added while the original one still exists.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 7:38:54 am">March 6th 2013</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I dont  think thats it. The function popWindow returns the last object from the array after popping it as shown in the first code snippet. That makes prevWin an object and not an array.</p>
+<p>Could you please take a look at the snippet i added as comment to the question. I believe the activity started on pressing the android:back button has something to do with it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 7:51:54 am">March 6th 2013</span>
+											by <span class='authorname'>Harsh Pathak</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>popwindow returns the Ti.app.stack.pop(), which is an array… to return an individual item you would need to return Ti.App.stack.pop(itemnumber)</p>
+<p>Could you put an alert in directly after you populate prevWin alert(prevWin); and see what that object contains.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 8:46:22 am">March 6th 2013</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I did try. The prevWin returns an object and prevWin[] throws an error.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 8:51:35 am">March 6th 2013</span>
+											by <span class='authorname'>Harsh Pathak</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>So.. continuing down this line..</p>
+<p>What is Ti.App.stack .. I am assuming it is a application level variable … which is an array of window objects.</p>
+<p>Doing a pop on an array will remove the last item from that array.</p>
+<p>So being honest I am incredibly confused as to what you are returning to the prevWin variable.</p>
+<p>and why when you have removed the android back listener in the function you then call the function again with the same values…</p>
+<p>To be able to resolve this fully I think I would have to see the whole code base and run through the app to see where the additional event listeners are being added and why.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 8:59:57 am">March 6th 2013</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>also your adding the android back event listener to the application… so you will have it fire twice if you have also added it to the window where it should be.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 9:02:17 am">March 6th 2013</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>There seems to be two distinct code pastings here.. Which one are you using ?.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2013, 9:06:05 am">March 6th 2013</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

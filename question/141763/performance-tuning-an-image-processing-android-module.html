@@ -1,0 +1,177 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Performance tuning an image-processing Android module » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Performance tuning an image-processing Android module</h1>
+		</header>
+		<section>
+			<p>I&#39;ve written an Android module that does some very simple color swizzling on the pixels of an image. It drops the image to greyscale, bumps the contrast, and then screens it to a solid color.</p>
+<p><a href="https:&#x2F;&#x2F;dl.dropbox.com&#x2F;u&#x2F;363720&#x2F;screenshots&#x2F;android-color-swizzle.png">Here&#39;s a screenshot for reference</a></p>
+<p>The performance isn&#39;t too good. I&#39;ve already written a native ObjC iOS module that does the exact same thing, and it&#39;s performance was excellent. But then, I&#39;m an old C&#x2F;C++&#x2F;ObjC guy and I know my pointer arithmetic and native code optimization strategies. I also know Apple&#39;s Instruments app and am capable with it.</p>
+<p>Trouble is, I don&#39;t know how to optimize Java code.</p>
+<p>I did a basic port of my ObjC code. I pre-make contrast and tinting lookup tables, and then I create a pixel array from a bitmap decoded from the source blob, walk that computing indices into the lookup tables, and then bump that back into a bitmap.</p>
+<p>I assume my main problem here is allocations. Creating immutable bitmaps, byte arrays, etc. It would be ideal if I could just walk a bitmap&#39;s pixels and not thrash the heap so hard.</p>
+<p><strong>Another</strong> option – and one I think might be a lot better – would be to run my code on a separate thread, and somehow invoke a callback when the processing is complete. But, I have no idea from the docs on how to do something like that ( or if it&#39;s even <em>possible</em> ).</p>
+<p><a href="http:&#x2F;&#x2F;pastie.org&#x2F;4647129">Here&#39;s my complete module code</a>. I&#39;m open to any suggestions on how to make it faster.</p>
+<p>Thanks,</p>
+<p>P.S. I tried to put the module code in a code block, but maybe it was too long? Or maybe the forum&#39;s code blocks only support Javascript?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 1st 2012, 4:49:32 pm">September 1st 2012</span>
+				by <span class='authorname'>Shamyl Zakariya</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>optimization</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Oh yeah, I forgot context.<br>SDK: 2.1.2.GA</p>
+<p>Targeting Android devices</p>
+<p>Developed on Max OSX 10.8</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 1st 2012, 4:50:26 pm">September 1st 2012</span>
+								by <span class='authorname'>Shamyl Zakariya</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I replaced my calls to android.graphics.Color with manual bitmasking in my inner loops. It made for a minor performance improvement ( ~5% time shaved off ).</p>
+<p>http:&#x2F;&#x2F;pastie.org&#x2F;4647164</p>
+<p>I suppose the real win will come from somehow not having to create and destroy so many temporary buffers.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 1st 2012, 5:04:46 pm">September 1st 2012</span>
+								by <span class='authorname'>Shamyl Zakariya</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-246507">
+				
+						<section>
+							<p>So, I&#39;m going to add something here - I had a hunch and tested if Ti.UI.ActivityIndicator works on its own thread ( I assume that the underlying Activity or window or whatever Android plumbing is running behind the scenes makes it work), and it does. The little spinner spins even while the main thread is blocking on the image processing code.</p>
+<p>So, while I will still look into how to make my color manipulation code faster, I can at least now have a &quot;Please wait…&quot; spinner show up and let the user know that the app is not frozen.</p>
+<p><strong>So that&#39;s good!</strong></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 1st 2012, 6:10:20 pm">September 1st 2012</span>
+								by <span class='authorname'>Shamyl Zakariya</span><br>
+								<a class="icon-bg icon-link" href="question/141763/performance-tuning-an-image-processing-android-module#answer-246507" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-246550">
+				
+						<section>
+							<p>I was able to speed it up by about 50% by using Android&#39;s ColorMatrix filter and compositing. No more manual pixel swizzling.</p>
+<p><a href="http:&#x2F;&#x2F;pastie.org&#x2F;4652653">Here&#39;s the code, for anybody who&#39;s interested</a></p>
+<p>It&#39;s still balls-slow compared to the ObjC iOS implementation I wrote. But it&#39;s a lot faster than before, so that&#39;s something.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 2nd 2012, 7:02:37 pm">September 2nd 2012</span>
+								by <span class='authorname'>Shamyl Zakariya</span><br>
+								<a class="icon-bg icon-link" href="question/141763/performance-tuning-an-image-processing-android-module#answer-246550" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

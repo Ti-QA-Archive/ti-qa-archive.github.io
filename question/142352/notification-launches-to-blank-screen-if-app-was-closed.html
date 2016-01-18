@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Notification launches to blank screen if app was closed » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Notification launches to blank screen if app was closed</h1>
+		</header>
+		<section>
+			<p>Hi guys,</p>
+<p>I&#39;m having some problems in the consistency of getting a notification (in this case its a refresh of the news feed in desired interval set by the user) to run that when clicked will open the app on android. These run as a background service that are started when the user opts to have automatic news updates</p>
+<p>The problem is that of all the approaches I&#39;ve seen that they all have issues, mainly occuring when the app is set to background but then swiped away (android ICS&#x2F;jellybean recent tasks) to close it completely.</p>
+<p>Here&#39;s the problems with each:</p>
+<p>Option One: Using &#39;app.js&#39; as the url (with the relevant Tiapp.xml in place):</p>
+<pre><code class="hljs"><span class="hljs-component">alarmTimeIntent = Ti.Android.createIntent({
+        action : Ti<span class="hljs-string">.Android.ACTION_MAIN</span>,
+        url:'app<span class="hljs-string">.js'</span>,
+        flags: Ti<span class="hljs-string">.Android.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED</span> | Ti<span class="hljs-string">.Android.FLAG_ACTIVITY_SINGLE_TOP</span>
+    }</span>);
+</code></pre><p>When the app is just in the background, this works fine. However, when you swipe away the app to close it completely, the notification will then open to a blank screen with the title of the app in the top corner, along with its icon. This will eventually result in a force close if left, or if you select the back button it will close instantly</p>
+<p>Option Two: Using classNames specific to the app:</p>
+<pre><code class="hljs"><span class="hljs-component">alarmTimeIntent = Ti.Android.createIntent({
+    /*url: 'app<span class="hljs-string">.js'</span>,*/
+    className:Ti<span class="hljs-string">.App.id+'.MyAppActivity'</span>,
+    packageName:Ti<span class="hljs-string">.App.id</span>,
+    flags: Titanium<span class="hljs-string">.Android.FLAG_ACTIVITY_CLEAR_TOP</span> | Titanium<span class="hljs-string">.Android.FLAG_ACTIVITY_SINGLE_TOP</span>
+}</span>);
+</code></pre><p>In this case, when I use the app&#39;s specific classes, if the app is currently running&#x2F;in background it just opens to the app&#39;s splash screen but does nothing.</p>
+<p>If the app has been closed totally it will relaunch the app but notifications seem to stop popping up???</p>
+<p>Option Three: Using &#39;org.appcelerator.titanium.TiActivity&#39; as the class name</p>
+<pre><code class="hljs"><span class="hljs-component">alarmTimeIntent = Ti.Android.createIntent({
+    /*url: 'app<span class="hljs-string">.js'</span>,*/
+    className: 'org<span class="hljs-string">.appcelerator.titanium.TiActivity'</span>,
+    packageName:Ti<span class="hljs-string">.App.id</span>,
+    flags: Titanium<span class="hljs-string">.Android.FLAG_ACTIVITY_CLEAR_TOP</span> | Titanium<span class="hljs-string">.Android.FLAG_ACTIVITY_SINGLE_TOP</span>
+}</span>);
+</code></pre><p>This works when the application is running&#x2F;in background. But if the application has been swiped away(closed) it will then go to a blank screen as in 1, but its even less of a blank screen as it just has the title of the app in small.</p>
+<p>Here&#39;s an example of my background service with one of these options in place:</p>
+<pre><code class="hljs"><span class="hljs-component">alarmTimeIntent = Ti.Android.createIntent({
+    /*url: 'app<span class="hljs-string">.js'</span>,*/
+    className: 'org<span class="hljs-string">.appcelerator.titanium.TiActivity'</span>,
+    packageName:Ti<span class="hljs-string">.App.id</span>,
+    flags: Titanium<span class="hljs-string">.Android.FLAG_ACTIVITY_CLEAR_TOP</span> | Titanium<span class="hljs-string">.Android.FLAG_ACTIVITY_SINGLE_TOP</span>
+}</span>);
+
+alarmTimeIntent.addCategory(Ti.Android.CATEGORY_LAUNCHER);
+
+<span class="hljs-component">var alarmTimePendingIntent = Ti.Android.createPendingIntent({
+    activity: Ti<span class="hljs-string">.Android.currentActivity</span>,
+    intent: alarmTimeIntent,
+    type: Ti<span class="hljs-string">.Android.PENDING_INTENT_FOR_ACTIVITY</span>,
+    flags: Titanium<span class="hljs-string">.Android.FLAG_ACTIVITY_NEW_TASK</span>
+}</span>);
+
+<span class="hljs-component">var alarmTimeNotification = Titanium.Android.createNotification({
+    contentIntent: alarmTimePendingIntent,
+    contentTitle: 'Content Title Here',
+    tickerText: 'Ticker text here',
+    defaults:Titanium<span class="hljs-string">.Android.NotificationManager.DEFAULT_SOUND</span>,
+    when: new Date()
+}</span>);
+
+Ti.Android.NotificationManager.notify(1, alarmTimeNotification);
+</code></pre><p>In my tiapp.xml I have the following bits in place:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">activities</span>&gt;</span>
+           <span class="hljs-tag">&lt;<span class="hljs-title">activity</span> <span class="hljs-attribute">url</span>=<span class="hljs-value">"app.js"</span>&gt;</span>
+               <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                   <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.MAIN"</span> /&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span> /&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.DEFAULT"</span> /&gt;</span>
+               <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+           <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+       <span class="hljs-tag">&lt;/<span class="hljs-title">activities</span>&gt;</span>
+</code></pre><p>I also tried either&#x2F;one&#x2F;both of these in my main activity, but still no luck!!:</p>
+<pre><code class="hljs">&lt;activity <span class="hljs-string">android:</span>launchMode=<span class="hljs-string">"singleTask"</span> <span class="hljs-string">android:</span>alwaysRetainTaskState=<span class="hljs-string">"true"</span>...
+</code></pre><p>So my question is, does anybody know how on earth I get notification events to work consistently, no matter what state the app is in, its somewhat baffling me at the moment as it seems like it should be something thats relatively simple to put in place.</p>
+<p>Any help would be much appreciated!</p>
+<p>Adam</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 18th 2012, 7:50:01 am">September 18th 2012</span>
+				by <span class='authorname'>Adam Hartwig</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>blank screen</span></li>
+					
+						<li><span class='tagname'>intent</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+						<li><span class='tagname'>relaunch</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-247473">
+				
+						<section>
+							<p>Anyone got any ideas? :(</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 18th 2012, 10:53:37 am">September 18th 2012</span>
+								by <span class='authorname'>Adam Hartwig</span><br>
+								<a class="icon-bg icon-link" href="question/142352/notification-launches-to-blank-screen-if-app-was-closed#answer-247473" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-257920">
+				
+						<section>
+							<p>Hi Adam,</p>
+<p>Have you solved the issue ? My service is also running in background and want the notification to launch my app. My app is not running at all when the notification pops up. So, I would like to launch the app fresh when the notification message is clicked. I following option two you explained above. Please share your findings.</p>
+<p>thanks.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 2nd 2013, 6:44:51 pm">March 2nd 2013</span>
+								by <span class='authorname'>Manoj G</span><br>
+								<a class="icon-bg icon-link" href="question/142352/notification-launches-to-blank-screen-if-app-was-closed#answer-257920" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-284664">
+				
+						<section>
+							<p>&quot; does anybody know how on earth get notification events to work consistently, no matter what state the app&quot;</p>
+<p>No one does, I have the same problem and I wasted 4 days and I don&#39;t have a solution, this community seems dead, I&#39;m starting to thing this tecnology is a desert, the documentation is poor and nobody helps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 22nd 2014, 5:03:48 pm">December 22nd 2014</span>
+								by <span class='authorname'>Olman Mora</span><br>
+								<a class="icon-bg icon-link" href="question/142352/notification-launches-to-blank-screen-if-app-was-closed#answer-284664" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-286439">
+				
+						<section>
+							<p>Try to use the method described here - <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;jonalter&#x2F;1258071">https:&#x2F;&#x2F;gist.github.com&#x2F;jonalter&#x2F;1258071</a> It works for me.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 12th 2015, 7:43:31 am">March 12th 2015</span>
+								by <span class='authorname'>Yuriy Perevoznikov</span><br>
+								<a class="icon-bg icon-link" href="question/142352/notification-launches-to-blank-screen-if-app-was-closed#answer-286439" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
