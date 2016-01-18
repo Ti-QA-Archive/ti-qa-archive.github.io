@@ -1,0 +1,320 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>TCPSocket and node.js: socket write() does not work » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>TCPSocket and node.js: socket write() does not work</h1>
+		</header>
+		<section>
+			<p>i&#39;m trying to develop a library which would allow functionality similar to Titanium.API.log, but would be usable from an actual device, which is not connected to the development environment, but only connected to a network (btw, i&#39;m planning to publish the source). node.js is used as a &quot;listening&quot; server component.<br><strong>problem</strong>:when i open tcpsocket on the device with the WRITE_MODE, or READ_WRITE_MODE, and trying to write to the ip&#x2F;port - nothing happens on the server side, i.e. the write is not being detected on the server at all. everything else works: connection happens and stays open until closed, &quot;write&quot; from the server to the device&#39;s socket also works and correctly triggers &quot;read&quot; event on the device.<br><strong>question</strong>:what needs to be done to make tcpsocket &quot;write&quot; actually write to the socket?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 2nd 2011, 2:45:36 pm">January 2nd 2011</span>
+				by <span class='authorname'>yury bogomo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>node.js</span></li>
+					
+						<li><span class='tagname'>tcpsocket</span></li>
+					
+						<li><span class='tagname'>write</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>i got it working (the working code is below).<br>the problem was: you need to wait until connection is opened <strong>and the socket is valid</strong>. in the following code setInterval function keeps being fired until the socket&#39;s <strong>isValid</strong> returns true:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">tcpClient</span>(<span class="hljs-params"></span>) 
+</span>{ 
+    <span class="hljs-keyword">this</span>.socket = <span class="hljs-literal">null</span>; 
+    <span class="hljs-keyword">this</span>.RemoteHost = <span class="hljs-string">'ip address of the node.js server'</span>; 
+    <span class="hljs-keyword">this</span>.RemotePort = <span class="hljs-string">'port on that address'</span>; 
+    <span class="hljs-keyword">this</span>.timer = -<span class="hljs-number">1</span>;
+
+    <span class="hljs-keyword">this</span>.newSocket = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) 
+    </span>{
+        <span class="hljs-keyword">this</span>.socket = Titanium.Network.createTCPSocket(
+        {
+            hostName: <span class="hljs-keyword">this</span>.RemoteHost, 
+            port: <span class="hljs-built_in">parseInt</span>(<span class="hljs-keyword">this</span>.RemotePort, <span class="hljs-number">10</span>),
+            mode: Titanium.Network.READ_WRITE_MODE
+        });
+    };
+
+    <span class="hljs-keyword">this</span>.isConnected = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) 
+    </span>{
+        <span class="hljs-keyword">var</span> ret = <span class="hljs-literal">false</span>;
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.socket != <span class="hljs-literal">null</span>) 
+        {
+            ret = <span class="hljs-keyword">this</span>.socket.isValid;
+        }
+
+        <span class="hljs-keyword">return</span> ret;
+    };
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">TCPClient_onRead</span>(<span class="hljs-params">e</span>) 
+</span>{ 
+    alert(<span class="hljs-string">'read: '</span> + e[<span class="hljs-string">'data'</span>].text); 
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">TCPClient_onReadError</span>(<span class="hljs-params">e</span>) 
+</span>{ 
+    alert(<span class="hljs-string">'Read error...'</span>); 
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">TCPClient_onWriteError</span>(<span class="hljs-params">e</span>) 
+</span>{ 
+    alert(<span class="hljs-string">'Write error...'</span>); 
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">TCPClient_onConnect</span>(<span class="hljs-params"></span>) 
+</span>{ 
+    <span class="hljs-comment">//alert('Waiting for ' + TCPClient.RemoteHost + ':' + TCPClient.RemotePort); </span>
+
+    <span class="hljs-keyword">if</span> (TCPClient.isConnected()) 
+    { 
+        clearInterval(TCPClient.timer);
+
+        TCPClient.socket.addEventListener(<span class="hljs-string">'read'</span>, TCPClient_onRead);
+        TCPClient.socket.addEventListener(<span class="hljs-string">'readError'</span>, TCPClient_onReadError);        
+        TCPClient.socket.addEventListener(<span class="hljs-string">'writeError'</span>, TCPClient_onWriteError);
+
+        <span class="hljs-comment">//Titanium.API.info('Connected to ' + TCPClient.RemoteHost + ':' + TCPClient.RemotePort);</span>
+        <span class="hljs-comment">//Titanium.API.info('Writing ' + TCPClientBuff + ' to socket...');</span>
+
+        TCPClient.socket.write(<span class="hljs-string">'test'</span>);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Connect</span>(<span class="hljs-params"></span>) 
+</span>{
+    <span class="hljs-keyword">try</span>
+    {
+        TCPClient = <span class="hljs-keyword">new</span> tcpClient();
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-literal">false</span>)
+        {
+            TCPClientBuff = <span class="hljs-string">'CIDSetPlusChramCCC'</span> + CID + Level1Delimiter + SoftwareVersion + <span class="hljs-string">'CIDSetMinusChram'</span>;
+
+            <span class="hljs-keyword">if</span> (TCPClient.isConnected()) 
+            { 
+                TCPClient.socket.close(); 
+            }
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            <span class="hljs-comment">//TCPClient.RemoteHost = 'localhost';</span>
+            TCPClient.RemoteHost = <span class="hljs-string">'&lt;node.js ip&gt;'</span>;
+            TCPClient.RemotePort = <span class="hljs-string">'node.js port'</span>;
+
+            TCPClient.newSocket();
+            TCPClient.socket.connect();
+
+            TCPClient.timer = setInterval(TCPClient_onConnect, <span class="hljs-number">2000</span>);
+        }
+    }
+    <span class="hljs-keyword">catch</span> (eee)
+    {
+        alert(<span class="hljs-string">'err in tcp: '</span> + $iwa.str(eee));
+    }
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="January 9th 2011, 3:43:29 pm">January 9th 2011</span>
+								by <span class='authorname'>yury bogomo</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>would be nice if there would be a class for that. some sort of prototype that fires an event if the socket is ready and connected…</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 31st 2011, 9:08:02 am">March 31st 2011</span>
+								by <span class='authorname'>Tobias O.</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-175431">
+				
+						<section>
+							<p>I got the following echo server in node.js and simple app in titanium working just now.</p>
+<p>node.js echo server</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> net = <span class="hljs-built_in">require</span>(<span class="hljs-string">'net'</span>);
+net.createServer(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">socket</span>) </span>{
+  socket.addListener(<span class="hljs-string">'data'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+    socket.write(data);
+  })
+}).listen(<span class="hljs-number">8001</span>);
+</code></pre><p>Titanium App</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">head</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-title">script</span>&gt;</span><span class="javascript">
+  <span class="hljs-keyword">var</span> tcpsock = <span class="hljs-literal">null</span>;
+  <span class="hljs-built_in">window</span>.onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> myWindow = Titanium.UI.getCurrentWindow();
+    myWindow.addEventListener(Titanium.CLOSE, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">event</span>) </span>{
+      Titanium.App.exit();
+    });
+  };
+  <span class="hljs-keyword">var</span> connect = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{ 
+    tcpsock = Titanium.Network.createTCPSocket(<span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'hostname'</span>).value, <span class="hljs-built_in">parseInt</span>(<span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'port'</span>).value));
+    tcpsock.onRead(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{ <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'received'</span>).value += data + <span class="hljs-string">"\n"</span>; });
+    tcpsock.connect();
+  };
+  <span class="hljs-keyword">var</span> disconnect = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    tcpsock.close();
+  };
+  <span class="hljs-keyword">var</span> sendit = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    tcpsock.write(<span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'to_send'</span>).value);
+    <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'to_send'</span>).value = <span class="hljs-string">''</span>;
+  };
+</span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-title">head</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">body</span> <span class="hljs-attribute">style</span>=<span class="hljs-value">"background-color: #1c1c1c; margin: 0;"</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">style</span>=<span class="hljs-value">"border-top: 1px solid #404040"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">style</span>=<span class="hljs-value">"color: #fff; padding: 10px;"</span>&gt;</span>
+      Host: <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">size</span>=<span class="hljs-value">"25"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"hostname"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">input</span>&gt;</span>Port: <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">size</span>=<span class="hljs-value">"5"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"port"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">input</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"button"</span> <span class="hljs-attribute">onclick</span>=<span class="hljs-value">"connect();"</span>&gt;</span>Connect<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"button"</span> <span class="hljs-attribute">onclick</span>=<span class="hljs-value">"disconnect();"</span>&gt;</span>Disconnect<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">br</span> /&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">textarea</span> <span class="hljs-attribute">rows</span>=<span class="hljs-value">"03"</span> <span class="hljs-attribute">cols</span>=<span class="hljs-value">"40"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"to_send"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">textarea</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"button"</span> <span class="hljs-attribute">onclick</span>=<span class="hljs-value">"sendit();"</span>&gt;</span>Send<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">br</span> /&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">textarea</span> <span class="hljs-attribute">rows</span>=<span class="hljs-value">"10"</span> <span class="hljs-attribute">cols</span>=<span class="hljs-value">"40"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"received"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">textarea</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">br</span> /&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-title">html</span>&gt;</span>
+</code></pre><p>I hope that helps you!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 9th 2011, 12:40:08 pm">January 9th 2011</span>
+								by <span class='authorname'>Daniel Bartlett</span><br>
+								<a class="icon-bg icon-link" href="question/95861/tcpsocket-and-nodejs-socket-write-does-not-work#answer-175431" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-180831">
+				
+						<section>
+							<p>it is fully working now.</p>
+<p>i&#39;ve designed remote debugging system based on tcpsockets available at  http:&#x2F;&#x2F;www.cloudebug.com.</p>
+<p>as a part of the code provided with this system you will find a working tcpClient class which you can use in your projects freely.</p>
+<p>here is the link to the post:</p>
+<p>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;101611&#x2F;new-debugging-system-for-titanium—cloudebug</p>
+<p>or, you can go to http:&#x2F;&#x2F;www.cloudebug.com, register and get the source code for the tcpClient class.</p>
+<p>good luck!</p>
+<p>yury</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 17th 2011, 8:21:44 pm">January 17th 2011</span>
+								by <span class='authorname'>yury bogomo</span><br>
+								<a class="icon-bg icon-link" href="question/95861/tcpsocket-and-nodejs-socket-write-does-not-work#answer-180831" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>http:&#x2F;&#x2F;www.cloudebug.com</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 17th 2011, 8:23:37 pm">January 17th 2011</span>
+											by <span class='authorname'>yury bogomo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

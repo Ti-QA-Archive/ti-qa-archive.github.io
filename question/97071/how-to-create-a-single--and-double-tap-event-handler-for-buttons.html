@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to: Create a Single- _and_ Double-tap Event Handler for Buttons » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to: Create a Single- _and_ Double-tap Event Handler for Buttons</h1>
+		</header>
+		<section>
+			<p>In the app I&#39;m building, I wanted to have a pair of arrow buttons that would let the user move forward or backward one day when they single-tap <em>and</em> move by one month when they double-tap.  After experimenting and some searching around, I was forced to conclude that the &#39;doubletap&#39; and &#39;dblclick&#39; events are not supported – at least in the current version of the Titanium SDK (1.5.1).  Since I really wanted this functionality, I decided to roll my own.  My code is based on something posted here by Sindre SÃ¸rhus a few months back but has been expanded to sense both the single- and double-tap events.</p>
+<p>The basic module is in the form of a &#39;constructor&#39; type Javascript class:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">DoubleTap</span> (<span class="hljs-params">arg</span>) </span>{
+    <span class="hljs-keyword">var</span> me = <span class="hljs-keyword">this</span>;
+    <span class="hljs-keyword">this</span>.previousClickTime = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">this</span>.clickTime = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">this</span>.singleClicked = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">this</span>.doubleClicked = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">this</span>.onclick = (<span class="hljs-keyword">typeof</span>(arg.onclick) != <span class="hljs-string">"function"</span>) ? <span class="hljs-literal">null</span> : arg.onclick;
+    <span class="hljs-keyword">this</span>.ondblclick = (<span class="hljs-keyword">typeof</span>(arg.ondblclick) != <span class="hljs-string">"function"</span>) ? <span class="hljs-literal">null</span> : arg.ondblclick;
+    <span class="hljs-keyword">this</span>.waitTime = <span class="hljs-number">250</span>;
+
+    DoubleTap.prototype.click = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (me.singleClicked) {
+            me.singleClicked = <span class="hljs-literal">false</span>;
+            me.doubleClicked = <span class="hljs-literal">false</span>;
+            <span class="hljs-keyword">return</span>;
+        }
+        <span class="hljs-keyword">var</span> date = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+
+        me.clickTime = date.getTime();
+
+        <span class="hljs-keyword">var</span> clicks = (me.clickTime &lt;= (me.previousClickTime + me.waitTime)) ? <span class="hljs-number">2</span> : <span class="hljs-number">1</span>;
+
+        <span class="hljs-keyword">if</span> (clicks == <span class="hljs-number">1</span>) {
+            setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{ me.wait(); },me.waitTime + <span class="hljs-number">50</span>);
+        }
+
+        me.previousClickTime = me.clickTime;
+
+        <span class="hljs-keyword">if</span> (clicks == <span class="hljs-number">2</span>) {
+            Ti.API.info(<span class="hljs-string">'doubleclick: '</span>);
+            <span class="hljs-keyword">if</span> (me.ondblclick != <span class="hljs-literal">null</span>) {
+                me.ondblclick();
+             }
+            me.singleClicked = <span class="hljs-literal">false</span>;
+            me.doubleClicked = <span class="hljs-literal">true</span>;
+            setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{ me.clean_up(); },me.waitTime + <span class="hljs-number">50</span>);
+        }
+     };
+
+     <span class="hljs-keyword">this</span>.wait = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+         <span class="hljs-keyword">if</span> (!me.singleClicked &amp;&amp; !me.doubleClicked) {
+              Ti.API.info(<span class="hljs-string">'one click: '</span>);
+            <span class="hljs-keyword">if</span> (me.onclick != <span class="hljs-literal">null</span>) {
+                me.onclick();
+             }
+            me.singleClicked = <span class="hljs-literal">false</span>;
+            me.doubleClicked = <span class="hljs-literal">false</span>;
+         }
+     };
+
+     <span class="hljs-keyword">this</span>.clean_up = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+        me.singleClicked = <span class="hljs-literal">false</span>;
+        me.doubleClicked = <span class="hljs-literal">false</span>;
+      };
+}
+</code></pre><p>To use this, first instantiate the DoubleTap object and point its &#39;onclick&#39; and &#39;ondblclick&#39; arguments either at existing functions:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> dt = <span class="hljs-keyword">new</span> DoubleTap({
+      onclick: foo,
+      ondblclick: bar
+});
+</code></pre><p>. . . or create functions in-line:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> dt = <span class="hljs-keyword">new</span> DoubleTap({
+      onclick: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ foo(myValue); },
+      ondblclick: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ foo(myOtherValue); }
+});
+</code></pre><p>Finally, put a call to the &#39;click()&#39; method of the object in your button&#39;s &#39;click&#39; event listener:</p>
+<pre><code class="hljs">myButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      dt.click();
+});
+</code></pre><p>I&#39;ve tested this pretty thoroughly in the iPhone Simulator and on an iPhone 3GS – and it should work on other devices but YMMV.</p>
+<p>One thing more: I discovered that you cannot create multiple instances of this (and perhaps other JS objects?) within the same context.  When I tried to create a &quot;forward&quot; instance and a &quot;backward&quot; instance in that order (for my date buttons), it was always calling the &quot;backward&quot; object, since that was declared last.  To work around this:</p>
+<pre><code class="hljs"><span class="hljs-type">Ti</span>.<span class="hljs-type">App</span>.forward = <span class="hljs-type">DoubleTap</span>(<span class="hljs-decorator">{...}</span>);
+<span class="hljs-type">Ti</span>.<span class="hljs-type">App</span>.backward = <span class="hljs-type">DoubleTap</span>(<span class="hljs-decorator">{...}</span>);
+</code></pre><p>. . . And call:</p>
+<pre><code class="hljs"><span class="hljs-tag">Ti</span><span class="hljs-class">.App</span><span class="hljs-class">.forward</span><span class="hljs-class">.click</span>();
+...
+<span class="hljs-tag">Ti</span><span class="hljs-class">.App</span><span class="hljs-class">.backward</span><span class="hljs-class">.click</span>();
+</code></pre><p>Have fun!</p>
+<p>Mark</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 5th 2011, 1:10:49 pm">January 5th 2011</span>
+				by <span class='authorname'>Mark Pemburn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>dblclick</span></li>
+					
+						<li><span class='tagname'>doubletap</span></li>
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+						<li><span class='tagname'>workaround</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hey Mark,<br>Great work around!<br>Thanks. It saved my several hours.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 11th 2011, 11:30:54 am">March 11th 2011</span>
+								by <span class='authorname'>Samavaya Samavaya</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>8</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-254892">
+				
+						<section>
+							<p>This is an old post, so I&#39;m wondering if anyone extended the DoubleTap function to handle click vs lonpress events as well.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 18th 2013, 6:16:01 pm">January 18th 2013</span>
+								by <span class='authorname'>Walid Saliba</span><br>
+								<a class="icon-bg icon-link" href="question/97071/how-to-create-a-single--and-double-tap-event-handler-for-buttons#answer-254892" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-173531">
+				
+						<section>
+							<p>Nice one, Mark - I&#39;m voting it up! :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 5th 2011, 8:44:02 pm">January 5th 2011</span>
+								by <span class='authorname'>Paul Dowsett</span><br>
+								<a class="icon-bg icon-link" href="question/97071/how-to-create-a-single--and-double-tap-event-handler-for-buttons#answer-173531" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

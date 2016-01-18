@@ -1,0 +1,377 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to: Adding a Custom iPhone Module to Your Project (EventKit example) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to: Adding a Custom iPhone Module to Your Project (EventKit example)</h1>
+		</header>
+		<section>
+			<p>This was a big hurdle to clear – I really wanted my app to be able to write events to the iPhone&#39;s Calendar app and the only way to do this is to access the EventKit framework – something that&#39;s not included in the standard Titanium SDK.</p>
+<p>To begin, you&#39;ll need to get the <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;guides&#x2F;en&#x2F;module_ios.html">Titanium Module Developer&#39;s Guide for iOS</a> and follow the directions to the letter.  I discovered that, at least for now, it will <em>not</em> work if you set the &#39;titanium&#39; alias to point to the 1.5.x SDK, only 1.4.x.  In brief:</p>
+<ol>
+<li>Create an alias to point to the titanium.py file in the SDK (just so that you won&#39;t have to type out the full path).</li>
+<li>Generate a module project (e.g., titanium create –platform=iphone –type=module –dir=~&#x2F;tmp –name=event –id=com.event)</li>
+<li>Build the module with its build.py file.</li>
+<li>Move the resulting .zip package to the Titanium folder that contains the SDK version you&#39;re using for your project. NOTE: The 1.5.x SDK <em>may</em> be in a different part of the file system than the 1.4.x.  In my case, the 1.5.x is under my Users&#x2F;myname directory and the 1.4.x is under &#x2F;Library&#x2F;Application Support (why?)</li>
+<li>Modify your project&#39;s tiapp.xml to include a reference to the module.</li>
+<li>Instantiate the module in your app code with a &#39;require&#39; statement (e.g., var event = require(&#39;com.event&#39;)).</li>
+<li>Call the module&#39;s methods.</li>
+</ol>
+<p>After performing Step 2 above, you should have a raw module project containing an XCode project.  In my example, this is called &#39;event.xcodeproj&#39;.  Open this with XCode.  You may notice that it says &quot;Missing SDK&quot; up at the top.  If you open the project info window (highlight the project name under Groups and Files and hit CMD-I), you will be able to change the SDK to whatever version you need under Architectures&#x2F;Base SDK.</p>
+<p>In this example, we&#39;ll be using the EventKit Framework so right-click on the Frameworks folder, then Add Existing, and scroll down until you find EventKit.</p>
+<p>Next, open the module file (e.g., ComEventModule.m).  Under the imports at the top, add:</p>
+<pre><code class="hljs"><span class="hljs-preprocessor">#import <span class="hljs-title">&lt;EventKit/EventKit.h&gt;</span></span>
+</code></pre><p>The place to add your own code is under the line that says &#39;#pragma Public APIs&#39;  The following will allow you to add an event to the calendar:</p>
+<pre><code class="hljs">-(BOOL)<span class="hljs-string">newEvent:</span>(id)args {
+    <span class="hljs-comment">//*** Pull the arguments out of the object passed in by Titanium</span>
+    id startDate = [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">0</span>];
+    id endDate = [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">1</span>];
+    id title = [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">2</span>];
+    id location = [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">3</span>];
+    id notes = [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">4</span>];
+
+    <span class="hljs-comment">//*** See what's coming in.  Comment this out for final build</span>
+    NSLog(@<span class="hljs-string">"[OBJ-C] arg1 is: %@"</span>, [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">0</span>]);
+    NSLog(@<span class="hljs-string">"[OBJ-C] arg2 is: %@"</span>, [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">1</span>]);
+    NSLog(@<span class="hljs-string">"[OBJ-C] arg3 is: %@"</span>, [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">2</span>]);
+    NSLog(@<span class="hljs-string">"[OBJ-C] arg4 is: %@"</span>, [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">3</span>]);
+    NSLog(@<span class="hljs-string">"[OBJ-C] arg5 is: %@"</span>, [args <span class="hljs-string">objectAtIndex:</span><span class="hljs-number">4</span>]);
+
+    <span class="hljs-comment">//*** Instantiate EventKit objects</span>
+    EKEventStore *eventDB = [[EKEventStore alloc] init];
+    EKEvent *theEvent  = [EKEvent <span class="hljs-string">eventWithEventStore:</span>eventDB];
+
+    <span class="hljs-comment">//*** Create date formater and timezone object</span>
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    NSTimeZone *timeZoneGMT = [NSTimeZone <span class="hljs-string">timeZoneWithName:</span>@<span class="hljs-string">"GMT"</span>];    
+
+    [dateFormatter <span class="hljs-string">setTimeZone:</span> timeZoneGMT];     
+    [dateFormatter <span class="hljs-string">setDateFormat:</span> @<span class="hljs-string">"yyyy-MM-dd hh:mm:ss Z"</span>];
+
+    <span class="hljs-comment">//*** Provide POSIX date formatting to prevent date from drifting into a format that iCal won't accept</span>
+    NSLocale *enUSPOSIXLocale = [[NSLocale alloc] <span class="hljs-string">initWithLocaleIdentifier:</span>@<span class="hljs-string">"en_US_POSIX"</span>];
+    [dateFormatter <span class="hljs-string">setLocale:</span>enUSPOSIXLocale];
+    [enUSPOSIXLocale release];
+
+    <span class="hljs-comment">//*** Read data into the event</span>
+    theEvent.startDate = [dateFormatter <span class="hljs-string">dateFromString:</span> startDate];
+    theEvent.endDate   = [dateFormatter <span class="hljs-string">dateFromString:</span> endDate];
+    theEvent.title     = title;
+    theEvent.location  = location;
+    theEvent.notes     = notes;
+    theEvent.allDay = NO;
+
+    <span class="hljs-comment">//*** Set the calendar</span>
+    [theEvent <span class="hljs-string">setCalendar:</span>[eventDB defaultCalendarForNewEvents]];
+
+    <span class="hljs-comment">//*** Provide error trapping</span>
+    NSError *err;
+    <span class="hljs-comment">//*** Do save</span>
+    [eventDB <span class="hljs-string">saveEvent:</span>theEvent <span class="hljs-string">span:</span>EKSpanThisEvent <span class="hljs-string">error:</span>&amp;err];
+
+    [dateFormatter release];    
+
+    <span class="hljs-comment">//*** Return.  YES returns as 1, NO as 0</span>
+    <span class="hljs-keyword">if</span> (err == noErr) {
+        <span class="hljs-keyword">return</span> YES;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">return</span> NO;
+    }
+
+}
+</code></pre><p>NOTE: You&#39;ll need to pass the times based on the 24 hour clock, pre-adjusted to UTC to get the expected results.</p>
+<p>You should be able to do a Build&#x2F;Build (from the XCode menu) and have it compile successfully.</p>
+<p>Next, go to the terminal, navigate to the directory containing the module project and issue a build command (.&#x2F;build.py).  Assuming it builds successfully, you&#39;ll get a file named something like, &#39;com.event-iphone-0.1.zip&#39;.  Move this to the Titanium folder containing your project&#39;s SDK (e.g., ~&#x2F;Library&#x2F;Application Support&#x2F;Titanium).</p>
+<p>If you haven&#39;t already done so, add the reference to the module to your project&#39;s tiapp.xml file.  It should go at the end of the file, right before the closing tag:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">modules</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">module</span> <span class="hljs-attribute">version</span>=<span class="hljs-value">"0.1"</span>&gt;</span>com.test<span class="hljs-tag">&lt;/<span class="hljs-title">module</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">modules</span>&gt;</span>
+</code></pre><p>Now you can instantiate the module.  It can go anywhere in your app code but for testing purposes, stick it into the top of app.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">event</span> = <span class="hljs-keyword">require</span>(<span class="hljs-string">'com.event'</span>);
+</code></pre><p>To create an event, call the &#39;newEvent method with the appropriate arguments:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> results = <span class="hljs-keyword">event</span>.newEvent(<span class="hljs-string">'2011-01-06 01:30:00 GMT'</span>,<span class="hljs-string">'2011-01-06 05:00:00 GMT'</span>,<span class="hljs-string">'Big Party'</span>,<span class="hljs-string">'Our house'</span>,<span class="hljs-string">'If this works, say W00t!'</span>);
+</code></pre><p>You can add a line to see the return value of the method:</p>
+<pre><code class="hljs"><span class="hljs-class">Ti</span>.<span class="hljs-class">API</span>.info(<span class="hljs-comment">"The results are =&gt; "</span> + results);
+</code></pre><p>There&#39;s one last sequence that you <em>must</em> do:  </p>
+<ol>
+<li><p>Launch your project and let it unpack the module.  It will <em>fail</em>.</p>
+</li>
+<li><p>Go to your project&#39;s &#39;build&#39; folder and open its .xcodeproj in XCode.</p>
+</li>
+<li><p>Right-click on the Frameworks and add EventKit (yes, here <em>too</em>).</p>
+</li>
+<li><p>Build and Run the project.</p>
+</li>
+</ol>
+<p>If everything works as it should, you&#39;ll see the following in the console:</p>
+<pre><code class="hljs">[OBJ-C] arg1 is: <span class="hljs-number">2011</span>-<span class="hljs-number">01</span>-<span class="hljs-number">06</span> <span class="hljs-number">01</span>:<span class="hljs-number">30</span>:<span class="hljs-number">00</span> GMT
+[OBJ-C] arg2 is: <span class="hljs-number">2011</span>-<span class="hljs-number">01</span>-<span class="hljs-number">06</span> <span class="hljs-number">05</span>:<span class="hljs-number">00</span>:<span class="hljs-number">00</span> GMT
+[OBJ-C] arg3 is: Big Party
+[OBJ-C] arg4 is: Our house
+[OBJ-C] arg5 is: If <span class="hljs-keyword">this</span> works, say W00t!
+[INFO] The results are =&gt; <span class="hljs-number">1</span>
+</code></pre><p>You should now be able to modify your Javascript, launch and test your app in Titanium Developer.  If ever need to rebuild from scratch, however, you&#39;ll need to re-add the framework, using the steps above.</p>
+<p>That&#39;s pretty much it for the basic module.  There&#39;s a <em>lot</em> more capability available, and once you have the fundamentals down, the sky is the limit!</p>
+<p>Mark</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 7th 2011, 12:37:19 am">January 7th 2011</span>
+				by <span class='authorname'>Mark Pemburn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>eventkit</span></li>
+					
+						<li><span class='tagname'>framework</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>tutorial</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Nice one. Yeah 1.5.1 iPhone modules are buggy..</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 1st 2011, 9:25:53 pm">February 1st 2011</span>
+								by <span class='authorname'>Chris Moore</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Will this work in 1.6.2. Its not working for me</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 14th 2011, 7:41:50 am">September 14th 2011</span>
+								by <span class='authorname'>Geervani BS</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>To build the EventKit library into the module (so you don&#39;t have to add EventKit in XCode wherever you use your module) see the Adding Special Compiler Directives section in the Module Developer Guide for iOS (http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Module+Developer+Guide+for+iOS)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 22nd 2011, 8:25:30 am">October 22nd 2011</span>
+								by <span class='authorname'>John Doxey</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>5</span> Votes</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-187611">
+				
+						<section>
+							<p>Question, did you also tried it with UI related stuff, so extending the TiUIView?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 29th 2011, 9:02:05 am">January 29th 2011</span>
+								by <span class='authorname'>Alexander van der Werff</span><br>
+								<a class="icon-bg icon-link" href="question/97731/how-to-adding-a-custom-iphone-module-to-your-project-eventkit-example#answer-187611" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-188111">
+				
+						<section>
+							<p>It works, thanks! </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 30th 2011, 6:05:32 am">January 30th 2011</span>
+								by <span class='authorname'>Alexander van der Werff</span><br>
+								<a class="icon-bg icon-link" href="question/97731/how-to-adding-a-custom-iphone-module-to-your-project-eventkit-example#answer-188111" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-190121">
+				
+						<section>
+							<p>The only thing I&#39;ve used modules for at this point is the EventKit stuff.  It&#39;s a pretty precarious process though, so be prepared to go into kluge mode.  For example, I added a method to return whether the current date in the current time zone was in Daylight Saving Time.  It simply returns a BOOL but could I get it to do that?  Nuh-uh, it would crash the app every time – even though I&#39;d used other methods that return BOOLs.  I ended up doing a test that returned a &quot;YES&quot; or &quot;NO&quot; string.  Feh.</p>
+<p>Another thing: If you need to clean things up, I suggest going into the build&#x2F;iPhone folder and pulling out the .xcodeproj file, deleting everything else, then replacing it after rebuilding (and failing to launch).  The second launch <em>usually</em> works.  Best of luck!</p>
+<p>Mark</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 1st 2011, 9:51:59 pm">February 1st 2011</span>
+								by <span class='authorname'>Mark Pemburn</span><br>
+								<a class="icon-bg icon-link" href="question/97731/how-to-adding-a-custom-iphone-module-to-your-project-eventkit-example#answer-190121" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-207811">
+				
+						<section>
+							<p>Works super!<br>Only thing I need to change: I live in europe, and most of my app users do too.. </p>
+<p>But do I post an event i CET timezone? I tried to change the GMT to CET without luck. </p>
+<p>Cheers for a great runthrough! </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 15th 2011, 5:57:52 pm">May 15th 2011</span>
+								by <span class='authorname'>Mads Møller</span><br>
+								<a class="icon-bg icon-link" href="question/97731/how-to-adding-a-custom-iphone-module-to-your-project-eventkit-example#answer-207811" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-218313">
+				
+						<section>
+							<p>you just made my day. thank you soooo much &lt;3.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 7th 2011, 1:05:28 am">September 7th 2011</span>
+								by <span class='authorname'>natalia caamal</span><br>
+								<a class="icon-bg icon-link" href="question/97731/how-to-adding-a-custom-iphone-module-to-your-project-eventkit-example#answer-218313" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-218783">
+				
+						<section>
+							<p>I am trying to do the same with SDK version 1.6.1. Its not working. What can changed to make it work</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 14th 2011, 5:15:55 am">September 14th 2011</span>
+								by <span class='authorname'>Geervani BS</span><br>
+								<a class="icon-bg icon-link" href="question/97731/how-to-adding-a-custom-iphone-module-to-your-project-eventkit-example#answer-218783" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

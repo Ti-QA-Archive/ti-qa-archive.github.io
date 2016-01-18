@@ -1,0 +1,288 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Use L() i18n translation feature with a different locale » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Use L() i18n translation feature with a different locale</h1>
+		</header>
+		<section>
+			<p>Hi all,</p>
+<p>does anyone know whether it is possible to use the new translation feature in Titanium 1.5 with a different locale than the platform locale? Currently, Titanium seems to use the platform locale automatically but I want that the user can choose a different language than the platform locale.</p>
+<p>Thank you</p>
+<p>Walter</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 21st 2010, 7:50:04 pm">December 21st 2010</span>
+				by <span class='authorname'>Jicks Steen</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>i18n</span></li>
+					
+						<li><span class='tagname'>locale</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I tried doing this using a different strings.xml file for each language (placed in the &quot;i18n&#x2F;&quot; folder at the root level of the project). Intuitively, this seemed like the right thing to do. What I discovered, however, is that while I found it easy to get the user&#39;s current locale, I was unable to find a way to change the user&#39;s current language (which, alas, Appcelerator&#39;s docs state is a read only property). In addition, I was wary of changing the user&#39;s language, should the app crash before the language was changed back to its original setting.</p>
+<p>After thinking about it some more, I realized that what I really wanted was not load the app with all text set according to the language setting on the user&#39;s device, but rather to allow the user to switch languages at any time while the app is running.</p>
+<p>My solution was to change the way I wrote the strings.xml file.  I made modifications similar to this:</p>
+<pre><code class="hljs">&lt;resources&gt;
+    &lt;<span class="hljs-type">string</span> <span class="hljs-property">name</span>=<span class="hljs-string">"en_songs"</span>&gt;Songs&lt;/<span class="hljs-type">string</span>&gt;
+    &lt;<span class="hljs-type">string</span> <span class="hljs-property">name</span>=<span class="hljs-string">"fr_songs"</span>&gt;Chansons&lt;/<span class="hljs-type">string</span>&gt;
+&lt;/resources&gt;
+</code></pre><p>So now my strings.xml file contained both English and French text (obviously this could be modified to include whichever and however many languages were needed).  </p>
+<p>Near the top of my app.js file, I declared the following global variables:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> language = <span class="hljs-string">"fr_"</span>; <span class="hljs-comment">//the default language setting</span>
+<span class="hljs-keyword">var</span> titleObjectsArray = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(); <span class="hljs-comment">//all objects which have a "title" property which gets changed when the user changes languages</span>
+</code></pre><p>I then defined my buttons and labels. To wit:</p>
+<pre><code class="hljs">var b3 = Titanium.UI.createButton({
+    title: L(language+<span class="hljs-string">'songs'</span>), <span class="hljs-comment">//e.g., "fr_songs"</span>
+        <span class="hljs-variable">key</span>:<span class="hljs-string">'songs'</span>, <span class="hljs-comment">//custom property </span>
+    <span class="hljs-built_in">color</span>:<span class="hljs-string">'white'</span>,
+    font:{fontSize:<span class="hljs-number">15</span>},
+    <span class="hljs-variable">width</span>:<span class="hljs-number">160</span>,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">39</span>
+});
+
+titleObjectsArray.push(b3);
+</code></pre><p>The user can change the language setting at any time by selecting either &quot;English&quot; or &quot;Français&quot; from the Menu. </p>
+<p>After the user chooses either English or French, the global variable &#39;language&#39; is set to the appropriate value (&quot;en<em>&quot; or &quot;fr</em>&quot;). I then loop through all of the items in titleObjectsArray and call a function to change the .title property of each one based on the current setting of the variable &#39;language&#39;:</p>
+<pre><code class="hljs">  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">changeText</span><span class="hljs-params">(whichItem)</span></span>{
+<span class="hljs-keyword">var</span> theKey = language+whichItem.key; <span class="hljs-comment">//e.g., "en_songs" or "fr_songs"</span>
+    <span class="hljs-keyword">var</span> theText = L(theKey); <span class="hljs-comment">//get the appropriate string from strings.xml</span>
+    whichItem.title = theText;
+}
+</code></pre><p>{I do something similar with all items that need their .text property changed, and actually use a modified version of the above function to change all items, regardless of whether they need their .title or .text property changed.)</p>
+<p>I am still tinkering with the code and will undoubtedly make changes as I move forward, but so far this is working quite well.  The only text I haven&#39;t been able to change on the fly is the text in the title of my tabs. (Any ideas&#x2F;suggestions?) I haven&#39;t tried it yet with objects like text areas that have a .value property which needs to be changed, but I&#39;m guessing that it should work just fine.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 25th 2011, 6:56:22 am">January 25th 2011</span>
+								by <span class='authorname'>Andrew Gribble</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi.<br>Good idea, although I have to change the language while the application is running. I&#39;ll try something similar to your solution. For tabgroup, I created a function that creates my tabgroup, so I think it will just close the current tabgroup and recreate it using the function, so as to change the language of all windows, including the text of the tab.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 16th 2012, 5:00:54 am">June 16th 2012</span>
+								by <span class='authorname'>Vittorio Sorbera</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>hi Andrew Gribble<br>i check your code as it is but i&#39;m facing some type of errors ….like<br>1-whichItem is not defined<br>2- key is not defined<br>plz explain how and where to define these……</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 8th 2012, 7:48:09 am">November 8th 2012</span>
+								by <span class='authorname'>Syed Farrukh Chishti</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hey Andrew… stumbled across this and I&#39;m doing a very similar thing, but I&#39;ve decided to let the individual views and windows do their own updating (handling both text and image updates). Then the &#39;language manager&#39; just fires off an event for the windows to update and poke their children to do the same.</p>
+<p>I&#39;m guessing your solution is more performant, but I ?think? I need more local logic to handle some non-standard updates (hmmm, or do I - maybe I&#39;ll be re-writing some stuff this weekend : )</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 12th 2013, 9:44:42 am">April 12th 2013</span>
+								by <span class='authorname'>Osian Evans</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>13</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-248314">
+				
+						<section>
+							<p>Facing the similar issue. </p>
+<p>Would like to change the Language of the App. I am using the <strong>i18n</strong> folder structure:</p>
+<p>&#x2F;en &#x2F;strings.xml</p>
+<p>&#x2F;fr &#x2F;strings.xml</p>
+<p>I use the <code>L(&amp;#39;property&amp;#39;)</code> to fetch the string of the property, in English <em>(by default)</em>; Though I would like to change the language to fr on the fly. Surely having all the file structure and so on is made for the language to change on the fly?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 29th 2012, 4:36:05 pm">September 29th 2012</span>
+								by <span class='authorname'>Joseph Sachs</span><br>
+								<a class="icon-bg icon-link" href="question/92731/use-l-i18n-translation-feature-with-a-different-locale#answer-248314" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-264177">
+				
+						<section>
+							<p>Is this possible?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 12th 2013, 11:53:03 am">June 12th 2013</span>
+								by <span class='authorname'>Alexander Perez</span><br>
+								<a class="icon-bg icon-link" href="question/92731/use-l-i18n-translation-feature-with-a-different-locale#answer-264177" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-183521">
+				
+						<section>
+							<p>Hi ! </p>
+<p>Sorry to disappoint you : I&#39;m not giving an answer, just keeping this question alive cause I&#39;m facing exactly the same issue…<br>Any ideas around there ?</p>
+<p>Thanks a lot !</p>
+<p>JB</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 22nd 2011, 2:49:24 pm">January 22nd 2011</span>
+								by <span class='authorname'>Jean-Baptiste Armanet</span><br>
+								<a class="icon-bg icon-link" href="question/92731/use-l-i18n-translation-feature-with-a-different-locale#answer-183521" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-248315">
+				
+						<section>
+							<p>Solved…<br>The User&#39;s iOS &#x2F; Android sets the language depending on their Device Language Settings. You can even test it in the Simulator by:<br>1- Getting out of the app:<br>2- Settings &gt;&gt; General &gt;&gt; International &gt;&gt; Language</p>
+<p>The concept of changing Language on the fly isn&#39;t a use case.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 29th 2012, 5:11:24 pm">September 29th 2012</span>
+								by <span class='authorname'>Joseph Sachs</span><br>
+								<a class="icon-bg icon-link" href="question/92731/use-l-i18n-translation-feature-with-a-different-locale#answer-248315" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-6</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-231059">
+				
+						<section>
+							<p>Knock knock</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 21st 2012, 11:21:37 am">February 21st 2012</span>
+								by <span class='authorname'>Robbe Clerckx</span><br>
+								<a class="icon-bg icon-link" href="question/92731/use-l-i18n-translation-feature-with-a-different-locale#answer-231059" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-11</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
