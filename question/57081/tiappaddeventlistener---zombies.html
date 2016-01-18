@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ti.App.addEventListener - Zombies! » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ti.App.addEventListener - Zombies!</h1>
+		</header>
+		<section>
+			<p>Ahhhh, I got some undead eventlisteners in my app!</p>
+<p>I very often open subwindow A which communicates itself with own detail-sub-windows B, C &amp; D via <code>Ti.App.addEventListener(&amp;#39;myListener&amp;#39;,{
+Ti.API.info(&amp;quot;it’s me!&amp;quot;);
+});</code>. I need to instantiate the event within window A because it manipulates table-stuff there.</p>
+<p>Now I want to remove that global event listener once my window A closes, but somehow the line <code>Ti.App.removeEventListener(&amp;#39;myListener&amp;#39;,{});</code> does not work. Because when I fire that event again <strong>MANY</strong> event listener instances reply. So they are still alive!</p>
+<p>What’s the best practice for the &quot;killing&quot; of global event listener instances?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 31st 2010, 1:23:54 pm">August 31st 2010</span>
+				by <span class='authorname'>Sebastian</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-248438">
+				
+						<section>
+							<p>I wrote about a solution here: http:&#x2F;&#x2F;petesaia.com&#x2F;2012&#x2F;10&#x2F;appcelerator-event-garbage-collection&#x2F;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> globals = {};
+globals.<span class="hljs-type">EventGarbageCollection</span> = function ( context ) {
+    <span class="hljs-keyword">var</span> instance = this;
+    this.collection = [];
+    this.context = context;
+    this.context.addEventListener('close', function ( ) {
+        instance.empty();
+    });
+};
+globals.<span class="hljs-type">EventGarbageCollection</span>.prototype = {
+    collect : function ( evt, <span class="hljs-keyword">method</span> ) {
+        this.collection.push([evt, <span class="hljs-keyword">method</span>]);
+    },
+    addEvent : function ( evt, <span class="hljs-keyword">method</span> ) {
+        <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.addEventListener(evt, <span class="hljs-keyword">method</span>);
+        this.collect(evt, <span class="hljs-keyword">method</span>);
+    },
+    empty : function ( ) {
+        <span class="hljs-keyword">for</span> ( <span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, len = this.collection.length; i &lt; len; i++ ) {
+            <span class="hljs-type">Ti</span>.<span class="hljs-type">API</span>.removeEventListener(this.collection[i][<span class="hljs-number">0</span>], this.collection[i][<span class="hljs-number">1</span>]);
+        }
+        this.collection = [];
+    }
+};
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 2nd 2012, 12:21:01 am">October 2nd 2012</span>
+								by <span class='authorname'>Pete Saia</span><br>
+								<a class="icon-bg icon-link" href="question/57081/tiappaddeventlistener---zombies#answer-248438" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Good solution</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 5th 2012, 4:23:55 am">October 5th 2012</span>
+											by <span class='authorname'>Thai Bui</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Pete thx for this code. Just three clarification questions. (1) Which of these two codes (this one) or the one on the gist hub do you recommend for use?  (2) Not sure how to apply either code to component level listeners e.g. all the button click events that open and close windows in an app. I have 9 such buttons with click event listeners . (3) What is the usage of the code in this thread? (4) The other code on the gist showed a window creation without window properties. Can I redefine that line of code in the usual way of creating window with properties and omit the (args) i.e. write Ti.Ui.createWindow({})?</p>
+<p>Thx for your response</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 27th 2012, 2:17:07 pm">December 27th 2012</span>
+											by <span class='authorname'>adebisi oladipupo</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-108051">
+				
+						<section>
+							<p>I found the solution here (the starred one):<br>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;33551&#x2F;removeeventlistener-not-working</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 31st 2010, 2:49:23 pm">August 31st 2010</span>
+								by <span class='authorname'>Sebastian</span><br>
+								<a class="icon-bg icon-link" href="question/57081/tiappaddeventlistener---zombies#answer-108051" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-113001">
+				
+						<section>
+							<p>Here comes an example for my solution. For me it works under 1.4.1 - you don’t need to assign a variable to the event listener. Just add a close-handler to your window where you assigned the Ti.App.eventListener and remove it there again. It even removes multiple instances&#x2F;threads(?) of one window:</p>
+<pre><code class="hljs">
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doit</span><span class="hljs-params">(e)</span>
+</span>{
+   <span class="hljs-comment">//do something here</span>
+}
+
+Ti.App.addEventListener(<span class="hljs-string">'doit'</span>, doit);
+
+win.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+</span>{
+    Ti.App.removeEventListener(<span class="hljs-string">'doit'</span>,doit);
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 13th 2010, 8:49:15 am">September 13th 2010</span>
+								by <span class='authorname'>Sebastian</span><br>
+								<a class="icon-bg icon-link" href="question/57081/tiappaddeventlistener---zombies#answer-113001" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-112531">
+				
+						<section>
+							<p>Hi,  same issue here.  The solution doesn&#39;t work with Ti.App.addEventListener.  I am encountering this issue only on sdk 1.4.1.  It works fine in 1.4.0 even without assigning the eventlisteners to a variable.</p>
+<p>Anyone having same issue resolved?</p>
+<p>Thanks,</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 11th 2010, 7:24:53 pm">September 11th 2010</span>
+								by <span class='authorname'>Sravan Vinjamuri</span><br>
+								<a class="icon-bg icon-link" href="question/57081/tiappaddeventlistener---zombies#answer-112531" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-257984">
+				
+						<section>
+							<p>Contexts are broken to a certain extent (as of titanium 3.0.2) in that they block Ti.App events. Here is a reference to my answer to a similar question about how to get &quot;real&quot; multi-threading in titanium mobile <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;117199&#x2F;how-to-create-multithreading-in-mobile-sdk#answer-257976">here</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 4th 2013, 2:22:20 am">March 4th 2013</span>
+								by <span class='authorname'>simon giles</span><br>
+								<a class="icon-bg icon-link" href="question/57081/tiappaddeventlistener---zombies#answer-257984" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

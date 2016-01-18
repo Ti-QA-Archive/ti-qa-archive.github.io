@@ -1,0 +1,567 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTML5 canvas drawing in WebView » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTML5 canvas drawing in WebView</h1>
+		</header>
+		<section>
+			<p>Hi, I have pulled together a simple html5 canvas drawing implementation, and am trying to get it to work with a webview. (It works fine in Safari on the desktop, for example). However, there seems to be a conflict between the &#39;mousemove&#39; canvas event and the scrolling events on the Ti webview.</p>
+<p>The code is below for the Ti js file and the html file. Any ideas on this? The docs indicate:<br>&gt;&quot;Since a webview internally wants to handle its own events, scrolling and other related touch events against it&#39;s own view surface, you cannot have both Titanium style events against the webview instance and internal Javascript events in the DOM. You must choose between one or the other.&quot;</p>
+<p>How do I choose between one or the other? If there is a way to choose, I choose the DOM events :)  How can I enforce this in Titanium? I&#39;ve tried preventDefaults() on a touchmove (for which I couldn&#39;t find any docs, btw) but that basically shut everything down.</p>
+<p>Thanks!</p>
+<p>I&#39;ve searched through the forum, and noted the following posts:<br><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;46431&#x2F;detecting-scroll-on-a-webview">scrolling a webview</a>,<br><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;7151&#x2F;simple-drawing-tool">simple drawing tool</a></p>
+<p>foo.js</p>
+<pre><code class="hljs">var win = Ti.UI.currentWindow;
+var webView = Ti.UI.createWebView
+({
+    url:<span class="hljs-string">'foo.html'</span>,
+    backgroundColor:<span class="hljs-string">'transparent'</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-number">300</span>,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">300</span>
+});
+win.<span class="hljs-built_in">add</span>( webView );
+</code></pre><p>and foo.html</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">body</span> <span class="hljs-attribute">onload</span>=<span class="hljs-value">"init()"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">canvas</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"canvas"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"canvasStyle"</span> <span class="hljs-attribute">width</span>=<span class="hljs-value">"300"</span> <span class="hljs-attribute">height</span>=<span class="hljs-value">"300"</span> <span class="hljs-attribute">style</span>=<span class="hljs-value">"border:1px solid blue"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">canvas</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text/javascript"</span>&gt;</span><span class="javascript">
+
+        canvas = <span class="hljs-built_in">document</span>.getElementById( <span class="hljs-string">'canvas'</span> );
+        <span class="hljs-keyword">var</span> context = canvas.getContext( <span class="hljs-string">'2d'</span> );
+        context.fillStyle = <span class="hljs-string">'#00f'</span>;
+        context.fillRect( <span class="hljs-number">50</span>, <span class="hljs-number">50</span>, <span class="hljs-number">200</span>, <span class="hljs-number">200</span> ); <span class="hljs-comment">// be sure something is drawing into canvas</span>
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onMouseMoveOnCanvas</span>(<span class="hljs-params"> event </span>)
+        </span>{
+            <span class="hljs-keyword">if</span> ( canvas.drawing )
+            {  
+<span class="hljs-comment">//                var mouseX=event.clientX;</span>
+<span class="hljs-comment">//                var mouseY=event.clientY;</span>
+                <span class="hljs-keyword">var</span> mouseX=event.layerX
+                <span class="hljs-keyword">var</span> mouseY=event.layerY
+
+                <span class="hljs-keyword">if</span> ( canvas.pathBegun == <span class="hljs-literal">false</span> )
+                {
+                    context.beginPath();
+                    canvas.pathBegun = <span class="hljs-literal">true</span>;
+                }
+                <span class="hljs-keyword">else</span>
+                {
+                    context.lineTo( mouseX, mouseY );
+                    context.stroke();
+                }
+            }
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onMouseClickOnCanvas</span>(<span class="hljs-params"> event </span>)
+        </span>{
+            canvas.drawing = !canvas.drawing;
+            <span class="hljs-keyword">if</span> ( canvas.drawing ) <span class="hljs-comment">// reset the path when starting over</span>
+            {
+                canvas.pathBegun = <span class="hljs-literal">false</span>;
+            }
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">init</span>(<span class="hljs-params"></span>)
+        </span>{
+            context.strokeStyle = <span class="hljs-string">'#f00'</span>;
+            context.lineWidth = <span class="hljs-number">8</span>;
+            canvas.addEventListener( <span class="hljs-string">'mousemove'</span>, onMouseMoveOnCanvas, <span class="hljs-literal">false</span> ); 
+            canvas.addEventListener( <span class="hljs-string">'mousedown'</span>, onMouseClickOnCanvas, <span class="hljs-literal">false</span> ); 
+        }
+
+    </span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">html</span>&gt;</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 23rd 2010, 7:19:47 pm">August 23rd 2010</span>
+				by <span class='authorname'>karlo kilayko</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>canvas</span></li>
+					
+						<li><span class='tagname'>dom</span></li>
+					
+						<li><span class='tagname'>events</span></li>
+					
+						<li><span class='tagname'>html5</span></li>
+					
+						<li><span class='tagname'>scroll</span></li>
+					
+						<li><span class='tagname'>webview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>7</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>7 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-105211">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>hi, I tried some things which seem to work (in the simulator at least). Firstly add the following meta tag in the head part of the html, to instruct the webview to scale the html accordingly and to prevent user-scaling with pinching. </p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">meta</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"viewport"</span> <span class="hljs-attribute">content</span> = "<span class="hljs-attribute">width</span> = <span class="hljs-attribute">device-width</span>, <span class="hljs-attribute">initial-scale</span> = <span class="hljs-attribute">1</span>, <span class="hljs-attribute">minimum-scale</span> = <span class="hljs-attribute">1</span>, <span class="hljs-attribute">maximum-scale</span> = <span class="hljs-attribute">1</span>, <span class="hljs-attribute">user-scalable</span> = <span class="hljs-attribute">no</span>" /&gt;</span>    
+<span class="hljs-tag">&lt;/<span class="hljs-title">head</span>&gt;</span>
+</code></pre><p>Secondly I browsed the <a href="http:&#x2F;&#x2F;github.com&#x2F;anutron&#x2F;mootools-touch&#x2F;blob&#x2F;master&#x2F;Source&#x2F;Touch.js">MooTools touch git library repository</a>  to see how this library handles the touchevents and the gathering of the mouse(touch)  coordinates.</p>
+<p>A few things become clear from that sourcecode: </p>
+<ul>
+<li>the use of the &#39;touchstart&#39;, &#39;touchmove&#39; and &#39;touchend&#39; events</li>
+<li>the &#39;getPage&#39; function which calculates the x and y coordinates based on the touch event which retrieves them from the event.targetTouches[0] object</li>
+</ul>
+<p>These things can be translated to your sourcecode in this way:</p>
+<p>First add the getPage function to your source:</p>
+<pre><code class="hljs"><span class="hljs-function">function <span class="hljs-title">getPage</span>(<span class="hljs-params"><span class="hljs-keyword">event</span></span>)</span>{
+ <span class="hljs-comment">//when on mobile safari, the coordinates information is inside the targetTouches object</span>
+ <span class="hljs-keyword">if</span> (<span class="hljs-keyword">event</span>.targetTouches) <span class="hljs-keyword">event</span> = <span class="hljs-keyword">event</span>.targetTouches[<span class="hljs-number">0</span>];
+ <span class="hljs-keyword">if</span> (<span class="hljs-keyword">event</span>.pageX != <span class="hljs-keyword">null</span> &amp;&amp; <span class="hljs-keyword">event</span>.pageY != <span class="hljs-keyword">null</span>) <span class="hljs-keyword">return</span> {pageX: <span class="hljs-keyword">event</span>.pageX, pageY: <span class="hljs-keyword">event</span>.pageY};
+ <span class="hljs-keyword">var</span> element = (!document.compatMode || document.compatMode == <span class="hljs-string">'CSS1Compat'</span>) ? document.documentElement : document.body;
+ <span class="hljs-keyword">return</span> {pageX: <span class="hljs-keyword">event</span>.clientX + element.scrollLeft, pageY: <span class="hljs-keyword">event</span>.clientY + element.scrollTop};
+}
+</code></pre><p>Put these lines in your init function:</p>
+<pre><code class="hljs"><span class="hljs-keyword">canvas</span>.addEventListener( <span class="hljs-string">'touchmove'</span>, onMouseMoveOnCanvas);
+<span class="hljs-keyword">canvas</span>.addEventListener( <span class="hljs-string">'touchstart'</span>, onMouseClickOnCanvas);
+<span class="hljs-keyword">canvas</span>.addEventListener( <span class="hljs-string">'touchend'</span>, onMouseClickOnCanvas, false );
+</code></pre><p>And then change your onMouseMoveOnCanvas function:</p>
+<pre><code class="hljs"><span class="hljs-function">function <span class="hljs-title">onMouseMoveOnCanvas</span>(<span class="hljs-params"> <span class="hljs-keyword">event</span> </span>) </span>{
+<span class="hljs-keyword">if</span> ( canvas.drawing ) {
+<span class="hljs-keyword">var</span> page = getPage(<span class="hljs-keyword">event</span>);
+<span class="hljs-keyword">var</span> startX = page.pageX;
+<span class="hljs-keyword">var</span> startY = page.pageY;
+<span class="hljs-keyword">if</span> ( canvas.pathBegun == <span class="hljs-keyword">false</span> ) {
+context.beginPath();
+canvas.pathBegun = <span class="hljs-keyword">true</span>;
+} <span class="hljs-keyword">else</span> {
+context.lineTo( mouseX, mouseY );
+context.stroke();
+}
+} 
+<span class="hljs-keyword">event</span>.preventDefault();
+<span class="hljs-keyword">event</span>.stopPropagation();
+}
+</code></pre><p>You would probably want to refactor this code, but it is a start for drawing in a webview using the canvas element. </p>
+<p>Good luck, gr. Vic</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2010, 6:54:53 pm">August 24th 2010</span>
+								by <span class='authorname'>Victor van Rijn</span><br>
+								<a class="icon-bg icon-link" href="question/55121/html5-canvas-drawing-in-webview#answer-105211" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-105151">
+				
+						<section>
+							<p>Okay, got it! and a big old &quot;D&#39;oh!&quot;. UIWebView needs <em>touch</em> events, not <em>mouse</em> events!!</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">body</span> <span class="hljs-attribute">onload</span>=<span class="hljs-value">"init()"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">canvas</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"canvas"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"canvasStyle"</span> <span class="hljs-attribute">width</span>=<span class="hljs-value">"300"</span> <span class="hljs-attribute">height</span>=<span class="hljs-value">"300"</span> <span class="hljs-attribute">style</span>=<span class="hljs-value">"border:1px solid blue"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">canvas</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text/javascript"</span>&gt;</span><span class="javascript">
+
+        canvas = <span class="hljs-built_in">document</span>.getElementById( <span class="hljs-string">'canvas'</span> );
+        <span class="hljs-keyword">var</span> context = canvas.getContext( <span class="hljs-string">'2d'</span> );
+        context.fillStyle = <span class="hljs-string">'#00f'</span>;
+        context.fillRect( <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">50</span>, <span class="hljs-number">50</span> ); <span class="hljs-comment">// be sure something is drawing into canvas</span>
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onMouseMoveOnCanvas</span>(<span class="hljs-params"> event </span>)
+        </span>{            
+            <span class="hljs-keyword">var</span> touch = <span class="hljs-built_in">window</span>.event.targetTouches[ <span class="hljs-number">0</span> ]
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            <span class="hljs-keyword">if</span> ( canvas.drawing )
+            {                  
+<span class="hljs-comment">//                var mouseX=event.clientX;</span>
+<span class="hljs-comment">//                var mouseY=event.clientY;</span>
+<span class="hljs-comment">//                var mouseX=event.layerX</span>
+<span class="hljs-comment">//                var mouseY=event.layerY</span>
+                <span class="hljs-keyword">var</span> mouseX = touch.pageX,
+                <span class="hljs-keyword">var</span> mouseY = touch.pageY
+
+                <span class="hljs-keyword">if</span> ( canvas.pathBegun == <span class="hljs-literal">false</span> )
+                {                    
+                    context.beginPath();
+                    canvas.pathBegun = <span class="hljs-literal">true</span>;
+                }
+                <span class="hljs-keyword">else</span>
+                {
+                    context.lineTo( mouseX, mouseY );
+                    context.stroke();
+                }
+            }
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onMouseClickOnCanvas</span>(<span class="hljs-params"> event </span>)
+        </span>{                        
+            canvas.drawing = !canvas.drawing;
+            <span class="hljs-keyword">if</span> ( canvas.drawing ) <span class="hljs-comment">// reset the path when starting over</span>
+            {
+                canvas.pathBegun = <span class="hljs-literal">false</span>;
+            }
+        }
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">init</span>(<span class="hljs-params"></span>)
+        </span>{            
+            context.strokeStyle = <span class="hljs-string">'#f00'</span>;
+            context.lineWidth = <span class="hljs-number">8</span>;
+<span class="hljs-comment">//            canvas.addEventListener( 'mousemove', onMouseMoveOnCanvas, false ); </span>
+<span class="hljs-comment">//            canvas.addEventListener( 'mousedown', onMouseClickOnCanvas, false ); </span>
+            canvas.addEventListener( <span class="hljs-string">'touchmove'</span>, onMouseMoveOnCanvas, <span class="hljs-literal">false</span> ); 
+            canvas.addEventListener( <span class="hljs-string">'touchstart'</span>, onMouseClickOnCanvas, <span class="hljs-literal">false</span> ); 
+        }
+
+    </span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">html</span>&gt;</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2010, 6:20:03 pm">August 24th 2010</span>
+								by <span class='authorname'>karlo kilayko</span><br>
+								<a class="icon-bg icon-link" href="question/55121/html5-canvas-drawing-in-webview#answer-105151" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Big thanks Tamas, for your help and patience! </p>
+<p>And if someone wouldn&#39;t mind copying&#x2F;pasting the answer above, I will mark this closed.</p>
+<p>It&#39;s working great on the iPhone and emulator now, btw :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 24th 2010, 6:21:10 pm">August 24th 2010</span>
+											by <span class='authorname'>karlo kilayko</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-105201">
+				
+						<section>
+							<p>hi, I tried some things which seem to work (in the simulator at least). Firstly add the following meta tag in the head part of the html, to instruct the webview to scale the html accordingly and to prevent user-scaling with pinching. </p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">meta</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"viewport"</span> <span class="hljs-attribute">content</span> = "<span class="hljs-attribute">width</span> = <span class="hljs-attribute">device-width</span>, <span class="hljs-attribute">initial-scale</span> = <span class="hljs-attribute">1</span>, <span class="hljs-attribute">minimum-scale</span> = <span class="hljs-attribute">1</span>, <span class="hljs-attribute">maximum-scale</span> = <span class="hljs-attribute">1</span>, <span class="hljs-attribute">user-scalable</span> = <span class="hljs-attribute">no</span>" /&gt;</span>    
+<span class="hljs-tag">&lt;/<span class="hljs-title">head</span>&gt;</span>
+</code></pre><p>Secondly I browsed the <a href="http:&#x2F;&#x2F;github.com&#x2F;anutron&#x2F;mootools-touch&#x2F;blob&#x2F;master&#x2F;Source&#x2F;Touch.js">MooTools touch git library repository</a>  to see how this library handles the touchevents and the gathering of the mouse(touch)  coordinates.</p>
+<p>A few things become clear from that sourcecode: </p>
+<ul>
+<li>the use of the &#39;touchstart&#39;, &#39;touchmove&#39; and &#39;touchend&#39; events</li>
+<li>the &#39;getPage&#39; function which calculates the x and y coordinates based on the touch event which retrieves them from the event.targetTouches[0] object</li>
+</ul>
+<p>These things can be translated to your sourcecode in this way:</p>
+<p>First add the getPage function to your source:</p>
+<pre><code class="hljs"><span class="hljs-function">function <span class="hljs-title">getPage</span>(<span class="hljs-params"><span class="hljs-keyword">event</span></span>)</span>{
+ <span class="hljs-comment">//when on mobile safari, the coordinates information is inside the targetTouches object</span>
+ <span class="hljs-keyword">if</span> (<span class="hljs-keyword">event</span>.targetTouches) <span class="hljs-keyword">event</span> = <span class="hljs-keyword">event</span>.targetTouches[<span class="hljs-number">0</span>];
+ <span class="hljs-keyword">if</span> (<span class="hljs-keyword">event</span>.pageX != <span class="hljs-keyword">null</span> &amp;&amp; <span class="hljs-keyword">event</span>.pageY != <span class="hljs-keyword">null</span>) <span class="hljs-keyword">return</span> {pageX: <span class="hljs-keyword">event</span>.pageX, pageY: <span class="hljs-keyword">event</span>.pageY};
+ <span class="hljs-keyword">var</span> element = (!document.compatMode || document.compatMode == <span class="hljs-string">'CSS1Compat'</span>) ? document.documentElement : document.body;
+ <span class="hljs-keyword">return</span> {pageX: <span class="hljs-keyword">event</span>.clientX + element.scrollLeft, pageY: <span class="hljs-keyword">event</span>.clientY + element.scrollTop};
+}
+</code></pre><p>Put these lines in your init function:</p>
+<pre><code class="hljs"><span class="hljs-keyword">canvas</span>.addEventListener( <span class="hljs-string">'touchmove'</span>, onMouseMoveOnCanvas);
+<span class="hljs-keyword">canvas</span>.addEventListener( <span class="hljs-string">'touchstart'</span>, onMouseClickOnCanvas);
+<span class="hljs-keyword">canvas</span>.addEventListener( <span class="hljs-string">'touchend'</span>, onMouseClickOnCanvas, false );
+</code></pre><p>And then change your onMouseMoveOnCanvas function:</p>
+<pre><code class="hljs"><span class="hljs-function">function <span class="hljs-title">onMouseMoveOnCanvas</span>(<span class="hljs-params"> <span class="hljs-keyword">event</span> </span>) </span>{
+<span class="hljs-keyword">if</span> ( canvas.drawing ) {
+<span class="hljs-keyword">var</span> page = getPage(<span class="hljs-keyword">event</span>);
+<span class="hljs-keyword">var</span> startX = page.pageX;
+<span class="hljs-keyword">var</span> startY = page.pageY;
+<span class="hljs-keyword">if</span> ( canvas.pathBegun == <span class="hljs-keyword">false</span> ) {
+context.beginPath();
+canvas.pathBegun = <span class="hljs-keyword">true</span>;
+} <span class="hljs-keyword">else</span> {
+context.lineTo( mouseX, mouseY );
+context.stroke();
+}
+} 
+<span class="hljs-keyword">event</span>.preventDefault();
+<span class="hljs-keyword">event</span>.stopPropagation();
+}
+</code></pre><p>You would probably want to refactor this code, but it is a start for drawing in a webview using the canvas element. </p>
+<p>Good luck, gr. Vic</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2010, 6:54:29 pm">August 24th 2010</span>
+								by <span class='authorname'>Victor van Rijn</span><br>
+								<a class="icon-bg icon-link" href="question/55121/html5-canvas-drawing-in-webview#answer-105201" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-104861">
+				
+						<section>
+							<p>What is your issue?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2010, 7:35:46 am">August 24th 2010</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/55121/html5-canvas-drawing-in-webview#answer-104861" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-105001">
+				
+						<section>
+							<p>Ah, sorry if it wasn&#39;t clear from my post: Drag&#x2F;touchmove&#x2F;mousemove events conflict between the HTML&#x2F;canvas and the Ti&#x2F;WebView - when you drag on the WebView it scrolls the webview and (it seems) the events don&#39;t make it to the HTML. </p>
+<p>My impression from the documentation (quoted above) is that you can have one or the other, not both. This is great! But… how do I have the touch events propagate to the HTML and NOT to the Ti WebView?</p>
+<p>Alternatively, how can I disable scrolling on the WebView without disabling it for the HTML?</p>
+<p>Thanks!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2010, 1:04:20 pm">August 24th 2010</span>
+								by <span class='authorname'>karlo kilayko</span><br>
+								<a class="icon-bg icon-link" href="question/55121/html5-canvas-drawing-in-webview#answer-105001" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-105081">
+				
+						<section>
+							<p>try this:</p>
+<pre><code class="hljs">
+        <span class="hljs-function">function <span class="hljs-title">onMouseMoveOnCanvas</span>(<span class="hljs-params"> <span class="hljs-keyword">event</span> </span>)
+        </span>{
+            <span class="hljs-keyword">if</span> ( canvas.drawing )
+            {  
+<span class="hljs-comment">//              var mouseX=event.clientX;</span>
+<span class="hljs-comment">//              var mouseY=event.clientY;</span>
+                <span class="hljs-keyword">var</span> mouseX=<span class="hljs-keyword">event</span>.layerX
+                <span class="hljs-keyword">var</span> mouseY=<span class="hljs-keyword">event</span>.<span class="hljs-function">layerY
+
+                <span class="hljs-title">if</span> (<span class="hljs-params"> canvas.pathBegun == <span class="hljs-keyword">false</span> </span>)
+                </span>{
+                    context.beginPath();
+                    canvas.pathBegun = <span class="hljs-keyword">true</span>;
+                }
+                <span class="hljs-keyword">else</span>
+                {
+                    context.lineTo( mouseX, mouseY );
+                    context.stroke();
+                }
+            }
+<span class="hljs-comment">// add this here or at the start of the function</span>
+    <span class="hljs-keyword">event</span>.preventDefault();
+    <span class="hljs-keyword">event</span>.stopPropagation(); 
+
+
+
+        }
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2010, 2:16:06 pm">August 24th 2010</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/55121/html5-canvas-drawing-in-webview#answer-105081" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Tamas, that was a great suggestion, unfortunately it&#39;s not working. I&#39;ve tried to debug (with alerts) and the canvas seems to be getting the mousedown events, but not the mousemove events. Actually with the two event calls you suggest at the bottom of the onMouseMoveOnCanvas func, the webview just scrolls around on touches. On the other hand, with the two calls at the top of the func, the alert will pop up, but then subsequent drags move scroll the webview around.</p>
+<p>I should note that i&#39;ve only tried this on the emulator; I&#39;ll give it a shot on the device as well.</p>
+<p>Thanks for your help!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 24th 2010, 2:47:45 pm">August 24th 2010</span>
+											by <span class='authorname'>karlo kilayko</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Okay, tried on the device with the same results (I had hoped perhaps there was a difference in an actual touchmove on the device vs a hold and drag with the mouse on the emulator, but no).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 24th 2010, 3:11:35 pm">August 24th 2010</span>
+											by <span class='authorname'>karlo kilayko</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>And, interestingly, I sampled a couple HTML5&#x2F;canvas drawing test apps from Safari on the iPhone, and it appears that (at least the varieties I checked) have the same problem in Safari: dragging scrolls the web page, rather than being interpreted as a mousemove&#x2F;touchmove event within the HTML5&#x2F;canvas js</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 24th 2010, 3:22:48 pm">August 24th 2010</span>
+											by <span class='authorname'>karlo kilayko</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-105131">
+				
+						<section>
+							<p>what ti sdk version do you use?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 24th 2010, 5:45:02 pm">August 24th 2010</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/55121/html5-canvas-drawing-in-webview#answer-105131" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Ti SDK is version 1.4. I ~may~ have found a solution, btw, but checking it out still:<br>http:&#x2F;&#x2F;www.bennadel.com&#x2F;blog&#x2F;1867-Drawing-On-The-iPhone-Canvas-With-jQuery-And-ColdFusion.htm</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 24th 2010, 6:10:17 pm">August 24th 2010</span>
+											by <span class='authorname'>karlo kilayko</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
