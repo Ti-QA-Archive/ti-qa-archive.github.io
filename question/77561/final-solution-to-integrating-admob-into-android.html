@@ -1,0 +1,591 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Final Solution to integrating AdMob into Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Final Solution to integrating AdMob into Android</h1>
+		</header>
+		<section>
+			<p>Many others have struggled with integrating AdMob into your Android apps and I did as well. I spent many hours trying every suggested solution, from manipulating the returned web view html to fire off ti events to plugging in ad jar files. Every solution failed for different reasons, some because they didn&#39;t work with the latest titanium sdk version, and others because they assumed that the web view ad html would contain links when in reality the production admob ads load images into iframes.</p>
+<p>All of this being said, here is a solution that actually works and is really simple. </p>
+<ol>
+<li>First you make a public web page that contains your ad mob code. </li>
+<li>Then you can load it into a webview. The trick with webview is that it loads twice. Once to load the ad, <strong><em>then a second time when you click the ad</em></strong>. </li>
+<li>When clicking the ad, the evt.url property of the load event will be equal to the ad destination url so you can capture that and launch it off in a new browser. </li>
+<li>If you stop there then if they return to your app, it will show the ad destination loaded in your webview. For that reason, you also want to reload the ad webview to contain a new ad.</li>
+</ol>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-built_in">console</span> = { log: Ti.API.info };
+<span class="hljs-keyword">var</span> adUrl = <span class="hljs-string">"http://tothsolutions.com/ad/mobile"</span>;
+<span class="hljs-keyword">var</span> adWebView = <span class="hljs-literal">null</span>;
+
+displayAd();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">displayAd</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> numLoads = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">if</span> (adWebView) {
+        win.remove(adWebView);
+    }
+    adWebView = Ti.UI.createWebView({ url: adUrl, height: <span class="hljs-number">48</span>, bottom: <span class="hljs-number">0</span>, left: <span class="hljs-number">0</span>, right: <span class="hljs-number">0</span> });
+    win.add(adWebView);
+    adWebView.addEventListener(<span class="hljs-string">'load'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+        numLoads++;
+        <span class="hljs-keyword">if</span> (numLoads &gt; <span class="hljs-number">1</span>) {
+            <span class="hljs-keyword">var</span> url = evt.url.split(<span class="hljs-string">'market://'</span>).join(<span class="hljs-string">'http://'</span>);
+            <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"clicked ad "</span> + url);
+            <span class="hljs-comment">//launch ad url in new browser window.</span>
+            Ti.Platform.openURL(url);
+            <span class="hljs-comment">//load a new ad.</span>
+            displayAd();
+        }
+    });
+}
+</code></pre><p>Much props to my brother Dawson for figuring out the trick with the webview load event!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 8th 2010, 1:55:49 pm">November 8th 2010</span>
+				by <span class='authorname'>Justin Toth</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>admob</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I want to butter you up and roll you in money. Thank you for sharing this.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 10th 2010, 5:25:36 pm">November 10th 2010</span>
+								by <span class='authorname'>Ian Hawes</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>sorry, im abit dumb here, what&#39;s the stuff you put in the webview code?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 30th 2010, 11:50:45 pm">November 30th 2010</span>
+								by <span class='authorname'>Julien Ho</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>In admob you will create a &quot;mobile site&quot; ad, then they will give you html&#x2F;javascript code. You can then paste that code into a blank web page on your web server, then use the url to that web page as the adUrl above.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 12th 2011, 2:18:44 pm">January 12th 2011</span>
+								by <span class='authorname'>Justin Toth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I am missing something.  Upon creating a new site on admob, I don&#39;t see an option for &quot;mobile site&quot;. If I select &quot;mobile web&quot;, and view the code to publish it doesn&#39;t have Javascript as an option - only PHP, C#, VB.net…  Upon selecting &quot;Smartphone Web&quot;, this does present Javascript code to publish, but this is for iphone only, and I&#39;m trying to deploy on Android.  I created a .net version and deployed on a site, but when accessing the .aspx from my android phone the screen was blank.  Any help greatly appreciated …</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 2nd 2011, 4:47:49 pm">February 2nd 2011</span>
+								by <span class='authorname'>Software Services</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>11</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>11 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-175731">
+				
+						<section>
+							<p>hi Justin,</p>
+<p>i tried it and it worked!</p>
+<p>question abt the public web page used though: does admob approve of using a public web page to serve ads? Each time a user clicks on it, the admob managers will see that the referrer originates from the web page, not the app. </p>
+<p>anyone has any experience on this end?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 10th 2011, 3:20:48 am">January 10th 2011</span>
+								by <span class='authorname'>Foo Yee Chong</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-175731" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I haven&#39;t had any issues with this, I&#39;ve been using admob for a few months in this manner.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 12th 2011, 2:19:24 pm">January 12th 2011</span>
+											by <span class='authorname'>Justin Toth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Folks, I lost my Adsense account within 3 months of doing this. I&#39;m not sure how sophisticated Admob&#39;s (maybe soon to be Google&#39;s) click fraud technology will be down the road but I believe when it realize that it cannot detect any content (and thus cannot effectively target ads) from the referring web page, it may suspend your account for violation of its TOS, citing protection of advertiser&#39;s interest. I have read alot that in most cases (for Adsense), suspended publishers never got their accounts back. :(</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 17th 2011, 11:44:13 am">March 17th 2011</span>
+											by <span class='authorname'>Clifford Tan</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-179141">
+				
+						<section>
+							<p>Hi Justin,<br>          How can i make a public web page that contains ad mob code.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 14th 2011, 10:40:45 am">January 14th 2011</span>
+								by <span class='authorname'>Somi Bajaj</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-179141" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>In admob you will create a &quot;mobile site&quot; ad, then they will give you html&#x2F;javascript code. You can then paste that code into a new web page on your web server, then use the url to that web page as the adUrl above.</p>
+<p>Go to http:&#x2F;&#x2F;tothsolutions.com&#x2F;ad&#x2F;mobile and view page source to see a sample of what it would look like, just make sure you replace my ad code with the script that admob gives you, otherwise you will be earning me revenue. ;)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 14th 2011, 12:15:32 pm">January 14th 2011</span>
+											by <span class='authorname'>Justin Toth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-179351">
+				
+						<section>
+							<p>I&#39;m a little new to Titanium but couldn&#39;t you just put the code in an html file included in your app project and call it from there instead of an external website? I&#39;m at work atm and can&#39;t try it personally but you would think it would work.</p>
+<p>If it does work, it would most likely load faster too as you would not be dependent on your webserver to feed the html file holding the ad. Just a thought….</p>
+<p>Joe</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 14th 2011, 3:13:03 pm">January 14th 2011</span>
+								by <span class='authorname'>Joseph Reynolds</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-179351" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>You certainly could do that, I like to keep it separate though so that I can change the ad code at any time without having to push out a new version of the app.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 14th 2011, 3:17:51 pm">January 14th 2011</span>
+											by <span class='authorname'>Justin Toth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>True, I was thinking of the possible lag is all from the multiple connections to pull the ad. The control factor though is good to have in my opinion too. Especially if you want to try various services out through the app…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2011, 1:08:06 am">January 16th 2011</span>
+											by <span class='authorname'>Joseph Reynolds</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>from an ad manager&#39;s point of view, if he&#x2F;she sees an external web site appearing in the logs, it might be code red. The manager will definitely visit the external URL and be surprised to see a piece of ad there, with zero content (all content is in the app, but the manager doesn&#39;t see it in the logs). I think you need to clarify this issue with ad managers. Especially if the app is generating lots of ad clicks.</p>
+<p>any thoughts on this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2011, 10:28:36 am">January 16th 2011</span>
+											by <span class='authorname'>Foo Yee Chong</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-179831">
+				
+						<section>
+							<p>Hi Justin,<br>            In admob i create a &quot;mobile site&quot; ad, then they gave me php code. I paste this php code into a new web page on my web server, but<br>the publisher code is set to test mode. When i make request to server in this mode,It return the &quot;AdMob Test Ad&quot;.But when i set the &quot;TEST_MODE&quot; variable to &quot;false&quot;,it does not return anything.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 15th 2011, 11:20:27 am">January 15th 2011</span>
+								by <span class='authorname'>Somi Bajaj</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-179831" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>It does that because it detects that you are hitting the page from a non-mobile browser. Try the same from your phone and you should see ads showing up, not every single page request serves up an ad so you may have to try a few times.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 15th 2011, 12:31:47 pm">January 15th 2011</span>
+											by <span class='authorname'>Justin Toth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-191551">
+				
+						<section>
+							<p>Thank you for sharing the details of this solution, Justin.</p>
+<p>I&#39;m having difficulty getting this to work.  Upon creating a new site on admob, I don&#39;t see an option for &quot;mobile site&quot;. If I select &quot;mobile web&quot;, and view the code to publish it, there isn&#39;t an option for Javascript - only PHP, C#, VB.net… </p>
+<p>Upon selecting &quot;Smartphone Web&quot;, this does present Javascript code to publish, but this is for iphone only, and I&#39;m trying to deploy on Android. I created a .net version and deployed on a site, but when accessing the .aspx from my android phone browser the screen was blank. Acessing from my PC browser displayed the test message.</p>
+<p>I also tried to use the PHP script, posting on my website and accessing the same way, and had the same results - test ad shows in PC browser but blank screen when rendered on my phone.  </p>
+<p>Any help greatly appreciated … </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 3rd 2011, 1:35:42 pm">February 3rd 2011</span>
+								by <span class='authorname'>Software Services</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-191551" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Samuel - I&#39;m getting the same thing - blank white area in the android emulator.  Were you able to get this figured out?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 9th 2011, 8:11:20 pm">March 9th 2011</span>
+											by <span class='authorname'>D Pat</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Never mind Samuel - the code posted by Justin does work, however it only seems to display an add like 1 out of 10 times.  Perhaps not enough ads in the system, but not sure.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 10th 2011, 4:41:55 pm">March 10th 2011</span>
+											by <span class='authorname'>D Pat</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-203530">
+				
+						<section>
+							<p>Does this works for android?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 1st 2011, 11:38:01 pm">March 1st 2011</span>
+								by <span class='authorname'>Obed Adames</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-203530" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-203534">
+				
+						<section>
+							<p>I get an error using this code it give me:<br>Wrapped java.lang.NullPointerException (file:&#x2F;&#x2F;android_asset&#x2F;Resources&#x2F;app.js#28</p>
+<p>and this is my code<br> &#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F; NO BORRAR<br>    var webview = Titanium.UI.createWebView({url:&#39;&#x2F;html&#x2F;index.html&#39;});<br>    var window = Titanium.UI.createWindow();<br>        window.add(webview);</p>
+<pre><code class="hljs">/<span class="hljs-regexp">//</span><span class="hljs-regexp">//</span><span class="hljs-regexp">//</span> <span class="hljs-constant">ADS</span>
+</code></pre><p>var console = { log: Ti.API.info };<br>var adUrl = &quot;THIS IS WHERE THE HTML AD WILL BE I HAVE REMOVE IT&quot;;<br>var adWebView = null;</p>
+<p>displayAd();</p>
+<p>function displayAd() {<br>    var numLoads = 0;<br>    if (adWebView) {<br>        window.remove(adWebView);<br>    }<br>    adWebView = Ti.UI.createWebView({ url: adUrl, height: 48, bottom: 0, left: 0, right: 0 });<br>    window.add(adWebView);<br>    adWebView.addEventListener(&#39;load&#39;, function (evt) {<br>        numLoads++;<br>        if (numLoads &gt; 1) {<br>            var url = evt.url.split(&#39;market:&#x2F;&#x2F;&#39;).join(&#39;http:&#x2F;&#x2F;&#39;);</p>
+<pre><code class="hljs">        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"clicked ad "</span> + url);
+        <span class="hljs-regexp">//</span>launch ad url <span class="hljs-keyword">in</span> <span class="hljs-keyword">new</span> browser <span class="hljs-built_in">window</span>.
+        Ti.Platform.openURL(url);
+        <span class="hljs-regexp">//</span>load a <span class="hljs-keyword">new</span> ad.
+        displayAd();
+    }
+});
+</code></pre><p>}</p>
+<p>&#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F; NO BORRAR</p>
+<pre><code class="hljs"><span class="hljs-tag">window</span><span class="hljs-class">.open</span>(<span class="hljs-rules">{<span class="hljs-rule"><span class="hljs-attribute">modal</span>:<span class="hljs-value">true</span></span></span>});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 2nd 2011, 12:27:19 am">March 2nd 2011</span>
+								by <span class='authorname'>Obed Adames</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-203534" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-203535">
+				
+						<section>
+							<p>I get an error using this code it give me:<br>Wrapped java.lang.NullPointerException (file:&#x2F;&#x2F;android_asset&#x2F;Resources&#x2F;app.js#28</p>
+<p>and this is my code<br> &#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F; NO BORRAR<br>    var webview = Titanium.UI.createWebView({url:&#39;&#x2F;html&#x2F;index.html&#39;});<br>    var window = Titanium.UI.createWindow();<br>        window.add(webview);</p>
+<pre><code class="hljs">/<span class="hljs-regexp">//</span><span class="hljs-regexp">//</span><span class="hljs-regexp">//</span> <span class="hljs-constant">ADS</span>
+</code></pre><p>var console = { log: Ti.API.info };<br>var adUrl = &quot;THIS IS WHERE THE HTML AD WILL BE I HAVE REMOVE IT&quot;;<br>var adWebView = null;</p>
+<p>displayAd();</p>
+<p>function displayAd() {<br>    var numLoads = 0;<br>    if (adWebView) {<br>        window.remove(adWebView);<br>    }<br>    adWebView = Ti.UI.createWebView({ url: adUrl, height: 48, bottom: 0, left: 0, right: 0 });<br>    window.add(adWebView);<br>    adWebView.addEventListener(&#39;load&#39;, function (evt) {<br>        numLoads++;<br>        if (numLoads &gt; 1) {<br>            var url = evt.url.split(&#39;market:&#x2F;&#x2F;&#39;).join(&#39;http:&#x2F;&#x2F;&#39;);</p>
+<pre><code class="hljs">        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"clicked ad "</span> + url);
+        <span class="hljs-regexp">//</span>launch ad url <span class="hljs-keyword">in</span> <span class="hljs-keyword">new</span> browser <span class="hljs-built_in">window</span>.
+        Ti.Platform.openURL(url);
+        <span class="hljs-regexp">//</span>load a <span class="hljs-keyword">new</span> ad.
+        displayAd();
+    }
+});
+</code></pre><p>}</p>
+<p>&#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F;&#x2F; NO BORRAR</p>
+<pre><code class="hljs"><span class="hljs-tag">window</span><span class="hljs-class">.open</span>(<span class="hljs-rules">{<span class="hljs-rule"><span class="hljs-attribute">modal</span>:<span class="hljs-value">true</span></span></span>});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 2nd 2011, 12:28:32 am">March 2nd 2011</span>
+								by <span class='authorname'>Obed Adames</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-203535" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-204645">
+				
+						<section>
+							<p>This Approach must have an own web server, If I haven&#39;t own web server. How can I do, Have any suggestion for me?<br>Note:I have been successful integrate the iPhone App with AdMob on &quot;Smartphone Web&quot; approach.<br>Now I want to try deployed it to Android Device. I can use Titanium &quot;createWebView&quot; method to<br>present the AdMob banner, but If the user clicked the AD banner, I can&#39;t detect this event.<br>My purpose is wanting let the click AdMob Banner can open on New Window. </p>
+<p>Ref1: Admob for iPhone<br><a href="http:&#x2F;&#x2F;developer.admob.com&#x2F;wiki&#x2F;IPhone">http:&#x2F;&#x2F;developer.admob.com&#x2F;wiki&#x2F;IPhone</a></p>
+<ul>
+<li>This document described, I can use &quot;new_windos: true&quot; to control it. </li>
+</ul>
+<p>Ref2: Admob for Android<br><a href="http:&#x2F;&#x2F;developer.admob.com&#x2F;wiki&#x2F;Android">http:&#x2F;&#x2F;developer.admob.com&#x2F;wiki&#x2F;Android</a></p>
+<ul>
+<li>But on the Android hasn&#39;t the &quot;new_windos: true&quot; method. </li>
+</ul>
+<p>Does anyone have any solution on it? I want to detect the &quot;Click AdMob Banner&quot; behavior to open on new window.</p>
+<p>Thank you! </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 19th 2011, 10:54:45 pm">March 19th 2011</span>
+								by <span class='authorname'>Potato Hwang</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-204645" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-205841">
+				
+						<section>
+							<p>I was about to use this solution on a project I&#39;m working on until I saw Clifford Tan&#39;s post that his account got suspended for this. Not sure if you guys saw this other solution provided on <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;39161&#x2F;ad-layers">http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;39161&#x2F;ad-layers</a>. I got it working in the little sample app Ti generates. Haven&#39;t gotten it up and running in one of my apps yet. It was a little confusing to figure out at first because his directions are for linux. I can explain how i did it on windows 7.</p>
+<p>Download his zip: <a href="http:&#x2F;&#x2F;CrucialDivide.com&#x2F;mobilesdk-dasher-ads-1.4-linux.zip">http:&#x2F;&#x2F;CrucialDivide.com&#x2F;mobilesdk-dasher-ads-1.4-linux.zip</a> and then find where your titanium sdk stuff is. For me i had to display hidden folders and it was at C:\ProgramData\Titanium\mobilesdk. </p>
+<p>Inside the zip file open mobilesdk&#x2F;linux and copy that dasher-ads-1.4 folder into the folder on your machine(mine was C:\ProgramData\Titanium\mobilesdk\win32) along with the sdks for other releases of Ti mobile. Restart Ti and start a new project and it should pop up as an available sdk. Then refer to this page <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;439986">https:&#x2F;&#x2F;gist.github.com&#x2F;439986</a> for implementation. Hope this helps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 7th 2011, 3:08:57 pm">April 7th 2011</span>
+								by <span class='authorname'>Bryant Pulecio</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-205841" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Doesnt work, cant even build.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 19th 2011, 12:35:35 pm">April 19th 2011</span>
+											by <span class='authorname'>Josh Lewis</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-209516">
+				
+						<section>
+							<p>I apologize for posting this in several threads, but in case anyone is searching for an Android AdMob solution, I have a (simple) beta version of an android module here: https:&#x2F;&#x2F;github.com&#x2F;bkurzius&#x2F;Titanium-Android-AdMob-Module.</p>
+<p>I posted more info about it here: http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;119673&#x2F;admob-for-android. Any android devs, please feel free to help improve (or rebuild) it!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 7th 2011, 3:40:44 pm">June 7th 2011</span>
+								by <span class='authorname'>brian kurzius</span><br>
+								<a class="icon-bg icon-link" href="question/77561/final-solution-to-integrating-admob-into-android#answer-209516" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

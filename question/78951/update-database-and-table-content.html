@@ -1,0 +1,488 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Update database and table content » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Update database and table content</h1>
+		</header>
+		<section>
+			<p>I have had a look around the forum trying to find the best way to refresh the data retrieved from a database - without success.</p>
+<p>I have a table which calls in data from a local database in the Resources folder. The iPhone caches this database and then refers to that cached version to populate the table.</p>
+<p>I would like to be able to allow users to refresh the table by downloading the latest database from the server.</p>
+<p>I have succeeded in downloading the database from the server and overriding the local database in the Resources folder, but the data in the table doesn&#39;t update.</p>
+<p>I have tried this code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> dbOld = Titanium.Database.install(<span class="hljs-string">'../dbEvents.db'</span>,<span class="hljs-string">'events'</span>);
+dbOld.<span class="hljs-keyword">remove</span>();
+dbEvents = Titanium.Database.install(<span class="hljs-string">'../dbEvents.db'</span>,<span class="hljs-string">'events'</span>);
+</code></pre><p>based on this <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;60101&#x2F;database-not-updating-with-app-update">thread</a>.</p>
+<p>Unfortunately this does not override the cached version and the old data is still shown.</p>
+<p>I know I could keep appending new version numbers to the database name as it creates a complete new cached file every time, but am not sure how to do this dynamically.</p>
+<p>Has anyone got a working sample code for this? Or advice on the best way to achieve the above?</p>
+<p>Any help will be much appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 11th 2010, 1:42:12 pm">November 11th 2010</span>
+				by <span class='authorname'>Katrin Kerber</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>cache</span></li>
+					
+						<li><span class='tagname'>databae</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>refresh</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-154151">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Katrin,</p>
+<p>&gt;Is anybody out there who would be able to tell me what I&#39;m missing or doing wrong?</p>
+<p>The main thing you are doing wrong is trying to do your file.write() to a file in the Resources folder.  That folder is read-only on the device so the .write() operation is failing.  This in turn leads to your setData() function simply re-installing the original database.</p>
+<p>Thus you must download to a writable folder instead, such as Ti.Filesystem.applicationDataDirectory.  However, that leads to a new problem in that the Ti.Database.install() method assumes the database to be installed is in the Resources folder, which you cannot update at run-time.  Or at least a path relative to the Resources folder.</p>
+<p>The way I solve this problem is to instead download the new db directly to the folder where Titanium stores the real database.  That is, when you use the .install() method and the real db does not yet exist, install() copies it from the Resources folder to a folder that is writeable.  (The copy in Resources is never directly opened because sqlite could not update it.)  So the new problem becomes how to find where the &quot;real&quot; database is at, and swap it out.</p>
+<p>Unfortunately, how&#x2F;where to do that varies by platform according to my research.  Not only does the location change, but the actual filename extension is different too.  Your original post did not mention if you need this cross-platform, but you did add iphone as a tag so I assume you at least need it to work under iOS.</p>
+<p>This is a simplified version of how I do it in lieu of the xhr.onload code, using the names in your sample code :</p>
+<pre><code class="hljs">xhr.onreadystatechange = function()
+{
+    <span class="hljs-keyword">if</span> ( c.readyState == <span class="hljs-number">4</span> ) {
+        var dbName = <span class="hljs-string">'events'</span>;
+        var <span class="hljs-keyword">file</span>;
+        <span class="hljs-keyword">if</span> ( Ti.Platform.osname == <span class="hljs-string">'android'</span> ) {
+            <span class="hljs-keyword">file</span> = Ti.Filesystem.getFile(<span class="hljs-string">'file:///data/data/'</span> + Ti.App.getID() + <span class="hljs-string">'/databases/'</span> + dbName );
+        }
+        <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">file</span> = Ti.Filesystem.getFile(Ti.Filesystem.applicationSupportDirectory + <span class="hljs-string">'/database/'</span> + dbName + <span class="hljs-string">'.sql'</span>);
+        }
+
+        <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">file</span>.exists() ) {
+            <span class="hljs-keyword">file</span>.deleteFile();
+        }
+        <span class="hljs-keyword">file</span>.<span class="hljs-keyword">write</span>(<span class="hljs-keyword">this</span>.responseData);
+    }
+};
+</code></pre><p>For this to work, the database cannot already be open.  In your example code, it wouldn&#39;t be but I just want to mention it as a point to keep in mind.  This just swaps out the actual db file which is otherwise used.</p>
+<p>Note that I use onreadystatechange() instead of onload() because some threads in this forum suggest onload() is less reliable.  I am not sure if that is an old issue that is no longer true, so I just use onreadystatechange() instead.  Since that gets called for multiple reasons, we have to also test the readyState to make sure the change is from the download being complete.</p>
+<p>With the above code, you should not need the .install() method in your setData() function.  Instead just use Ti.Database.open(&#39;events&#39;).  In the setup portion of your app.js, you may want to include:</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> db = Ti.Database.install(<span class="hljs-string">'../dbEvents.db'</span>,<span class="hljs-string">'events'</span>);
+    dbClose();
+</code></pre><p>That will make sure the default database gets installed in case you try to call your setData() before you call your getRemoteDB() function, or in case there is a network or other failure in getRemoteDB().</p>
+<p>Also note the &#39;..&#x2F;&#39; prefix to dbEvents.db is needed only if the <em>.js context where this is run is in a subfolder of the app Resources folder.  That is the case in Kitchen Sink, where database.js in in the examples folder.  However, if your </em>.js files are in Resources itself, you should leave off the &#39;..&#x2F;&#39; prefix.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 2nd 2010, 4:02:15 pm">December 2nd 2010</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/78951/update-database-and-table-content#answer-154151" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Wow Doug, thank you so much for this incredibly detailed and helpful reply.</p>
+<p>Your solution looks absolutely brilliant and makes perfect sense. I&#39;ll give this a whirl as soon as I can and report back.</p>
+<p>Thank you again for sharing your knowledge. I really appreciate it.</p>
+<p>Katrin</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 3rd 2010, 10:15:07 am">December 3rd 2010</span>
+											by <span class='authorname'>Katrin Kerber</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Katrin, did this work? Did you run into any other troubles or issues, and if so are you willing to share your experience?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 4th 2011, 10:02:18 am">February 4th 2011</span>
+											by <span class='authorname'>Ian Tearle</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Doug, Katrin, after the new database version is installed, do you have to do anything besides open it to start using it?</p>
+<p>I have implemented this and the replacement of the file works fine, but sometimes the queries made to the db after installation return data from the old version as if it was cached. I attempted to explain the problem <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;122553&#x2F;database-queries-seem-to-be-cached---sometimes">here</a>.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 14th 2011, 1:19:14 pm">July 14th 2011</span>
+											by <span class='authorname'>Henning Glatter-Gotz</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-142201">
+				
+						<section>
+							<p>your application architecture is not visible from the posting but I would suggest the following steps</p>
+<ul>
+<li>download data</li>
+<li>update database</li>
+<li>fire event in application to reload database from file</li>
+<li>fire event in application to update tableView</li>
+<li>finish process, cleanup</li>
+</ul>
+<p>if you provide more information, maybe the community could give you a better suggestion</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 11th 2010, 2:26:51 pm">November 11th 2010</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/78951/update-database-and-table-content#answer-142201" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I know this was a long time ago, could you elaborate on</p>
+<ul>
+<li>fire event in application to reload database from file</li>
+</ul>
+<p>In particular &quot;reload database from file&quot;</p>
+<p>I am having a situation where I am successfully replacing the installed database file (not the one in the resource folder) with a new version that was downloaded from a server, but when querying the db it is service up old data. I verify in the simulator files that the db is in fact the updated version, but queries to the db load old data.</p>
+<p>Its almost as if the db is cached in memory. Please note this does not always happen.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 14th 2011, 12:50:55 pm">July 14th 2011</span>
+											by <span class='authorname'>Henning Glatter-Gotz</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-142231">
+				
+						<section>
+							<p>Hi Aaron,</p>
+<p>Thank you very much for your quick reply and willingness to help me.</p>
+<p>Apologies if I wasn&#39;t specific enough. Here&#39;s my code:</p>
+<pre><code class="hljs"><span class="hljs-comment">/* TABLE VIEW */</span>
+table = Titanium.UI.createTableView({
+    minRowHeight:<span class="hljs-number">70</span>,
+    top:<span class="hljs-number">0</span>
+});
+<span class="hljs-comment">// go to detail page on click</span>
+table.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">var</span> detail = Titanium.UI.createWindow({
+        url:<span class="hljs-string">'eventDetail.js'</span>,
+        title:e.rowData.customTitle,
+        backButtonTitle: <span class="hljs-string">"back"</span>,
+        barColor: <span class="hljs-string">'#000000'</span>
+    });
+    <span class="hljs-keyword">var</span> eventID = e.rowData.id;
+    Titanium.App.Properties.setInt(<span class="hljs-string">'id'</span>, eventID);
+    Titanium.UI.currentTab.open(detail,{animated:<span class="hljs-literal">true</span>});
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setData</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">var</span> dbOld = Titanium.Database.install(<span class="hljs-string">'../dbEvents.db'</span>,<span class="hljs-string">'events'</span>);
+    dbOld.remove();
+    dbEvents = Titanium.Database.install(<span class="hljs-string">'../dbEvents.db'</span>,<span class="hljs-string">'events'</span>);
+    <span class="hljs-comment">// select data to put in rows</span>
+    <span class="hljs-keyword">var</span> dbRows = dbEvents.execute(<span class="hljs-string">'SELECT * FROM EVENTS ORDER BY eventID DESC'</span>);
+    <span class="hljs-comment">// table data and rows</span>
+    <span class="hljs-keyword">var</span> eventsData = [];
+    <span class="hljs-comment">//loop through data and put into rows</span>
+    <span class="hljs-keyword">while</span> (dbRows.isValidRow())
+        {
+            <span class="hljs-keyword">var</span> eventID = dbRows.field(<span class="hljs-number">0</span>);
+            <span class="hljs-keyword">var</span> rowImage = dbRows.field(<span class="hljs-number">7</span>);
+            <span class="hljs-keyword">var</span> title = dbRows.field(<span class="hljs-number">1</span>);
+            <span class="hljs-keyword">var</span> titleLabel = Ti.UI.createLabel({
+                text: title,
+                top:<span class="hljs-number">10</span>,
+                left:<span class="hljs-number">70</span>,
+                color: <span class="hljs-string">'#000000'</span>,
+                textAlign:<span class="hljs-string">'left'</span>,
+                width: <span class="hljs-string">'auto'</span>,
+                height:<span class="hljs-string">'auto'</span>,
+                font:{fontWeight:<span class="hljs-string">'bold'</span>,fontSize:<span class="hljs-number">14</span>}
+            });
+
+            <span class="hljs-keyword">var</span> date = dbRows.field(<span class="hljs-number">2</span>);
+            <span class="hljs-keyword">var</span> venue = dbRows.field(<span class="hljs-number">3</span>);
+            <span class="hljs-keyword">var</span> subLabel = Ti.UI.createLabel({
+                text: date + <span class="hljs-string">', '</span> + venue,
+                left:<span class="hljs-number">70</span>,
+                top:<span class="hljs-number">30</span>,
+                color: <span class="hljs-string">'#000000'</span>,
+                textAlign:<span class="hljs-string">'left'</span>,
+                width: <span class="hljs-string">'auto'</span>,
+                height:<span class="hljs-string">'auto'</span>,
+                font:{fontWeight:<span class="hljs-string">'normal'</span>,fontSize:<span class="hljs-number">12</span>}
+            });
+            <span class="hljs-comment">// add everything to row and add custom data to be used on click event</span>
+            <span class="hljs-keyword">var</span> tableRow = Ti.UI.createTableViewRow({
+                height:<span class="hljs-string">'auto'</span>,
+                hasChild: <span class="hljs-literal">true</span>,
+                leftImage: rowImage,
+                customTitle:title,
+                id: eventID
+            });
+            tableRow.add(titleLabel);
+            tableRow.add(subLabel);
+            <span class="hljs-comment">// push row info into data array</span>
+            eventsData.push(tableRow);
+            dbRows.next();
+        }
+    dbRows.close();
+    dbEvents.close();
+    table.setData(eventsData);
+}
+setData();
+
+<span class="hljs-comment">/* get new database and refresh table data */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getRemoteDB</span><span class="hljs-params">()</span></span>{    
+    xhr = Titanium.Network.createHTTPClient();
+    xhr.setTimeout(<span class="hljs-number">5000</span>);
+    xhr.open(<span class="hljs-string">'GET'</span>,<span class="hljs-string">'http://www.cogdesign.com/iphone/dbEvents.db'</span>);
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+    </span>{
+        Ti.UI.createAlertDialog({title:<span class="hljs-string">'Very slow internet connection'</span>, message:<span class="hljs-string">'Please try again later'</span>}).show();
+        actInd.hide();
+    };
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+    </span>{
+        <span class="hljs-keyword">var</span> filename = <span class="hljs-string">'dbEvents.db'</span>;
+        <span class="hljs-keyword">var</span> file = Titanium.Filesystem.getFile(Titanium.Filesystem.resourcesDirectory,filename);
+        file.write(<span class="hljs-keyword">this</span>.responseData);
+    };
+    xhr.send();
+}
+
+<span class="hljs-keyword">if</span> (Titanium.Network.online) {
+    <span class="hljs-comment">// refresh button        </span>
+    <span class="hljs-keyword">var</span> refresh = Titanium.UI.createButton({
+        systemButton:Titanium.UI.iPhone.SystemButton.REFRESH
+    });
+
+    refresh.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+    </span>{
+        getRemoteDB();;
+        table.setData([]);
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+        </span>{
+            setData();
+        },<span class="hljs-number">1000</span>);
+    });
+    win.setRightNavButton(refresh);
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 11th 2010, 3:05:04 pm">November 11th 2010</span>
+								by <span class='authorname'>Katrin Kerber</span><br>
+								<a class="icon-bg icon-link" href="question/78951/update-database-and-table-content#answer-142231" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-153991">
+				
+						<section>
+							<p>Is anybody out there who would be able to tell me what I&#39;m missing or doing wrong?</p>
+<p>Thanks,<br>Katrin</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 2nd 2010, 12:06:09 pm">December 2nd 2010</span>
+								by <span class='authorname'>Katrin Kerber</span><br>
+								<a class="icon-bg icon-link" href="question/78951/update-database-and-table-content#answer-153991" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I would suggest putting a log statement to determine if the data is being reloaded from the database</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 2nd 2010, 2:24:20 pm">December 2nd 2010</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-188191">
+				
+						<section>
+							<p>Katrin,</p>
+<p>use the following code to remove your DB first from the filesystem, then install it again using Database.install()</p>
+<pre><code class="hljs">  var f = Ti.Filesystem.getFile<span class="hljs-comment">( Ti.Filesystem.applicationSupportDirectory + '/database/events.sql' )</span>;
+  <span class="hljs-keyword">if</span> <span class="hljs-comment">( f.exists()</span> ) {
+      f.deleteFile<span class="hljs-comment">()</span>;
+  }
+</code></pre><p>Hope it helps</p>
+<p>=H=</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 30th 2011, 11:28:21 am">January 30th 2011</span>
+								by <span class='authorname'>hasin hayder</span><br>
+								<a class="icon-bg icon-link" href="question/78951/update-database-and-table-content#answer-188191" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-265756">
+				
+						<section>
+							<p>Hi,</p>
+<p>This code dosent work on iOS 6.1.4</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> dbOld = Titanium.Database.install(<span class="hljs-string">'../dbEvents.db'</span>,<span class="hljs-string">'events'</span>);
+dbOld.<span class="hljs-keyword">remove</span>();
+dbEvents = Titanium.Database.install(<span class="hljs-string">'../dbEvents.db'</span>,<span class="hljs-string">'events'</span>);
+</code></pre><p>This code dosent work too</p>
+<pre><code class="hljs">var f = Ti.Filesystem.getFile<span class="hljs-comment">( Ti.Filesystem.applicationSupportDirectory + '/database/events.sql' )</span>;
+  <span class="hljs-keyword">if</span> <span class="hljs-comment">( f.exists()</span> ) {
+      f.deleteFile<span class="hljs-comment">()</span>;
+  }
+</code></pre><p>Please go read my post <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;60101&#x2F;database-not-updating-with-app-update#answer-265755">here</a> and add an answer if you have an idea for iOS6.1.4</p>
+<p>Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 11th 2013, 8:30:20 am">July 11th 2013</span>
+								by <span class='authorname'>Decaillot Julien</span><br>
+								<a class="icon-bg icon-link" href="question/78951/update-database-and-table-content#answer-265756" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

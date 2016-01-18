@@ -1,0 +1,281 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium.Geolocation.getCurrentPosition interacting with SQL database » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium.Geolocation.getCurrentPosition interacting with SQL database</h1>
+		</header>
+		<section>
+			<p>I am trying my best to figure out how to do this, I want to show a list from a sqlite database based on the users location. I have the code to do this, and it works fine with a javascript array, but as soon as I add in the database, my app crashes.</p>
+<p>I need to be able to get the longitude&#x2F;latitude variables from the Titanium.Geolocation.getCurrentPosition function outside to other functions, is this possible?</p>
+<p>Here is what I have so far:</p>
+<pre><code class="hljs">Ti.Geolocation.purpose = <span class="hljs-string">"Recieve User Location"</span>;
+Titanium.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (e.error) {
+        Ti.API.log(<span class="hljs-string">'error: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e.error) );
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">var</span> db = Titanium.Database.install(<span class="hljs-string">'places.db'</span>, <span class="hljs-string">'places'</span>);
+    db = Titanium.Database.open (<span class="hljs-string">'places'</span>);
+    <span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT * FROM places order by title'</span>);   
+
+    <span class="hljs-keyword">var</span> earthRadius = <span class="hljs-number">6370.998685023</span>;    <span class="hljs-comment">// Radius of earth in km</span>
+    <span class="hljs-keyword">var</span> currentLatitude = e.coords.latitude;
+    <span class="hljs-keyword">var</span> currentLongitude = e.coords.longitude;
+    <span class="hljs-keyword">var</span> distanceKM = <span class="hljs-number">30</span> / <span class="hljs-number">0.621</span>;
+
+    <span class="hljs-keyword">var</span> dataDistance = [];
+
+    <span class="hljs-keyword">while</span>(rows.isValidRow())
+    {
+        <span class="hljs-keyword">var</span> latitudeFrom = currentLatitude * (<span class="hljs-built_in">Math</span>.PI / <span class="hljs-number">180</span>);
+        <span class="hljs-keyword">var</span> longitudeFrom = currentLongitude * (<span class="hljs-built_in">Math</span>.PI / <span class="hljs-number">180</span>);
+        <span class="hljs-keyword">var</span> latitudeTo = rows.fieldByName(<span class="hljs-string">'latitude'</span>) * (<span class="hljs-built_in">Math</span>.PI / <span class="hljs-number">180</span>);
+        <span class="hljs-keyword">var</span> longitudeTo = rows.fieldByName(<span class="hljs-string">'longitude'</span>) * (<span class="hljs-built_in">Math</span>.PI / <span class="hljs-number">180</span>);
+
+        <span class="hljs-keyword">var</span> a = <span class="hljs-built_in">Math</span>.pow(<span class="hljs-built_in">Math</span>.sin((latitudeTo - latitudeFrom) / <span class="hljs-number">2</span>), <span class="hljs-number">2</span>) + (<span class="hljs-built_in">Math</span>.cos(latitudeFrom) * <span class="hljs-built_in">Math</span>.cos(latitudeTo) * <span class="hljs-built_in">Math</span>.pow(<span class="hljs-built_in">Math</span>.sin((longitudeTo - longitudeFrom) / <span class="hljs-number">2</span>), <span class="hljs-number">2</span>));
+
+        <span class="hljs-keyword">var</span> placeDistance = (<span class="hljs-number">2</span> * <span class="hljs-built_in">Math</span>.atan2(<span class="hljs-built_in">Math</span>.sqrt(a), <span class="hljs-built_in">Math</span>.sqrt(<span class="hljs-number">1</span> - a))) * earthRadius;
+
+        <span class="hljs-keyword">if</span>(placeDistance &lt;= distanceKM)
+        {
+            dataDistance.push(
+            {
+                    id: rows.fieldByName(<span class="hljs-string">'id'</span>),
+                    distance: placeDistance,
+                    county: rows.fieldByName(<span class="hljs-string">'county'</span>),
+                    type: rows.fieldByName(<span class="hljs-string">'category'</span>)
+            });
+        }
+        rows.next();
+        Titanium.API.info(dataDistance);
+    }
+    rows.close();
+    db.close();
+});
+</code></pre><p>Have I got this all wrong? Please someone help me!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 3rd 2010, 9:42:12 pm">November 3rd 2010</span>
+				by <span class='authorname'>Ian Tearle</span>
+			</div>
+
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-137321">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>i create a datastorage object to store my lat&#x2F;lon coords in when i start to work with geolocations. It goes like this:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dataStorage</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.lat;
+    <span class="hljs-keyword">this</span>.lon;
+}
+
+<span class="hljs-keyword">var</span> g = <span class="hljs-keyword">new</span> dataStorage();
+</code></pre><p>then the geolocation part:</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> (Titanium.Geolocation.locationServicesEnabled==false)
+{
+    Titanium.UI.createAlertDialog({title:'Geotriggerd AV Streams', message:'Your device has geo turned off - turn it <span class="hljs-keyword">on</span>.'}).show();
+}
+<span class="hljs-keyword">else</span>
+{
+    <span class="hljs-keyword">if</span> (Titanium.Geolocation.hasCompass)
+    {
+        Titanium.Geolocation.showCalibration = false;
+
+        Titanium.Geolocation.headingFilter = 90;
+
+        Ti.Geolocation.getCurrentHeading(function(<span class="hljs-keyword">e</span>)
+        {
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>)
+            {
+                currentHeading.text = '<span class="hljs-keyword">error</span>: ' + <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>
+                <span class="hljs-keyword">return</span>;
+            }
+            <span class="hljs-keyword">var</span> x = <span class="hljs-keyword">e</span>.heading.x;
+            <span class="hljs-keyword">var</span> y = <span class="hljs-keyword">e</span>.heading.y;
+            <span class="hljs-keyword">var</span> z = <span class="hljs-keyword">e</span>.heading.z;
+            <span class="hljs-keyword">var</span> magneticHeading = <span class="hljs-keyword">e</span>.heading.magneticHeading;
+            <span class="hljs-keyword">var</span> accuracy = <span class="hljs-keyword">e</span>.heading.accuracy;
+            <span class="hljs-keyword">var</span> trueHeading = <span class="hljs-keyword">e</span>.heading.trueHeading;
+            <span class="hljs-keyword">var</span> timestamp = <span class="hljs-keyword">e</span>.heading.timestamp;
+        });
+
+        Titanium.Geolocation.addEventListener('heading',function(<span class="hljs-keyword">e</span>)
+        {
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>)
+            {
+                Titanium.API.info(<span class="hljs-string">"error: "</span> + <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>);
+                <span class="hljs-keyword">return</span>;
+            }
+
+            <span class="hljs-keyword">var</span> x = <span class="hljs-keyword">e</span>.heading.x;
+            <span class="hljs-keyword">var</span> y = <span class="hljs-keyword">e</span>.heading.y;
+            <span class="hljs-keyword">var</span> z = <span class="hljs-keyword">e</span>.heading.z;
+            <span class="hljs-keyword">var</span> magneticHeading = <span class="hljs-keyword">e</span>.heading.magneticHeading;
+            <span class="hljs-keyword">var</span> accuracy = <span class="hljs-keyword">e</span>.heading.accuracy;
+            <span class="hljs-keyword">var</span> trueHeading = <span class="hljs-keyword">e</span>.heading.trueHeading;
+            <span class="hljs-keyword">var</span> timestamp = <span class="hljs-keyword">e</span>.heading.timestamp;
+        });
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        Titanium.API.info(<span class="hljs-string">"No Compass on device"</span>);
+    }
+
+    Titanium.Geolocation.accuracy = Titanium.Geolocation.ACCURACY_BEST;
+
+    Titanium.Geolocation.distanceFilter = 10;
+
+    Titanium.Geolocation.getCurrentPosition(function(<span class="hljs-keyword">e</span>)
+    {
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>)
+        {
+            Titanium.API.info(<span class="hljs-string">"error: "</span> + JSON.stringify(<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>));
+            <span class="hljs-keyword">return</span>;
+        }
+
+        <span class="hljs-keyword">var</span> longitude = <span class="hljs-keyword">e</span>.coords.longitude;
+        <span class="hljs-keyword">var</span> latitude = <span class="hljs-keyword">e</span>.coords.latitude;
+        <span class="hljs-keyword">var</span> altitude = <span class="hljs-keyword">e</span>.coords.altitude;
+        <span class="hljs-keyword">var</span> heading = <span class="hljs-keyword">e</span>.coords.heading;
+        <span class="hljs-keyword">var</span> accuracy = <span class="hljs-keyword">e</span>.coords.accuracy;
+        <span class="hljs-keyword">var</span> speed = <span class="hljs-keyword">e</span>.coords.speed;
+        <span class="hljs-keyword">var</span> timestamp = <span class="hljs-keyword">e</span>.coords.timestamp;
+        <span class="hljs-keyword">var</span> altitudeAccuracy = <span class="hljs-keyword">e</span>.coords.altitudeAccuracy;
+
+        <span class="hljs-keyword">g</span>.lat = latitude;
+        <span class="hljs-keyword">g</span>.lon = longitude;
+    });
+
+    Titanium.Geolocation.addEventListener('location',function(<span class="hljs-keyword">e</span>)
+    {
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>)
+        {
+            Titanium.API.info(<span class="hljs-string">"error: "</span> + JSON.stringify(<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>));
+            <span class="hljs-keyword">return</span>;
+        }
+
+        <span class="hljs-keyword">var</span> longitude = <span class="hljs-keyword">e</span>.coords.longitude;
+        <span class="hljs-keyword">var</span> latitude = <span class="hljs-keyword">e</span>.coords.latitude;
+        <span class="hljs-keyword">var</span> altitude = <span class="hljs-keyword">e</span>.coords.altitude;
+        <span class="hljs-keyword">var</span> heading = <span class="hljs-keyword">e</span>.coords.heading;
+        <span class="hljs-keyword">var</span> accuracy = <span class="hljs-keyword">e</span>.coords.accuracy;
+        <span class="hljs-keyword">var</span> speed = <span class="hljs-keyword">e</span>.coords.speed;
+        <span class="hljs-keyword">var</span> timestamp = <span class="hljs-keyword">e</span>.coords.timestamp;
+        <span class="hljs-keyword">var</span> altitudeAccuracy = <span class="hljs-keyword">e</span>.coords.altitudeAccuracy;
+
+        <span class="hljs-keyword">g</span>.lat = latitude;
+        <span class="hljs-keyword">g</span>.lon = longitude;
+    });    
+}
+</code></pre><p>now you can use the g.lat and g.lon variables for your db queries</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 4th 2010, 9:54:05 am">November 4th 2010</span>
+								by <span class='authorname'>Glenn Tillemans</span><br>
+								<a class="icon-bg icon-link" href="question/76301/titaniumgeolocationgetcurrentposition-interacting-with-sql-database#answer-137321" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-137311">
+				
+						<section>
+							<p>The geo functions are async, which means they don&#39;t necessarily return data when you call them but will do so when they get around to it. The best thing to do is to have the geo functions set some global variables. Then, put your db code in a separate function, but have it check those global variables for reasonable values before running. You can wrap code in try&#x2F;catch blocks to prevent app errors.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 4th 2010, 9:40:35 am">November 4th 2010</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/76301/titaniumgeolocationgetcurrentposition-interacting-with-sql-database#answer-137311" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
