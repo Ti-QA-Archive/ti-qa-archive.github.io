@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Feature request: NO_LOCALIZED_COLLATORS on Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Feature request: NO_LOCALIZED_COLLATORS on Android</h1>
+		</header>
+		<section>
+			<p>I have an app that downloads an sqlite database from the web, places it in the databases directory then loads it via Titanium&#39;s database API. This works fine on iPhone, but fails on Android because a special table android_meta is missing.</p>
+<p>It looks like the DB load would not fail if the special constant NO_LOCALIZED_COLLATORS were passed in to the open call. From the docs:</p>
+<pre><code class="hljs"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> final int NO_LOCALIZED_COLLATORS
+
+Since: API Level <span class="hljs-number">1</span>
+Flag <span class="hljs-keyword">for</span> openDatabase(<span class="hljs-built_in">String</span>, SQLiteDatabase.CursorFactory, int) <span class="hljs-keyword">to</span> open the database without support <span class="hljs-keyword">for</span> localized collators.
+This causes the collator LOCALIZED <span class="hljs-keyword">not</span> <span class="hljs-keyword">to</span> be created. You must be consistent <span class="hljs-keyword">when</span> <span class="hljs-keyword">using</span> this flag <span class="hljs-keyword">to</span> use the setting the database was created <span class="hljs-keyword">with</span>. <span class="hljs-keyword">If</span> this <span class="hljs-keyword">is</span> <span class="hljs-keyword">set</span>, setLocale(Locale) will <span class="hljs-keyword">do</span> <span class="hljs-literal">nothing</span>.
+Constant Value: <span class="hljs-number">16</span> (<span class="hljs-number">0x00000010</span>)
+</code></pre><p>Please consider adding a flag to the Database.open() call so we can open externally fetched databases in the future.</p>
+<p>Edit: here is a patch which makes it the default, for anyone interested.</p>
+<pre><code class="hljs">diff --git a<span class="hljs-regexp">/android/</span>modules<span class="hljs-regexp">/database/</span>src<span class="hljs-regexp">/ti/</span>modules<span class="hljs-regexp">/titanium/</span>database<span class="hljs-regexp">/DatabaseModule.java b/</span>android<span class="hljs-regexp">/modules/</span>database<span class="hljs-regexp">/src/</span>ti<span class="hljs-regexp">/modules/</span>titanium<span class="hljs-regexp">/database/</span>DatabaseModule.java
+index <span class="hljs-number">918</span>eb50.<span class="hljs-number">.8</span>b10e75 <span class="hljs-number">100644</span>
+--- a<span class="hljs-regexp">/android/</span>modules<span class="hljs-regexp">/database/</span>src<span class="hljs-regexp">/ti/</span>modules<span class="hljs-regexp">/titanium/</span>database/DatabaseModule.java
++++ b<span class="hljs-regexp">/android/</span>modules<span class="hljs-regexp">/database/</span>src<span class="hljs-regexp">/ti/</span>modules<span class="hljs-regexp">/titanium/</span>database/DatabaseModule.java
+@@ -<span class="hljs-number">36</span>,<span class="hljs-number">9</span> +<span class="hljs-number">36</span>,<span class="hljs-number">15</span> @@ <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DatabaseModule</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">TiModule</span>
+
+     <span class="hljs-title">public</span> <span class="hljs-title">TiDatabaseProxy</span> <span class="hljs-title">open</span>(<span class="hljs-title">String</span> <span class="hljs-title">name</span>) {</span>
+         TiDatabaseProxy dbp = <span class="hljs-literal">null</span>;
++                Context ctx = getTiContext().getTiApp();
++                File dbPath = ctx.getDatabasePath(name);
+
+         <span class="hljs-keyword">try</span> {
+-            SQLiteDatabase db = getTiContext().getTiApp().openOrCreateDatabase(name, Context.MODE_PRIVATE, <span class="hljs-literal">null</span>);
++            SQLiteDatabase db =
++                            SQLiteDatabase.openDatabase(dbPath.getPath(),
++                                                        <span class="hljs-literal">null</span>,
++                                                        SQLiteDatabase.NO_LOCALIZED_COLLATORS |
++                                                        SQLiteDatabase.CREATE_IF_NECESSARY);
+             <span class="hljs-keyword">if</span> (DBG) {
+                 Log.d(LCAT, <span class="hljs-string">"Opened database: "</span> + name);
+             }
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 3rd 2010, 7:27:47 am">May 3rd 2010</span>
+				by <span class='authorname'>Damien Elmes</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-47241">
+				
+						<section>
+							<p>Actually, this doesn&#39;t seem to be necessary. I was trying to open a corrupted file, and the trace message complained about the android_meta table being missing so the database would be closed. But when I replaced it with a non-corrupt file, I found that the existing code works fine - so there is no need for this patch.</p>
+<p>(the reason I thought it was working on iPhone is because &quot;.sql&quot; is appended to DBs on that platform, and I had another file shadowing the one I wanted)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 3rd 2010, 9:47:20 am">May 3rd 2010</span>
+								by <span class='authorname'>Damien Elmes</span><br>
+								<a class="icon-bg icon-link" href="question/21711/feature-request-nolocalizedcollators-on-android#answer-47241" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-47271">
+				
+						<section>
+							<p>Glad it worked.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 3rd 2010, 11:40:54 am">May 3rd 2010</span>
+								by <span class='authorname'>Don Thorp</span><br>
+								<a class="icon-bg icon-link" href="question/21711/feature-request-nolocalizedcollators-on-android#answer-47271" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Reusing util code in windows created from TableViews » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Reusing util code in windows created from TableViews</h1>
+		</header>
+		<section>
+			<p>I have some utility code in a file, say utils.js. These are things like like adding an each() method to arrays and what have you. I want to use these in a variety of (sub)contexts.</p>
+<p>What&#39;s the best way to do this? </p>
+<p><em>(the rest of this question details what I did, but I&#39;m not convinced I&#39;m doing things the best way so feel free to chime in with an answer)</em></p>
+<p>Currently, I am including via Titanium.include() in each implementation file of the Window (i.e. the file pointed to by the url parameter to the constructor). For example, assuming the Window implementation for the TableView is in a file called TableView.js and the window implementation for the Window of the table row is in a file called Detail.js:</p>
+<p><strong><em>TableView.js</em></strong></p>
+<pre><code class="hljs"><span class="hljs-type">Titanium</span>.<span class="hljs-keyword">include</span>( <span class="hljs-symbol">'utils</span>.js' );
+
+tableRowDetail = <span class="hljs-type">Titanium</span>.<span class="hljs-type">UI</span>.createWindow({
+  url   : <span class="hljs-symbol">'Detail</span>.js',
+  title : <span class="hljs-string">"This is the detail"</span>,
+});
+</code></pre><p><strong><em>Detail.js</em></strong></p>
+<pre><code class="hljs">Titanium.<span class="hljs-keyword">include</span>( <span class="hljs-string">'utils.js'</span> );
+
+...
+
+<span class="hljs-comment">// access the helper</span>
+$A(someArray).<span class="hljs-keyword">each</span>(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ ... });
+</code></pre><p>This works, but I wonder about the performance here. For example, given a TableView with 50 rows - every time the user selects a row to see more detail a new Window is created thus requiring utils.js to be read in again. This seems horribly inefficient. </p>
+<p>Another way I thought of was to provide subcontexts with the util reference from their parent contexts. For example, assuming my util code was housed in a Util object, something like:</p>
+<p><strong><em>TableView.js</em></strong></p>
+<pre><code class="hljs"><span class="hljs-type">Titanium</span>.<span class="hljs-keyword">include</span>( <span class="hljs-symbol">'utils</span>.js' );
+
+tableRowDetail = <span class="hljs-type">Titanium</span>.<span class="hljs-type">UI</span>.createWindow({
+  url   : <span class="hljs-symbol">'Detail</span>.js',
+  title : <span class="hljs-string">"This is the detail"</span>,
+});
+
+tableRowDetail.<span class="hljs-type">Util</span> = <span class="hljs-type">Util</span>;
+</code></pre><p><strong><em>Detail.js</em></strong></p>
+<pre><code class="hljs">Util = Titanium.UI.currentWindow.Util;
+
+...
+
+// access the helper
+Util.<span class="hljs-variable">$A</span>(someArray).each(<span class="hljs-keyword">function</span>() { ... });
+</code></pre><p>This would work, but it would only work if my utils.js file houses everything in a Util object. This wouldn&#39;t work if utils.js had free-standing global functions. </p>
+<p>Inverting the problem as a solution here, we could capture global functions by using a special Window to house the utility code and pass around a reference to this context. I looked into this for a bit but no dice. I was thinking the subcontext could callback onto the parent context at which time the subcontext could pass itself to the parent context through the callback. The context could be stored in a variable in the parent context. I was hoping to use events to wait on in order to ensure that the Util reference is available to the rest of the app, however, I can&#39;t seem to get a subcontext to fire event that is observable by its parent context… </p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 5th 2010, 6:54:37 am">May 5th 2010</span>
+				by <span class='authorname'>Donnie Tognazzini</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>code</span></li>
+					
+						<li><span class='tagname'>context</span></li>
+					
+						<li><span class='tagname'>globals</span></li>
+					
+						<li><span class='tagname'>modularization</span></li>
+					
+						<li><span class='tagname'>organization</span></li>
+					
+						<li><span class='tagname'>reuse</span></li>
+					
+						<li><span class='tagname'>sharing</span></li>
+					
+						<li><span class='tagname'>subcontext</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-158321">
+				
+						<section>
+							<p>Donnie,</p>
+<p>Found your question while looking into accepted practices in Titanium apps.  Haven&#39;t really seen much that directly addresses the problem but I do have something that works pretty well.</p>
+<p>First, I created a utils.js file containing a the &quot;Utils&quot; constructor:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Util</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//*** 'me' acts as an alias that can be used within the methods</span>
+    <span class="hljs-keyword">var</span> me = <span class="hljs-keyword">this</span>;
+    <span class="hljs-comment">//*** Public properties:</span>
+    <span class="hljs-keyword">this</span>.someValue;
+    <span class="hljs-keyword">this</span>.someOtherValue;
+
+    <span class="hljs-comment">//*** Protected variables:</span>
+    <span class="hljs-keyword">var</span> hushHush = <span class="hljs-string">"shhh"</span>;
+
+
+    <span class="hljs-comment">//*** Public methods:</span>
+    Util.prototype.foo = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">arg1, arg2</span>) </span>{
+        <span class="hljs-comment">//*** Note use of 'me' to access property</span>
+        <span class="hljs-keyword">return</span> (arg1 + arg2) * me.somevalue;
+    };
+
+    Util.prototype.bar = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">arg1, arg2</span>) </span>{
+        <span class="hljs-comment">//*** You can also use 'me' to reference methods within other methods</span>
+        <span class="hljs-keyword">var</span> baz = me.foo(arg1, arg2);
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">parseInt</span>(baz,<span class="hljs-number">10</span>);
+    };
+
+    <span class="hljs-comment">//*** Protected method used only internally. Call with 'me.my_own()'</span>
+    <span class="hljs-keyword">this</span>.my_own = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">arg1</span>) </span>{
+    };
+}
+</code></pre><p>Next, I create an instance of Util in app.js and assign it to a Ti.App variable so that it becomes available throughout the app:</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">"./js/util.js"</span>);
+
+Ti.App.Util = <span class="hljs-keyword">new</span> Util();
+</code></pre><p>Finally, within any other window, I can use the Util object like this:</p>
+<pre><code class="hljs">var myValue = Ti.App.Util.foo(<span class="hljs-number">20</span>,<span class="hljs-number">30</span>);
+</code></pre><p>Regards,</p>
+<p>Mark</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 10th 2010, 12:11:49 am">December 10th 2010</span>
+								by <span class='authorname'>Mark Pemburn</span><br>
+								<a class="icon-bg icon-link" href="question/22371/reusing-util-code-in-windows-created-from-tableviews#answer-158321" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Just about to try this out and if it works for me then this is great.</p>
+<p>What Appcelerator needs is a &quot;Best Practices&quot; guide as there&#39;s good info out there but its trolling through the q&amp;a to find it…..</p>
+<p>You should also be able to subscribe to the q&amp;a discussion as a whole :-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 13th 2011, 9:55:26 pm">January 13th 2011</span>
+											by <span class='authorname'>Chris Moore</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This works perfectly!</p>
+<p>Thanks for sharing this technique. It should definitely appear somewhere in the &quot;Best Practices&quot; guide!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 2nd 2011, 7:29:30 am">April 2nd 2011</span>
+											by <span class='authorname'>Dennis Lo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>thanks for sharing , I was struggling … with accessing all the vars … globally …</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 9th 2011, 10:17:58 am">May 9th 2011</span>
+											by <span class='authorname'>Iain Campion</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTPClient leaks easily (or, can we have a .close() method?) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTPClient leaks easily (or, can we have a .close() method?)</h1>
+		</header>
+		<section>
+			<p>The following code leaks memory on both platforms at the rate of the size of the file being downloaded:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> debug = Ti.API.debug;
+
+<span class="hljs-keyword">var</span> file = Titanium.Filesystem.getFile(
+    Titanium.Filesystem.applicationSupportDirectory + <span class="hljs-string">"/tmp.file"</span>);
+
+<span class="hljs-comment">// work around the bug where onload events are sometimes not delivered</span>
+<span class="hljs-keyword">var</span> utils = {};
+utils.clearXhrTimer = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">if</span> (utils.currentXhrTimer) {
+        clearInterval(utils.currentXhrTimer);
+        utils.currentXhrTimer = <span class="hljs-literal">null</span>;
+    }
+};
+
+<span class="hljs-comment">// a 6MB file to demonstrate the problem</span>
+<span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://192.168.1.14/tmp/f9a6eaf7e3779c84229d71dc0da4113e.mp3"</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">downloadFile</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.setTimeout(<span class="hljs-number">60000</span>);
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        utils.clearXhrTimer();
+        alert(<span class="hljs-string">"Error: "</span> + e.error);
+    };
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        debug(<span class="hljs-string">"onload"</span>);
+        <span class="hljs-keyword">try</span> {
+            utils.clearXhrTimer();
+            <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span>) {
+                <span class="hljs-keyword">if</span> (file.exists()) {
+                    file.deleteFile();
+                }
+                file.write(<span class="hljs-keyword">this</span>.responseData);
+                downloadFile();
+            }
+        } <span class="hljs-keyword">catch</span> (err) {
+            alert (err);
+        }
+    };
+    utils.clearXhrTimer();
+    utils.currentXhrTimer = setInterval(
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{}, <span class="hljs-number">1000</span>);
+    xhr.open(<span class="hljs-string">'GET'</span>, url);
+    xhr.send();
+}
+
+downloadFile();
+</code></pre><p>From what I can tell from the profile output, this is because xhr was never being garbage collected, so the ASIHTTPRequest&#x2F;Android equivalent is never being deallocated. I imagine what&#39;s happening here is that the local xhr variable is being captured by the function, so its references are never released.</p>
+<p>I was able to work around the problem by storing xhr as a global variable so I can remove the old reference, but this is quite cumbersome, and I imagine it&#39;s a trap many users will fall into. Can we have an explicit .close() method on the HTTP request in the future, much like you have for the DB code?</p>
+<p>PS: It would be wonderful if xhrs were backed with a temp file instead of memory, or at least had the option to be that way. Even with the leaks fixed, I can&#39;t download a file over about 10MB on Android due to the heap size being exceeded. donthorp suggested I use the ondatastream function to do this myself, but it&#39;s very inefficient compared to native code.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 24th 2010, 7:10:19 pm">May 24th 2010</span>
+				by <span class='authorname'>Damien Elmes</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>http</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>leak</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>what happens the way it is? does it crash or just stops working?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 10th 2010, 7:01:44 pm">June 10th 2010</span>
+								by <span class='authorname'>Caio Iglesias</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>16</span> Votes</div>
+			<div class="answers"><span>8</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>8 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-217058">
+				
+						<section>
+							<p>Hi,</p>
+<p>I&#39;ve busted my head against XHR and after reading the posts from HMax and Don I&#39;ve put 2 and 2 together, so I am posting my solution. </p>
+<p>First part I got from HMax: use ONE global HTTP client and onload function! I am saving bunch of pictures from my server to my iOS device. I must be able to access properties of httpClient, which I am accessing through &quot;this&quot;. I have not yet implemented status and http header checks.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> myPictures1 = Titanium.Filesystem.getFile(Titanium.Filesystem.resourcesDirectory,<span class="hljs-keyword">this</span>.folderName + <span class="hljs-keyword">this</span>.fileName);
+    myPictures1.write(<span class="hljs-keyword">this</span>.responseData);
+};
+xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+</span>{
+    Ti.API.info(<span class="hljs-keyword">this</span>.responseData);
+};
+</code></pre><p>After I create global call for httpClient a use the open and send in a timeinterval function. I got this part from Don. When I press the button my application loads 3 pictures from a web server. The names of the pictures are in an array. Because I used &quot;this.&quot; in a global declaration I can call properties of httpClient through: xhr.fileName, xhr.folderName</p>
+<p>&#39;inline code&#39;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> mySaveFilenames = [<span class="hljs-string">'background2.png'</span>,<span class="hljs-string">'background3.png'</span>,<span class="hljs-string">'background4.png'</span>]; <span class="hljs-comment">// these are filenames of dowmloaded files from the server</span>
+<span class="hljs-keyword">var</span> myServerFileNames = [<span class="hljs-string">'view2_wallpaper.png'</span>,<span class="hljs-string">'view3_wallpaper.png'</span>,<span class="hljs-string">'view4_wallpaper.png'</span>]; <span class="hljs-comment">// these are filenames on the server</span>
+
+serverUpdateButton.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{     
+    <span class="hljs-keyword">var</span> k = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">var</span> timer = setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+    </span>{
+        <span class="hljs-comment">//everything runs in setInterval, interval is 1 second (the 1000 below)</span>
+        xhr.fileName = mySaveFilenames[k]; <span class="hljs-comment">// accessing properties of httpClient</span>
+        xhr.folderName = <span class="hljs-string">'backgrounds/'</span>;
+
+        xhr.open(<span class="hljs-string">'GET'</span>,serverURLTextField.value + <span class="hljs-string">'/'</span> + myServerFileNames[k]); 
+        <span class="hljs-comment">// because there are three files to download - url is dynamicaly created</span>
+
+        <span class="hljs-comment">// send the data</span>
+        xhr.send();
+        xhr.setTimeout(<span class="hljs-number">500</span>); <span class="hljs-comment">// we don't want that send lives for to long</span>
+
+        k++;    <span class="hljs-comment">// each time on the interval tick, we iterate k</span>
+
+        <span class="hljs-comment">// this is the way to exit setInterval, otherwise you are stuck in setInterval function</span>
+        <span class="hljs-keyword">if</span> (k == <span class="hljs-number">3</span>)
+        {
+            clearInterval(timer);
+        }
+    },<span class="hljs-number">1000</span>);
+});
+</code></pre><p>Hope, that someone will find this code usefull :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 21st 2011, 10:44:40 am">August 21st 2011</span>
+								by <span class='authorname'>Igor Panjan</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-217058" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-89941">
+				
+						<section>
+							<p>@Caio: it crashes.</p>
+<p>@Damien: can you give on further details on how you managed to avoid this? </p>
+<p>Amazing how this severe issue has had no reply by the devs. :(</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 24th 2010, 12:28:59 pm">July 24th 2010</span>
+								by <span class='authorname'>Pedro B.</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-89941" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-118651">
+				
+						<section>
+							<p>Hey there,</p>
+<p>I&#39;ve bumped on the same problem (downloading a lot of rather small files to application data directory) and I found out that creating several XHR objects to manage simultaneous downloads wasn&#39;t a good idea. At all. It leaked, and crashed the app.</p>
+<p>I found out that instancing a single (and global) XHR object, and passing custom variants to it did the trick :</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> downloader = Ti.Network.createHTTPClient({timeout:<span class="hljs-number">10000</span>});
+downloader.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-comment">//Save my file</span>
+    <span class="hljs-comment">//Handle errors first, this is only a sample code</span>
+    saveFile(<span class="hljs-keyword">this</span>.folderName, <span class="hljs-keyword">this</span>.fileName, <span class="hljs-keyword">this</span>.responseData);
+}
+
+<span class="hljs-comment">//custom properties you can access using this.<span class="hljs-label">xxx</span></span>
+<span class="hljs-comment">//inside you onload event manager</span>
+downloader.fileName = <span class="hljs-string">'foo.jpg'</span>;
+downloader.folderName = <span class="hljs-string">'images'</span>;
+<span class="hljs-comment">//open &amp; send </span>
+downloader.open(<span class="hljs-string">'GET'</span>, fileURL);
+downloader.send();
+</code></pre><p>This way, you don&#39;t have to create several XHR objects and onLoad events attached to them.</p>
+<p>This looks similar to the classic closure leak in javascript.</p>
+<p>FYI, I was able to download more than 1400 files in a row using this workaround.</p>
+<p>HMax</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 23rd 2010, 11:53:19 am">September 23rd 2010</span>
+								by <span class='authorname'>HMax</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-118651" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-104201">
+				
+						<section>
+							<p>I am banging my head against the wall about how to download a lot of small files and not to run into issues with threads and memory.<br>From what I see, it really seems that :</p>
+<p>1) when u download with the same client, it doesnt change its location property and gets you the same file over and over again.</p>
+<p>2) when u download with the new client each file, the application has issues with memory, even when I take the strictest measures to be sure that there is no more than 1 client on no more than 1 thread working at the same time.</p>
+<p>I guess, it seems the same issue…</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 22nd 2010, 3:59:15 pm">August 22nd 2010</span>
+								by <span class='authorname'>Ganna Kozynenko</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-104201" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-104241">
+				
+						<section>
+							<p>The thing seems to get more complicated, because once you create the client, there is no way to get rid of that new thread anymore, and your events and timers fire several times, so you have to use some sort of the semaphore. </p>
+<p>I have no other way to explain why my caching timer was getting called several times (it wrote the same message to Ti.API.info several times, and also something was deleting freshly cached files, in an effort to clean cache), and why introducing a semaphore fixed the issue.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 22nd 2010, 6:19:03 pm">August 22nd 2010</span>
+								by <span class='authorname'>Ganna Kozynenko</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-104241" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>What is a semaphore? Do you have a code example?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 22nd 2011, 7:45:36 am">May 22nd 2011</span>
+											by <span class='authorname'>James -</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-104571">
+				
+						<section>
+							<p>A couple of things. </p>
+<p>1) The code at the top is recursive, it&#39;s not surprising that it runs into trouble.</p>
+<p>2) If you want to kick off a another download. Use setTimeout from the onload to kick it off.</p>
+<p>3) HTTPClient instances are not intended to be reused. We&#39;re going to update the documentation to reflect that.</p>
+<p>4) If, after that, it&#39;s not cleaning up. Please provide a sample that shows the problem. We don&#39;t have the resources to recreate every text description of a problem. So not having reproduction code to work with slows down the process considerably.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 23rd 2010, 2:45:06 pm">August 23rd 2010</span>
+								by <span class='authorname'>Don Thorp</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-104571" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Don: I find it hard to believe that I&#39;m the only person who&#39;s tried to code a solution like the code posted in the original message. Variable capture is a fact of life in Javascript, but it&#39;s easily hit by people who are not JS experts. If there were an explicit close routine that were recommended, this would be easily avoided.</p>
+<p>And while you say it&#39;s &#39;recursive&#39;, it&#39;s only setting up a handler for another event. It has none of the issues a typically recursive routine has such as stack overflow.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 23rd 2010, 2:50:01 pm">August 23rd 2010</span>
+											by <span class='authorname'>Damien Elmes</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-100381">
+				
+						<section>
+							<p>This is a really big problem. How were you able to remove the reference? By setting it to null?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 12th 2010, 7:41:05 pm">August 12th 2010</span>
+								by <span class='authorname'>Christopher Burnett</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-100381" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-104211">
+				
+						<section>
+							<p>Hi there,</p>
+<p>In a recent crash log I noticed that there were 10 (!) threads, probably because I am forced to make a large number of API calls to get XML data required to populate the app.</p>
+<p>To access the main area it needs to make 5 calls; when the most important section is selected by the user the app needs to make a further 7 calls.</p>
+<p>At the end of each API call function I parse the response and store the data in a property list. Then (at the end of the function) I expect any objects created in that function to be destroyed and memory released.</p>
+<p>If that isn&#39;t the case (as it sounds from what people are saying with regard to the HTTPClient) then thats a critical issue.</p>
+<p>rgds,<br>Chris.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 22nd 2010, 4:26:36 pm">August 22nd 2010</span>
+								by <span class='authorname'>Chris Reed</span><br>
+								<a class="icon-bg icon-link" href="question/28911/httpclient-leaks-easily-or-can-we-have-a-close-method#answer-104211" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
