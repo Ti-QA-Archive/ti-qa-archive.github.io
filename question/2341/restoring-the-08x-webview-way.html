@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Restoring the 0.8.x webview way » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Restoring the 0.8.x webview way</h1>
+		</header>
+		<section>
+			<p>&gt;Any chance you will make available again the ability to reference an html file in the createWindow method and let us use webviews the 0.8.x way?<br>Whilst the changes in 1.0 are great for native views etc it makes working with webviews a pain.<br>&gt;Up until now we have had a report.html file that would setup a basic html skeleton, a native toolbar and grab a reportId from a <code>Titanium.App.Properties.getString</code> call.<br>Next in a referenced js file we would make a xhr call to our web app and take the resulting html fragment and insert it using jQuery.<br><code>$(&amp;#39;body&amp;#39;).html(this.responseText);</code><br>I would also update the form action so it referenced the fully qualified domain.<br><code>$(&amp;#39;#reportForm&amp;#39;).attr(&amp;#39;action&amp;#39;, url + &amp;#39;&amp;#x2F;&amp;#39; + &amp;#39;mobile&amp;#x2F;&amp;#39; + &amp;#39;mobilereport.aspx?id=&amp;#39; + reportId</code><br>At this point all calls back to the server worked fine for drill down and other functionality  had a few scrolling issues to sort but it performed and worked well.</p>
+<ul>
+<li>Where do I start implementing this the 1.0 way?</li>
+<li>If I need to open reports from 3 different tabs, I imagine I&#39;ll need a separate js file that can be opened from anywhere.</li>
+<li>If the XHR call cant be made in the html file how do we inject the html from the external js file and can jquery even be used? </li>
+</ul>
+<p>Thanks<br>Dave </p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 16th 2010, 12:20:11 am">March 16th 2010</span>
+				by <span class='authorname'>David McL</span>
+			</div>
+
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-4871">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>A few comments on how i&#39;d suggest you handle this in 1.0 forward. WebViews are way more powerful but you&#39;ll need to handle them differently.  </p>
+<p>Put your logic for handling things like fetching remote content in your <code>app.js</code> and fire events to the webview</p>
+<p>Simple example.</p>
+<h3 id="app-js">app.js</h3>
+<pre><code class="hljs">function getMyStuff()
+{
+    var xhr = Titanium.Network.createHTTPClient();
+    xhr.onload = function(e)
+    {
+        Titanium.App.fireEvent(<span class="hljs-string">"some_event_name"</span>,eval(this.responseText));
+    };
+    xhr.open(<span class="hljs-string">"<span class="hljs-keyword">GET</span>"</span>,<span class="hljs-string">"http://someurl.com"</span>);
+    xhr.send();
+}
+Titanium.App.addEventListener(<span class="hljs-string">"go_do_my_stuff,getMyStuff);</span>
+</code></pre><h3 id="webview-html">webview.html</h3>
+<pre><code class="lang-html"><span class="hljs-tag">&lt;<span class="hljs-title">script</span>&gt;</span><span class="undefined">
+    Titanium.App.addEventListener("some_event_name",function(e)
+    {
+          // do something we data in e
+          $('#my_element_by_id).html(my_content_from_e);
+    });
+    $("#my_button").click(function() 
+    {
+         Titanium.App.fireEvent("go_do_my_stuff");
+    });
+</span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+</code></pre>
+<p>The above example is a very simple and very powerful pattern to use.  You essentially place any common, global logic in your main controller, <code>app.js</code>.  You setup him to listen for app-level events and fire app-level events.  </p>
+<p>In webview, you simply fire an event to tell the controller to perform some action.  You then listen for any events once completed with your data.</p>
+<p>This is a nice de-composition between MVC whereby your <code>app.js</code> is acting as your main controller and your views are acting as views and handling the model stuff (from XHR).</p>
+<p>If you really wanted to break the MVC model and do some gnarly stuff, you could use the <code>evalJS</code> function on a <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;latest&#x2F;Titanium.UI.WebView">WebView</a> and just inject Javascript from your controller.  So, this would also work … but be a little not so elegant:</p>
+<pre><code class="hljs">webview.evalJS(<span class="hljs-string">"<span class="hljs-variable">$('#my_element_id)</span>.html('hello world')"</span>);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 16th 2010, 2:15:07 am">March 16th 2010</span>
+								by <span class='authorname'>Jeff Haynie</span><br>
+								<a class="icon-bg icon-link" href="question/2341/restoring-the-08x-webview-way#answer-4871" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-4931">
+				
+						<section>
+							<p>Thanks Jeff,<br>I had it in my head you couldn&#39;t gain access to app.js once you were creating new windows with separate .js files.<br>Thanks for the heads up - this looks like a much better approach than my current wip…</p>
+<p>Cheers<br>Dave </p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 16th 2010, 2:41:00 am">March 16th 2010</span>
+								by <span class='authorname'>David McL</span><br>
+								<a class="icon-bg icon-link" href="question/2341/restoring-the-08x-webview-way#answer-4931" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

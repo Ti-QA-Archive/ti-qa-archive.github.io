@@ -1,0 +1,354 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Automatic build number generation » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Automatic build number generation</h1>
+		</header>
+		<section>
+			<p>Is there a way to make Titanium auto-generate a build number every time a project is built? It would be nice if we could have this build number built into the &quot;project data&quot; like the version string, but have it be incremented by Titanium for each build.</p>
+<p>Vadtec</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 25th 2010, 7:00:18 pm">March 25th 2010</span>
+				by <span class='authorname'>Nicholas Davey</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>build</span></li>
+					
+						<li><span class='tagname'>development</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-216687">
+				
+						<section>
+							<p>I&#39;ve never worked with Python before, so there&#39;s probably a better way to do this, but this is what I&#39;ve managed to cobble together:</p>
+<pre><code class="hljs"><span class="hljs-comment">#!/usr/bin/env python</span>
+<span class="hljs-comment"># -*- coding: utf-8 -*-</span>
+<span class="hljs-comment">#</span>
+<span class="hljs-comment"># example compiler plugin</span>
+<span class="hljs-comment"># the config object is a set of properties</span>
+<span class="hljs-comment"># that are passed (dependent on platform)</span>
+<span class="hljs-comment"># that will allow you to hook into the compiler tooling</span>
+<span class="hljs-comment"># </span>
+
+import os
+<span class="hljs-comment">#import re</span>
+
+def compile(config):
+    <span class="hljs-keyword">print</span> <span class="hljs-string">"[INFO] Compiler plugin: ti.version loaded and working for <span class="hljs-variable">%s</span>"</span> % config[<span class="hljs-string">'platform'</span>]
+
+    project_dir = config[<span class="hljs-string">'project_dir'</span>]
+    resource_dir = os.path.abspath(os.path.<span class="hljs-keyword">join</span>(project_dir, <span class="hljs-string">'Resources'</span>))
+
+    version_file = os.path.<span class="hljs-keyword">join</span>(resource_dir, <span class="hljs-string">'version.js'</span>)
+
+    vl = <span class="hljs-string">''</span>
+    <span class="hljs-keyword">if</span> os.path.<span class="hljs-keyword">exists</span>(version_file):
+        vf = <span class="hljs-keyword">open</span>(version_file)
+        vl = vf.<span class="hljs-keyword">readline</span>().strip()
+        vf.<span class="hljs-keyword">close</span>()
+
+      <span class="hljs-keyword">if</span> len(vl) &gt; <span class="hljs-number">0</span>:
+          _key, _value = vl.<span class="hljs-keyword">split</span>(<span class="hljs-string">"="</span>)
+          _value = _value.replace(<span class="hljs-string">";"</span>, <span class="hljs-string">""</span>).strip()
+          vl_value = <span class="hljs-keyword">int</span>(_value) + <span class="hljs-number">1</span>
+    <span class="hljs-keyword">else</span>:
+        vl_value = <span class="hljs-number">1</span>
+
+    _build = str(vl_value)
+    data = <span class="hljs-string">"var _build = <span class="hljs-variable">%s</span>;"</span> % _build
+
+    <span class="hljs-comment">#print "[DEBUG] [ti.version] data: %s" % data</span>
+
+    vf = <span class="hljs-keyword">open</span>(version_file, <span class="hljs-string">"w"</span>)
+    vf.<span class="hljs-keyword">write</span>(data)
+    vf.<span class="hljs-keyword">close</span>()
+</code></pre><p>Stick that in a file called &lt;plugin.py&gt; in a folder called &lt;ti.version&gt;. The &lt;ti.version&gt; folder should be in the &lt;plugins&gt; folder for your application.</p>
+<p>Edit tiapp.xml, and add:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">plugins</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">plugin</span> <span class="hljs-attribute">version</span>=<span class="hljs-value">"0.1"</span>&gt;</span>ti.version<span class="hljs-tag">&lt;/<span class="hljs-title">plugin</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">plugins</span>&gt;</span>
+</code></pre><p>That should create &#x2F; update a file &lt;version.js&gt; in your &lt;Resources&gt; folder. All that needs to be done is to include &lt;version.js&gt; in your code, and use the variable.</p>
+<p>Hope this helps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 17th 2011, 2:15:17 am">August 17th 2011</span>
+								by <span class='authorname'>Heinrich Steenberg</span><br>
+								<a class="icon-bg icon-link" href="question/7251/automatic-build-number-generation#answer-216687" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>There may be a better way but hey, it works. Thanks for this.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 15th 2011, 2:56:45 am">November 15th 2011</span>
+											by <span class='authorname'>Aaron Francis</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>3</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-244736">
+				
+						<section>
+							<p>There is a documentation to create plugins in python for Titanium? </p>
+<p>Because I try to add the library PIL, but I have the following error : &quot;[ERROR] ImportError: No module named Image&quot;</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 8th 2012, 7:37:52 am">August 8th 2012</span>
+								by <span class='authorname'>Laroche Marine</span><br>
+								<a class="icon-bg icon-link" href="question/7251/automatic-build-number-generation#answer-244736" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-247578">
+				
+						<section>
+							<h2 id="added-json-support-package-json-style-">Added JSON support (package.json style)</h2>
+<p>I took Heinrich&#39;s excellent script and modified it a bit for JSON support:</p>
+<pre><code class="hljs"><span class="hljs-comment">#!/usr/bin/env python</span>
+<span class="hljs-comment"># -*- coding: utf-8 -*-</span>
+<span class="hljs-comment">#</span>
+<span class="hljs-comment"># example compiler plugin</span>
+<span class="hljs-comment"># the config object is a set of properties</span>
+<span class="hljs-comment"># that are passed (dependent on platform)</span>
+<span class="hljs-comment"># that will allow you to hook into the compiler tooling</span>
+<span class="hljs-comment"># </span>
+
+<span class="hljs-keyword">import</span> os
+<span class="hljs-keyword">import</span> json
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compile</span><span class="hljs-params">(config)</span>:</span>
+    <span class="hljs-keyword">print</span> <span class="hljs-string">"[INFO] Compiler plugin: ti.version loaded and working for %s"</span> % config[<span class="hljs-string">'platform'</span>]
+
+    project_dir = config[<span class="hljs-string">'project_dir'</span>]
+    resource_dir = os.path.abspath(os.path.join(project_dir, <span class="hljs-string">'Resources'</span>))
+
+    version_file = os.path.join(resource_dir, <span class="hljs-string">'package.json'</span>)
+
+    <span class="hljs-keyword">if</span> os.path.exists(version_file):
+        vf = open(version_file, <span class="hljs-string">'r'</span>).read()
+
+        <span class="hljs-keyword">try</span>:
+            data = json.loads(vf)
+
+            _oldVersion = data[<span class="hljs-string">"version"</span>]
+            _version = data[<span class="hljs-string">"version"</span>].split(<span class="hljs-string">"."</span>)
+            _major = _version[<span class="hljs-number">0</span>]
+            _minor = _version[<span class="hljs-number">1</span>]
+            _patch = _version[<span class="hljs-number">2</span>].split(<span class="hljs-string">"-"</span>)[<span class="hljs-number">0</span>]
+            _build = _version[<span class="hljs-number">2</span>].split(<span class="hljs-string">"-"</span>)[<span class="hljs-number">1</span>]
+
+            <span class="hljs-comment"># increment build number</span>
+            _build = int(_build) + <span class="hljs-number">1</span>
+
+            <span class="hljs-comment"># reconstruct json</span>
+            data[<span class="hljs-string">"version"</span>] = str(_major) + <span class="hljs-string">'.'</span> + str(_minor) + <span class="hljs-string">'.'</span> + str(_patch) + <span class="hljs-string">'-'</span> + str(_build)
+
+            <span class="hljs-keyword">print</span> <span class="hljs-string">"[INFO] [ti.version]"</span>,_oldVersion,<span class="hljs-string">"&gt;&gt;"</span>,data[<span class="hljs-string">"version"</span>]
+
+        <span class="hljs-keyword">except</span>:
+            <span class="hljs-keyword">print</span> <span class="hljs-string">"[ERROR] Invalid package.json file. Version number unable to auto-increment."</span>
+
+    <span class="hljs-keyword">else</span>:
+        <span class="hljs-keyword">print</span> <span class="hljs-string">"[ERROR] No package.json file found in Resources. Creating a new one..."</span>
+        data = {<span class="hljs-string">"name"</span>: <span class="hljs-string">"new-application"</span>, <span class="hljs-string">"version"</span>: <span class="hljs-string">"0.0.1-0"</span>}
+
+    <span class="hljs-comment"># write changes back to file</span>
+    vf = open(version_file, <span class="hljs-string">"w"</span>)
+    vf.write(json.dumps(data, sort_keys=<span class="hljs-keyword">True</span>, indent=<span class="hljs-number">2</span>))
+    vf.close()
+</code></pre><h3 id="notes">Notes</h3>
+<ul>
+<li>I have NO python experience, just pieced together from web</li>
+<li>Only increments build number at the moment, not sure if more is needed, just manually change the json file for major&#x2F;minor&#x2F;patch releases</li>
+</ul>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 19th 2012, 5:34:53 pm">September 19th 2012</span>
+								by <span class='authorname'>Daniel Mahon</span><br>
+								<a class="icon-bg icon-link" href="question/7251/automatic-build-number-generation#answer-247578" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>You can read the package.json file in app using:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> pjson = JSON.parse(Ti.Filesystem.getFile(<span class="hljs-string">'./package.json'</span>).<span class="hljs-keyword">read</span>());
+Ti.API.info(pjson);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="September 19th 2012, 6:15:10 pm">September 19th 2012</span>
+											by <span class='authorname'>Daniel Mahon</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><a href="https:&#x2F;&#x2F;github.com&#x2F;danielmahon&#x2F;ti.version">View on GitHub</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 19th 2012, 6:43:56 pm">September 19th 2012</span>
+											by <span class='authorname'>Daniel Mahon</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-257801">
+				
+						<section>
+							<p>Is this still working for Aptana studio 3.0.2&gt; ?</p>
+<p>I added the python script, edited the tiap.xml but on build, nothing happens, no file is created.<br>If i set a break point in the python script, it doesn&#39;t get triggered.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 1st 2013, 8:53:31 am">March 1st 2013</span>
+								by <span class='authorname'>peet klomp</span><br>
+								<a class="icon-bg icon-link" href="question/7251/automatic-build-number-generation#answer-257801" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-167241">
+				
+						<section>
+							<p>Do you have answer for your question? I get the same problem.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 22nd 2010, 10:12:28 am">December 22nd 2010</span>
+								by <span class='authorname'>Pasha Tsipinio</span><br>
+								<a class="icon-bg icon-link" href="question/7251/automatic-build-number-generation#answer-167241" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
