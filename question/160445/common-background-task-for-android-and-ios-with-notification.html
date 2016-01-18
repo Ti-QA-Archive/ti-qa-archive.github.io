@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Common background task for Android and iOS with Notification » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Common background task for Android and iOS with Notification</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>i need to develop a task that should always be executed in the background, if the App is in the foreground and also in background. From time to time this task should notify the user and pass data to the main App.<br>Now I try to come up with a clever solution.<br>On iOS I can start a background task with<br><code>Alloy.Globals.iOSService = Ti.App.iOS.registerBackgroundService({url:&amp;#39;iosBackgroundTask.js&amp;#39;});</code><br>on Android i do </p>
+<pre><code class="hljs">Alloy.Globals.androidService = Titanium.Android.createServiceIntent({
+            url : 'androidBackgroundTask.js'
+        })<span class="hljs-comment">;</span>
+Alloy.Globals.androidService.putExtra('interval', 10 * 1000)<span class="hljs-comment">;</span>
+Ti.Android.startService(Alloy.Globals.androidService)<span class="hljs-comment">;</span>
+</code></pre><p>For notifications I use the following:<br>iOS:</p>
+<pre><code class="hljs"><span class="hljs-tag">Titanium</span><span class="hljs-class">.App</span><span class="hljs-class">.iOS</span><span class="hljs-class">.scheduleLocalNotification</span>(<span class="hljs-rules">{
+            <span class="hljs-rule"><span class="hljs-attribute">alertBody</span>:<span class="hljs-value">body,
+            alertAction:title,
+            date:new <span class="hljs-function">Date</span>(),
+            data : data
+        </span></span></span>});
+</code></pre><p>on Android I use:</p>
+<pre><code class="hljs">        <span class="hljs-built_in">var</span> intent = Ti<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>createIntent({
+            flags : Ti<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>FLAG_ACTIVITY_CLEAR_TOP | Ti<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>FLAG_ACTIVITY_NEW_TASK,
+            className : <span class="hljs-string">'com.myapp.TestActivity'</span>,
+            action : Ti<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>ACTION_SEND
+        });
+        intent<span class="hljs-built_in">.</span>addCategory(Ti<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>CATEGORY_LAUNCHER);
+        intent<span class="hljs-built_in">.</span>putExtra(<span class="hljs-string">"intentType"</span>,<span class="hljs-string">"suggestion"</span>);
+        intent<span class="hljs-built_in">.</span>putExtra(<span class="hljs-string">"intentData"</span>,<span class="hljs-built_in">data</span>);
+        intent<span class="hljs-built_in">.</span><span class="hljs-built_in">data</span> = <span class="hljs-built_in">data</span>;
+
+        <span class="hljs-built_in">var</span> pending = Titanium<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>createPendingIntent({
+            intent: intent,
+            flags: Titanium<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>FLAG_UPDATE_CURRENT
+        });
+
+        <span class="hljs-built_in">var</span> notification = Titanium<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>createNotification({
+            <span class="hljs-comment">// icon is passed as an Android resource ID -- see Ti.App.Android.R.</span>
+            icon: Ti<span class="hljs-built_in">.</span>App<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>R<span class="hljs-built_in">.</span>drawable<span class="hljs-built_in">.</span>appicon,
+               contentTitle: title,
+            contentText : body,
+            contentIntent: pending
+        });
+        <span class="hljs-comment">// Send the notification.</span>
+        Titanium<span class="hljs-built_in">.</span>Android<span class="hljs-built_in">.</span>NotificationManager<span class="hljs-built_in">.</span>notify(<span class="hljs-number">1</span>, notification);
+</code></pre><p>Some questions that I now have:</p>
+<ol>
+<li>Why can I not access Alloy.Globals from iosBackgroundTask.js? Because it runs in another context?<br>Any idea to pass data to iosBackgroundTask?</li>
+<li>How can I read the data comming with the intent from within the App? In the doc I can only find how to send data. On Android the intent does not seem to contain my data if I use <code>inline var intent = Ti.Android.currentActivity.getIntent();</code></li>
+<li>~~~<br>Ti.App.iOS.addEventListener(&#39;notification&#39;, function(e){<pre><code class="hljs"> alert<span class="hljs-list">(<span class="hljs-keyword">e</span>)</span><span class="hljs-comment">;</span>
+</code></pre> });<br>~~~ in index.js is not called. I try to get the local notification when the iOs App is active.</li>
+</ol>
+<ul>
+<li>any idea on how to create a nice module out of it? Preferable only one js file with a common method executed on both Android and iOS?</li>
+</ul>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 13th 2013, 1:40:18 pm">December 13th 2013</span>
+				by <span class='authorname'>Max Stricker</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>intent</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-272512">
+				
+						<section>
+							<p>1.</p>
+<p>The easiest way to share data between app and service is the use of <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.App.Properties">Ti.App.Properties</a>. I didn&#39;t test it from a service, but you also could try to access the Alloy Globals like this</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> theObject = <span class="hljs-built_in">require</span>(<span class="hljs-string">'alloy'</span>).Globals.someGlobalObject;
+</code></pre><p>2.</p>
+<p>To answer this question, it is important to know your architecture, especially from where you call <code>Ti.Android.currentActivity</code> - you are addressing <code>com.myapp.TestActivity</code> - and it depends on where and when you call it from, otherwise it would be luck if both statements reference the same Activity. (I did <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;156619&#x2F;confused-about-referencing-activity-proxy">some tests</a> a while ago)</p>
+<p>3.</p>
+<p>This Listener works for me</p>
+<pre><code class="hljs">Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>{ <span class="hljs-title">alert</span><span class="hljs-params">(e)</span>; });</span>
+</code></pre><p>I also tried to implement a nice cross-platform solution for handling local notifications but it just didn&#39;t work out. Notifications on iOS and Android just work different. So, what I did was, I scheduled notifications from within the app on iOS and catch them with the above listener. On Android I use benCoding.AlarmManager to schedule a service which fires the local notification depending on if my app is running or not. A nice tutorial for a Timer app is this on: <a href="http:&#x2F;&#x2F;smorgasbork.com&#x2F;component&#x2F;content&#x2F;article&#x2F;38-titanium-mobile&#x2F;137-building-a-ti-mobile-app-grilltime-part-1">Building a Ti Mobile App: GrillTime</a> (Maybe this helps you too)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 13th 2013, 3:33:20 pm">December 13th 2013</span>
+								by <span class='authorname'>Manuel Lehner</span><br>
+								<a class="icon-bg icon-link" href="question/160445/common-background-task-for-android-and-ios-with-notification#answer-272512" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Rotating an image view - strange behavior » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Rotating an image view - strange behavior</h1>
+		</header>
+		<section>
+			<p>Hi all: I&#39;ve been struggling with this for a while and have not been able to get it to work - the documented behavior seems incorrect for what I&#39;m trying to do. Is there something wrong with the rotate matrix?</p>
+<p>This is a puzzler…</p>
+<p>Part of my app allows me to drop and resize&#x2F;rotate images, all by using a corner handle. I am trying to<br>duplicate a similar feature found in this app https:&#x2F;&#x2F;itunes.apple.com&#x2F;us&#x2F;app&#x2F;line-camera&#x2F;id516561342?mt=8 - Line Camera</p>
+<p>In that app,when you drop a object into the editor, there is a handle on the upper right. Dragging the handle in and out will resize the image, while rotating the handle will rotate the image. So this is how I set it up</p>
+<ul>
+<li>Imageview for the image, with an anchorpoint of 0.5, 0.5</li>
+<li>imageview for the handle, located in top:0, right:0</li>
+<li>image.add(handle)</li>
+</ul>
+<p>How can I tell if the user is resizing or rotating? Well, I capture the handles location on touchstart of the<br>handle, and on touchmove of the handle, if the variance between the current location of the handle and<br>the original location of the handle is up and to the right, or down and to the left, it resizes image. If the<br>variance is up and to the left, it rotates image counterclockwise. If down and to the right, it rotates clockwise.</p>
+<p>The resize works fine, but when I drag the handle to rotate, the image rotates around the HANDLE,<br>not the image. For some reason, I can&#39;t tell the image to rotate around its center if the handle is attached to the image. </p>
+<p>Here is the relevant code:</p>
+<pre><code class="hljs"><span class="hljs-built_in">image</span> = Ti.UI.createImageView({<span class="hljs-built_in">image</span>:source.<span class="hljs-built_in">image</span>,anchorPoint:{x:<span class="hljs-number">0.5</span>,y:<span class="hljs-number">0.5</span>}});
+handle = Ti.UI.createImageView({<span class="hljs-built_in">image</span>:<span class="hljs-string">"images/handle.png"</span>, top:<span class="hljs-number">0</span>, right:<span class="hljs-number">0</span>,zIndex:<span class="hljs-number">1000</span>});
+<span class="hljs-built_in">image</span>.<span class="hljs-built_in">add</span>(handle);
+var gripStartPoint;
+var olt = Titanium.UI.create2DMatrix();
+
+handle.addEventListener(<span class="hljs-string">'touchstart'</span>, function(e) {
+         startHeight = <span class="hljs-built_in">image</span>.<span class="hljs-built_in">size</span>.<span class="hljs-variable">height</span>;
+         startY = <span class="hljs-built_in">image</span>.y;
+         startWidth = <span class="hljs-built_in">image</span>.<span class="hljs-built_in">size</span>.<span class="hljs-variable">width</span>;
+         gripStartPoint = e.source.convertPointToView({
+            x: e.x,
+            y: e.y
+        }, editorPanel);
+});
+
+handle.addEventListener(<span class="hljs-string">'touchmove'</span>, function(e) {
+    var newPoint = e.source.convertPointToView({
+            x: e.x,
+            y: e.y
+        }, editorPanel);
+
+        var <span class="hljs-built_in">dist</span> = calcDistance(gripStartPoint.x,gripStartPoint.y,newPoint.x,newPoint.y);
+
+         var diffY = newPoint.y - gripStartPoint.y;
+         var diffX = newPoint.x - gripStartPoint.x;
+
+        <span class="hljs-comment">// resize</span>
+
+         <span class="hljs-keyword">if</span> ( (diffY &lt; <span class="hljs-number">0</span> &amp; diffX &gt;= <span class="hljs-number">0</span>) | (diffY &gt; <span class="hljs-number">0</span> &amp; diffX &lt;= <span class="hljs-number">0</span> ) ) {    
+            <span class="hljs-built_in">image</span>.<span class="hljs-variable">height</span> = startHeight - diffY;
+             <span class="hljs-built_in">image</span>.y -= diffY;
+             <span class="hljs-built_in">image</span>.<span class="hljs-variable">width</span> = startWidth + diffX;
+         }
+
+        <span class="hljs-comment">// rotate clockwise - based on distance from original handle location</span>
+
+         <span class="hljs-keyword">if</span> (diffY &gt; <span class="hljs-number">0</span> &amp; diffX &gt; <span class="hljs-number">0</span> ) {
+                 olt = olt.<span class="hljs-built_in">rotate</span>(<span class="hljs-built_in">dist</span>/<span class="hljs-number">10</span>);
+                <span class="hljs-built_in">image</span>.transform = olt;            
+            }
+
+        <span class="hljs-comment">// rotate counterclockwise - based on distance from original handle location </span>
+
+         <span class="hljs-keyword">if</span> (diffY &lt; <span class="hljs-number">0</span> &amp; diffX &lt; <span class="hljs-number">0</span> ) {
+                 olt = olt.<span class="hljs-built_in">rotate</span>(-<span class="hljs-built_in">dist</span>/<span class="hljs-number">10</span>);
+                <span class="hljs-built_in">image</span>.transform = olt;            
+             }
+
+     });
+
+<span class="hljs-comment">// calculate the distance between 2 points</span>
+
+function calcDistance(x1,y1,x2,y2) {
+    var d = Math.<span class="hljs-built_in">sqrt</span>(Math.<span class="hljs-built_in">pow</span>((x1-x2),<span class="hljs-number">2</span>)+Math.<span class="hljs-built_in">pow</span>((y1-y2),<span class="hljs-number">2</span>));
+     Ti.API.info(<span class="hljs-string">"distance: "</span>+d);
+    <span class="hljs-keyword">return</span> d;
+}
+</code></pre><p>Like I said, for some reason the whole image is rotating around the handle, not the center of the image.</p>
+<p>I get this feeling I&#39;m missing something obvious. I have this feeling that the fact that the handle is attached to the image is causing this problem. If that is the case, does anyone know how I can synchronize the rotation and movement of two imageviews by dragging on of them without adding the handle to the image?</p>
+<p>Please let me know what you think.</p>
+<p>Thanks…Chris</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 9th 2014, 11:07:47 pm">March 9th 2014</span>
+				by <span class='authorname'>Chris Kalaboukis</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>editor</span></li>
+					
+						<li><span class='tagname'>handle</span></li>
+					
+						<li><span class='tagname'>imageview</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>rotate</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Chris,</p>
+<p>I put the following code into a new project and it seems to work…</p>
+<pre><code class="hljs">var win = Ti.UI.createWindow({});
+var editorPanel = Ti.UI.createView({});
+win.<span class="hljs-built_in">add</span>(editorPanel);
+
+<span class="hljs-built_in">image</span> = Ti.UI.createImageView({<span class="hljs-built_in">image</span>:<span class="hljs-string">"images/mmouse.png"</span>,anchorPoint:{x:<span class="hljs-number">0.5</span>,y:<span class="hljs-number">0.5</span>}});
+handle = Ti.UI.createImageView({<span class="hljs-built_in">image</span>:<span class="hljs-string">"images/handle.png"</span>, <span class="hljs-variable">width</span>:<span class="hljs-number">20</span>, <span class="hljs-variable">height</span>: <span class="hljs-number">20</span>, top:<span class="hljs-number">0</span>, right:<span class="hljs-number">0</span>,zIndex:<span class="hljs-number">1000</span>});
+<span class="hljs-built_in">image</span>.<span class="hljs-built_in">add</span>(handle);
+var gripStartPoint;
+var olt = Titanium.UI.create2DMatrix();
+
+handle.addEventListener(<span class="hljs-string">'touchstart'</span>, function(e) {
+      startHeight = <span class="hljs-built_in">image</span>.<span class="hljs-built_in">size</span>.<span class="hljs-variable">height</span>;
+      startY = <span class="hljs-built_in">image</span>.y;
+      startWidth = <span class="hljs-built_in">image</span>.<span class="hljs-built_in">size</span>.<span class="hljs-variable">width</span>;
+      gripStartPoint = e.source.convertPointToView({
+            x: e.x,
+            y: e.y
+        }, editorPanel);
+});
+
+handle.addEventListener(<span class="hljs-string">'touchmove'</span>, function(e) {
+    var newPoint = e.source.convertPointToView({
+            x: e.x,
+            y: e.y
+        }, editorPanel);
+
+        var <span class="hljs-built_in">dist</span> = calcDistance(gripStartPoint.x,gripStartPoint.y,newPoint.x,newPoint.y);
+
+        var diffY = newPoint.y - gripStartPoint.y;
+        var diffX = newPoint.x - gripStartPoint.x;
+
+        <span class="hljs-comment">// resize</span>
+
+        <span class="hljs-keyword">if</span> ( (diffY &lt; <span class="hljs-number">0</span> &amp; diffX &gt;= <span class="hljs-number">0</span>) | (diffY &gt; <span class="hljs-number">0</span> &amp; diffX &lt;= <span class="hljs-number">0</span> ) ) {   
+            <span class="hljs-built_in">image</span>.<span class="hljs-variable">height</span> = startHeight - diffY;
+            <span class="hljs-built_in">image</span>.y -= diffY;
+            <span class="hljs-built_in">image</span>.<span class="hljs-variable">width</span> = startWidth + diffX;
+        }
+
+        <span class="hljs-comment">// rotate clockwise - based on distance from original handle location</span>
+
+        <span class="hljs-keyword">if</span> (diffY &gt; <span class="hljs-number">0</span> &amp; diffX &gt; <span class="hljs-number">0</span> ) {
+                olt = olt.<span class="hljs-built_in">rotate</span>(<span class="hljs-built_in">dist</span>/<span class="hljs-number">10</span>);
+                <span class="hljs-built_in">image</span>.transform = olt;          
+            }
+
+        <span class="hljs-comment">// rotate counterclockwise - based on distance from original handle location </span>
+
+        <span class="hljs-keyword">if</span> (diffY &lt; <span class="hljs-number">0</span> &amp; diffX &lt; <span class="hljs-number">0</span> ) {
+                olt = olt.<span class="hljs-built_in">rotate</span>(-<span class="hljs-built_in">dist</span>/<span class="hljs-number">10</span>);
+                <span class="hljs-built_in">image</span>.transform = olt;          
+            }
+
+     });
+
+<span class="hljs-comment">// calculate the distance between 2 points</span>
+
+function calcDistance(x1,y1,x2,y2) {
+    var d = Math.<span class="hljs-built_in">sqrt</span>(Math.<span class="hljs-built_in">pow</span>((x1-x2),<span class="hljs-number">2</span>)+Math.<span class="hljs-built_in">pow</span>((y1-y2),<span class="hljs-number">2</span>));
+    Ti.API.info(<span class="hljs-string">"distance: "</span>+d);
+    <span class="hljs-keyword">return</span> d;
+}
+
+win.<span class="hljs-built_in">add</span>(<span class="hljs-built_in">image</span>);
+win.<span class="hljs-built_in">open</span>();
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="March 11th 2014, 5:00:30 pm">March 11th 2014</span>
+								by <span class='authorname'>Ray Belisle</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>you are correct this does work perfectly!!! I just realized that I didn&#39;t add all of the code. I also have the ability to move the object by touching and dragging the image. here</p>
+<pre><code class="hljs">image.addEventListener(<span class="hljs-string">'touchstart'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+  curX = e.x;
+  curY = e.y;
+});
+
+image.addEventListener(<span class="hljs-string">'touchmove'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{ 
+<span class="hljs-keyword">var</span> deltaX = e.x - curX, deltaY = e.y - curY;
+       olt = olt.translate(deltaX, deltaY);
+       image.animate({
+           transform : olt,
+           duration : <span class="hljs-number">100</span>
+       });    });
+</code></pre><p>When I add this, it shows the weird rotating around the handle behavior. Is there any way around that??</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 23rd 2014, 5:32:02 pm">April 23rd 2014</span>
+								by <span class='authorname'>Chris Kalaboukis</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,507 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Can&#39;t open PDF from notification activity (Android) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Can&#39;t open PDF from notification activity (Android)</h1>
+		</header>
+		<section>
+			<p>I have a notification service that uses an intermediary activity to determine if the app is active or inactive and acts accordingly.  Everything works as expected if my app is active, but if my app is inactive it doesn&#39;t work properly. If its active, this activity calls a function which opens up a window allowing the user to download a PDF. If it is inactive is creates the window itself and everything works fine except when I try to download&#x2F;view the PDF. It writes the file, but the activity won&#39;t start the intent for some reason. What could be the issue?</p>
+<p>here&#39;s the notification service:</p>
+<pre><code class="hljs">
+<span class="hljs-comment">/*global Ti: true, require: true */</span>
+
+(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(service)</span> </span>{
+
+    <span class="hljs-comment">//include cache object so we can store messages</span>
+    Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">"models/cache.js"</span>);
+
+    <span class="hljs-keyword">var</span> serviceIntent = service.getIntent(),
+    title = serviceIntent.hasExtra(<span class="hljs-string">'title'</span>) ? serviceIntent.getStringExtra(<span class="hljs-string">'title'</span>) : <span class="hljs-string">''</span>,
+    statusBarMessage = serviceIntent.hasExtra(<span class="hljs-string">'message'</span>) ? serviceIntent.getStringExtra(<span class="hljs-string">'message'</span>) : <span class="hljs-string">''</span>,
+    message = serviceIntent.hasExtra(<span class="hljs-string">'message'</span>) ? serviceIntent.getStringExtra(<span class="hljs-string">'message'</span>) : <span class="hljs-string">''</span>;
+
+    <span class="hljs-comment">//retrieve most recently placed message index</span>
+    <span class="hljs-keyword">var</span> messageIndex=Ti.App.Cache.<span class="hljs-keyword">get</span>(<span class="hljs-string">'pushMessageIndex'</span>);
+    <span class="hljs-comment">//if index has not been set or is over 8then reset it to 0</span>
+    <span class="hljs-keyword">if</span>(messageIndex==<span class="hljs-literal">null</span> || messageIndex&gt;<span class="hljs-number">8</span>)
+    {
+        messageIndex=<span class="hljs-number">0</span>;
+    }
+    <span class="hljs-comment">//else increment the index</span>
+    <span class="hljs-keyword">else</span>
+    {
+        messageIndex++;
+    }
+
+    <span class="hljs-comment">//cache message index (4 hrs)</span>
+    Ti.App.Cache.put(<span class="hljs-string">'pushMessageIndex'</span>, messageIndex, <span class="hljs-number">14400</span>); 
+
+    <span class="hljs-comment">//cache message (4 hrs)</span>
+    Ti.App.Cache.put(<span class="hljs-string">'pushMessage_'</span>+messageIndex, message, <span class="hljs-number">14400</span>); 
+
+
+
+
+    <span class="hljs-comment">// create launcher intent</span>
+    <span class="hljs-keyword">var</span> launcherIntent = Ti.Android.createIntent({
+        className: <span class="hljs-string">'net.iamyellow.gcmjs.GcmjsActivity'</span>,
+        packageName: Ti.App.id,
+        defaults:Titanium.Android.NotificationManager.DEFAULT_SOUND,
+        flags: Ti.Android.FLAG_AUTO_CANCEL | Ti.Android.FLAG_SHOW_LIGHTS
+    });
+    launcherIntent.addCategory(Ti.Android.CATEGORY_LAUNCHER);
+
+
+
+    <span class="hljs-comment">// parse the json reponse </span>
+    <span class="hljs-keyword">var</span> response = JSON.parse(message);
+    <span class="hljs-keyword">var</span> contentText=<span class="hljs-string">''</span>;
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> response)
+    {
+        <span class="hljs-comment">//key is in format label_pdfType so we need to parse</span>
+        <span class="hljs-keyword">var</span> key_split = key.split(<span class="hljs-string">"_"</span>); 
+        <span class="hljs-keyword">if</span>(contentText==<span class="hljs-string">''</span>)
+        {
+            contentText+=key_split[<span class="hljs-number">0</span>];
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            contentText+=(<span class="hljs-string">","</span>+key_split[<span class="hljs-number">0</span>]);
+        }
+    }    
+
+
+    <span class="hljs-comment">// create notification</span>
+    <span class="hljs-keyword">var</span> pintent = Ti.Android.createPendingIntent({
+        intent: launcherIntent
+    }),
+
+
+    notification = Ti.Android.createNotification({
+        contentIntent: pintent,
+        contentTitle: <span class="hljs-string">"New PDFs available"</span>,
+        contentText: contentText,
+        tickerText: <span class="hljs-string">"New event PDFs available."</span>,
+        icon: Ti.App.Android.R.drawable.appicon,
+        flags: Ti.Android.FLAG_SHOW_LIGHTS | Ti.Android.FLAG_AUTO_CANCEL,
+        defaults:Titanium.Android.NotificationManager.DEFAULT_SOUND
+    });
+    Ti.Android.NotificationManager.notify(<span class="hljs-number">1</span>, notification);
+
+    service.stop();
+
+})(Ti.Android.currentService);
+</code></pre><p>and here&#39;s the intermediary activity:</p>
+<pre><code class="hljs">
+<span class="hljs-comment">/*global Ti: true, require: true */</span>
+
+(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">activity, gcm</span>) </span>{
+
+
+    <span class="hljs-comment">// 'isLauncherActivity' is a module property which tell us if the app is not running</span>
+    <span class="hljs-keyword">if</span> (gcm.isLauncherActivity) 
+    {
+        Ti.include(<span class="hljs-string">"models/cache.js"</span>);
+        Ti.include(<span class="hljs-string">"functions/mergeSortDate.js"</span>);
+
+
+        <span class="hljs-comment">// loading indicator</span>
+        <span class="hljs-keyword">var</span> alertActivityIndicator = Ti.UI.Android.createProgressIndicator({
+                      message: <span class="hljs-string">'Downloading...'</span>,
+                      location: Ti.UI.Android.PROGRESS_INDICATOR_DIALOG,
+                      type: Ti.UI.Android.PROGRESS_INDICATOR_INDETERMINANT,
+                      cancelable: <span class="hljs-literal">true</span>
+                    });
+
+
+        <span class="hljs-keyword">var</span> notification_events_win=Titanium.UI.createWindow({
+          navBarHidden:<span class="hljs-literal">true</span>,
+          layout: <span class="hljs-string">'vertical'</span>,
+          backgroundColor:<span class="hljs-string">'#000000'</span>,
+          exitOnClose:<span class="hljs-literal">true</span>,
+          modal:<span class="hljs-literal">false</span>,
+          orientationModes: [
+                Ti.UI.LANDSCAPE_LEFT,
+                Ti.UI.LANDSCAPE_RIGHT,
+                Ti.UI.PORTRAIT,
+                Ti.UI.UPSIDE_PORTRAIT
+            ]
+        });
+
+
+        <span class="hljs-comment">//add event listener for physical back button.</span>
+        notification_events_win.addEventListener(<span class="hljs-string">'android:back'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) 
+        </span>{        
+            notification_events_win.close();
+            <span class="hljs-comment">//cleanly close notification activity </span>
+            <span class="hljs-keyword">var</span> activity = Titanium.Android.currentActivity;
+            activity.finish();
+
+
+        });
+
+
+
+
+        <span class="hljs-comment">//create a main view for the window</span>
+        <span class="hljs-keyword">var</span> notificationEventsView = Titanium.UI.createScrollView({
+            width : <span class="hljs-string">"100%"</span>,
+            backgroundColor:<span class="hljs-string">'black'</span>,
+            layout: <span class="hljs-string">'vertical'</span>,
+            contentHeight: Ti.UI.SIZE,
+            touchEnabled: <span class="hljs-literal">true</span>
+        });
+
+        <span class="hljs-comment">//create back button for window and add it to main view</span>
+        <span class="hljs-keyword">var</span> backbutton= Ti.UI.createButton (
+                 {
+                    color: <span class="hljs-string">'white'</span>,
+                    title:<span class="hljs-string">'Close'</span>,
+                    borderRadius: <span class="hljs-number">15</span>,
+                    borderWidth: <span class="hljs-number">1</span>,
+                    borderColor: <span class="hljs-string">'#FF9900'</span>,
+                    backgroundColor: <span class="hljs-string">'#606060'</span>,
+                    width: <span class="hljs-string">'100%'</span>,
+                    font: {
+                        fontSize: <span class="hljs-number">27.5</span>,
+                        fontWeight: <span class="hljs-string">'bold'</span>
+                    },
+                    top: <span class="hljs-number">15</span>,
+                    height: <span class="hljs-number">55</span>
+                });
+
+        backbutton.addEventListener(<span class="hljs-string">'touchstart'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            e.source.setBackgroundColor(<span class="hljs-string">'#FF9900'</span>);
+        });
+       backbutton.addEventListener(<span class="hljs-string">'touchend'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            e.source.setBackgroundColor(<span class="hljs-string">'#606060'</span>);
+        });
+
+        <span class="hljs-comment">// add back button listener</span>
+        backbutton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) 
+        </span>{
+            <span class="hljs-comment">//disable button to prevent code executing multiple times</span>
+            <span class="hljs-keyword">this</span>.enabled=<span class="hljs-literal">false</span>;
+            <span class="hljs-comment">//close window</span>
+            notification_events_win.close();
+
+            <span class="hljs-comment">//cleanly close notification activity </span>
+            <span class="hljs-keyword">var</span> activity = Titanium.Android.currentActivity;
+            activity.finish();        
+
+        });
+
+        notificationEventsView.add(backbutton);
+
+        <span class="hljs-comment">// create label</span>
+        <span class="hljs-keyword">var</span> pdfDownloadLabel = Titanium.UI.createLabel({
+          color:<span class="hljs-string">'#000000'</span>,
+          text:<span class="hljs-string">'Recent Event Notifications'</span>,
+          borderRadius:<span class="hljs-number">5</span>,
+          textAlign:<span class="hljs-string">'center'</span>,
+          backgroundColor:<span class="hljs-string">'#FF9900'</span>,
+          borderColor:<span class="hljs-string">"#FF9900"</span>,
+          top: <span class="hljs-number">30</span>,
+          font:{fontSize:<span class="hljs-number">30</span>,
+                fontWeight: <span class="hljs-string">'bold'</span>}
+          });
+        <span class="hljs-comment">// add label to wmain view</span>
+        notificationEventsView.add(pdfDownloadLabel); 
+
+        <span class="hljs-comment">//add view to main window</span>
+        notification_events_win.add(notificationEventsView);
+
+        <span class="hljs-comment">//retrieve cached notification messages</span>
+          <span class="hljs-keyword">var</span> messageArray=[];
+          <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>;i&lt;<span class="hljs-number">10</span>;i++)
+        {
+            <span class="hljs-keyword">var</span> message=Ti.App.Cache.get(<span class="hljs-string">'pushMessage_'</span>+i);
+            <span class="hljs-keyword">if</span>(message!=<span class="hljs-literal">null</span>)
+            {
+                messageArray.push(<span class="hljs-built_in">JSON</span>.parse(message));
+            }
+        }
+
+
+        <span class="hljs-keyword">var</span> sortedNotificationData=[];
+        <span class="hljs-comment">//iterate through each stored push message</span>
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;messageArray.length; i++)
+        {
+            <span class="hljs-comment">//iterate through message objects</span>
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> messageArray[i])
+            {
+                <span class="hljs-keyword">if</span>(messageArray[i][key])
+                {
+                    <span class="hljs-comment">//iterate through specific seismo ('key') events </span>
+                    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> j=<span class="hljs-number">0</span>; j&lt;messageArray[i][key].length; j++)
+                    {
+                        <span class="hljs-comment">//store label and pdf type in object</span>
+                        <span class="hljs-keyword">var</span> key_split = key.split(<span class="hljs-string">"_"</span>); 
+                        messageArray[i][key][j][<span class="hljs-string">'label'</span>]=key_split[<span class="hljs-number">0</span>];
+                        messageArray[i][key][j][<span class="hljs-string">'pdf_type'</span>]=key_split[<span class="hljs-number">1</span>];
+                        <span class="hljs-comment">//reformat date</span>
+                        <span class="hljs-keyword">var</span> a_p=<span class="hljs-string">""</span>;                    
+                        <span class="hljs-keyword">var</span> date = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(<span class="hljs-built_in">Date</span>.parse(messageArray[i][key][j][<span class="hljs-string">'date'</span>].replace(<span class="hljs-regexp">/\-/ig</span>, <span class="hljs-string">'/'</span>)));            
+                        <span class="hljs-keyword">var</span> ap = <span class="hljs-string">"am"</span>;
+                        <span class="hljs-keyword">var</span> hour = date.getHours();
+                        <span class="hljs-keyword">var</span> minute = date.getMinutes();
+                        <span class="hljs-keyword">if</span> (hour   &gt; <span class="hljs-number">11</span>) { ap = <span class="hljs-string">"pm"</span>;        }
+                        <span class="hljs-keyword">if</span> (hour   &gt; <span class="hljs-number">12</span>) { hour = hour - <span class="hljs-number">12</span>; }
+                        <span class="hljs-keyword">if</span> (hour   == <span class="hljs-number">0</span>) { hour = <span class="hljs-number">12</span>;        }
+                        <span class="hljs-keyword">if</span> (minute &lt; <span class="hljs-number">10</span>) { minute = <span class="hljs-string">"0"</span> + minute; }
+                        messageArray[i][key][j][<span class="hljs-string">'display_date'</span>]=(date.getMonth() + <span class="hljs-number">1</span>)+<span class="hljs-string">"/"</span>+date.getDate()+<span class="hljs-string">" "</span>+hour+<span class="hljs-string">":"</span>+minute+<span class="hljs-string">" "</span>+ap;
+                        <span class="hljs-comment">//store event in array to be sorted later</span>
+                        sortedNotificationData.push(messageArray[i][key][j]);                        
+                    }
+                }                    
+            }        
+        }
+
+        <span class="hljs-comment">//sort by date</span>
+        sortedNotificationData=mergeSortDate(sortedNotificationData);
+        <span class="hljs-comment">//generate a download button for each event object</span>
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> k=<span class="hljs-number">0</span>; k&lt;sortedNotificationData.length; k++)
+        {
+            <span class="hljs-keyword">var</span> downloadButton= Ti.UI.createButton (
+             {
+                color: <span class="hljs-string">'white'</span>,
+                title: <span class="hljs-string">'"'</span>+sortedNotificationData[k][<span class="hljs-string">'label'</span>]+<span class="hljs-string">'" '</span>+sortedNotificationData[k][<span class="hljs-string">'display_date'</span>],
+                label: sortedNotificationData[k][<span class="hljs-string">'label'</span>],
+                report_id: sortedNotificationData[k][<span class="hljs-string">'pdf_type'</span>],
+                rid: sortedNotificationData[k][<span class="hljs-string">'rid'</span>],
+                tab: sortedNotificationData[k][<span class="hljs-string">'tab'</span>],
+                borderRadius: <span class="hljs-number">2.5</span>,
+                borderWidth: <span class="hljs-number">1</span>,
+                borderColor: <span class="hljs-string">'#FF9900'</span>,
+                backgroundColor: <span class="hljs-string">'#424242'</span>,
+                width: <span class="hljs-string">'70%'</span>,
+                font: {
+                    fontSize: <span class="hljs-number">24</span>,
+                    fontWeight: <span class="hljs-string">'bold'</span>
+                },
+                top: <span class="hljs-number">15</span>,
+                height: <span class="hljs-string">'auto'</span>
+            });
+
+            downloadButton.addEventListener(<span class="hljs-string">'touchstart'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+                e.source.setBackgroundColor(<span class="hljs-string">'#FF9900'</span>);
+            });
+            downloadButton.addEventListener(<span class="hljs-string">'touchend'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+                e.source.setBackgroundColor(<span class="hljs-string">'#424242'</span>);
+            });
+
+            <span class="hljs-comment">// add cache on button listener</span>
+            downloadButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) 
+            </span>{
+                <span class="hljs-comment">//display loading indicator    </span>
+                alertActivityIndicator.show();    
+
+                <span class="hljs-keyword">var</span> pdfConnect = Titanium.Network.createHTTPClient();
+                <span class="hljs-comment">//store label for naming PDF</span>
+                pdfConnect.label=<span class="hljs-keyword">this</span>.label;
+
+                      <span class="hljs-comment">//set a timeout of 15 seconds</span>
+                    pdfConnect.setTimeout([<span class="hljs-number">15000</span>]);                            
+
+                    pdfConnect.onerror= <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) 
+                    </span>{        
+                        alertActivityIndicator.hide();
+                        <span class="hljs-comment">//alert user</span>
+                        alert(<span class="hljs-string">"Error communicating with server."</span>);
+                    };
+                    <span class="hljs-comment">// Runs the function when the data is ready for us to process</span>
+                    pdfConnect.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) 
+                    </span>{
+                        <span class="hljs-comment">// if there is an error and there was no response text</span>
+                        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.responseText===<span class="hljs-string">""</span> || <span class="hljs-keyword">this</span>.responseText==<span class="hljs-literal">null</span>)
+                        {
+                            <span class="hljs-comment">//bad response;</span>
+                            alertActivityIndicator.hide();    
+
+                            alert(<span class="hljs-string">"Error! PDF was not downloaded. Please try again."</span>);
+                        }
+                        <span class="hljs-comment">// account for instances in which a bad report type is used</span>
+                        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.responseText==<span class="hljs-string">"Unsuccessful PDF creation attempt"</span>)
+                        {
+                            alertActivityIndicator.hide();
+                            alert(<span class="hljs-string">"Error creating PDF. [Invalid report type]"</span>);
+                        }
+                        <span class="hljs-comment">// account for instances in which a bad table id is used</span>
+                        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.responseText.indexOf(<span class="hljs-string">'Error: Unable to perform query on vault.'</span>) !== -<span class="hljs-number">1</span>)
+                        {
+                            alertActivityIndicator.hide();
+                            alert(<span class="hljs-string">"Error creating PDF. [Invalid table ID]"</span>);
+                        }
+                        <span class="hljs-comment">// account for instances in which a bad record id is used</span>
+                        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.responseText==<span class="hljs-string">'Error: Record not found'</span>)
+                        {
+                            alertActivityIndicator.hide();
+                            alert(<span class="hljs-string">"Error creating PDF. [Error: Record not found]"</span>);
+                        }
+                        <span class="hljs-comment">// else extract the response</span>
+                        <span class="hljs-keyword">else</span>
+                        { 
+                            <span class="hljs-keyword">try</span> 
+                                {
+                                    <span class="hljs-keyword">var</span> nameDate= <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+                                    <span class="hljs-keyword">var</span> fileName=<span class="hljs-keyword">this</span>.label+<span class="hljs-string">"_"</span>+nameDate.getDate()+<span class="hljs-string">"_"</span>+nameDate.getHours()+<span class="hljs-string">"_"</span>+nameDate.getMinutes()+<span class="hljs-string">"_"</span>+nameDate.getSeconds()+<span class="hljs-string">".pdf"</span>;
+                                    <span class="hljs-comment">//create a temp directory for the PDFs if it does not exist</span>
+                                   <span class="hljs-keyword">var</span> Settings = Titanium.Filesystem.getFile(Ti.Filesystem.tempDirectory,<span class="hljs-string">'alert_pdfs'</span>);
+                                    Settings.createDirectory();
+                                    <span class="hljs-comment">//create file from raw data</span>
+                                    <span class="hljs-keyword">var</span> newFile = Titanium.Filesystem.getFile(Settings.nativePath,fileName);
+                                    newFile.write(<span class="hljs-keyword">this</span>.responseData);
+
+                                       <span class="hljs-comment">// try and open PDF in third party app if they have one                                            </span>
+                                    Ti.Android.currentActivity.startActivity(Ti.Android.createIntent({
+                                        action: Ti.Android.ACTION_VIEW,
+                                        type: <span class="hljs-string">'application/pdf'</span>,
+                                        data: newFile.getNativePath()
+                                    }));
+                                }
+                                <span class="hljs-keyword">catch</span> (err) 
+                                {
+                                    <span class="hljs-keyword">var</span> alertDialog = Titanium.UI.createAlertDialog({
+                                        title: <span class="hljs-string">'No PDF Viewer'</span>,
+                                        message: <span class="hljs-string">'App tried to open the PDF but failed. Please make sure you have a PDF viewing application installed on your device.'</span>,
+                                        buttonNames: [<span class="hljs-string">'Ok'</span>]
+                                    });
+                                    alertDialog.show();
+
+                                }
+
+                                alertActivityIndicator.hide();
+                        }
+                    };
+
+
+                    <span class="hljs-comment">// values to send to the API</span>
+                    <span class="hljs-keyword">var</span> params = 
+                    {  
+                         <span class="hljs-string">'username'</span>:<span class="hljs-string">'asdoij'</span>,
+                         <span class="hljs-string">'password'</span>:<span class="hljs-string">'z3n0pl'</span>,
+                         <span class="hljs-string">'rid'</span>:<span class="hljs-keyword">this</span>.rid,
+                         <span class="hljs-string">'tab'</span>:<span class="hljs-keyword">this</span>.tab,
+                         <span class="hljs-string">'report'</span>:<span class="hljs-keyword">this</span>.report_id,
+                         <span class="hljs-string">'logo'</span>: <span class="hljs-string">'GS_RGB_Flat.png'</span>
+                    }; 
+                    <span class="hljs-comment">//open connection to API</span>
+                    pdfConnect.open(<span class="hljs-string">"POST"</span>,<span class="hljs-string">"http://thisisthesite.com/request"</span>);
+                    <span class="hljs-comment">//send data to API</span>
+                    pdfConnect.send(params);
+
+            });
+
+            <span class="hljs-comment">//add button to main view</span>
+            notificationEventsView.add(downloadButton);
+
+        }
+
+       notification_events_win.open();
+
+
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        <span class="hljs-comment">//create window/view/buttons for event pdf download</span>
+        generateEventNotificationView(<span class="hljs-literal">false</span>);
+
+        activity.finish();
+    }
+
+
+
+})(Ti.Android.currentActivity, <span class="hljs-built_in">require</span>(<span class="hljs-string">'net.iamyellow.gcmjs'</span>));
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 28th 2014, 6:56:49 pm">March 28th 2014</span>
+				by <span class='authorname'>Ronald Cocklin</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>intent</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+						<li><span class='tagname'>pdf</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>code was too large. Here&#39;s the activity: http:&#x2F;&#x2F;pastebin.com&#x2F;Pa1HZK8F</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 28th 2014, 7:02:44 pm">March 28th 2014</span>
+								by <span class='authorname'>Ronald Cocklin</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

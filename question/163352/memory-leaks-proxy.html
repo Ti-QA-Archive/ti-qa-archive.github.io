@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Memory Leaks (Proxy) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Memory Leaks (Proxy)</h1>
+		</header>
+		<section>
+			<p>We have an application with 2 windows:</p>
+<ul>
+<li>Window A with the button which opens the second window B</li>
+<li>The Window B contains the button which closes B</li>
+</ul>
+<p>We have used &quot;Instruments&quot; (Xcode) in order to monitor the memory activity (test on iOS simulator)<br>and have noticed that the proxy objects (TiUIWindowProxy, TiUIButtonProxy) are not released after the window B is closed.</p>
+<p>Is this a memory leak? or does the Instrument tool is an appropriate tool to analyze Titanium (proxy) application memory leaks?</p>
+<p><a href="https:&#x2F;&#x2F;www.dropbox.com&#x2F;s&#x2F;srgejc1n30egs3d&#x2F;leaks.png">screenshot monitoring</a></p>
+<p>This type of leak (proxy) might be produced by the following situations:</p>
+<p>A)</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> b = Ti.UI.createButton({
+        title:<span class="hljs-string">'changeTitle'</span>
+    });
+
+    b.changeTitle = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-comment">//LEAK</span>
+       b.title = <span class="hljs-string">'new title'</span>;
+       <span class="hljs-comment">//Not LEAK</span>
+       <span class="hljs-keyword">this</span>.title = <span class="hljs-string">'new title'</span>;
+    }
+
+    b.changeTitle();
+</code></pre><p>Here the leak takes place when the property of b is called explicitly in the method changeTitle().<br>Using &quot;this&quot; object in this case would not lead to memory leak. Is it the only way to access b properties without leaks?</p>
+<p>B)</p>
+<p>Another source of (proxy) leak:<br>In our application we have developed a framework in order to optimize the creation of the UI views (automatization add to parent)</p>
+<pre><code class="hljs">Main :
+    <span class="hljs-built_in">var</span> win = <span class="hljs-literal">gt</span><span class="hljs-built_in">.</span>ux<span class="hljs-built_in">.</span>createWindow({
+        backgroundCol<span class="hljs-subst">or</span>:<span class="hljs-string">'green'</span>,
+        title:<span class="hljs-string">'New Window'</span>,
+        barCol<span class="hljs-subst">or</span>:<span class="hljs-string">'black'</span>
+    });
+     <span class="hljs-built_in">var</span> b = <span class="hljs-literal">gt</span><span class="hljs-built_in">.</span>ux<span class="hljs-built_in">.</span>createButton({
+        <span class="hljs-keyword">parent</span>: win,
+        title:<span class="hljs-string">'changeTitle'</span>
+    });
+
+    <span class="hljs-comment">//win.add(b)</span>
+
+
+Framework <span class="hljs-literal">gt</span><span class="hljs-built_in">.</span>ux : 
+
+exports <span class="hljs-literal">gt</span><span class="hljs-built_in">.</span>ux<span class="hljs-built_in">.</span>createButton = function(config) {
+    <span class="hljs-built_in">var</span> view = Ti<span class="hljs-built_in">.</span>UI<span class="hljs-built_in">.</span>createButton( {title: config<span class="hljs-built_in">.</span>title} );
+    <span class="hljs-attribute">...</span>
+       <span class="hljs-comment">// Add to parent</span>
+    <span class="hljs-keyword">if</span> (config<span class="hljs-built_in">.</span><span class="hljs-keyword">parent</span> !== undefined) {
+        config<span class="hljs-built_in">.</span><span class="hljs-keyword">parent</span><span class="hljs-built_in">.</span>add(view);
+
+        <span class="hljs-comment">// Not LEAK : config.parent = null;</span>
+    }
+
+    <span class="hljs-keyword">return</span> view;
+ }
+</code></pre><p>We need to delete config.parent reference to avoid memory leaks.<br>Why do we have to delete the reference explicitly with null when it is supposed be deleted automatically (by garbage collector)?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 10th 2014, 10:00:26 am">March 10th 2014</span>
+				by <span class='authorname'>Jonathan Benay</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-276247">
+				
+						<section>
+							<p>You should not be modifying the proxy objects. Doing so can confuse the Kroll bridge leading to the leaks like you&#39;ve found. It can also cause race conditions and crashes.</p>
+<p>Why would you create a changeTitle custom method on a button when the setTitle method exists already? </p>
+<p>I recommend you explore the Alloy framework which is fully supported and tested. I&#39;m not saying there are no memory leaks in Titanium or Alloy. But what you&#39;re doing is breaking things and adding little (nothing?) over what Alloy provides already.</p>
+<p>(BTW, Instruments is the right tool for leak testing.)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 10th 2014, 11:51:03 am">March 10th 2014</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/163352/memory-leaks-proxy#answer-276247" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-276259">
+				
+						<section>
+							<p>Thanks Tim to answer. I used this method changeTitle just to explain the risk of leakage memory.</p>
+<p>Why TiUIButton is killed while a TiUIButtonProxy is not freed memory ?</p>
+<p>I want understand, for me one TiUIElement (TiUIButton) correspond to one Proxy (TiUIButtonProxy), thank you to explain the operation.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 10th 2014, 7:04:58 pm">March 10th 2014</span>
+								by <span class='authorname'>Jonathan Benay</span><br>
+								<a class="icon-bg icon-link" href="question/163352/memory-leaks-proxy#answer-276259" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

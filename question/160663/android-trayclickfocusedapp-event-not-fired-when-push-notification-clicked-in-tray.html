@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android: trayClickFocusedApp event not fired when push notification clicked in tray » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android: trayClickFocusedApp event not fired when push notification clicked in tray</h1>
+		</header>
+		<section>
+			<p>Does anyone know how to get the trayClickFocusedApp event to fire reliably?</p>
+<p>The code below is for a simple app.js test where a single window is opened, a push notification is fired off and then the app is placed into the background (simulated by launching the browser). If the app never opened a window, everything works as expected. However, if there is a window opened in the app, I do not get the trayClickFocusedApp event when returning from the background via tapping on a push notification.</p>
+<h2 id="steps-to-reproduce">Steps to reproduce</h2>
+<ol>
+<li>Create a cloud enabled app</li>
+<li>Paste the following into app.js<br>~~~<br>var win = Titanium.UI.createWindow({<br> title: &#39;Push Test&#39;,<br> backgroundColor: &#39;#fff&#39;<br>});</li>
+</ol>
+<p>var login = &quot;&quot;; &#x2F;&#x2F; Replace with an ACS user login<br>var password = &quot;&quot;; &#x2F;&#x2F; Replace with an ACS user password</p>
+<p>&#x2F;&#x2F; If you comment out this line, everything works as expected<br>win.open();</p>
+<p>&#x2F;&#x2F; ——————————————————<br>&#x2F;&#x2F;<br>&#x2F;&#x2F; Push notification stuff<br>&#x2F;&#x2F;<br>&#x2F;&#x2F; ——————————————————</p>
+<p>var CloudPush = require(&#39;ti.cloudpush&#39;);<br>CloudPush.debug = true;<br>CloudPush.enabled = true;</p>
+<p>var deviceToken;<br>var Cloud = require(&#39;ti.cloud&#39;);</p>
+<p>CloudPush.retrieveDeviceToken({<br>    success: function deviceTokenSuccess(e) {<br>        Ti.API.info(&#39;Device Token: &#39; + e.deviceToken);<br>        deviceToken = e.deviceToken;<br>        loginDefault(deviceToken);<br>    },<br>    error: function deviceTokenError(e) {<br>        Ti.API.error(&#39;Failed to register for push! &#39; + e.error);<br>    }<br>});</p>
+<p>function loginDefault(e) {</p>
+<pre><code class="hljs">Cloud.Users.login({
+    login: login,
+    password: password
+}, function(<span class="hljs-keyword">e</span>) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.success) {
+
+        defaultSubscribe();
+
+        <span class="hljs-comment">//Place app in background</span>
+        Ti.Platform.openURL(<span class="hljs-string">"http://www.appcelerator.com"</span>);
+
+        <span class="hljs-comment">//Send a push in 2 seconds</span>
+        setTimeout(function() {
+            Cloud.PushNotifications.notify({
+                channel: 'message',
+                payload: {
+                    <span class="hljs-string">"badge"</span>: 2,
+                    <span class="hljs-string">"sound"</span>: <span class="hljs-string">"default"</span>,
+                    <span class="hljs-string">"alert"</span>: <span class="hljs-string">"Push Notification Test"</span>,
+                    <span class="hljs-string">"icon"</span>: <span class="hljs-string">"app_icon"</span>
+                }
+            }, function(<span class="hljs-keyword">e</span>) {
+                <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.success) {
+                    Ti.API.info('Success notify');
+                } <span class="hljs-keyword">else</span> {
+                    Ti.API.<span class="hljs-keyword">error</span>('<span class="hljs-keyword">Error</span>:\<span class="hljs-keyword">n</span>' + ((<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span> &amp;&amp; <span class="hljs-keyword">e</span>.message) || JSON.stringify(<span class="hljs-keyword">e</span>)));
+                }
+            });
+        }, 2000);
+    } <span class="hljs-keyword">else</span> {
+        Ti.API.<span class="hljs-keyword">error</span>('<span class="hljs-keyword">Error</span>:\\<span class="hljs-keyword">n</span>' + ((<span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span> &amp;&amp; <span class="hljs-keyword">e</span>.message) || JSON.stringify(<span class="hljs-keyword">e</span>)));
+    }
+});
+</code></pre><p>}</p>
+<p>function defaultSubscribe() {</p>
+<pre><code class="hljs">Cloud.PushNotifications.subscribe({
+    channel: <span class="hljs-string">'message'</span>,
+    device_token: deviceToken,
+    type: <span class="hljs-string">'gcm'</span>
+}, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (e.success) {
+        Ti.API.info(<span class="hljs-string">'Subscribed!'</span>);
+
+        CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"callback"</span> + <span class="hljs-built_in">JSON</span>.stringify(evt));
+            alert(<span class="hljs-string">'got the callback event'</span>);
+        });
+
+        CloudPush.addEventListener(<span class="hljs-string">'trayClickFocusedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+            Ti.API.info(<span class="hljs-string">'Tray Click Focused App (app was already running)'</span> + <span class="hljs-built_in">JSON</span>.stringify(evt));
+            alert(<span class="hljs-string">'got the trayClickFocusedApp event'</span>)
+        });
+    } <span class="hljs-keyword">else</span> {
+        Ti.API.error(<span class="hljs-string">'Error:'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+    }
+});
+</code></pre><p>}<br>~~~</p>
+<ol>
+<li>Set your login&#x2F;password to a valid user</li>
+<li>Launch the app on a device. The app should launch, fire off a push notification then go into the background by launching the browser.</li>
+<li>Tap the notification to return to the app.</li>
+</ol>
+<h2 id="expected-results">Expected Results</h2>
+<p>The trayClickFocusedApp event listener should run and display a message.</p>
+<h2 id="actual-results">Actual Results</h2>
+<p>The trayClickFocusedApp event listener does not run.</p>
+<h2 id="more-info">More info</h2>
+<p>If you comment out the line that opens the window and run the test again, everything works as expected.</p>
+<h2 id="environment-etc-">Environment etc.</h2>
+<ul>
+<li>CLI version 3.2.0-cr3, Titanium SDK version 3.2.0.v20131218153242</li>
+<li>Nexus S</li>
+<li>Android 4.1.2</li>
+<li>Mac OS X 10.8.5</li>
+</ul>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 20th 2013, 2:21:48 am">December 20th 2013</span>
+				by <span class='authorname'>Mahlon Gumbs</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>push notification</span></li>
+					
+						<li><span class='tagname'>ti.cloudpush</span></li>
+					
+						<li><span class='tagname'>trayclickfocusedapp</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>So the only related comment I could find on this is <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMODOPEN-320?focusedCommentId=259688&amp;page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-259688">Paul Lv&#39;s comment on a related JIRA Ticket</a>.  Looks like this is a bug I&#39;ll have to file unless someone sees something I don&#39;t.</p>
+<p>Anyone?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 20th 2013, 12:04:56 pm">December 20th 2013</span>
+								by <span class='authorname'>Mahlon Gumbs</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Bumping. Anyone?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 23rd 2013, 6:02:06 pm">December 23rd 2013</span>
+								by <span class='authorname'>Mahlon Gumbs</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Created JIRA Ticket: <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-3472">TC-3472</a>  for this.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 26th 2013, 2:23:50 pm">December 26th 2013</span>
+								by <span class='authorname'>Mahlon Gumbs</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Did you get any solution?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 21st 2014, 3:19:04 am">January 21st 2014</span>
+								by <span class='authorname'>mahesh sahu</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-274760">
+				
+						<section>
+							<p>@Mahesh</p>
+<p>Sorry for the late response. I&#39;ve been monitory the the JIRA ticket and missed the emails about this Q&amp;A post.</p>
+<p>The work-around that I am using until this is fixed is to monitor the pause&#x2F;resume events on all of the Android windows.  It&#39;s a pain, but it works. Basically, you monitor the pause&#x2F;resume events and note the time difference between them. If the user is just switching views in the app the <code>resume</code> of the new view&#39;s activity will happen shortly after the <code>pause</code> of the current view&#39;s activity.  Based on my specific use-case, a greater than 5-second delay between <code>pause</code> and <code>resume</code> indicates the app was fully in the background and not just switching activities within the app.  I then manage how I handle push notifications based on the value of this delay.</p>
+<p>There are edge cases where a push notification could be received and incorrectly handled during that 5-second window so you may wish to adjust delay threshold based on your needs.</p>
+<p>Hope this helps.</p>
+<p>By the way, there has been some activity on the JIRA ticket, so I&#39;d watch that for updates.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 3rd 2014, 4:17:38 pm">February 3rd 2014</span>
+								by <span class='authorname'>Mahlon Gumbs</span><br>
+								<a class="icon-bg icon-link" href="question/160663/android-trayclickfocusedapp-event-not-fired-when-push-notification-clicked-in-tray#answer-274760" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

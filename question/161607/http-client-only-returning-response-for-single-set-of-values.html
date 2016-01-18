@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTP client only returning response for single set of values » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTP client only returning response for single set of values</h1>
+		</header>
+		<section>
+			<p>I have a basic login setup that sends the entered username and password to CodeIgniter which checks the database for a matching record. The app then parses the response and saves the data to a global singleton model representing the currently logged in user.</p>
+<p>The issue is that this works fine for the first user in the database, but the others don&#39;t even return a response from the HTTP client.</p>
+<p>I&#39;ve tested CodeIgniter thoroughly and it works perfectly for all the example users I have in the database when I hard code the username and password into the controller.</p>
+<p>login.js (controller):</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> loginReq = Ti.Network.createHTTPClient({
+    onload: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+
+        <span class="hljs-keyword">var</span> data = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+
+        <span class="hljs-keyword">if</span>(data) {
+
+            <span class="hljs-keyword">var</span> userInfo = Alloy.Models.instance(<span class="hljs-string">'userInfo'</span>);
+
+            userInfo.fetch();
+
+            userInfo.save({
+                id: data.id,
+                first_name: data.first_name,
+                last_name: data.last_name
+            });
+
+            Alloy.createController(<span class="hljs-string">'projects'</span>).getView().open();
+            $.login.close();
+
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">'Username or password incorrect'</span>);  
+           }
+
+    }
+}); 
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">login</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span>($.usernameField.value != <span class="hljs-string">''</span> &amp;&amp; $.passwordField.value != <span class="hljs-string">''</span>) {  
+        loginReq.open(<span class="hljs-string">'POST'</span>, <span class="hljs-string">'http://mydomain.com/app/auth'</span>);  
+        <span class="hljs-keyword">var</span> params = {  
+            username: $.usernameField.value,
+            password: $.passwordField.value
+        <span class="hljs-comment">// I know the password field should be hashed, but I'm still sorting out how this is handled on the CodeIgniter side</span>
+        };
+        loginReq.send(params);  
+    } <span class="hljs-keyword">else</span> {  
+        alert(<span class="hljs-string">'Username and password required'</span>);
+    }
+}
+</code></pre><p>userInfo.js (model):</p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+        columns: {
+            <span class="hljs-string">"id"</span>: <span class="hljs-string">"INTEGER"</span>,
+            <span class="hljs-string">"first_name"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"last_name"</span>: <span class="hljs-string">"TEXT"</span>
+        },
+        adapter: {
+            <span class="hljs-built_in">type</span>: <span class="hljs-string">"sql"</span>,
+            collection_name: <span class="hljs-string">"userInfo"</span>
+        }
+    },
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span></span> {
+        _.extend(Model.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+        });
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span></span> {
+        _.extend(Collection.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre><p>And if it helps, this is the function in CodeIgniter:</p>
+<pre><code class="hljs"><span class="hljs-keyword">function</span> auth() {
+    <span class="hljs-variable">$username</span> = <span class="hljs-variable">$this-</span>&gt;input-&gt;post(<span class="hljs-string">'username'</span>);
+    <span class="hljs-variable">$password</span> = <span class="hljs-variable">$this-</span>&gt;input-&gt;post(<span class="hljs-string">'password'</span>);
+
+    if(<span class="hljs-variable">$data</span> = <span class="hljs-variable">$this-</span>&gt;appauth-&gt;auth(<span class="hljs-variable">$username</span>, <span class="hljs-variable">$password</span>)) {
+        echo json_encode(<span class="hljs-variable">$data</span>);
+        // <span class="hljs-variable">$data</span> is the <span class="hljs-variable">$query-</span>&gt;row() returned from the model
+    }
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 17th 2014, 1:33:26 am">January 17th 2014</span>
+				by <span class='authorname'>Robert Gillman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>php</span></li>
+					
+						<li><span class='tagname'>titanium studio</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

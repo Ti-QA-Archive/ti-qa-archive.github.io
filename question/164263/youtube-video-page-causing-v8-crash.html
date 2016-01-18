@@ -1,0 +1,316 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Youtube video page causing v8 crash? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Youtube video page causing v8 crash?</h1>
+		</header>
+		<section>
+			<p>Hi, during runtime I am getting this error when I click the video button:<br><code>[ERROR] :  V8Exception: Exception occurred at ti:&amp;#x2F;console.js:25: Uncaught Error: Java Exception occurred</code></p>
+<p>The code is here or in pastebin (http:&#x2F;&#x2F;pastebin.com&#x2F;raw.php?i=e7p5R2kN)</p>
+<pre><code class="hljs">    btnVideo.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">var</span> video = <span class="hljs-keyword">new</span> Video();
+        <span class="hljs-keyword">if</span> (Ti.Platform.osname == <span class="hljs-string">"iphone"</span> || Ti.Platform.osname == <span class="hljs-string">"ipad"</span>)
+            navGroup.openWindow(video);
+        <span class="hljs-keyword">else</span> {
+            video.open({
+                modal : <span class="hljs-literal">true</span>
+            });
+        }
+    });
+</code></pre><pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Video</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> platform = Titanium.Platform.osname;
+    <span class="hljs-keyword">var</span> myfontsize = (Titanium.Platform.displayCaps.platformHeight * <span class="hljs-number">3</span>) / <span class="hljs-number">100</span>;
+    <span class="hljs-keyword">var</span> customFont = <span class="hljs-string">'MyriadHebrew-Regular'</span>;
+
+    <span class="hljs-keyword">var</span> toolActInd = Titanium.UI.createActivityIndicator();
+    <span class="hljs-comment">//this is the table we will load videos into</span>
+    <span class="hljs-keyword">var</span> tableview;
+    <span class="hljs-comment">//and the data array for the table</span>
+    <span class="hljs-keyword">var</span> data = [];
+    <span class="hljs-comment">//the window and webview for displaying youtube player (iOS only)</span>
+    <span class="hljs-keyword">var</span> webModal;
+    <span class="hljs-keyword">var</span> webModalView;
+    <span class="hljs-comment">//stores the current link being displayed in the web view</span>
+    <span class="hljs-keyword">var</span> currentLink;
+    <span class="hljs-keyword">var</span> channelName = <span class="hljs-string">"HandOfHelpWarnings"</span>;
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+        title : <span class="hljs-string">'YouTube'</span>,
+        backgroundColor : <span class="hljs-string">'white'</span>,
+        backButtonTitle : <span class="hljs-string">'Back'</span>
+    });
+
+    <span class="hljs-comment">// Empty array "rowData" for our tableview</span>
+    <span class="hljs-keyword">var</span> rowData = [];
+    <span class="hljs-comment">// Create our HTTP Client and name it "loader"</span>
+    <span class="hljs-keyword">var</span> loader = Titanium.Network.createHTTPClient();
+    <span class="hljs-comment">// Sets the HTTP request method, and the URL to get data from</span>
+    <span class="hljs-keyword">var</span> channelName = <span class="hljs-string">'handofhelpwarnings'</span>;
+    <span class="hljs-keyword">var</span> yturl = <span class="hljs-string">"http://gdata.youtube.com/feeds/api/users/"</span> + channelName + <span class="hljs-string">"/uploads?v=2"</span>;
+    loader.open(<span class="hljs-string">"GET"</span>, yturl);
+
+    <span class="hljs-comment">// Runs the function when the data is ready for us to process</span>
+    loader.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        console.log(this.responseXML);
+        <span class="hljs-keyword">var</span> doc = this.responseXML.documentElement;
+        <span class="hljs-keyword">var</span> items = doc.getElementsByTagName(<span class="hljs-string">"entry"</span>);
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; items.length; c++) {
+            <span class="hljs-keyword">var</span> item = items.item(c);
+            <span class="hljs-keyword">var</span> thumbnails = item.getElementsByTagName(<span class="hljs-string">"media:thumbnail"</span>);
+            <span class="hljs-keyword">if</span> (thumbnails &amp;&amp; thumbnails.length &gt; <span class="hljs-number">0</span>) {
+                <span class="hljs-keyword">var</span> media = thumbnails.item(<span class="hljs-number">0</span>).getAttribute(<span class="hljs-string">"url"</span>);
+                <span class="hljs-keyword">var</span> title = item.getElementsByTagName(<span class="hljs-string">"title"</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> videoId = item.getElementsByTagName(<span class="hljs-string">"yt:videoid"</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+                    video_id : videoId,
+                    video_title : title,
+                    height : Ti.UI.SIZE,
+                });
+                <span class="hljs-keyword">var</span> label = Ti.UI.createLabel({
+                    text : title,
+                    left : <span class="hljs-number">92</span>,
+                    top : <span class="hljs-number">5</span>,
+                    bottom : <span class="hljs-number">5</span>,
+                    right : <span class="hljs-number">5</span>,
+                    height : Ti.UI.SIZE,
+                    color : <span class="hljs-string">'#000'</span>,
+                    font : {
+                        dontSize : <span class="hljs-number">14</span>,
+                        fontWeight : <span class="hljs-string">'bold'</span>
+                    }
+                });
+                row.add(label);
+
+                <span class="hljs-keyword">var</span> img = Ti.UI.createImageView({
+                    image : media,
+                    left : <span class="hljs-number">5</span>,
+                    height : <span class="hljs-number">60</span>,
+                    width : <span class="hljs-number">80</span>,
+                    top : <span class="hljs-number">5</span>,
+                    bottom : <span class="hljs-number">5</span>
+                });
+
+                row.add(img);
+                rowData.push(row);
+            }
+        }
+        <span class="hljs-keyword">var</span> tableView = Titanium.UI.createTableView({
+            top : <span class="hljs-number">0</span>,
+            backgroundColor : <span class="hljs-string">'#fff'</span>,
+            data : rowData
+        });
+        <span class="hljs-comment">//Add the table view to the window</span>
+        <span class="hljs-keyword">self</span>.add(tableView);
+
+        tableView.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            <span class="hljs-keyword">if</span> (platform == <span class="hljs-string">'android'</span>) {
+                Titanium.Platform.openURL(<span class="hljs-string">'http://www.youtube.com/watch?v='</span> + e.rowData.video_id);
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">var</span> ytVideoSrc = <span class="hljs-string">"http://www.youtube.com/v/"</span> + e.rowData.video_id;
+
+                <span class="hljs-keyword">var</span> playerWin = Ti.UI.createWindow({
+                    backgroundColor : <span class="hljs-string">'#ccc'</span>
+                });
+                playThisVid(playerWin, ytVideoSrc);
+
+            }
+        });
+
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">playThisVid</span><span class="hljs-params">(view, video)</span> </span>{
+            <span class="hljs-comment">// Set the window orientation</span>
+            view.orientationModes = [Ti.UI.LANDSCAPE_RIGHT];
+
+            <span class="hljs-keyword">var</span> videoUrl = video;
+            <span class="hljs-keyword">var</span> htmlheader = <span class="hljs-string">"&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body style='margin:0'&gt;&lt;embed id='yt' src='"</span>;
+            <span class="hljs-keyword">var</span> htmlfooter = <span class="hljs-string">"' type='application/x-shockwave-flash' width='640' height='280'&gt;&lt;/embed&gt;&lt;/body&gt;&lt;/html&gt;"</span>;
+            <span class="hljs-keyword">var</span> htmlmash = htmlheader + videoUrl + htmlfooter;
+
+            <span class="hljs-keyword">var</span> flexSpace = Titanium.UI.createButton({
+                systemButton : Titanium.UI.iPhone.SystemButton.FLEXIBLE_SPACE
+            });
+
+            <span class="hljs-keyword">var</span> done = Titanium.UI.createButton({
+                title : <span class="hljs-string">'Done'</span>,
+                style : Titanium.UI.iPhone.SystemButtonStyle.BORDERED
+            });
+
+            <span class="hljs-keyword">var</span> navBar = Titanium.UI.iOS.createToolbar({
+                items : [done, flexSpace, flexSpace],
+                top : <span class="hljs-number">0</span>,
+                borderTop : <span class="hljs-keyword">true</span>,
+                borderBottom : <span class="hljs-keyword">true</span>,
+                barColor : <span class="hljs-string">'#000'</span>,
+                translucent : <span class="hljs-keyword">true</span>
+            });
+            view.add(navBar);
+
+            done.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                view.close();
+            });
+
+            webview = Ti.UI.createWebView({
+                top : <span class="hljs-number">34</span>,
+                html : htmlmash,
+                width : <span class="hljs-number">640</span>,
+                height : <span class="hljs-number">280</span>
+            });
+
+            view.add(webview);
+            view.open();
+        }
+
+    };
+
+    loader.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.debug(e.error);
+        <span class="hljs-comment">//    alert("Unable to connect to server");</span>
+        Ti.App.fireEvent(<span class="hljs-string">'hide_indicator'</span>);
+    };
+
+    loader.timeout = <span class="hljs-number">10000</span>;
+    <span class="hljs-comment">/* in milliseconds */</span>
+
+    <span class="hljs-comment">// Send the HTTP request</span>
+    loader.send();
+    <span class="hljs-keyword">self</span>.addEventListener(<span class="hljs-string">'android:back'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">self</span>.close();
+    });
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+}
+
+module.exports = Video;
+</code></pre><p>The full log is:</p>
+<pre><code class="hljs">[DEBUG] :  skia: --- SkImageDecoder::Factory returned null
+[DEBUG] :  skia: --- SkImageDecoder::Factory returned null
+[WARN] :   W/System<span class="hljs-class">.err</span>: java<span class="hljs-class">.lang</span><span class="hljs-class">.NullPointerException</span>
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at ti<span class="hljs-class">.modules</span><span class="hljs-class">.titanium</span><span class="hljs-class">.xml</span><span class="hljs-class">.NamedNodeMapProxy</span><span class="hljs-class">.getLength</span>(NamedNodeMapProxy<span class="hljs-class">.java</span>:<span class="hljs-number">33</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.nativeCallProperty</span>(Native Method)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.callProperty</span>(V8Object<span class="hljs-class">.java</span>:<span class="hljs-number">69</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollProxy</span><span class="hljs-class">.handleMessage</span>(KrollProxy<span class="hljs-class">.java</span>:<span class="hljs-number">1121</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Handler</span><span class="hljs-class">.dispatchMessage</span>(Handler<span class="hljs-class">.java</span>:<span class="hljs-number">95</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Looper</span><span class="hljs-class">.loop</span>(Looper<span class="hljs-class">.java</span>:<span class="hljs-number">137</span>)
+[WARN] :   W/System<span class="hljs-class">.err</span>:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollRuntime</span><span class="hljs-variable">$KrollRuntimeThread</span>.<span class="hljs-function"><span class="hljs-title">run</span><span class="hljs-params">(KrollRuntime.java:<span class="hljs-number">112</span>)</span></span>
+[ERROR] :  V8Exception: Exception occurred at ti:/console<span class="hljs-class">.js</span>:<span class="hljs-number">25</span>: Uncaught Error: Java Exception occurred
+[DEBUG] :  HTTPClient: The persistent handle is disposed.
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 5th 2014, 9:59:46 am">April 5th 2014</span>
+				by <span class='authorname'>James Kinsman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>v8</span></li>
+					
+						<li><span class='tagname'>youtube</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-277429">
+				
+						<section>
+							<p>This:</p>
+<pre><code class="hljs"> thumbnails.<span class="hljs-function"><span class="hljs-title">item</span><span class="hljs-params">(<span class="hljs-number">0</span>)</span></span>
+</code></pre><p>shouldn&#39;t be</p>
+<pre><code class="hljs"> <span class="hljs-tag">thumbnails</span><span class="hljs-class">.item</span><span class="hljs-attr_selector">[0]</span>
+</code></pre><p>square brackets instead of the round ones ?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 5th 2014, 10:06:45 am">April 5th 2014</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/164263/youtube-video-page-causing-v8-crash#answer-277429" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>No it was working previously most of that code is written by someone else but i chaned (0) to [0] and it still gave the same error</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 5th 2014, 10:15:40 am">April 5th 2014</span>
+											by <span class='authorname'>James Kinsman</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

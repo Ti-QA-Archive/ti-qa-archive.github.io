@@ -1,0 +1,431 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Save remote JSON data into SQLite for offline use » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Save remote JSON data into SQLite for offline use</h1>
+		</header>
+		<section>
+			<h1 id="env">Env</h1>
+<pre><code class="hljs">Application type: mobile
+Titanium SDK: <span class="hljs-number">3.2</span><span class="hljs-number">.1</span>GA
+Platform &amp; version: iOS <span class="hljs-number">7.0</span>, Android <span class="hljs-number">4.0</span>+
+Device: iOS simulator, Android emulator
+Host Operating System: OSX Mountain Lion
+Titanium CLI: <span class="hljs-number">3.2</span><span class="hljs-number">.1</span>
+</code></pre><h1 id="problem">Problem</h1>
+<p>Only been using Titanium for 2 weeks. Searched long and hand and am now thoroughly confused.</p>
+<p>Using the above env, Alloy 1.3.1.</p>
+<p>In a nutshell this is what I am doing:</p>
+<ol>
+<li>php backend serving up data in JSON format</li>
+<li>app consumes the data into a collection</li>
+<li>collection.reset(json object) bind the collection to tableview</li>
+</ol>
+<p>So far so good.</p>
+<p>Now I am trying to implement offline mode</p>
+<ol>
+<li>save the collection to sqlite database on device</li>
+<li>check for network connection</li>
+<li>if offline, fetch the collection from sqlite</li>
+<li>if online, fetch from php backend and merge (REPLACE INTO) new results into sqlite database</li>
+</ol>
+<p>This is where I am stuck.</p>
+<p>I&#39;ve searched for days but all of the examples talk about 2 ways RESTful syncing.</p>
+<p>I don&#39;t want to update the remote source, only update the local sqlite database.</p>
+<p>This seems like a fairly common task that others must be doing.</p>
+<p>I think I am missing something fundamental, and need some advice</p>
+<p>I found one example which I have tried to implement as follows:</p>
+<ol>
+<li>As far as I can tell, you cannot save a collection in backbone.js. Therefore I&#39;ve extended the collection adding a &quot;save&quot; function that loops through the models and saves it</li>
+<li>Looks like there&#39;s a bug in the documentation for db.execute - on Andriod you can pass an array and it works, but on iOS it fails</li>
+</ol>
+<h1 id="questions">Questions</h1>
+<ol>
+<li>Is the approach of adding a save function to the collection the way to save results locally to sqlite?</li>
+<li>If so is there a more efficient way to save an entire collection rather than my implementation?</li>
+<li>Is there a workaround for not being able to pass an array into db.execute on iOS?</li>
+<li>If the answer to 1) is no, then how do you do it?</li>
+<li>Once the data is saved to sqlite, is the only way to get it into a collection to use collection.fetch()?</li>
+<li>If 5) is yes, then the backbone.js document say you should avoid this and use collection.reset() - but how would this work for sqlite in practice?</li>
+</ol>
+<p>Sorry for the rambling, long list of questions. </p>
+<p>Wanted to stop and seek advice, before I code some inefficent non best practice mess.</p>
+<p>Thanks in advance.</p>
+<p>Steve</p>
+<h1 id="code">Code</h1>
+<h2 id="model-">model:</h2>
+<pre><code class="hljs">exports.definition = {
+    config : {
+        <span class="hljs-comment">// table schema and adapter information</span>
+        <span class="hljs-string">"columns"</span>: {
+            <span class="hljs-string">"event"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"event_link"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"men_runner"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"men_runner_link"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"men_athlete_number"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"men_club"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"women_runner"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"women_runner_link"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"women_athlete_number"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"women_club"</span>: <span class="hljs-string">"TEXT"</span>
+        },
+        <span class="hljs-string">"defaults"</span>: {
+            <span class="hljs-string">"event"</span>: <span class="hljs-string">"-"</span>,
+            <span class="hljs-string">"event_link"</span>: <span class="hljs-string">"-"</span>,
+            <span class="hljs-string">"men_runner"</span>: <span class="hljs-string">"-"</span>,
+            <span class="hljs-string">"men_runner_link"</span>: <span class="hljs-string">"-"</span>,
+            <span class="hljs-string">"men_athlete_number"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"men_club"</span>: <span class="hljs-string">"-"</span>,
+            <span class="hljs-string">"women_runner"</span>: <span class="hljs-string">"-"</span>,
+            <span class="hljs-string">"women_runner_link"</span>: <span class="hljs-string">"-"</span>,
+            <span class="hljs-string">"women_athlete_number"</span>: <span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"women_club"</span>: <span class="hljs-string">"-"</span>
+        },
+        <span class="hljs-string">"adapter"</span>: {
+            <span class="hljs-string">"type"</span>: <span class="hljs-string">"sql"</span>,
+            <span class="hljs-string">"collection_name"</span>: <span class="hljs-string">"first_finishers"</span>
+        }
+    },
+
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">Model</span>) </span>{        
+        _.extend(Model.prototype, {
+            <span class="hljs-comment">// Extend, override or implement Backbone.Model </span>
+        });
+        <span class="hljs-keyword">return</span> Model;
+    },
+
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">Collection</span>) </span>{        
+        _.extend(Collection.prototype, {
+            <span class="hljs-comment">// Extend, override or implement Backbone.Collection </span>
+
+             deleteAll : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+                <span class="hljs-keyword">var</span> collection = <span class="hljs-keyword">this</span>;
+
+                <span class="hljs-keyword">var</span> sql = <span class="hljs-string">"DELETE FROM "</span> + collection.config.adapter.collection_name;
+                db = Ti.Database.open(collection.config.adapter.db_name);
+                db.execute(sql);
+                db.close();
+
+                collection.trigger(<span class="hljs-string">'sync'</span>);
+
+            },
+
+            save: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+                <span class="hljs-keyword">var</span> collection = <span class="hljs-keyword">this</span>;  
+
+                <span class="hljs-keyword">var</span> numModels = collection.length;
+                Ti.API.info(<span class="hljs-string">"Number to process: "</span> + numModels);
+
+                <span class="hljs-comment">//build comma separated list of columns</span>
+                Ti.API.info(<span class="hljs-string">"columns "</span> + <span class="hljs-built_in">JSON</span>.stringify(collection.config));
+                <span class="hljs-keyword">var</span> collectionColumns = _.map(collection.config.columns, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">value, index</span>) </span>{
+                    <span class="hljs-comment">//ignore the system generated pk - alloy_id</span>
+                    <span class="hljs-keyword">if</span> (index !== <span class="hljs-string">'alloy_id'</span>) <span class="hljs-keyword">return</span> [index];
+                });
+                <span class="hljs-comment">//pop off the trailing array item because we don't return alloy_id</span>
+                collectionColumns = collectionColumns.filter(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">n</span>)</span>{<span class="hljs-keyword">return</span> n});
+                Ti.API.info(<span class="hljs-string">"columns "</span> + collectionColumns.length + <span class="hljs-string">" - "</span> + collectionColumns.join(<span class="hljs-string">", "</span>));
+
+                <span class="hljs-comment">//Open the DB</span>
+                db = Ti.Database.open(collection.config.adapter.db_name);
+
+                <span class="hljs-comment">//Start the transaction</span>
+                db.execute(<span class="hljs-string">'BEGIN'</span>);
+
+                <span class="hljs-comment">//Build the SQL statement based on this collection</span>
+                collection.each(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">index,model</span>)</span>{
+                    <span class="hljs-keyword">var</span> sql = <span class="hljs-string">'REPLACE INTO '</span> 
+                            + collection.config.adapter.collection_name 
+                            + <span class="hljs-string">' ('</span> + collectionColumns.join(<span class="hljs-string">", "</span>) + <span class="hljs-string">') VALUES '</span>
+
+                    <span class="hljs-comment">//loop through all columns and set a bind placeholder</span>
+                    <span class="hljs-keyword">var</span> modelBinds =_.map(collectionColumns, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">value, index</span>) </span>{
+                        <span class="hljs-comment">//Ti.API.info('collectionColumns : index = ' + index + ', value = ' + value);</span>
+                        <span class="hljs-keyword">return</span> [<span class="hljs-string">"?"</span>];
+                    });
+                    <span class="hljs-comment">//clean the array of emtpy values</span>
+                    modelBinds = modelBinds.filter(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">n</span>)</span>{<span class="hljs-keyword">return</span> n});
+                    <span class="hljs-comment">//add this to the SQL statement</span>
+                    sql += <span class="hljs-string">'('</span> + modelBinds.join(<span class="hljs-string">", "</span>) + <span class="hljs-string">')'</span>;
+
+                    <span class="hljs-comment">//loop through all columns and get the model data for that column</span>
+                    <span class="hljs-keyword">var</span> modelValues =_.map(collectionColumns, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">value, index</span>) </span>{
+                        <span class="hljs-comment">//Ti.API.info('collectionColumns : index = ' + index + ', value = ' + value);</span>
+                        <span class="hljs-keyword">return</span> [<span class="hljs-string">"'"</span> + collection.at(model).get(value) + <span class="hljs-string">"'"</span>];
+                    });
+                    <span class="hljs-comment">//clean the array of emtpy values</span>
+                    modelValues = modelValues.filter(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">n</span>)</span>{<span class="hljs-keyword">return</span> n});
+
+                    <span class="hljs-comment">//execute the SQL</span>
+                    <span class="hljs-comment">//this</span>
+                    <span class="hljs-comment">//  db.execute(sql, modelValues);</span>
+                    <span class="hljs-comment">//should work on iOS according to the docs - http://docs.appcelerator.com/titanium/latest/#!/api/Titanium.Database.DB-method-execute</span>
+                    <span class="hljs-comment">//but it does not</span>
+                    <span class="hljs-comment">//allow it to work on android as its neater, but hack a workaround for iOS</span>
+                    <span class="hljs-keyword">if</span> (OS_ANDROID){
+                        db.execute(sql, modelValues);
+                    }
+                    <span class="hljs-keyword">else</span> {
+                        <span class="hljs-comment">//http://developer.appcelerator.com/question/119216/so-arguments-apply-and-call-doesnt-work-with-titaniumdatabaseexecute</span>
+                        <span class="hljs-comment">//https://developer.appcelerator.com/question/60461/passing-an-array-into-titaniumdatabasedbexecute</span>
+                        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">query</span>(<span class="hljs-params">stmt, args</span>) </span>{
+                            <span class="hljs-keyword">var</span> resultSet = <span class="hljs-built_in">Function</span>.apply.call(db.execute, db, <span class="hljs-built_in">arguments</span>);
+                            <span class="hljs-keyword">return</span> resultSet;
+                        }
+            <span class="hljs-comment">//this DOES NOT WORK?!</span>
+
+                    }
+                });
+
+                <span class="hljs-comment">//Commit the transaction</span>
+                db.execute(<span class="hljs-string">'COMMIT'</span>);
+
+                <span class="hljs-comment">//Close the DB</span>
+                db.close();
+
+                Ti.API.info(<span class="hljs-string">'collection sync - save'</span>);     
+           } 
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre><h2 id="controller-">controller:</h2>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ffs = Alloy.Collections.first_finishers;
+<span class="hljs-keyword">var</span> isIpad = OS_IOS &amp;&amp; Alloy.isTablet;
+
+Alloy.CFG.nav=$.nav;
+
+<span class="hljs-keyword">var</span> Net = <span class="hljs-built_in">require</span>(<span class="hljs-string">'call_webservice'</span>);
+
+Net.download({
+    method: <span class="hljs-string">'GET'</span>, <span class="hljs-comment">// GET is default</span>
+    url: <span class="hljs-string">'my_webservices/getFirstFinishers.php'</span>,
+    timeout: <span class="hljs-number">30</span>, <span class="hljs-comment">// in seconds (10 = default)</span>
+    type: <span class="hljs-string">'json'</span>, <span class="hljs-comment">// is default or html</span>
+    success: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">success</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'Successfully got the response!'</span>);
+
+        <span class="hljs-comment">//Clear the model down</span>
+        <span class="hljs-comment">//ffs.deleteAll();</span>
+        ffs.fetch();
+        Ti.API.info(<span class="hljs-string">'ff collection length before reset = '</span> + ffs.length);
+
+        <span class="hljs-comment">//bind this data to the model</span>
+        ffs.reset(success);
+        <span class="hljs-comment">//ffs.add(success); &lt;--way to slow</span>
+
+    <span class="hljs-comment">//save this to sqlite</span>
+        ffs.save();
+
+        Ti.API.info(<span class="hljs-string">'ff collection length after reset = '</span> + ffs.length);
+        Ti.API.info(<span class="hljs-string">'JSON.stringify(ff) = '</span> + <span class="hljs-built_in">JSON</span>.stringify(ffs));
+
+        Ti.API.info(<span class="hljs-string">'arh men_athlete_number = '</span> + ffs.at(<span class="hljs-number">0</span>).get(<span class="hljs-string">"men_athlete_number"</span>));
+
+        Alloy.Globals.loading.hide();
+    }
+});
+
+<span class="hljs-comment">// respond to detail event triggered on index controller</span>
+$.on(<span class="hljs-string">'newview'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'start ON newview'</span>); 
+    <span class="hljs-comment">// open the window</span>
+    <span class="hljs-keyword">var</span> xpng=<span class="hljs-built_in">require</span>(<span class="hljs-string">'xpng'</span>);
+    xpng.openWin(Alloy.CFG.nav, <span class="hljs-string">'newview'</span>, {
+                    athleteNumber: ffs.at(e.index).get(<span class="hljs-string">"men_athlete_number"</span>),
+                    menRunner: ffs.at(e.index).get(<span class="hljs-string">"men_runner"</span>)
+                });
+    Ti.API.info(<span class="hljs-string">'end ON newview'</span>); 
+});
+
+<span class="hljs-comment">//$.index.open();</span>
+<span class="hljs-keyword">if</span> (OS_ANDROID){
+    $.index.open();
+}
+<span class="hljs-keyword">else</span> {
+    $.nav.open();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">clicked</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'clicked row '</span> + e.index);
+    Ti.API.info(<span class="hljs-string">'Collection at index['</span> + e.index +<span class="hljs-string">'], event = '</span> + ffs.at(e.index).get(<span class="hljs-string">"men_runner_link"</span>));
+    $.trigger(<span class="hljs-string">'newview'</span>, e);
+}
+
+<span class="hljs-comment">// Free model-view data binding resources when this view-controller closes</span>
+<span class="hljs-keyword">if</span> (OS_ANDROID){
+    $.index.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        $.destroy();
+    });
+}
+<span class="hljs-comment">//else for iOS nav group?</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 12th 2014, 8:48:19 pm">February 12th 2014</span>
+				by <span class='authorname'>Steve Senior</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hi Steve,<br>Did yoy got the solution I am also facing the same problem.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 21st 2014, 9:04:42 am">March 21st 2014</span>
+								by <span class='authorname'>Aparna M</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>any solution yet?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 17th 2014, 11:31:02 am">June 17th 2014</span>
+								by <span class='authorname'>Luvish Katyal</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-279877">
+				
+						<section>
+							<p>Yes.</p>
+<p>The save function in the model needs to look like this:</p>
+<pre><code class="hljs">save: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+                <span class="hljs-comment">//https://github.com/aaronksaunders/todolist.alloy/blob/master/app/assets/alloy/sync/sql2.js</span>
+
+                <span class="hljs-keyword">var</span> collection = <span class="hljs-keyword">this</span>;
+                <span class="hljs-keyword">var</span> table = collection.config.adapter.collection_name, columns = collection.config.columns;
+
+                db = Ti.Database.open(collection.config.adapter.db_name);
+
+                db.execute(<span class="hljs-string">'BEGIN'</span>);
+
+                collection.<span class="hljs-keyword">each</span>(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(index,model)</span></span>{
+                    <span class="hljs-keyword">var</span> names = [], values = [], q = [];
+                    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> k <span class="hljs-keyword">in</span> columns) {
+                        <span class="hljs-keyword">if</span> (k !== <span class="hljs-string">'alloy_id'</span>) {
+                            names.push(k);
+                            values.push(collection.at(model).<span class="hljs-keyword">get</span>(k));
+                            q.push(<span class="hljs-string">"?"</span>);
+                        }
+                    }
+
+                    <span class="hljs-keyword">var</span> sql = <span class="hljs-string">"REPLACE INTO "</span> + table + <span class="hljs-string">" ("</span> + names.join(<span class="hljs-string">","</span>) + <span class="hljs-string">") VALUES ("</span> + q.join(<span class="hljs-string">","</span>) + <span class="hljs-string">")"</span>;
+
+                    db.execute(sql, values);                   
+                });
+
+                db.execute(<span class="hljs-string">'COMMIT'</span>);
+                db.close();
+            }
+</code></pre><p>And when you want to save it to SQLite , call the save function in your controller:</p>
+<pre><code class="hljs">//collection
+collection = Alloy.Collections.first_finishers<span class="hljs-comment">;</span>
+
+//parse json we received <span class="hljs-literal">and</span> want <span class="hljs-keyword">to</span> save
+json = JSON.parse(response)<span class="hljs-comment">;</span>
+
+//delete all <span class="hljs-keyword">local</span> data <span class="hljs-keyword">if</span> you this collection should <span class="hljs-literal">not</span> persist across app reboots
+collection.deleteAll()<span class="hljs-comment">;</span>
+
+//bind this data <span class="hljs-keyword">to</span> the model silently <span class="hljs-keyword">while</span> we save it
+collection.reset(json, {silent: <span class="hljs-literal">true</span>})<span class="hljs-comment">;</span>
+
+//<span class="hljs-built_in">now</span> save it <span class="hljs-keyword">to</span> sqlite.
+collection.save()<span class="hljs-comment">;</span>
+</code></pre><p>Hope that helps.</p>
+<p>Steve.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 17th 2014, 6:23:27 pm">June 17th 2014</span>
+								by <span class='authorname'>Steve Senior</span><br>
+								<a class="icon-bg icon-link" href="question/162531/save-remote-json-data-into-sqlite-for-offline-use#answer-279877" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

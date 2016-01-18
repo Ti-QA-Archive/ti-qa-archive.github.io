@@ -1,0 +1,636 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>CommonJS Google Analytics Using Same Tracker » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>CommonJS Google Analytics Using Same Tracker</h1>
+		</header>
+		<section>
+			<p>I have been running into some issues using the commonJS module and Google Analytics module. My original issue, which was thankfully resolved through the help of the Titanium community was having the Google Analytics module tracker firing on tab loads, which was an issue because every tab is loaded on app load and having more than one tracker firing crashes the app without error. </p>
+<p>This was eventually resolved and you can see how with this link: <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;163575&#x2F;removing-event-listener-if-tab-is-not-active">Function to Call Tracker</a></p>
+<p>The new problem I am having involves tracking windows that open from the active tab. It appears that since it is not possible to close the root tab when I open a new window, the tracking from the active tab is still present and crashes the app when the new window is opened. I am not sure of what the best approach to working around this issue would be. </p>
+<p>Any suggestions? Maybe launch the tracker on window.tab.open() and then close the tracker on window.tab.close()? But the issue is that the active tab tracker is still engaged because the tab is technically still open.</p>
+<p>Here is my current thought to creating the tracker on window open, which works, but crashes the app because of the active tabs tracker being active:</p>
+<p>See <em>tabOrWindowName</em>Tracking()     functions for tracker objects.</p>
+<p>tabGroup: (Where the tracker is firing on active tab)</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">tabGroup</span><span class="hljs-params">()</span></span>{
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createTabGroup();
+
+    <span class="hljs-keyword">var</span> pictureFeed = <span class="hljs-keyword">require</span>(<span class="hljs-string">'pictureFeed'</span>);
+    <span class="hljs-keyword">var</span> profile = <span class="hljs-keyword">require</span>(<span class="hljs-string">'profile'</span>);
+    <span class="hljs-keyword">var</span> cameraUpload = <span class="hljs-keyword">require</span>(<span class="hljs-string">'cameraUpload'</span>);
+
+
+    <span class="hljs-keyword">var</span> pictureFeedWin = <span class="hljs-keyword">new</span> pictureFeed();
+    <span class="hljs-keyword">var</span> cameraUploadWin = <span class="hljs-keyword">new</span> cameraUpload();
+    <span class="hljs-keyword">var</span> profileWin = <span class="hljs-keyword">new</span> profile();
+
+
+    <span class="hljs-keyword">var</span> GA = <span class="hljs-keyword">require</span>(<span class="hljs-string">'analytics.google'</span>);
+GA.debug = <span class="hljs-keyword">true</span>;
+GA.trackUncaughtExceptions = <span class="hljs-keyword">true</span>;
+
+<span class="hljs-keyword">var</span> tracker = GA.getTracker(<span class="hljs-string">"UA-XXXXXX-1"</span>);
+
+
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">cameraUploadTracking</span><span class="hljs-params">()</span></span>{
+    tracker.trackScreen(<span class="hljs-string">'Camera Upload'</span>);
+}
+
+    <span class="hljs-keyword">var</span> cameraUploadTab = Ti.UI.createTab({
+        icon:<span class="hljs-string">'KS_nav_ui.png'</span>,
+        title:<span class="hljs-string">'Picture Feed Tab'</span>,
+        window: cameraUploadWin
+    });
+
+    <span class="hljs-keyword">self</span>.addTab(cameraUploadTab);
+
+    <span class="hljs-keyword">if</span> (tabGroup.activeTab = <span class="hljs-number">1</span>) {
+        cameraUploadTab.addEventListener(<span class="hljs-string">'focus'</span>, cameraUploadTracking);
+
+    }   <span class="hljs-keyword">else</span> {
+       cameraUploadTab.removeEventListener(<span class="hljs-string">'focus'</span>, cameraUploadTracking);
+    };
+
+
+    <span class="hljs-keyword">var</span> profileTab = Ti.UI.createTab({
+        icon:<span class="hljs-string">'KS_nav_ui.png'</span>,
+        title:<span class="hljs-string">'Profile Tab'</span>,
+        window: profileWin
+    });
+
+
+    <span class="hljs-keyword">self</span>.addTab(profileTab);
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">profileTracking</span><span class="hljs-params">()</span></span>{
+    tracker.trackScreen(<span class="hljs-string">'Profile'</span>);
+}
+
+    <span class="hljs-keyword">if</span> (tabGroup.activeTab = <span class="hljs-number">2</span>) {
+    profileTab.addEventListener(<span class="hljs-string">'focus'</span>, profileTracking);
+    } <span class="hljs-keyword">else</span> {
+        profileTab.removeEventListener(<span class="hljs-string">'focus'</span>, profileTracking);
+    };
+
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+
+};
+
+module.exports = tabGroup;
+</code></pre><p>profile: (Where the new window is opened)</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">profile</span>(<span class="hljs-params">args</span>) </span>{
+
+
+    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+
+    <span class="hljs-keyword">var</span> activityindicator_win = <span class="hljs-built_in">require</span>(<span class="hljs-string">"activityindicator_win"</span>);
+    <span class="hljs-keyword">var</span> obj_win = <span class="hljs-keyword">new</span> activityindicator_win();
+
+
+    <span class="hljs-comment">//profile.js SETTINGS</span>
+
+    <span class="hljs-keyword">var</span> profile = Ti.UI.createWindow({
+        barColor : <span class="hljs-string">'#3d6430'</span>,
+        titleImage : <span class="hljs-string">'tap.png'</span>,
+        backgroundColor : <span class="hljs-string">'#e9e7e7'</span>,
+        translucent : <span class="hljs-literal">false</span>
+    });
+
+    <span class="hljs-keyword">var</span> refresh = Titanium.UI.createButton({
+        <span class="hljs-comment">//backgroundImage:"/images/refresh.png",</span>
+        <span class="hljs-comment">// width:39,</span>
+        <span class="hljs-comment">//height:41</span>
+        enabled : <span class="hljs-literal">false</span>
+    });
+    refresh.systemButton = Titanium.UI.iPhone.SystemButton.REFRESH;
+    profile.leftNavButton = refresh;
+    refresh.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">try</span> {
+
+            refresh.enabled = <span class="hljs-literal">false</span>;
+            <span class="hljs-keyword">var</span> act_ind_win = <span class="hljs-literal">null</span>;
+            <span class="hljs-keyword">var</span> friend_array = [];
+
+            profile_load(act_ind_win);
+        } <span class="hljs-keyword">catch</span>(ex) {
+            alert(ex);
+            Ti.API.info(ex);
+        }
+    });
+
+    <span class="hljs-comment">//OPEN profileSettings.js BUTTON</span>
+    <span class="hljs-keyword">var</span> rightButton = Ti.UI.createImageView({
+        image : <span class="hljs-string">'/images/settingsIcon.png'</span>,
+        width : <span class="hljs-number">50</span>,
+        height : <span class="hljs-number">36</span>
+    });
+
+
+
+
+    <span class="hljs-comment">//OPEN profileSettings.js EVENT LISTENER</span>
+    rightButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        <span class="hljs-keyword">var</span> win = <span class="hljs-built_in">require</span>(<span class="hljs-string">'profileSettings'</span>).profileSettingsWin;
+
+        top_event_data_yes = [];
+        top_event_data_no = [];
+        top_event_data_maybe = [];
+        goingOut_event = [];
+        friendsGoingOutYesTable.setData(top_event_data_yes);
+        friendsGoingOutNoTable.setData(top_event_data_no);
+        friendsGoingOutMaybeTable.setData(top_event_data_maybe);
+
+        <span class="hljs-keyword">var</span> profileSettingsDetail = <span class="hljs-keyword">new</span> win({
+            parent_win : profile,
+            badge_counter : profile.tab.badge
+
+        });
+
+        profile.tab.open(profileSettingsDetail, {
+            animated : <span class="hljs-literal">true</span>
+        });
+    });
+
+    profile.rightNavButton = rightButton;
+
+
+
+    profile.addEventListener(<span class="hljs-string">"focus"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+
+        <span class="hljs-comment">//refresh.enabled = true;</span>
+        refresh.enabled = <span class="hljs-literal">false</span>;
+        profileName.text = Ti.App.Properties.getString(<span class="hljs-string">"user_full_name"</span>);
+
+        <span class="hljs-keyword">if</span> (Ti.Network.online) {
+
+            Cloud.Photos.search({
+                user_id : Ti.App.Properties.getString(<span class="hljs-string">'currentUser_id'</span>),
+            }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+
+                    <span class="hljs-keyword">if</span> (e.photos.length &gt; <span class="hljs-number">0</span>) {
+                        <span class="hljs-keyword">var</span> photo = e.photos[<span class="hljs-number">0</span>];
+                        <span class="hljs-keyword">if</span> (photo) {
+                            profilePicture.image = photo.urls.square_75;
+                        }
+
+                    } <span class="hljs-keyword">else</span> {
+                        profilePicture.image = <span class="hljs-literal">null</span>;
+                        get_Fb_profile();
+                    }
+                } <span class="hljs-keyword">else</span> {
+                    Ti.API.info(<span class="hljs-string">'Error:\n'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                    profilePicture.image = <span class="hljs-literal">null</span>;
+                    get_Fb_profile();
+                }
+            });
+
+            <span class="hljs-keyword">if</span> (Ti.App.Properties.getString(<span class="hljs-string">"is_login"</span>) == <span class="hljs-literal">true</span>) {
+                <span class="hljs-keyword">var</span> act_ind_win = <span class="hljs-literal">null</span>;
+                <span class="hljs-keyword">var</span> friend_array = [];
+                profile_load(act_ind_win);
+            }
+
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">"Please check your internet connection"</span>);
+        }
+
+    });
+
+    <span class="hljs-keyword">return</span> profile;
+};
+<span class="hljs-built_in">module</span>.exports = profile;
+</code></pre><p>profileSettings: (window opened from tab)</p>
+<pre><code class="hljs">exports.profileSettingsWin = function(args) {
+
+    var Cloud = require(<span class="hljs-string">'ti.cloud'</span>);
+    <span class="hljs-comment">//Permissions your app need</span>
+
+
+    var counter = <span class="hljs-number">0</span>;
+
+
+    var GA = require(<span class="hljs-string">'analytics.google'</span>);
+        GA.debug = <span class="hljs-literal">true</span>;
+        GA.trackUncaughtExceptions = <span class="hljs-literal">true</span>;
+
+var tracker = GA.getTracker(<span class="hljs-string">"UA-XXXXX-1"</span>);
+
+
+
+
+    <span class="hljs-comment">//profileSettings.js WINDOW SETTINGS</span>
+    var settings = Ti.UI.createWindow({
+        <span class="hljs-string">barColor :</span> <span class="hljs-string">'#3d6430'</span>,
+        <span class="hljs-string">title :</span> <span class="hljs-string">"Profile Settings"</span>,
+        <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">'#e9e7e7'</span>,
+        <span class="hljs-string">translucent :</span> <span class="hljs-literal">false</span>,
+        <span class="hljs-string">navTintColor :</span> <span class="hljs-string">'white'</span>,
+        <span class="hljs-string">leftNavButton :</span> backButton,
+        <span class="hljs-string">top :</span> <span class="hljs-number">0</span>
+    });
+
+
+function profileSettingsTracking(){
+tracker.trackScreen(<span class="hljs-string">'Profile Settings'</span>);
+        Ti.API.info(<span class="hljs-string">'Tracking Profile Settings'</span>);
+}
+
+
+    <span class="hljs-keyword">if</span> (settings.open = <span class="hljs-literal">true</span>) {
+        settings.addEventListener(<span class="hljs-string">'focus'</span>, profileSettingsTracking); 
+    } <span class="hljs-keyword">else</span> {
+        settings.removeEventListener(<span class="hljs-string">'focus'</span>, profileSettingsTracking);
+
+    }; 
+    <span class="hljs-comment">//BACK BUTTON</span>
+    var backButton = Ti.UI.createButton();
+
+    backButton.addEventListener(<span class="hljs-string">'click'</span>, function() {
+        settings.close({
+            <span class="hljs-string">animated :</span> <span class="hljs-literal">true</span>
+        });
+    });
+    <span class="hljs-comment">//END BACK BUTTON</span>
+
+    <span class="hljs-comment">//PROFILE SETTINGS TABLE</span>
+    var table = Titanium.UI.createTableView({
+        <span class="hljs-string">style :</span> Titanium.UI.iPhone.TableViewStyle.GROUPED,
+        <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">'#e9e7e7'</span>
+    });
+    settings.add(table);
+
+    <span class="hljs-comment">//SOCIAL SETTINGS SECTION</span>
+    var socialSettings = Titanium.UI.createTableViewSection({
+        <span class="hljs-string">top :</span> <span class="hljs-number">0</span>
+
+    });
+    socialSettings.headerTitle = <span class="hljs-string">"SOCIAL SETTINGS"</span>;
+
+    <span class="hljs-comment">//findFriends.js BUTTON</span>
+    var findFriends = Titanium.UI.createTableViewRow({
+        <span class="hljs-string">title :</span> <span class="hljs-string">"Find Your Friends"</span>,
+        <span class="hljs-string">font :</span> {
+            <span class="hljs-string">fontFamily :</span> customFont
+        },
+        <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">'#fff'</span>
+    });
+    <span class="hljs-comment">//END findFriends.js BUTTON</span>
+
+    <span class="hljs-comment">//BUTTON (WORK IN PROGRESS)</span>
+
+    var inviteFriends = Titanium.UI.createTableViewRow({
+        <span class="hljs-string">title :</span> <span class="hljs-string">"Invite Friends"</span>,
+        <span class="hljs-string">font :</span> {
+            <span class="hljs-string">fontFamily :</span> customFont
+        },
+        <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">'#fff'</span>
+    });
+    <span class="hljs-comment">//END BUTTON</span>
+
+    <span class="hljs-comment">//notifications.js BUTTON</span>
+    var notifications = Titanium.UI.createTableViewRow({
+        <span class="hljs-string">title :</span> <span class="hljs-string">"Notifications"</span>,
+        <span class="hljs-string">font :</span> {
+            <span class="hljs-string">fontFamily :</span> customFont
+        },
+        <span class="hljs-string">height :</span> <span class="hljs-number">50</span>,
+        <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">'#fff'</span>
+
+    });
+    var lbl_notification_icon = Ti.UI.createLabel({
+        <span class="hljs-string">right :</span> <span class="hljs-number">10</span>,
+        <span class="hljs-string">borderRadius :</span> <span class="hljs-number">15</span>,
+        <span class="hljs-string">width :</span> <span class="hljs-number">30</span>,
+        <span class="hljs-string">height :</span> <span class="hljs-number">30</span>,
+        <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">"transparent"</span>,
+        <span class="hljs-string">text :</span> <span class="hljs-string">""</span>,
+
+        <span class="hljs-string">font :</span> {
+            <span class="hljs-string">fontFamily :</span> customFont,
+            <span class="hljs-string">fontWeight :</span> <span class="hljs-string">"bold"</span>,
+            <span class="hljs-string">fontSize :</span> <span class="hljs-number">15</span>
+        },
+        <span class="hljs-string">textAlign :</span> <span class="hljs-string">'center'</span>,
+        <span class="hljs-string">color :</span> <span class="hljs-string">"white"</span>
+
+    });
+
+    notifications.add(lbl_notification_icon);
+
+    <span class="hljs-comment">//END notifications.js BUTTON</span>
+
+    <span class="hljs-comment">//ADD TO SOCIAL SETTINGS TABLE</span>
+    socialSettings.add(findFriends);
+
+
+    <span class="hljs-comment">//SUPPORT SETTINGS TABLE</span>
+    var supportSettings = Titanium.UI.createTableViewSection();
+    supportSettings.headerTitle = <span class="hljs-string">"SUPPORT SETTINGS"</span>;
+
+    <span class="hljs-comment">//emailDialog.js BUTTON</span>
+    var reportAnError = Ti.UI.createTableViewRow({
+        <span class="hljs-string">title :</span> <span class="hljs-string">"Report an Error"</span>,
+        <span class="hljs-string">font :</span> {
+            <span class="hljs-string">fontFamily :</span> customFont
+        },
+        <span class="hljs-string">backgroundColor :</span> <span class="hljs-string">'#fff'</span>
+    });
+    <span class="hljs-comment">//END emailDialog.js BUTTON</span>
+
+
+
+    supportSettings.add(reportAnError);
+
+
+    <span class="hljs-comment">//REPORT AN ERROR EMAIL DIALOG</span>
+    reportAnError.addEventListener(<span class="hljs-string">'click'</span>, function() {
+        var emailDialog = Ti.UI.createEmailDialog();
+        emailDialog.subject = <span class="hljs-string">"Error/Bug Found in Campus Taps Mobile App"</span>;
+        emailDialog.toRecipients = [<span class="hljs-string">'contact@campustaps.com'</span>];
+        emailDialog.messageBody = <span class="hljs-string">'Please provide us with some information on the error/bug that you found.'</span>;
+        emailDialog.open();
+    });
+    <span class="hljs-comment">//END REPORT AN ERROR EMAIL DIALOG</span>
+
+
+
+    settings.addEventListener(<span class="hljs-string">"focus"</span>, function(e) {
+        counter = Ti.App.Properties.getString(<span class="hljs-string">"total_friends"</span>);
+
+        <span class="hljs-keyword">if</span> (counter &gt; <span class="hljs-number">0</span>) {
+            <span class="hljs-comment">//notifications.add(lbl_notification_icon);</span>
+            lbl_notification_icon.backgroundColor = <span class="hljs-string">"red"</span>;
+            lbl_notification_icon.text = counter;
+        } <span class="hljs-keyword">else</span> {
+            lbl_notification_icon.backgroundColor = <span class="hljs-string">"transparent"</span>;
+            lbl_notification_icon.text = <span class="hljs-string">""</span>;
+        }
+    });
+    <span class="hljs-keyword">return</span> settings;
+};
+<span class="hljs-comment">//END LOG OUT EVENT LISTENER</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 25th 2014, 6:35:31 pm">March 25th 2014</span>
+				by <span class='authorname'>Connor Phillips</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>function</span></li>
+					
+						<li><span class='tagname'>google analytics</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-276987">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>analytics.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> GA = <span class="hljs-built_in">require</span>(<span class="hljs-string">'analytics.google'</span>);
+
+<span class="hljs-comment">//GA.optOut = true;</span>
+GA.debug = <span class="hljs-literal">true</span>;
+GA.trackUncaughtExceptions = <span class="hljs-literal">true</span>;
+
+<span class="hljs-keyword">var</span> tracker = GA.getTracker(<span class="hljs-string">"UA-14394988-1"</span>);
+
+<span class="hljs-built_in">module</span>.exports = tracker;
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 25th 2014, 7:10:23 pm">March 25th 2014</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/163921/commonjs-google-analytics-using-same-tracker#answer-276987" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Then just require it in where you want to use it.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> tracker = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lib/analytics'</span>);
+</code></pre><p>and track an event:</p>
+<p>(focus for windows in tabs, or use it on the tab click event)</p>
+<pre><code class="hljs">myWindow.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> <span class="hljs-comment">{
+  tracker.trackScreen('My Window Title);
+}</span>);</span>
+</code></pre><p>(open for others)</p>
+<pre><code class="hljs">myWindow.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> <span class="hljs-comment">{
+  tracker.trackScreen('My Window Title);
+}</span>);</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 25th 2014, 7:13:33 pm">March 25th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Stephen,</p>
+<p>Thank you for your response. Your code works, but the numbers aren&#39;t accurate. The first tab that opens on load is seeing an extremely higher time on screen than the other tabs. 7 minutes 30 seconds compared to :30 to :15 to :00 for other tabs. It appears that it could have something to do with this console info that appears. Do you know what could be causing this issue?</p>
+<pre><code class="hljs"><span class="hljs-attr_selector">[INFO]</span> :   <span class="hljs-tag">2014-03-26</span> <span class="hljs-tag">21</span><span class="hljs-pseudo">:02</span><span class="hljs-pseudo">:33</span><span class="hljs-class">.332</span> <span class="hljs-tag">campus-mobile</span><span class="hljs-attr_selector">[36201:a0b]</span> <span class="hljs-tag">GoogleAnalytics</span> <span class="hljs-tag">2</span><span class="hljs-class">.0b4</span> <span class="hljs-tag">-</span><span class="hljs-attr_selector">[GAIDispatcher dispatchComplete:withStartTime:withRetryNumber:withResponse:withData:withError:]</span> (GAIDispatcher.<span class="hljs-attribute">m</span>:<span class="hljs-number">394</span>) <span class="hljs-tag">DEBUG</span>: <span class="hljs-tag">Hit</span> /<span class="hljs-tag">GAIHit</span>/<span class="hljs-tag">p45</span> <span class="hljs-tag">dispatched</span> (<span class="hljs-number">167ms</span>): <span class="hljs-tag">HTTP</span> <span class="hljs-tag">status</span> <span class="hljs-tag">200</span>
+<span class="hljs-attr_selector">[INFO]</span> :   <span class="hljs-tag">2014-03-26</span> <span class="hljs-tag">21</span><span class="hljs-pseudo">:02</span><span class="hljs-pseudo">:33</span><span class="hljs-class">.333</span> <span class="hljs-tag">campus-mobile</span><span class="hljs-attr_selector">[36201:a0b]</span> <span class="hljs-tag">GoogleAnalytics</span> <span class="hljs-tag">2</span><span class="hljs-class">.0b4</span> <span class="hljs-tag">-</span><span class="hljs-attr_selector">[GAIDispatcher dispatchComplete:withStartTime:withRetryNumber:withResponse:withData:withError:]</span> (GAIDispatcher.<span class="hljs-attribute">m</span>:<span class="hljs-number">415</span>) <span class="hljs-tag">DEBUG</span>: <span class="hljs-tag">Successfully</span> <span class="hljs-tag">dispatched</span> <span class="hljs-tag">hit</span> /<span class="hljs-tag">GAIHit</span>/<span class="hljs-tag">p45</span> (<span class="hljs-number">0</span> retries).
+<span class="hljs-tag">DEBUG</span>: <span class="hljs-tag">Hit</span> /<span class="hljs-tag">GAIHit</span>/<span class="hljs-tag">p47</span> <span class="hljs-tag">dispatched</span> (<span class="hljs-number">43ms</span>): <span class="hljs-tag">HTTP</span> <span class="hljs-tag">status</span> <span class="hljs-tag">200</span>
+<span class="hljs-attr_selector">[INFO]</span> :   <span class="hljs-tag">2014-03-26</span> <span class="hljs-tag">21</span><span class="hljs-pseudo">:02</span><span class="hljs-pseudo">:33</span><span class="hljs-class">.471</span> <span class="hljs-tag">campus-mobile</span><span class="hljs-attr_selector">[36201:a0b]</span> <span class="hljs-tag">GoogleAnalytics</span> <span class="hljs-tag">2</span><span class="hljs-class">.0b4</span> <span class="hljs-tag">-</span><span class="hljs-attr_selector">[GAIDispatcher dispatchComplete:withStartTime:withRetryNumber:withResponse:withData:withError:]</span> (GAIDispatcher.<span class="hljs-attribute">m</span>:<span class="hljs-number">415</span>) <span class="hljs-tag">DEBUG</span>: <span class="hljs-tag">Successfully</span> <span class="hljs-tag">dispatched</span> <span class="hljs-tag">hit</span> /<span class="hljs-tag">GAIHit</span>/<span class="hljs-tag">p47</span> (<span class="hljs-number">0</span> retries).
+<span class="hljs-attr_selector">[INFO]</span> :   <span class="hljs-tag">2014-03-26</span> <span class="hljs-tag">21</span><span class="hljs-pseudo">:02</span><span class="hljs-pseudo">:33</span><span class="hljs-class">.472</span> <span class="hljs-tag">campus-mobile</span><span class="hljs-attr_selector">[36201:a0b]</span> <span class="hljs-tag">GoogleAnalytics</span> <span class="hljs-tag">2</span><span class="hljs-class">.0b4</span> <span class="hljs-tag">-</span><span class="hljs-attr_selector">[GAIDispatcher dispatchComplete:withStartTime:withRetryNumber:withResponse:withData:withError:]</span> (GAIDispatcher.<span class="hljs-attribute">m</span>:<span class="hljs-number">422</span>) <span class="hljs-tag">DEBUG</span>: <span class="hljs-tag">Pending</span> <span class="hljs-tag">hit</span> <span class="hljs-tag">queue</span> <span class="hljs-tag">drained</span>.
+<span class="hljs-attr_selector">[INFO]</span> :   <span class="hljs-tag">2014-03-26</span> <span class="hljs-tag">21</span><span class="hljs-pseudo">:02</span><span class="hljs-pseudo">:33</span><span class="hljs-class">.472</span> <span class="hljs-tag">campus-mobile</span><span class="hljs-attr_selector">[36201:a0b]</span> <span class="hljs-tag">GoogleAnalytics</span> <span class="hljs-tag">2</span><span class="hljs-class">.0b4</span> <span class="hljs-tag">-</span><span class="hljs-attr_selector">[GAIDispatcher cancelTimer]</span> (GAIDispatcher.<span class="hljs-attribute">m</span>:<span class="hljs-number">224</span>) <span class="hljs-tag">DEBUG</span>: <span class="hljs-tag">Canceled</span> <span class="hljs-tag">timer</span> <span class="hljs-tag">with</span> <span class="hljs-tag">interval</span> <span class="hljs-tag">120</span><span class="hljs-class">.0s</span>
+
+<span class="hljs-attr_selector">[INFO]</span> :   <span class="hljs-tag">2014-03-26</span> <span class="hljs-tag">21</span><span class="hljs-pseudo">:00</span><span class="hljs-pseudo">:32</span><span class="hljs-class">.891</span> <span class="hljs-tag">campus-mobile</span><span class="hljs-attr_selector">[36201:a0b]</span> <span class="hljs-tag">GoogleAnalytics</span> <span class="hljs-tag">2</span><span class="hljs-class">.0b4</span> <span class="hljs-tag">-</span><span class="hljs-attr_selector">[GAIDispatcher cancelTimer]</span> (GAIDispatcher.<span class="hljs-attribute">m</span>:<span class="hljs-number">224</span>) <span class="hljs-tag">DEBUG</span>: <span class="hljs-tag">Canceled</span> <span class="hljs-tag">timer</span> <span class="hljs-tag">with</span> <span class="hljs-tag">interval</span> <span class="hljs-tag">120</span><span class="hljs-class">.0s</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2014, 11:13:22 pm">March 26th 2014</span>
+											by <span class='authorname'>Connor Phillips</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Stephen, I also noticed that you posted something in another thread about Matt Tuttle&#39;s GA module being outdated and suggesting Ben&#39;s module instead. Is that worth a try?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2014, 11:23:19 pm">March 26th 2014</span>
+											by <span class='authorname'>Connor Phillips</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><code>The first tab that opens on load is seeing an extremely higher time on screen than the other tabs</code></p>
+<p>Of course it will.  That first tab is ALWAYS shown when the app opens.  Just as index.html will always have a higher ranking than any other page on a website&#39;s count.</p>
+<p>With that in mind, you have to evaluate the data on that window.  If its a list, low value, but the clicks to other content off that list have value.  If you are tracking tab clicks to go back to that tab from others later on in the user&#39;s session, you can get an idea of traffic flow, just as you would on a website.</p>
+<p>You could also add an event for &#39;app startup&#39; and subtract that number from the number of loads for the &#39;index tab&#39; to determine how often the user made a conscience decision to go to that tab vs you shoving it on them at app launch.</p>
+<p>You could just not put an event on that window, and only track action to it via tab clicks, or child window closes.</p>
+<p>There are two parts to analytics. The collection of raw data (most folks are good at this). The analysis of said collected data (most folks are not good at this).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2014, 11:32:58 pm">March 26th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Lastly, the data acquired while you are developing and testing doesn&#39;t in any way match standard user flow.  You launch and a device or simulator sits.  You launch and go to that one spot in the app you are working on. And you do that same path&#x2F;course&#x2F;flow over and over until that section is finished.</p>
+<p>You may find that your end users spend even MORE time idling on a page than you could possible imagine.  Maybe they are slow readers, big words confuse them, that slow android phone takes forver to render the window.  All data points that you capture, but then also need to analyze.</p>
+<p>development data !== production data.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2014, 11:36:08 pm">March 26th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>(and I see nothing wrong with the logs, looks like normal GA processing)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2014, 11:40:06 pm">March 26th 2014</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Stephen,</p>
+<p>Thank you for this. I completely agree with all of your points.<br>I checked on stackoverflow and the info relates to the latency of sending hits to the GA server. No errors with the code.<br>I am going to mark this as resolved, but I have one question for you about opening multiple windows from one root tab window. I used your &#39;open&#39; event listener to open a window from the root tab window, but when I want to open a third window from the recently opened window, it seems to crash. Would this be in any relation to having the tracker running for the second window while launching a tracker when the third window opens?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 27th 2014, 3:36:52 pm">March 27th 2014</span>
+											by <span class='authorname'>Connor Phillips</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nevermind. I figured it out. Thanks Stephen for all of your help.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 27th 2014, 11:36:43 pm">March 27th 2014</span>
+											by <span class='authorname'>Connor Phillips</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-277074">
+				
+						<section>
+							<p>Hey Stephen,</p>
+<p>Thank you for this. I completely agree with all of your points. </p>
+<p>I checked on stackoverflow and the info relates to the latency of sending hits to the GA server. No errors with the code. </p>
+<p>I am going to mark this as resolved, but I have one question for you about opening multiple windows from one root tab window. I used your &#39;open&#39; event listener to open a window from the root tab window, but when I want to open a third window from the recently opened window, it seems to crash. Would this be in any relation to having the tracker running for the second window while launching a tracker when the third window opens?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 27th 2014, 3:36:27 pm">March 27th 2014</span>
+								by <span class='authorname'>Connor Phillips</span><br>
+								<a class="icon-bg icon-link" href="question/163921/commonjs-google-analytics-using-same-tracker#answer-277074" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>NOT AN ANSWER. DISREGARD</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 27th 2014, 3:36:32 pm">March 27th 2014</span>
+											by <span class='authorname'>Connor Phillips</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

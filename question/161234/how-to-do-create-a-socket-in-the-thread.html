@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>how to do create a socket in the thread » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>how to do create a socket in the thread</h1>
+		</header>
+		<section>
+			<p>now ,I want to create a socket,but it must work in the thread,I down&#39;t kown how to do ,this question let me can&#39;t to work,,how to create a thread ,help me ,if you have the smaplem demo,send my email weicanli@163.com ,thank you very much</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 7th 2014, 12:22:03 am">January 7th 2014</span>
+				by <span class='authorname'>weican li</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>thread</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+						<li><span class='tagname'>titanium studio</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-273602">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hello Weican, </p>
+<p>You can create a TCP socket either for consume and as a server mode, it will run in a different thread than the UI thread (since it&#39;s asynchronous). </p>
+<h4 id="creating-a-socket-for-reading-data">Creating a socket for reading data</h4>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> socket = Ti.Network.Socket.createTCP({
+    host: <span class="hljs-string">'blog.example.com'</span>, port: <span class="hljs-number">80</span>,
+    connected: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+        Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+        Ti.Stream.write(socket, Ti.createBuffer({
+            value: <span class="hljs-string">'GET http://blog.example.com/index.html HTTP/1.1\r\n\r\n'</span>
+        }), writeCallback);
+    },
+        error: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.error);
+    },
+});
+socket.connect();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">writeCallback</span><span class="hljs-params">(e)</span> </span>{
+    Ti.API.info(<span class="hljs-string">'Successfully wrote to socket.'</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">readCallback</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.bytesProcessed == -<span class="hljs-number">1</span>)
+    {
+        <span class="hljs-comment">// Error / EOF on socket. Do any cleanup here.</span>
+        ...
+    }
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">if</span>(e.buffer) {
+            <span class="hljs-keyword">var</span> received = e.buffer.toString();
+            Ti.API.info(<span class="hljs-string">'Received: '</span> + received);
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.error(<span class="hljs-string">'Error: read callback called with no buffer!'</span>);
+        }
+    } <span class="hljs-keyword">catch</span> (ex) {
+        Ti.API.error(ex);
+    }
+}
+</code></pre><h4 id="listening-socket-example">Listening socket example</h4>
+<pre><code class="hljs"><span class="hljs-comment">// Hostname to listen on/connect to. Here we use the loopback</span>
+<span class="hljs-comment">// address. iOS also supports Ti.Platform.address (the address of</span>
+<span class="hljs-comment">// the WiFi interface).</span>
+<span class="hljs-comment">// Android supports only the loopback address.</span>
+
+<span class="hljs-keyword">var</span> hostname = '127.0.0.1';
+
+<span class="hljs-keyword">var</span> clientSocket = Ti.Network.Socket.createTCP({
+    host : hostname,
+    port : 40404,
+    connected : function(<span class="hljs-keyword">e</span>) {
+        Ti.API.info('Client socket connected!');
+        Ti.Stream.pump(<span class="hljs-keyword">e</span>.socket, pumpCallback, 1024, true);
+        <span class="hljs-keyword">e</span>.socket.write(Ti.createBuffer({
+            value : 'A message from a connecting socket.'
+        }));
+    },
+    <span class="hljs-keyword">error</span> : function(<span class="hljs-keyword">e</span>) {
+        Ti.API.info('<span class="hljs-keyword">Error</span> (' + <span class="hljs-keyword">e</span>.errorCode + '): ' + <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>);
+    }
+});
+
+function writeCallback(<span class="hljs-keyword">e</span>) {
+    Ti.API.info('Successfully wrote to socket.');
+}
+
+function pumpCallback(<span class="hljs-keyword">e</span>) {
+    <span class="hljs-comment">// Has the remote socket closed its end?</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.bytesProcessed &lt; 0) {
+        Ti.API.info(<span class="hljs-string">"Closing client socket."</span>);
+        clientSocket.<span class="hljs-keyword">close</span>();
+        <span class="hljs-keyword">return</span>;
+    }
+    try {
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">e</span>.buffer) {
+            <span class="hljs-keyword">var</span> received = <span class="hljs-keyword">e</span>.buffer.<span class="hljs-keyword">toString</span>();
+            Ti.API.info('Received: ' + received);
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.<span class="hljs-keyword">error</span>('<span class="hljs-keyword">Error</span>: <span class="hljs-keyword">read</span> callback called with <span class="hljs-keyword">no</span> buffer!');
+        }
+    } catch (<span class="hljs-keyword">ex</span>) {
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-keyword">ex</span>);
+    }
+}
+
+<span class="hljs-comment">//Create a socket and listen for incoming connections</span>
+<span class="hljs-keyword">var</span> listenSocket = Ti.Network.Socket.createTCP({
+    host : hostname,
+    port : 40404,
+    accepted : function(<span class="hljs-keyword">e</span>) {
+        <span class="hljs-comment">// This where you would usually store the newly-connected socket, e.inbound</span>
+        <span class="hljs-comment">// so it can be used for read / write operations elsewhere in the app.</span>
+        <span class="hljs-comment">// In this case, we simply send a message then close the socket.</span>
+        Ti.API.info(<span class="hljs-string">"Listening socket &lt;"</span> + <span class="hljs-keyword">e</span>.socket + <span class="hljs-string">"&gt; accepted incoming connection &lt;"</span> + <span class="hljs-keyword">e</span>.inbound + <span class="hljs-string">"&gt;"</span>);
+        <span class="hljs-keyword">e</span>.inbound.write(Ti.createBuffer({
+            value : 'You have been connected to a listening socket.\r\<span class="hljs-keyword">n</span>'
+        }));
+        <span class="hljs-keyword">e</span>.inbound.<span class="hljs-keyword">close</span>();
+        <span class="hljs-comment">// close the accepted socket</span>
+
+    },
+    <span class="hljs-keyword">error</span> : function(<span class="hljs-keyword">e</span>) {
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">"Socket &lt;"</span> + <span class="hljs-keyword">e</span>.socket + <span class="hljs-string">"&gt; encountered error when listening"</span>);
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">" error code &lt;"</span> + <span class="hljs-keyword">e</span>.errorCode + <span class="hljs-string">"&gt;"</span>);
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">" error description &lt;"</span> + <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span> + <span class="hljs-string">"&gt;"</span>);
+    }
+});
+<span class="hljs-comment">// Starts the socket listening for connections, does not accept them</span>
+listenSocket.listen();
+Ti.API.info(<span class="hljs-string">"Listening now..."</span>);
+
+<span class="hljs-comment">// Tells socket to accept the next inbound connection. listenSocket.accepted gets</span>
+<span class="hljs-comment">// called when a connection is accepted via accept()</span>
+Ti.API.info(<span class="hljs-string">"Calling accept."</span>);
+listenSocket.accept({
+    timeout : 10000
+});
+
+<span class="hljs-comment">// Call connect after a short timeout to ensure the listening socket is ready to go.</span>
+Ti.API.info(<span class="hljs-string">"Setting timer to connect."</span>);
+setTimeout(function(<span class="hljs-keyword">e</span>)
+{
+    Ti.API.info(<span class="hljs-string">"Calling connect on client socket."</span>);
+   clientSocket.connect();
+}, 500);
+</code></pre><h4 id="more-info">More info</h4>
+<p>You can find all the details about sockets in Titanium in our <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Network.Socket.TCP">documentation</a>, and another example of usage in the <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;KitchenSink">KitchenSink</a>. </p>
+<p>Best,</p>
+<p>Mauro</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 7th 2014, 10:21:06 pm">January 7th 2014</span>
+								by <span class='authorname'>Mauro Parra</span><br>
+								<a class="icon-bg icon-link" href="question/161234/how-to-do-create-a-socket-in-the-thread#answer-273602" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>thank you,I look that ,my socketserver is in the eclipse only the main(){<br>  ServerSocket server;<br>        try {<br>            server = new ServerSocket(8090);<br>            while (true) {<br>                Socket client = server.accept();<br>                BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));<br>                StringBuffer info = new StringBuffer();<br>                info.append(&quot;weicanli&quot;);<br>                info.append(br.readLine());<br>                PrintStream ps = new PrintStream(client.getOutputStream());<br>                System.out.println(info.toString());<br>                ps.print(info);<br>                ps.close();<br>                br.close();<br>                client.close();<br>            }<br>        } catch (IOException e) {<br>            e.printStackTrace();<br>        }<br>}<br>now wrong in the br.readLine();,it can&#39;t run, now I don&#39;t know Solve it ,it lost my long time</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 8th 2014, 6:19:00 am">January 8th 2014</span>
+											by <span class='authorname'>weican li</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

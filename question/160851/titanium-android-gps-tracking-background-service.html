@@ -1,0 +1,279 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium Android GPS Tracking Background Service » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium Android GPS Tracking Background Service</h1>
+		</header>
+		<section>
+			<p>Hi, I have some quiz. how to coding a GPS Tracking runing in background service and Start&#x2F;Stop when press switch in app? My GPS Tracking stop after 5 minutes. Please Help me.</p>
+<p>tracksgps.js – Tracking Service</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> service = Ti.Android.currentService;
+<span class="hljs-keyword">var</span> intent = service.getIntent();
+
+<span class="hljs-keyword">var</span> deviceUrl = <span class="hljs-string">"http://112.121.134.78/tracks/api/devices"</span>;
+<span class="hljs-keyword">var</span> trackUrl = <span class="hljs-string">"http://112.121.134.78/tracks/api/trackers?deviceid="</span>;
+
+<span class="hljs-keyword">var</span> DeviceTag = Titanium.Platform.id;
+<span class="hljs-keyword">var</span> deviceid, TrackLat, TrackLng;
+
+<span class="hljs-keyword">var</span> chkDevice = Titanium.Network.createHTTPClient();
+<span class="hljs-keyword">var</span> trackDevice = Titanium.Network.createHTTPClient();
+
+Titanium.Geolocation.accuracy = Titanium.Geolocation.ACCURACY_BEST;
+Titanium.Geolocation.distanceFilter = <span class="hljs-number">10</span>;
+
+<span class="hljs-keyword">if</span> (Ti.Geolocation.locationServicesEnabled) {
+    Ti.Geolocation.preferredProvider = Ti.Geolocation.PROVIDER_GPS;
+    Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.error) {
+            alert(<span class="hljs-string">'Error: '</span> + e.error);
+        } <span class="hljs-keyword">else</span> {
+            TrackLat = e.coords.latitude;
+            TrackLng = e.coords.longitude;
+
+            chkDevice.open(<span class="hljs-string">'GET'</span>, deviceUrl + <span class="hljs-string">'?deviceTag='</span> + DeviceTag);
+            chkDevice.send();
+        }
+    });
+}
+
+chkDevice.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> res = <span class="hljs-keyword">this</span>.responseText;
+    <span class="hljs-keyword">var</span> Res = <span class="hljs-built_in">JSON</span>.parse(res);
+
+    <span class="hljs-keyword">if</span> (Res != <span class="hljs-literal">null</span>) {        
+        trackDevice.open(<span class="hljs-string">'POST'</span>, trackUrl + Res.DeviceId);
+        trackDevice.send({
+            TrackLat : TrackLat,
+            TrackLng : TrackLng
+        });
+    }
+};
+chkDevice.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    alert(<span class="hljs-string">'On Check Device Error :'</span> + e.error);
+};
+
+trackDevice.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    alert(<span class="hljs-string">'Tracking'</span>);
+};
+trackDevice.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    alert(<span class="hljs-string">'On Track Device Error :'</span> + e.error);
+};
+</code></pre><p>servicetracks.js – call gps tracking</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> serviceUrl = <span class="hljs-string">"tracksgps.js"</span>;
+<span class="hljs-keyword">var</span> SECS = <span class="hljs-number">20</span>;
+
+$.swTrack.addEventListener(<span class="hljs-string">'change'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.value == <span class="hljs-literal">true</span>) {
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">var</span> intent = Ti.Android.createServiceIntent({
+                url : serviceUrl
+            });
+            <span class="hljs-comment">//intent.putExtra('interval', SECS * 1000);</span>
+            Ti.Android.startService(intent);
+        } <span class="hljs-keyword">catch</span>(e) {
+            alert(e);
+        }
+        <span class="hljs-comment">//alert('a');</span>
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">var</span> intent = Ti.Android.createServiceIntent({
+                url : serviceUrl
+            });
+            Ti.Android.stopService(intent);
+        } <span class="hljs-keyword">catch</span>(e) {
+            alert(e);
+        }
+        <span class="hljs-comment">//alert('b');</span>
+    }
+});
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 26th 2013, 12:52:05 am">December 26th 2013</span>
+				by <span class='authorname'>Vatthanachai Wongprasert</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>background service</span></li>
+					
+						<li><span class='tagname'>services</span></li>
+					
+						<li><span class='tagname'>titanium studio</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-273094">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hello Vatthanchai, </p>
+<h2 id="problem-description">Problem Description</h2>
+<p>You need a service to be happening every 5 minutes. You can schedule an Alarm in Android in order to handle this kind of behavior. </p>
+<h2 id="module-needed">Module needed</h2>
+<p>You can use the <a href="https:&#x2F;&#x2F;github.com&#x2F;benbahrenburg&#x2F;benCoding.AlarmManager">Alarm Manager Module</a> byt Ben Bahrenburg. The dist zip can be found <a href="https:&#x2F;&#x2F;github.com&#x2F;benbahrenburg&#x2F;benCoding.AlarmManager&#x2F;tree&#x2F;master&#x2F;dist">here</a>. </p>
+<p>Once you get it, you can add it to your project following <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Using_Modules">this guide for installing modules</a>. </p>
+<h2 id="sample-code">Sample code</h2>
+<p>###app.js</p>
+<p>(Please get the app.js from <a href="https:&#x2F;&#x2F;github.com&#x2F;benbahrenburg&#x2F;benCoding.AlarmManager&#x2F;blob&#x2F;master&#x2F;example&#x2F;app.js">here</a>, it won&#39;t fit in the code section in this answer). </p>
+<p>###testservice.js</p>
+<pre><code class="hljs">Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Test Service!!!!!!'</span>);
+alert(<span class="hljs-string">'Hello from the test service'</span>);
+</code></pre><h3 id="android-section">Android section</h3>
+<p>and add this to the android section in tiapp.xml. Check that my project is named alarmmanager:</p>
+<pre><code class="hljs"> <span class="hljs-tag">&lt;<span class="hljs-title">android</span> <span class="hljs-attribute">xmlns:android</span>=<span class="hljs-value">"http://schemas.android.com/apk/res/android"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">manifest</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">supports-screens</span> <span class="hljs-attribute">android:anyDensity</span>=<span class="hljs-value">"false"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">application</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">activity</span> <span class="hljs-attribute">android:alwaysRetainTaskState</span>=<span class="hljs-value">"true"</span>
+                    <span class="hljs-attribute">android:configChanges</span>=<span class="hljs-value">"keyboardHidden|orientation"</span>
+                    <span class="hljs-attribute">android:label</span>=<span class="hljs-value">"alarmmanager"</span>
+                    <span class="hljs-attribute">android:launchMode</span>=<span class="hljs-value">"singleTop"</span>
+                    <span class="hljs-attribute">android:name</span>=<span class="hljs-value">".alarmmanagerActivity"</span> <span class="hljs-attribute">android:theme</span>=<span class="hljs-value">"@style/Theme.Titanium"</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">intent-filter</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">action</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.action.MAIN"</span>/&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-title">category</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"android.intent.category.LAUNCHER"</span>/&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-title">intent-filter</span>&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"bencoding.alarmmanager.AlarmNotificationListener"</span>/&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">receiver</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"bencoding.alarmmanager.AlarmServiceListener"</span>/&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">manifest</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">services</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">service</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"interval"</span> <span class="hljs-attribute">url</span>=<span class="hljs-value">"testservice.js"</span>/&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">services</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">android</span>&gt;</span>
+</code></pre><p>once you wrap this, you can go and test it in a device. As you can see, it will help you to schedule actions related to your app in an easy way in Android. </p>
+<p>Best,</p>
+<p>Mauro</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 27th 2013, 4:52:43 am">December 27th 2013</span>
+								by <span class='authorname'>Mauro Parra</span><br>
+								<a class="icon-bg icon-link" href="question/160851/titanium-android-gps-tracking-background-service#answer-273094" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank you sir. I&#39;ll try it. (^^)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 28th 2013, 9:09:33 am">December 28th 2013</span>
+											by <span class='authorname'>Vatthanachai Wongprasert</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>how can I prevent it from stopping once I remove the app from the app switcher. When I look in the running apps&#x2F;services the service is still running (settings - apps - running: 0 process&#x2F; 1 service) but the app is closed and the service won&#39;t fire.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2014, 10:27:21 pm">January 16th 2014</span>
+											by <span class='authorname'>Michael Gangolf</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello Michael, </p>
+<p>you can always set up an Alarm with the Alarm Manager, as shown <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;160851&#x2F;titanium-android-gps-tracking-background-service">here</a>. </p>
+<p>Best,</p>
+<p>Mauro</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 16th 2014, 10:59:14 pm">January 16th 2014</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve tested this code and runs perfectly, but when I reboot the phone, I need to start the application to start the service again. Can I make the service to be started at device start?<br>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 9th 2014, 2:42:56 pm">July 9th 2014</span>
+											by <span class='authorname'>Francisco Calderón Jurado</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

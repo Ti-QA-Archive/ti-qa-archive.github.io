@@ -1,0 +1,795 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>remote json data save into local database for offline use. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>remote json data save into local database for offline use.</h1>
+		</header>
+		<section>
+			<p>Application:mobile,os:windows,titanium sdk:3.2.1,titanium studio:3.2.1,device:emulator.<br>How to save remote json data to local database.<br>I have tried this way but getting isValidrow() error.even strange the app works fine till I restart the studio after restarting it throws isValidrow error.</p>
+<p>index.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">member</span>(<span class="hljs-params"></span>)
+</span>{
+ <span class="hljs-keyword">var</span> members = Alloy.createController(<span class="hljs-string">'members'</span>).getView();
+ members.open();
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchData</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.open(<span class="hljs-string">"GET"</span>,<span class="hljs-string">"url"</span>);
+    xhr.send();
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span>) {
+            <span class="hljs-comment">//var tx1 = Titanium.Database.install("/dbs/clubapp.sqlite", "clubapp");</span>
+            <span class="hljs-keyword">var</span> tx = Titanium.Database.open(<span class="hljs-string">"clubapp"</span>);
+            <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-comment">//creating members table</span>
+        <span class="hljs-keyword">if</span> (json.membersTable == <span class="hljs-literal">null</span>) {
+        <span class="hljs-comment">//DO NOTHING</span>
+        } <span class="hljs-keyword">else</span> {
+            tx.execute(<span class="hljs-string">'drop table if exists members'</span>);
+            tx.execute(<span class="hljs-string">'CREATE TABLE if not exists members (id INTEGER, name text);'</span>);
+            <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; json.membersTable.length; i++) {
+                tx.execute(
+                    <span class="hljs-string">'insert into members (id, name) values (?,?);'</span>,
+                    [ json.membersTable[i].id,
+                    json.membersTable[i].name]);
+
+            }
+        }
+
+        }
+}
+</code></pre><p>model&#x2F;members.js</p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+            <span class="hljs-string">"columns"</span>:
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"string"</span>,
+            },
+            adapter: {
+            <span class="hljs-built_in">type</span>: <span class="hljs-string">"sql"</span>,
+            collection_name: <span class="hljs-string">"members"</span>,
+            db_file: <span class="hljs-string">"/dbs/clubapp.sqlite"</span>,
+            db_name: <span class="hljs-string">"clubapp"</span>,
+            idAttribute: <span class="hljs-string">"id"</span>,
+            remoteBackup: <span class="hljs-keyword">false</span>
+        }
+
+    },
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span></span> {
+        _.extend(Model.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+        });
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span></span> {
+        _.extend(Collection.prototype, {
+            details: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(args)</span></span>
+            {
+                Collection.prototype.fetch(
+                    {
+
+                    }
+                );
+            }
+
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre><p>members.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"members_window"</span> <span class="hljs-attribute">fullscreen</span>=<span class="hljs-value">"true"</span> <span class="hljs-attribute">backgroundColor</span>=<span class="hljs-value">"white"</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Members"</span>&gt;</span>        
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"table"</span>  <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"members"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Require</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"row"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>members.js</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> members</span>= Alloy.Collections.members;
+members.fetch(
+    {query:
+        <span class="hljs-string">"SELECT members.name,members.id FROM members"</span>
+        });
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 3rd 2014, 6:21:12 am">April 3rd 2014</span>
+				by <span class='authorname'>Aparna M</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+						<li><span class='tagname'>xml</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>hi aparna m,</p>
+<p>check your sqlite db field name mach with member.js file fields. if it matches then clear your project and uninstall the app from device. now RUnnn the app…</p>
+<p>Thanks</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 3rd 2014, 6:28:59 am">April 3rd 2014</span>
+								by <span class='authorname'>Dev eloper</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi dev eloper,</p>
+<p>Thanks for the reply.</p>
+<p>sqlite db file is same as members.js file fields.cleaned the project and uninstalled the app from emulator,but no luck.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 3rd 2014, 6:37:21 am">April 3rd 2014</span>
+								by <span class='authorname'>Aparna M</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>HI developer,</p>
+<p>After inserting all the data into db, have you check the data is insert properly or not. if there is no data into db then u didn&#39;t get the data from collection.  please check the database name is matched with the named of db u created. </p>
+<p>By deafult collection create db named &#39;<em>alloy</em>.db&#39;. so pls check this also.<br>let us know for more help</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 3rd 2014, 8:30:19 am">April 3rd 2014</span>
+								by <span class='authorname'>Sagar  Patel</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Sagar,</p>
+<p>There is no data in the database.The database name is same.But how I got the data before?till yesterday the app worked fine,today i got isvalidrow() error.how to solve it ?pls help me.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 3rd 2014, 8:40:32 am">April 3rd 2014</span>
+								by <span class='authorname'>Aparna M</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-277357">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>HI aparna,</p>
+<p>make few change in code while insert the data in table</p>
+<pre><code class="hljs"> tx.execute('<span class="hljs-operator"><span class="hljs-keyword">drop</span> <span class="hljs-keyword">table</span> <span class="hljs-keyword">if</span> <span class="hljs-keyword">exists</span> members<span class="hljs-string">');
+   tx.execute('</span><span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">TABLE</span> <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-keyword">exists</span> members (<span class="hljs-keyword">id</span> <span class="hljs-built_in">INTEGER</span>, <span class="hljs-keyword">name</span> <span class="hljs-built_in">text</span>)<span class="hljs-string">');
+            for (i = 0; i &lt; json.membersTable.length; i++) {
+                tx.execute( '</span><span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> members (<span class="hljs-keyword">id</span>, <span class="hljs-keyword">name</span>) <span class="hljs-keyword">values</span> (?,?)<span class="hljs-string">' ,                                                        json.membersTable[i].id, json.membersTable[i].name);
+            }</span></span>
+</code></pre><p>In Model where you create change </p>
+<pre><code class="hljs"><span class="hljs-string">'name'</span> : <span class="hljs-string">"string"</span> 
+<span class="hljs-keyword">to</span>
+<span class="hljs-string">'name'</span> : <span class="hljs-string">'TEXT'</span>
+</code></pre><p>one more question what is your db name..? is it <strong>&#39;<em>alloy</em>&#39;</strong><br> or  as u mention above<br> <strong>&#39;clubapp&#39;</strong><br>beacuse create db named <em>alloy</em>.db</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 3rd 2014, 8:58:06 am">April 3rd 2014</span>
+								by <span class='authorname'>Sagar  Patel</span><br>
+								<a class="icon-bg icon-link" href="question/164188/remote-json-data-save-into-local-database-for-offline-use#answer-277357" rel="permalink">permalink</a>
+							</div>
+
+							<h5>28 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Sagar,</p>
+<p>db name I used is clubapp.I will change the name of db as alloy and other changes also.let me try</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:01:05 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>keep it <code>_alloy_</code></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:05:13 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>in the model file or controller?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:15:00 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> tx</span> = Titanium.Database.<span class="hljs-keyword">open</span>(<span class="hljs-string">"_alloy_"</span>);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:20:08 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Again same error</p>
+<pre><code class="hljs">[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">TiExceptionHandler</span>: (main) [<span class="hljs-number">3</span>,<span class="hljs-number">4200</span>] - <span class="hljs-type">In</span> alloy/sync/sql.js:<span class="hljs-number">270</span>,<span class="hljs-number">15</span>
+[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">TiExceptionHandler</span>: (main) [<span class="hljs-number">26</span>,<span class="hljs-number">4226</span>] - <span class="hljs-type">Message</span>: <span class="hljs-type">Uncaught</span> <span class="hljs-type">TypeError</span>: <span class="hljs-type">Cannot</span> call <span class="hljs-keyword">method</span> 'isValidRow' <span class="hljs-keyword">of</span> null
+[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">TiExceptionHandler</span>: (main) [<span class="hljs-number">1</span>,<span class="hljs-number">4227</span>] - <span class="hljs-type">Source</span>:     <span class="hljs-keyword">while</span> (rs.isValidRow()) {
+[<span class="hljs-type">ERROR</span>] :  <span class="hljs-type">V8Exception</span>: <span class="hljs-type">Exception</span> occurred at alloy/sync/sql.js:<span class="hljs-number">270</span>: <span class="hljs-type">Uncaught</span> <span class="hljs-type">TypeError</span>: <span class="hljs-type">Cannot</span> call <span class="hljs-keyword">method</span> 'isValidRow' <span class="hljs-keyword">of</span> null
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:31:37 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Pls provide the code here you used to retrive the data form db…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:39:11 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Im using this code in members.js controller file to get the member name and id.</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> members</span>= Alloy.Collections.members;
+members.fetch(
+    {query:
+        <span class="hljs-string">"SELECT members.name,members.id FROM members"</span>
+        });
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:42:24 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>can you send me the your db file any how , send me through dropbox ,mailed or take a screen shot of you db file opened..</p>
+<p>i want to check you db file, is there is data or not..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:52:22 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>can I have your mail id pls</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:54:23 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>try below code to fetch the data instead  of u r using:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> memberCode = Alloy.createCollection(<span class="hljs-string">'members'</span>);
+    <span class="hljs-keyword">var</span> table = memberCode.config.adapter.collection_name;
+        <span class="hljs-keyword">var</span> sql = <span class="hljs-string">"SELECT * FROM table"</span>;
+        Ti.API.info(<span class="hljs-string">'product alternative code---&gt;'</span> + productCodeSql);
+        <span class="hljs-keyword">var</span> output = memberCode.fetch({
+            query : sql,
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                Ti.API.info(<span class="hljs-string">'memberCode.length---&gt;'</span> + memberCode.length);
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+                Ti.API.info(<span class="hljs-string">'error--&gt;'</span> + e);
+            }
+        });
+</code></pre><p>pls check that did you get the length, if u get length then there is data.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:58:13 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>sagarpatel1602@gmail.com</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:04:19 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>you have define collection into members.xml, remove that code and try to run and note:<br>after installing all the data into db after try to fetch the data from db.</p>
+<p>keep it simple…</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"members_window"</span> <span class="hljs-attribute">fullscreen</span>=<span class="hljs-value">"true"</span> <span class="hljs-attribute">backgroundColor</span>=<span class="hljs-value">"white"</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Members"</span>&gt;</span>      
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"table"</span>  &gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:25:44 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Sure I will try this way</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:28:12 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>you have no data in db and u r trying to fetch the data from db as pankaj describe, this may be also reason for u r  issue u  are facing</p>
+<p>send me the db file i have send u my email id i have to check do u have data into the db  or not</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:29:15 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>there is no data in the db file</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:32:22 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchData</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.open(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"url"</span>);
+    xhr.send();
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (xhr.status == <span class="hljs-number">200</span>) {
+            <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-comment">//creating members table</span>
+            <span class="hljs-keyword">if</span> (json.membersTable == <span class="hljs-literal">null</span>) {
+                <span class="hljs-comment">//DO NOTHING</span>
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">var</span> members = Alloy.createCollection(<span class="hljs-string">'members'</span>);
+
+                <span class="hljs-keyword">for</span> ( i = <span class="hljs-number">0</span>; i &lt; json.membersTable.length; i++) {
+                    <span class="hljs-keyword">var</span> model = Alloy.createModel(<span class="hljs-string">'members'</span>,{
+                            name : json.membersTable[i].name,
+                            Id :  json.membersTable[i].id
+                        });
+                       members.add(model);
+                       model.save(); 
+                }
+
+            members.fetch();
+            Ti.API.info(<span class="hljs-string">'members.length--&gt;'</span>+members.length);
+            <span class="hljs-comment">// if the data are insert properly then you get the length from db and check db</span>
+
+            }
+        }
+
+    }
+}
+</code></pre><p>after inserting into db you can fetch all the data and show in table…</p>
+<p>your model should look like this</p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+            <span class="hljs-string">"columns"</span>:    {
+        <span class="hljs-string">"Id"</span> :  <span class="hljs-string">"INTEGER"</span>
+                <span class="hljs-string">"name"</span> :  <span class="hljs-string">"TEXT"</span>,
+            },
+            adapter: {
+                 <span class="hljs-built_in">type</span>: <span class="hljs-string">"sql"</span>,
+                 collection_name: <span class="hljs-string">"members"</span>,
+          }
+
+    },
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span></span> {
+        _.extend(Model.prototype, {
+            // extended functions <span class="hljs-keyword">and</span> properties go here
+        });
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span></span> {
+        _.extend(Collection.prototype, {
+            details: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(args)</span></span>
+            {
+                Collection.prototype.fetch(
+                    {
+
+                    }
+                );
+            }
+
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 11:31:22 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Sagar,</p>
+<p>where I should keep the db file in fetchData function and also in model &quot;db-name&quot; is not mentioned</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 11:39:03 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>there is no need to mention the db file, collection will create the db file by itself</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 11:47:55 am">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanku Sagar length is displayed.</p>
+<p>If I need to fetch the data then select(id,name from members); ?and where can I see the db file?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 12:01:44 pm">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>which platform you are working on ios or android..?</p>
+<p>if android below is the path , you can get db only in emulator not on device..</p>
+<p>its a sample only</p>
+<pre><code class="hljs"><span class="hljs-keyword">file</span>:///<span class="hljs-type">data</span>/<span class="hljs-type">data</span>/appID/databases/mydb1Installed
+</code></pre><p>refer the below link for more help</p>
+<p><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Database-method-install">http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.Database-method-install</a></p>
+<p> if you dont get this pls try to google it , and if then u not get it u can come us for help..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 12:07:20 pm">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanku Sagar</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 1:04:59 pm">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Welcome</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 1:10:35 pm">April 3rd 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>issue is not solved.members.length is increasing everytime.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 4th 2014, 9:48:05 am">April 4th 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>for that you have to check the conditons, like</p>
+<p>(1) is there data in db..don&#39;t let the data insert into db else data insert into db</p>
+<p>simple</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 4th 2014, 9:51:30 am">April 4th 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi,<br>I am trying to do similar thing &quot;json data save into local database&quot;. Is the above code working right? or your problem is still not solved?<br>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 17th 2014, 11:16:07 am">June 17th 2014</span>
+											by <span class='authorname'>Luvish Katyal</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Luvish,</p>
+<p>the above code is working.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 18th 2014, 4:20:25 am">June 18th 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Luvish,</p>
+<p>If you need any help regarding your problem let us know, we are here to help &amp; guide you…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 18th 2014, 4:44:24 am">June 18th 2014</span>
+											by <span class='authorname'>Sagar  Patel</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This is 80% of something I am looking for. Do you have a git for this, where I can fork?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 4th 2015, 9:03:15 pm">May 4th 2015</span>
+											by <span class='authorname'>Mervin Thomas</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-277362">
+				
+						<section>
+							<p>Hi,</p>
+<p>I think, You are trying to retrieve the data before pushing it in to DB. That is causing problem. </p>
+<p>Just try to push only before fetching and then check the DB, whether the data get pushed or not. Please check it once.</p>
+<p>Hope it will clear your way. Let me know for further help!!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 3rd 2014, 10:04:06 am">April 3rd 2014</span>
+								by <span class='authorname'>pankaj Goyal</span><br>
+								<a class="icon-bg icon-link" href="question/164188/remote-json-data-save-into-local-database-for-offline-use#answer-277362" rel="permalink">permalink</a>
+							</div>
+
+							<h5>9 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Pankaj,</p>
+<p>I am not able to run the app.The app gets opened and throws the error as alloy&#x2F;sync.js isValidrow() error as a mentioned above.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:15:11 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If I wont fetch the data from the collection app is working fine but in database file there are no tables</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:17:31 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>So, Aparna. the error you are getting is because you dont have any data in table.</p>
+<p>so, your real problem is that you are not able to push your data in DB.What i am able to understand. </p>
+<p>Right??</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:23:18 am">April 3rd 2014</span>
+											by <span class='authorname'>pankaj Goyal</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yes exactly.the problem started from today morning,till yesterday same code worked fine.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:25:49 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>So, My question is, one side you are using Alloy model for database and another side you are using direct SQL queries to perform DB operations.</p>
+<p>Ideally, you should create Model instance and then push the data into your table.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:29:12 am">April 3rd 2014</span>
+											by <span class='authorname'>pankaj Goyal</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>USE :</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> book = Alloy.createModel(<span class="hljs-string">'modelName'</span>, <span class="hljs-keyword">object</span> you want <span class="hljs-keyword">to</span> push);
+</code></pre><p>Try with above.</p>
+<p>Hope it will help.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:31:46 am">April 3rd 2014</span>
+											by <span class='authorname'>pankaj Goyal</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>For multiple entries, you can either use collection or model.save(&quot;object you want to push&quot;)</p>
+<p>Try with this and let me know if you still facing any issue.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:44:19 am">April 3rd 2014</span>
+											by <span class='authorname'>pankaj Goyal</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I used like this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> member=Alloy.Collections.members;
+    <span class="hljs-keyword">var</span> counter = <span class="hljs-number">1</span>;
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addTestbod</span><span class="hljs-params">(e)</span>
+    </span>{
+        <span class="hljs-keyword">var</span> model = Alloy.createModel(<span class="hljs-string">'members'</span>,
+        {
+        name: <span class="hljs-string">'name '</span> + counter,
+        id: <span class="hljs-string">'id '</span> + counter
+     });
+    counter++;
+    members.add(model);
+    model.save();
+    members.fetch();
+}
+    members.fetch();
+</code></pre><p>but still the same error.Am I doing wrong anywhere.Thanku for your help but still same error.uninstalled the app and cleaned the build and tried again but no luck.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:50:09 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Can you please provide me an sample code</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:53:36 am">April 3rd 2014</span>
+											by <span class='authorname'>Aparna M</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-277364">
+				
+						<section>
+							<p>USE : </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> book = Alloy.createModel(<span class="hljs-string">'modelName'</span>, <span class="hljs-keyword">object</span> you want <span class="hljs-keyword">to</span> push);
+</code></pre><p>Try with above.</p>
+<p>Hope it will help.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 3rd 2014, 10:30:51 am">April 3rd 2014</span>
+								by <span class='authorname'>pankaj Goyal</span><br>
+								<a class="icon-bg icon-link" href="question/164188/remote-json-data-save-into-local-database-for-offline-use#answer-277364" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

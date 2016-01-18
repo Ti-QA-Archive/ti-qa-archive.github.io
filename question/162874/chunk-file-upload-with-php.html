@@ -1,0 +1,264 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Chunk File Upload With Php » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Chunk File Upload With Php</h1>
+		</header>
+		<section>
+			<p>Hi All</p>
+<p>One issue that i have come across quite a lot with the titanium framework and especially  android is outofmemory and i have other posts on the forum and the solution is definitely chunk file upload management.</p>
+<p>I am sure this would benefit a lot of other titanium users being able to do this, i am looking for a example and people to help out in the community building a example of chunk file upload with php.</p>
+<p>So here is what i have so far from code around the web i have a snippet i have a titanium http upload example below</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> chunk_size = 1024 * 1024; <span class="hljs-comment">// 1Kb * 1024 = 1MB</span>
+<span class="hljs-keyword">var</span> chunk_no = 10; <span class="hljs-comment">// Which chunk we want</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span> = Ti.Filesystem.getFile( '<span class="hljs-keyword">file</span>.mp4' );
+<span class="hljs-keyword">var</span> stream = <span class="hljs-keyword">file</span>.<span class="hljs-keyword">open</span>( Ti.Filesystem.MODE_READ );
+
+<span class="hljs-comment">// Scrub through the stream till we're up to the part we need</span>
+<span class="hljs-keyword">for</span> (i = 0; i &lt; chunk_no; i++) {
+    <span class="hljs-keyword">var</span> buffer = Ti.createBuffer({length: chunk_size});
+    <span class="hljs-comment">// This reads chunk_size bytes from where it left of in the last loop, puts it at the start of the buffer</span>
+    <span class="hljs-keyword">var</span> bytes_read = stream.<span class="hljs-keyword">read</span>( buffer, 0, chunk_size );
+
+    <span class="hljs-comment">// Ti.API.info('bytes_read: '+bytes_read);</span>
+
+    <span class="hljs-comment">// If it's not the chunk we want, release the buffer memory</span>
+    <span class="hljs-keyword">if</span> (i &lt; chunk_no) {
+        buffer.release();
+        buffer = null;
+    }
+}
+<span class="hljs-comment">// This now contains the chunk we want</span>
+<span class="hljs-keyword">var</span> blob = buffer.toBlob();
+</code></pre><p>So i take it this needs to be wrapped around a http client upload maintaining connection.</p>
+<p>Now i have been looking around the web for examples of a php script that handles chunk file upload and i have used pluploader in the past and i know this handles chunk file upload the php script is below.</p>
+<pre><code class="hljs">&lt;?php
+<span class="hljs-comment">/**
+ * upload.php
+ *
+ * Copyright 2013, Moxiecode Systems AB
+ * Released under GPL License.
+ *
+ * License: http://www.plupload.com/license
+ * Contributing: http://www.plupload.com/contributing
+ */</span>
+
+#!! IMPORTANT: 
+#!! this <span class="hljs-keyword">file</span> is just <span class="hljs-keyword">an</span> example, it doesn't incorporate any security checks and 
+#!! is not recommended to be used <span class="hljs-keyword">in</span> production environment <span class="hljs-keyword">as</span> it is. Be sure to 
+#!! revise it and customize to your needs.
+
+
+<span class="hljs-comment">// Make sure file is not cached (as it happens for example on iOS devices)</span>
+header(<span class="hljs-string">"Expires: Mon, 26 Jul 1997 05:00:00 GMT"</span>);
+header(<span class="hljs-string">"Last-Modified: "</span> . gmdate(<span class="hljs-string">"D, d M Y H:i:s"</span>) . <span class="hljs-string">" GMT"</span>);
+header(<span class="hljs-string">"Cache-Control: no-store, no-cache, must-revalidate"</span>);
+header(<span class="hljs-string">"Cache-Control: post-check=0, pre-check=0"</span>, false);
+header(<span class="hljs-string">"Pragma: no-cache"</span>);
+
+<span class="hljs-comment">/* 
+// Support CORS
+header("Access-Control-Allow-Origin: *");
+// other CORS headers if any...
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    exit; // finish preflight CORS requests here
+}
+*/</span>
+
+<span class="hljs-comment">// 5 minutes execution time</span>
+@set_time_limit(5 * 60);
+
+<span class="hljs-comment">// Uncomment this one to fake upload time</span>
+<span class="hljs-comment">// usleep(5000);</span>
+
+<span class="hljs-comment">// Settings</span>
+<span class="hljs-label">$targetDir</span> = ini_get(<span class="hljs-string">"upload_tmp_dir"</span>) . DIRECTORY_SEPARATOR . <span class="hljs-string">"plupload"</span>;
+<span class="hljs-comment">//$targetDir = 'uploads';</span>
+<span class="hljs-label">$cleanupTargetDir</span> = true; <span class="hljs-comment">// Remove old files</span>
+<span class="hljs-label">$maxFileAge</span> = 5 * 3600; <span class="hljs-comment">// Temp file age in seconds</span>
+
+
+<span class="hljs-comment">// Create target dir</span>
+<span class="hljs-keyword">if</span> (!file_exists(<span class="hljs-label">$targetDir</span>)) {
+    @<span class="hljs-keyword">mkdir</span>(<span class="hljs-label">$targetDir</span>);
+}
+
+<span class="hljs-comment">// Get a file name</span>
+<span class="hljs-keyword">if</span> (isset(<span class="hljs-label">$_REQUEST</span>[<span class="hljs-string">"name"</span>])) {
+    <span class="hljs-label">$fileName</span> = <span class="hljs-label">$_REQUEST</span>[<span class="hljs-string">"name"</span>];
+} elseif (!empty(<span class="hljs-label">$_FILES</span>)) {
+    <span class="hljs-label">$fileName</span> = <span class="hljs-label">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"name"</span>];
+} <span class="hljs-keyword">else</span> {
+    <span class="hljs-label">$fileName</span> = uniqid(<span class="hljs-string">"file_"</span>);
+}
+
+<span class="hljs-label">$filePath</span> = <span class="hljs-label">$targetDir</span> . DIRECTORY_SEPARATOR . <span class="hljs-label">$fileName</span>;
+
+<span class="hljs-comment">// Chunking might be enabled</span>
+<span class="hljs-label">$chunk</span> = isset(<span class="hljs-label">$_REQUEST</span>[<span class="hljs-string">"chunk"</span>]) ? intval(<span class="hljs-label">$_REQUEST</span>[<span class="hljs-string">"chunk"</span>]) : 0;
+<span class="hljs-label">$chunks</span> = isset(<span class="hljs-label">$_REQUEST</span>[<span class="hljs-string">"chunks"</span>]) ? intval(<span class="hljs-label">$_REQUEST</span>[<span class="hljs-string">"chunks"</span>]) : 0;
+
+
+<span class="hljs-comment">// Remove old temp files    </span>
+<span class="hljs-keyword">if</span> (<span class="hljs-label">$cleanupTargetDir</span>) {
+    <span class="hljs-keyword">if</span> (!is_dir(<span class="hljs-label">$targetDir</span>) || !<span class="hljs-label">$dir</span> = opendir(<span class="hljs-label">$targetDir</span>)) {
+        die('{<span class="hljs-string">"jsonrpc"</span> : <span class="hljs-string">"2.0"</span>, <span class="hljs-string">"error"</span> : {<span class="hljs-string">"code"</span>: 100, <span class="hljs-string">"message"</span>: <span class="hljs-string">"Failed to open temp directory."</span>}, <span class="hljs-string">"id"</span> : <span class="hljs-string">"id"</span>}');
+    }
+
+    <span class="hljs-keyword">while</span> ((<span class="hljs-label">$file</span> = readdir(<span class="hljs-label">$dir</span>)) !== false) {
+        <span class="hljs-label">$tmpfilePath</span> = <span class="hljs-label">$targetDir</span> . DIRECTORY_SEPARATOR . <span class="hljs-label">$file</span>;
+
+        <span class="hljs-comment">// If temp file is current file proceed to the next</span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-label">$tmpfilePath</span> == <span class="hljs-string">"{$filePath}.part"</span>) {
+            <span class="hljs-keyword">continue</span>;
+        }
+
+        <span class="hljs-comment">// Remove temp file if it is older than the max age and is not the current file</span>
+        <span class="hljs-keyword">if</span> (preg_match('/\.part$/', <span class="hljs-label">$file</span>) &amp;&amp; (filemtime(<span class="hljs-label">$tmpfilePath</span>) &lt; time() - <span class="hljs-label">$maxFileAge</span>)) {
+            @unlink(<span class="hljs-label">$tmpfilePath</span>);
+        }
+    }
+    closedir(<span class="hljs-label">$dir</span>);
+}    
+
+
+<span class="hljs-comment">// Open temp file</span>
+<span class="hljs-keyword">if</span> (!<span class="hljs-label">$out</span> = @fopen(<span class="hljs-string">"{$filePath}.part"</span>, <span class="hljs-label">$chunks</span> ? <span class="hljs-string">"ab"</span> : <span class="hljs-string">"wb"</span>)) {
+    die('{<span class="hljs-string">"jsonrpc"</span> : <span class="hljs-string">"2.0"</span>, <span class="hljs-string">"error"</span> : {<span class="hljs-string">"code"</span>: 102, <span class="hljs-string">"message"</span>: <span class="hljs-string">"Failed to open output stream."</span>}, <span class="hljs-string">"id"</span> : <span class="hljs-string">"id"</span>}');
+}
+
+<span class="hljs-keyword">if</span> (!empty(<span class="hljs-label">$_FILES</span>)) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-label">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"error"</span>] || !is_uploaded_file(<span class="hljs-label">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"tmp_name"</span>])) {
+        die('{<span class="hljs-string">"jsonrpc"</span> : <span class="hljs-string">"2.0"</span>, <span class="hljs-string">"error"</span> : {<span class="hljs-string">"code"</span>: 103, <span class="hljs-string">"message"</span>: <span class="hljs-string">"Failed to move uploaded file."</span>}, <span class="hljs-string">"id"</span> : <span class="hljs-string">"id"</span>}');
+    }
+
+    <span class="hljs-comment">// Read binary input stream and append it to temp file</span>
+    <span class="hljs-keyword">if</span> (!<span class="hljs-label">$in</span> = @fopen(<span class="hljs-label">$_FILES</span>[<span class="hljs-string">"file"</span>][<span class="hljs-string">"tmp_name"</span>], <span class="hljs-string">"rb"</span>)) {
+        die('{<span class="hljs-string">"jsonrpc"</span> : <span class="hljs-string">"2.0"</span>, <span class="hljs-string">"error"</span> : {<span class="hljs-string">"code"</span>: 101, <span class="hljs-string">"message"</span>: <span class="hljs-string">"Failed to open input stream."</span>}, <span class="hljs-string">"id"</span> : <span class="hljs-string">"id"</span>}');
+    }
+} <span class="hljs-keyword">else</span> {    
+    <span class="hljs-keyword">if</span> (!<span class="hljs-label">$in</span> = @fopen(<span class="hljs-string">"php://input"</span>, <span class="hljs-string">"rb"</span>)) {
+        die('{<span class="hljs-string">"jsonrpc"</span> : <span class="hljs-string">"2.0"</span>, <span class="hljs-string">"error"</span> : {<span class="hljs-string">"code"</span>: 101, <span class="hljs-string">"message"</span>: <span class="hljs-string">"Failed to open input stream."</span>}, <span class="hljs-string">"id"</span> : <span class="hljs-string">"id"</span>}');
+    }
+}
+
+<span class="hljs-keyword">while</span> (<span class="hljs-label">$buff</span> = fread(<span class="hljs-label">$in</span>, 4096)) {
+    fwrite(<span class="hljs-label">$out</span>, <span class="hljs-label">$buff</span>);
+}
+
+@fclose(<span class="hljs-label">$out</span>);
+@fclose(<span class="hljs-label">$in</span>);
+
+<span class="hljs-comment">// Check if file has been uploaded</span>
+<span class="hljs-keyword">if</span> (!<span class="hljs-label">$chunks</span> || <span class="hljs-label">$chunk</span> == <span class="hljs-label">$chunks</span> - 1) {
+    <span class="hljs-comment">// Strip the temp .part suffix off </span>
+    <span class="hljs-keyword">rename</span>(<span class="hljs-string">"{$filePath}.part"</span>, <span class="hljs-label">$filePath</span>);
+}
+
+<span class="hljs-comment">// Return Success JSON-RPC response</span>
+die('{<span class="hljs-string">"jsonrpc"</span> : <span class="hljs-string">"2.0"</span>, <span class="hljs-string">"result"</span> : null, <span class="hljs-string">"id"</span> : <span class="hljs-string">"id"</span>}');
+</code></pre><p>What i am trying to do (and failing) is to get these two to work together so i can handle chunk file upload within my apps helping out loads with memory issues.</p>
+<p>Can anyone help me…</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 23rd 2014, 9:21:57 am">February 23rd 2014</span>
+				by <span class='authorname'>Samuel East</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>chunk</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>php</span></li>
+					
+						<li><span class='tagname'>upload</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Please tell me you finally found out how to do this? I&#39;m really getting desperate, I&#39;ve been working on this part for months now, even payed a buy to build a module to split files, but I still haven&#39;t got upload working!</p>
+<p>Could you please share your code if you did! :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 3rd 2014, 8:24:06 pm">December 3rd 2014</span>
+								by <span class='authorname'>Richard Muthwill</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Richard, sorry i gave up on this a long time ago i get so many issues on android uploading large files.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 3rd 2014, 8:35:39 pm">December 3rd 2014</span>
+								by <span class='authorname'>Samuel East</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

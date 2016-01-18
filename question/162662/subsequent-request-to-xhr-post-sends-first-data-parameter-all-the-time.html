@@ -1,0 +1,500 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Subsequent request to XHR Post sends first data parameter all the time » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Subsequent request to XHR Post sends first data parameter all the time</h1>
+		</header>
+		<section>
+			<p>I have a helper http client that I use to do both Get and Post. Get works fine all the time, but Post has a problem that it remembers the parameter that I sent for the first time and keeps sending that any time I call Post event with a different parameter. I can see the parameter using wireshark. This problem only happens on Android, not on iOS.</p>
+<p>The http wrapper</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> httpWrapper = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    Ti.API.info(<span class="hljs-string">'httpWrapper initiating'</span>);
+    <span class="hljs-keyword">var</span> success;
+    <span class="hljs-keyword">var</span> failure;
+
+    <span class="hljs-keyword">this</span>.successCallback = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(callback)</span> </span>{
+        success = callback;
+    };
+
+    <span class="hljs-keyword">this</span>.failureCallback = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(callback)</span> </span>{
+        failure = callback;
+    };
+
+    <span class="hljs-keyword">this</span>.xhrCaller = Ti.Network.createHTTPClient({
+    onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'http response code: '</span> + <span class="hljs-keyword">this</span>.status + <span class="hljs-string">' length: '</span> + <span class="hljs-keyword">this</span>.responseText.length);
+        <span class="hljs-comment">//Ti.API.info('response: ' + this.responseText);</span>
+        _status = <span class="hljs-keyword">this</span>.status;
+        _responseText = <span class="hljs-keyword">this</span>.responseText;
+        _cookies = <span class="hljs-keyword">this</span>.getResponseHeader(<span class="hljs-string">"Set-Cookie"</span>);
+        <span class="hljs-comment">//Ti.API.info('success ' + success);</span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> success !== <span class="hljs-string">'undefined'</span>)
+            success(<span class="hljs-keyword">this</span>);        
+    },
+    onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.error(<span class="hljs-string">'xhrCaller Error: '</span> + e.error + <span class="hljs-string">' , HTTP status = '</span> + <span class="hljs-keyword">this</span>.status);
+        Ti.API.error(<span class="hljs-keyword">this</span>.responseText);
+        _isError = <span class="hljs-literal">true</span>;
+        _error = e.error;
+        _status = e.status;
+        _responseText = e.responseText;        
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> failure !== <span class="hljs-string">'undefined'</span>)
+            failure(<span class="hljs-keyword">this</span>);        
+    },
+    onsendstream: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'ONSENDSTREAM - PROGRESS: '</span> + <span class="hljs-keyword">this</span>.progress);
+    },
+    timeout:<span class="hljs-number">30000</span>,  <span class="hljs-comment">/* in milliseconds */</span>
+    autoRedirect:<span class="hljs-string">"true"</span>
+    });     
+};
+</code></pre><p>Exported Post method</p>
+<pre><code class="hljs">exports.Post = function(query, postdata, tabid, moduleid, success, failure) {
+    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Post called with data: '</span>, JSON.stringify(postdata));
+    <span class="hljs-keyword">if</span>(!_isLoggedIn) {
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">'not logged-in'</span>);
+        <span class="hljs-keyword">return</span>;
+    }
+    var url = _site+query;
+    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'xhrPost url '</span> + url);
+    <span class="hljs-keyword">http</span>.xhrCaller.<span class="hljs-keyword">open</span>(<span class="hljs-string">"POST"</span>, url);
+    <span class="hljs-keyword">http</span>.xhrCaller.setRequestHeader(<span class="hljs-string">'TabID'</span>,tabid);
+    <span class="hljs-keyword">http</span>.xhrCaller.setRequestHeader(<span class="hljs-string">'ModuleID'</span>,moduleid);
+    <span class="hljs-keyword">http</span>.xhrCaller.setRequestHeader(<span class="hljs-string">'RequestVerificationToken'</span>,_requestVerificationToken);
+    <span class="hljs-keyword">http</span>.failureCallback(failure); 
+    <span class="hljs-keyword">http</span>.successCallback(success); 
+    <span class="hljs-keyword">http</span>.xhrCaller.send(postdata);
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 16th 2014, 2:26:24 pm">February 16th 2014</span>
+				by <span class='authorname'>Ash Prasad</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>post</span></li>
+					
+						<li><span class='tagname'>send</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>You have not provided any usage examples to review the process.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 16th 2014, 2:51:06 pm">February 16th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>So here is how I call this from another .js file</p>
+<pre><code class="hljs">        <span class="hljs-variable"><span class="hljs-keyword">var</span> data</span> = {conversationId: args.conversationId, body: $.textReply.value};
+
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> url</span> = <span class="hljs-string">"/DesktopModules/CoreMessaging/API/MessagingService/Reply"</span>;
+        WebApiHelper.Post(url, data, <span class="hljs-string">"65"</span>, <span class="hljs-string">"437"</span>, success, failure);
+</code></pre><p>I think the problem is with how the json object is serialized by the two http clients (Android &#x2F; iOS). I then used <code>http.xhrCaller.send(JSON.stringify(postdata))</code> which messed up iOS, but got some better results for Android. Then I analyzed the posted data in wireshark (in mac) to see the difference between good data vs. bad data. What I mean by good data is that my backend server considers it well formed json object. Good data <code>conversationId=15&amp;amp;body=gg</code> and here is the bad data {&quot;conversationId&quot;:21,&quot;body&quot;:&quot;kkkk&quot;}</p>
+<p>Do you see how the presence of curly braces is messing things up. So modified my helper API to first always stick <code>Content-Type</code> of <code>application&amp;#x2F;x-www-form-urlencoded</code> and then have some conditional code around iOS. Here is how my final helper class for Post is looking like so far:</p>
+<pre><code class="hljs">exports.Post = function(query, postdata, tabid, moduleid, success, failure) {
+    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Post called with data: '</span>, JSON.stringify(postdata));
+    <span class="hljs-keyword">if</span>(!_isLoggedIn) {
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">'not logged-in'</span>);
+        <span class="hljs-keyword">return</span>;
+    }
+    var url = _site+query;
+    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'xhrPost url '</span> + url);
+    <span class="hljs-keyword">http</span>.xhrCaller.<span class="hljs-keyword">open</span>(<span class="hljs-string">"POST"</span>, url);
+    <span class="hljs-keyword">http</span>.xhrCaller.setRequestHeader(<span class="hljs-string">'TabID'</span>,tabid);
+    <span class="hljs-keyword">http</span>.xhrCaller.setRequestHeader(<span class="hljs-string">'ModuleID'</span>,moduleid);
+    <span class="hljs-keyword">http</span>.xhrCaller.setRequestHeader(<span class="hljs-string">'RequestVerificationToken'</span>,_requestVerificationToken);
+    <span class="hljs-keyword">http</span>.xhrCaller.setRequestHeader(<span class="hljs-string">'Content-Type'</span>,<span class="hljs-string">'application/x-www-form-urlencoded'</span>);
+    <span class="hljs-keyword">http</span>.failureCallback(failure); 
+    <span class="hljs-keyword">http</span>.successCallback(success); 
+    <span class="hljs-keyword">if</span> (Titanium.Platform.name == <span class="hljs-string">'iPhone OS'</span>) {
+        <span class="hljs-keyword">http</span>.xhrCaller.send(postdata);
+    } else {
+        //<span class="hljs-keyword">http</span>.xhrCaller.send(JSON.stringify(postdata));
+        <span class="hljs-keyword">http</span>.xhrCaller.send(<span class="hljs-string">'conversationId=15&amp;body=gg'</span>);
+    }    
+};
+</code></pre><p>See the hard-coded parm for non-iOS - that works, but when I do <code>JSON.stringify(postdata)</code> or jus <code>postdata</code> for Android it doesn&#39;t work. I believe I&#39;m close, but not done.</p>
+<p>BTW - Wireshark in Titanium is a life saver if you want to debug your ajax calls.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 16th 2014, 5:12:27 pm">February 16th 2014</span>
+								by <span class='authorname'>Ash Prasad</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>There should be no need to determine the OS and your data should be sent as an object.  There should be no need to send the header &quot;www-form-urlencoded&#39; either.</p>
+<p>This is a CommonJS version of a net call;</p>
+<p><strong>net.js</strong> CommonJS</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">stringify</span>(<span class="hljs-params">obj</span>) </span>{
+    <span class="hljs-keyword">var</span> arr = [], itm;
+    <span class="hljs-keyword">for</span> (itm <span class="hljs-keyword">in</span> obj) {
+        arr.push(itm + <span class="hljs-string">"="</span> + <span class="hljs-built_in">escape</span>(obj[itm]));
+    }
+    <span class="hljs-keyword">return</span> arr.join(<span class="hljs-string">"&amp;"</span>);
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">download</span>(<span class="hljs-params">obj</span>) </span>{
+    <span class="hljs-keyword">var</span> authstr = <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+    xhr.enableKeepAlive = <span class="hljs-literal">true</span>;
+    <span class="hljs-keyword">var</span> strMode = (obj.method || <span class="hljs-string">'GET'</span>).toUpperCase();
+    xhr.setTimeout(obj.timeout || <span class="hljs-number">10</span> * <span class="hljs-number">6000</span>);
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> strType = (obj.type || <span class="hljs-string">'json'</span>).toLowerCase();
+        <span class="hljs-keyword">switch</span> (xhr.status) {
+        <span class="hljs-keyword">case</span> <span class="hljs-number">200</span>:
+            response = <span class="hljs-keyword">this</span>.responseText;
+            <span class="hljs-keyword">switch</span> (strType) {
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'json'</span>:
+                json = <span class="hljs-built_in">JSON</span>.parse(response);
+                intRecords = json.length;
+                obj.success(json);
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'html'</span>:
+                obj.success(response);
+                <span class="hljs-keyword">break</span>;
+            };
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-number">304</span>:
+            obj.success([]);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-number">404</span>:
+            <span class="hljs-keyword">if</span> (obj.error) {
+                obj.error({
+                    responseText: <span class="hljs-string">'Page Not Found'</span>,
+                    status: xhr.status
+                });
+            }
+            <span class="hljs-keyword">break</span>;
+        }
+    };
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (obj.error) {
+            obj.error(e);
+        }
+        <span class="hljs-keyword">return</span> [];
+    };
+    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span>(obj.progress) !== <span class="hljs-string">'undefined'</span>) {
+            obj.progress({
+                progress: <span class="hljs-built_in">parseFloat</span>((e.progress * <span class="hljs-number">100</span>), <span class="hljs-number">10</span>)
+            });
+        }
+    };
+    xhr.onreadystatechange = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> state = <span class="hljs-keyword">this</span>.readyState;
+        <span class="hljs-keyword">var</span> states = [
+            <span class="hljs-string">'Unsent'</span>,
+            <span class="hljs-string">'Opened'</span>,
+            <span class="hljs-string">'Headers'</span>,
+            <span class="hljs-string">'Loading'</span>,
+            <span class="hljs-string">'Done'</span>
+        ];
+    };
+
+    <span class="hljs-keyword">if</span> (strMode === <span class="hljs-string">'POST'</span>) {
+        xhr.open(strMode, obj.url);
+        xhr.send(obj.param);
+    } <span class="hljs-keyword">else</span> {
+        xhr.open(strMode, obj.url + <span class="hljs-string">'?'</span> + stringify(obj.param));
+        xhr.send();
+    }
+}
+exports.download = download;
+</code></pre><p><strong>Usage Example</strong></p>
+<pre><code class="hljs"><span class="hljs-built_in">require</span>(<span class="hljs-string">'net'</span>).download({
+    method: <span class="hljs-string">'POST'</span>, <span class="hljs-comment">// optional</span>
+    url: <span class="hljs-string">'http://someurl.com/somefolder/somefile.ext'</span>,
+    param: {
+        firstname: <span class="hljs-string">'John'</span>,
+        lastname: <span class="hljs-string">'Doe'</span>
+    },
+    success: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        alert(<span class="hljs-string">'success: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+    },
+    error: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        alert(<span class="hljs-string">'error: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+    },
+    progress: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'progess: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+    }
+});
+</code></pre><p>You can add your own headers to this.  At the very least you should try this and see if it does what you need.  It is certainly easier to read and re-use.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 16th 2014, 5:39:34 pm">February 16th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>The <strong>net.js</strong> CommonJS module is mine, not provided by Alloy or Titanium - the code I provided should be created in a folder as follows;</p>
+<pre><code class="hljs"><span class="hljs-comment">// for alloy</span>
+{appname}/<span class="hljs-keyword">app</span>/lib/<span class="hljs-keyword">net</span>.js
+<span class="hljs-comment">// or the following for non-alloy</span>
+{appname}/resources/<span class="hljs-keyword">net</span>.js
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="February 16th 2014, 6:16:35 pm">February 16th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-275290">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>There should be no need to determine the OS and your data should be sent as an object. There should be no need to send the header &quot;www-form-urlencoded&#39; either.</p>
+<p>This is a CommonJS version of a net call;</p>
+<p><strong>net.js</strong> CommonJS</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">stringify</span>(<span class="hljs-params">obj</span>) </span>{
+    <span class="hljs-keyword">var</span> arr = [], itm;
+    <span class="hljs-keyword">for</span> (itm <span class="hljs-keyword">in</span> obj) {
+        arr.push(itm + <span class="hljs-string">"="</span> + <span class="hljs-built_in">escape</span>(obj[itm]));
+    }
+    <span class="hljs-keyword">return</span> arr.join(<span class="hljs-string">"&amp;"</span>);
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">download</span>(<span class="hljs-params">obj</span>) </span>{
+    <span class="hljs-keyword">var</span> authstr = <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+    xhr.enableKeepAlive = <span class="hljs-literal">true</span>;
+    <span class="hljs-keyword">var</span> strMode = (obj.method || <span class="hljs-string">'GET'</span>).toUpperCase();
+    xhr.setTimeout(obj.timeout || <span class="hljs-number">10</span> * <span class="hljs-number">6000</span>);
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> strType = (obj.type || <span class="hljs-string">'json'</span>).toLowerCase();
+        <span class="hljs-keyword">switch</span> (xhr.status) {
+        <span class="hljs-keyword">case</span> <span class="hljs-number">200</span>:
+            response = <span class="hljs-keyword">this</span>.responseText;
+            <span class="hljs-keyword">switch</span> (strType) {
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'json'</span>:
+                json = <span class="hljs-built_in">JSON</span>.parse(response);
+                intRecords = json.length;
+                obj.success(json);
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'html'</span>:
+                obj.success(response);
+                <span class="hljs-keyword">break</span>;
+            };
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-number">304</span>:
+            obj.success([]);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-number">404</span>:
+            <span class="hljs-keyword">if</span> (obj.error) {
+                obj.error({
+                    responseText: <span class="hljs-string">'Page Not Found'</span>,
+                    status: xhr.status
+                });
+            }
+            <span class="hljs-keyword">break</span>;
+        }
+    };
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (obj.error) {
+            obj.error(e);
+        }
+        <span class="hljs-keyword">return</span> [];
+    };
+    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span>(obj.progress) !== <span class="hljs-string">'undefined'</span>) {
+            obj.progress({
+                progress: <span class="hljs-built_in">parseFloat</span>((e.progress * <span class="hljs-number">100</span>), <span class="hljs-number">10</span>)
+            });
+        }
+    };
+    xhr.onreadystatechange = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> state = <span class="hljs-keyword">this</span>.readyState;
+        <span class="hljs-keyword">var</span> states = [
+            <span class="hljs-string">'Unsent'</span>,
+            <span class="hljs-string">'Opened'</span>,
+            <span class="hljs-string">'Headers'</span>,
+            <span class="hljs-string">'Loading'</span>,
+            <span class="hljs-string">'Done'</span>
+        ];
+    };
+
+    <span class="hljs-keyword">if</span> (strMode === <span class="hljs-string">'POST'</span>) {
+        xhr.open(strMode, obj.url);
+        xhr.send(obj.param);
+    } <span class="hljs-keyword">else</span> {
+        xhr.open(strMode, obj.url + <span class="hljs-string">'?'</span> + stringify(obj.param));
+        xhr.send();
+    }
+}
+exports.download = download;
+</code></pre><p><strong>Usage</strong></p>
+<pre><code class="hljs"><span class="hljs-built_in">require</span>(<span class="hljs-string">'net'</span>).download({
+    method: <span class="hljs-string">'POST'</span>, <span class="hljs-comment">// optional</span>
+    url: <span class="hljs-string">'http://someurl.com/somefolder/somefile.ext'</span>,
+    param: {
+        firstname: <span class="hljs-string">'John'</span>,
+        lastname: <span class="hljs-string">'Doe'</span>
+    },
+    success: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        alert(<span class="hljs-string">'success: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+    },
+    error: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        alert(<span class="hljs-string">'error: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+    },
+    progress: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'progess: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+    }
+});
+</code></pre><p>You can add your own headers to this. At the very least you should try this and see if it does what you need. It is certainly easier to read and re-use.</p>
+<p>The net.js CommonJS module is mine, not provided by Alloy or Titanium - the code I provided should be created in a folder as follows;</p>
+<pre><code class="hljs"><span class="hljs-comment">// for alloy</span>
+{appname}/<span class="hljs-keyword">app</span>/lib/<span class="hljs-keyword">net</span>.js
+<span class="hljs-comment">// or the following for non-alloy</span>
+{appname}/resources/<span class="hljs-keyword">net</span>.js
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 16th 2014, 6:21:27 pm">February 16th 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/162662/subsequent-request-to-xhr-post-sends-first-data-parameter-all-the-time#answer-275290" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-275289">
+				
+						<section>
+							<p>Excellent! Didn&#39;t know about the availability of net.js commonjs. Code looks much cleaner and deals with oddoties like stringyfy or json vs. html response. Thanks Malcolm!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 16th 2014, 6:09:38 pm">February 16th 2014</span>
+								by <span class='authorname'>Ash Prasad</span><br>
+								<a class="icon-bg icon-link" href="question/162662/subsequent-request-to-xhr-post-sends-first-data-parameter-all-the-time#answer-275289" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Quick tip; next time - please do not create a new answer when your contribution is actually a comment - it confuses things in the future when trying to work out relevance, simply add a comment to the answer it is related to, or if the additional information is a follow up to the question or general information then add it as a comment to your own question at the top.  You are NOT being told off.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 16th 2014, 6:15:12 pm">February 16th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes - thank you for the note. I accidentally clicked Answer as opposed to Comment :(</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 16th 2014, 6:19:12 pm">February 16th 2014</span>
+											by <span class='authorname'>Ash Prasad</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK I am the idiot here - I added an answer as a comment to the question - I just told  you not to do something similar and there I go like a moron!  I will post in the correct place.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 16th 2014, 6:20:23 pm">February 16th 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

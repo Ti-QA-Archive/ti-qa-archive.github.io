@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Add windows created with CommonJS to a NavigationWidow. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Add windows created with CommonJS to a NavigationWidow.</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I am currently making the transition to CommonJS and I am struggling when it comes to using a Navigation Window.</p>
+<ul>
+<li><strong>Module 1:</strong>  Creates the NavigationWindow and adds the 1st window to it.</li>
+<li><strong>Module 2:</strong>  Creates the 2nd window and should open it in the NavigationWindow.</li>
+<li><strong>Module 3:</strong>  Creates the 3nd window and should open it in the NavigationWindow.</li>
+<li>And so on..</li>
+</ul>
+<p>The obvious problem is that in the modules that create the child windows I do not have access to the NavigationWindow as that was created in a separate module.</p>
+<p>I have read all the Q&#x2F;A posts that I can find on this subject, but I can&#39;t seem to find a definitive answer.  </p>
+<p><strong>Some people suggest using the global namespace:</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">global</span> = {}
+
+<span class="hljs-keyword">global</span>.NavigationWindow = Titanium.UI.iOS.createNavigationWindow({
+    <span class="hljs-keyword">window</span>:win1,
+});
+
+<span class="hljs-keyword">global</span>.NavigationWindow.openWindow(win2);
+</code></pre><p>However I do not want to do this as I have read that access to the global namespace is just a quirk of CommonJS on iOS and should be avoided.</p>
+<p>I understand that when using tab groups the containing tab property can be passed on (as seen in Kitchen Sink).  I was wondering whether there is a similar approach for using Navigation Windows with CommonJS?</p>
+<p>If any one could share a best practice approach (or just point me in the right direction) I would be very grateful. </p>
+<p>Thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 31st 2014, 11:15:56 am">January 31st 2014</span>
+				by <span class='authorname'>Matthew Marsland</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+						<li><span class='tagname'>navigationwindow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-274659">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>What you have read is correct in general globals are considered bad practice.  As with most sentences there are exceptions but this need not be one of them.  Alloy allows for globals as part of the spec - but even so it is only for things that cannot be done any other way and still an exception not the rule.</p>
+<p>The solution here is CommonJS but in a slightly different way than you might think.</p>
+<p>Make a CommonJs module that creates the NavWindow and returns that object reference when requested.  Then simply use that each time to link things together.</p>
+<p>This is a quickly knocked up example but you should get the idea;</p>
+<p><strong>nav.js</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> nav;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">create</span>(<span class="hljs-params">win</span>) </span>{
+    nav = Ti.UI.iOS.createNavigationWindow({
+        <span class="hljs-built_in">window</span>: win
+    });
+    <span class="hljs-keyword">return</span> nav;
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getNav</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> nav;
+}
+
+exports.create = create;
+exports.getNav = getNav;
+</code></pre><p><strong>Usage</strong></p>
+<pre><code class="hljs"><span class="hljs-comment">// creating the initial nav</span>
+<span class="hljs-comment">// only used ONCE in your app but before any other call to nav window</span>
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    tile: <span class="hljs-string">'root'</span>
+});
+<span class="hljs-keyword">var</span> nav = <span class="hljs-built_in">require</span>(<span class="hljs-string">'nav'</span><span class="hljs-string">').create(win);</span>
+</code></pre><p>This will create the navigation controller and will return the nav reference to this scope should you need it.</p>
+<p>In any other scripts in any other files you simply reference the nav object as follows;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> nav = <span class="hljs-built_in">require</span>(<span class="hljs-string">'nav'</span>).getNav();
+<span class="hljs-keyword">var</span> newWin = Ti.UI.createWindow({
+    title: <span class="hljs-string">'New Win'</span>
+});
+nav.open(newWin);
+</code></pre><p>This works by having a CommonJS module that holds the creation and reference to the navWindow, later on when you need the reference just ask for it.</p>
+<p>See what you think.  BTW the logic of this can be used for anything you want to consider global as this structure does not get recreated each time it is called so there is only ever one instance in your app to reference.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 31st 2014, 12:17:27 pm">January 31st 2014</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/162129/add-windows-created-with-commonjs-to-a-navigationwidow#answer-274659" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Malcolm!</p>
+<p>You have explained it very well.  I&#39;d spent hours trying to figure it out.</p>
+<p>It makes sense now as I had read (at the CommonJS Fundamentals link below) that any function in a module will only run the first time the module is required and its output will be cached after that.. So if I understand correctly after the first run you example would return the exact same reference to NavWin each time.</p>
+<p>It will be useful to use the approach in other aspects of my app.  I will look into alloy after this current project…  I don&#39;t want to be left behind if alloy is to become the 1st choice in titanium development.</p>
+<p>Thanks again Malcolm!</p>
+<p><a href="http:&#x2F;&#x2F;smorgasbork.com&#x2F;index.php?option=com_content&amp;view=article&amp;id=132">CommonJS Fundamentals</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 31st 2014, 12:38:29 pm">January 31st 2014</span>
+											by <span class='authorname'>Matthew Marsland</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You are very welcome.</p>
+<p>BTW Alloy does appear to be a big change if you have only used Titanium without it.  But let me assure you that Alloy is very easy to get to grips with as it is a framework and does not change the normal Titanium code.  You just get additional abilities - mostly designed to help you manage your project more easily.  Do not start using Alloy if you are mid app development - that is a bad idea, but for new apps and refactoring existing apps - worth the bit of extra learning.</p>
+<p>As to being left behind - again - not two different things - just Alloy forces (structures) you to think about how you plan the app (plus loads more) - but that alone helps us be better developers.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 31st 2014, 12:53:53 pm">January 31st 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-274660">
+				
+						<section>
+							<p>that&#39;s what I usually do: I create module1 that includes the navigationWindow creation and prepares all of the subwindows that I&#39;ll need to open. When I have to open module2 (a subwindow), I call it from module1. When I have to close it, I call it always from module1. If I have to open module3, I&#39;ll do it in module1. I kinda let it manage in one place only. Not sure if this is the best practice, but I like to manage the windows in a container just in one place.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 31st 2014, 12:27:09 pm">January 31st 2014</span>
+								by <span class='authorname'>Alberto Marcone</span><br>
+								<a class="icon-bg icon-link" href="question/162129/add-windows-created-with-commonjs-to-a-navigationwidow#answer-274660" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I hadn&#39;t thought of this approach. So in module 1 you have a series of application level event listeners to require modules 2,3,4 and beyond? So if you click a button in win2 that opens win3 an application level event listener in module one then requires module.  I see your point regarding managing all windows in one place.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 31st 2014, 12:44:29 pm">January 31st 2014</span>
+											by <span class='authorname'>Matthew Marsland</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>it depends on the structure, but pretty much yes. I try to communicate between modules with events, I wouldn&#39;t like to recall the parent container from a subwindow. I let the container do all the logic, trying to avoid global events.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 31st 2014, 12:46:33 pm">January 31st 2014</span>
+											by <span class='authorname'>Alberto Marcone</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nothing wrong with this practice and in some projects I do the same.  Bundling up all the main windows for smaller apps in one CommonJS can make things easier.</p>
+<p>For bigger projects though I tend to create one CommonJS for each &quot;section&quot; of the app, by this I do not mean each window.  But if you have a section that handles settings then all things related to settings are in that one file.  The reason is calling a CommonJS module means that it is placed into memory for caching - which is great, but if that section is never used in this session by the user then that memory is taken up for no purpose.</p>
+<p>It comes down to what fits the project best and management of your app is just as important as the other factors we have to take care of when designing our little &quot;app babies&quot; ;-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 31st 2014, 12:47:10 pm">January 31st 2014</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

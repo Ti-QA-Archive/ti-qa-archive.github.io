@@ -1,0 +1,295 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Querying with ACS inside a function to return true/false » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Querying with ACS inside a function to return true/false</h1>
+		</header>
+		<section>
+			<p>Hi.</p>
+<p>I&#39;m working with Node.ACS, and I want to do a function to determine some checks, in this case, if an Object has childs to avoid delete it. So I thought in a function to check it and return true or false to make de deletion or not. But my function always return undefined.</p>
+<p>Here is the code, so simple:</p>
+<pre><code class="hljs"><span class="hljs-comment">// Delete an item</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">del</span>(<span class="hljs-params">req, res</span>) </span>{
+    <span class="hljs-keyword">var</span> id = req.param(<span class="hljs-string">'id'</span>);
+    <span class="hljs-keyword">var</span> db = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./db'</span>);
+
+    <span class="hljs-keyword">if</span> (id) {
+        <span class="hljs-comment">// First, check for childrens, to avoid unwanted deletions</span>
+        <span class="hljs-keyword">if</span> (db.checkChildren(<span class="hljs-string">'Country'</span>, id)) {
+            res.send(<span class="hljs-number">400</span>, <span class="hljs-string">'Database restriction: The object has foreign keys'</span>);
+        } <span class="hljs-keyword">else</span> {
+            res.send(<span class="hljs-number">400</span>, <span class="hljs-string">'No Database restriction'</span>);
+            <span class="hljs-comment">//stuff to delete the object</span>
+        }
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-comment">// Force error so the ajax call inherits it on its call</span>
+        res.send(<span class="hljs-number">400</span>, <span class="hljs-string">'Error occurred: No ID given'</span>);
+    }
+}
+</code></pre><p>And I have the function in another module, db.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ACS = <span class="hljs-keyword">require</span>(<span class="hljs-string">'acs'</span>).ACS;
+
+<span class="hljs-comment">// Check existence of childrens for the passed parent</span>
+exports.checkChildren = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(parent, parent_id)</span> </span>{
+    <span class="hljs-keyword">switch</span>(<span class="hljs-keyword">parent</span>) {
+        <span class="hljs-keyword">case</span> <span class="hljs-string">"Country"</span>:
+            clsname = <span class="hljs-string">"States"</span>;
+            where_param = {<span class="hljs-string">'[CUSTOM_Countries]country_id'</span>: parent_id};
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">"State"</span>:
+            clsname = <span class="hljs-string">"Provinces"</span>;
+            where_param = {<span class="hljs-string">'[CUSTOM_States]state_id'</span>: parent_id};
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">"Province"</span>:
+            clsname = <span class="hljs-string">"Cities"</span>;
+            where_param = {<span class="hljs-string">'[CUSTOM_Provinces]province_id'</span>: parent_id};
+            <span class="hljs-keyword">break</span>;
+    }
+
+    ACS.Objects.query({
+        classname: clsname,
+        where: where_param,
+        order: <span class="hljs-string">'name'</span>,
+        response_json_depth: <span class="hljs-number">1</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+        <span class="hljs-keyword">if</span> (data.success) {
+            <span class="hljs-keyword">return</span> (data.meta.total_results &gt; <span class="hljs-number">0</span>) ? <span class="hljs-keyword">true</span> : <span class="hljs-keyword">false</span>; 
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">// error</span>
+            <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+        }
+    });
+};
+</code></pre><p>It&#39;s suppose that, in the db.js module, the <code>ACS.Objects.query</code> will return true or false (I have checked <code>data.meta.total_results</code> and it returns the right value).</p>
+<p>What I&#39;m supposing is that the ACS call is not synchronous and, that the <code>checkChildren</code> function is finishing before the ACS call, so nothing is returned and thats why undefined is returned.</p>
+<p>If I simply put <code>return true</code> at the end, true is returned.</p>
+<p>So, what is the right way to do this?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 3rd 2013, 2:08:13 pm">December 3rd 2013</span>
+				by <span class='authorname'>Manuel Conde Vendrell</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>node</span></li>
+					
+						<li><span class='tagname'>query</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-272073">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>&quot;What I&#39;m supposing is that the ACS call is not synchronous and, that the checkChildren function is finishing before the ACS call, so nothing is returned and thats why undefined is returned.&quot;</p>
+<p>You are correct, so to get this working, you can pass a callback function to <code>checkChildren()</code>. This function then gets &#39;called&#39; when <code>ACS.Objects.query()</code> returns a result.  Callbacks are a pretty big part of node.js, for better or worse, and you are actually using one already, as that <code>function(data)...</code> at the end of the ACS query is a callback.</p>
+<p>So the query really looks like <code>ACS.Objects.query(anObject, aCallbackFunction);</code> You can set up your checkChildren function to use a callback as well. Something like:</p>
+<pre><code class="hljs"><span class="hljs-comment">//query the db in the del() function</span>
+...
+<span class="hljs-keyword">if</span>(id){
+    db.checkChildren(<span class="hljs-string">'Country'</span>, id, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(exists)</span></span>{
+        <span class="hljs-comment">//handle the response</span>
+        <span class="hljs-keyword">if</span>(exists === <span class="hljs-literal">true</span>){
+            res.send(<span class="hljs-string">'DB response etc. etc.'</span>);
+        } <span class="hljs-keyword">else</span> {
+        ....
+        }
+    });
+}
+</code></pre><p>Next, modify checkChildren to accept a callback and execute it when the ACS query completes:</p>
+<pre><code class="hljs">exports.checkChildren = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(parent, parent_id, cb)</span> </span>{
+    <span class="hljs-comment">//switch logic</span>
+    ....
+
+   <span class="hljs-comment">//ACS Query stuff</span>
+   ....
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+        <span class="hljs-keyword">if</span> (data.success) {
+            cb((data.meta.total_results &gt; <span class="hljs-number">0</span>) ? <span class="hljs-literal">true</span> : <span class="hljs-literal">false</span>); 
+        } 
+    });
+}
+</code></pre><p>This is by no means a complete example, , and you&#39;ll want to research more about using callbacks, and other topics like not getting yourself in <a href="http:&#x2F;&#x2F;callbackhell.com&#x2F;">callback hell</a>, non-blocking i&#x2F;o, Promises, etc.. <a href="http:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;5010288&#x2F;how-to-make-a-function-wait-until-a-callback-has-been-called-using-node-js?rq=1">Stack Overflow</a> is a good place to start.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 3rd 2013, 2:57:49 pm">December 3rd 2013</span>
+								by <span class='authorname'>Adam Paxton</span><br>
+								<a class="icon-bg icon-link" href="question/160069/querying-with-acs-inside-a-function-to-return-truefalse#answer-272073" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank you, I&#39;m starting with JS and didn&#39;t know about this way to work (in my own functions), although I was implicitly using it with the ACS functions.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 3rd 2013, 7:06:14 pm">December 3rd 2013</span>
+											by <span class='authorname'>Manuel Conde Vendrell</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Adam, your link to callback hell is awesome. Explains clearly all that I supposed all this time seeing only code and examples. Even more, the link inside it, <a href="https:&#x2F;&#x2F;github.com&#x2F;maxogden&#x2F;art-of-node#callbacks">Callbacks</a> must be a basic step to all newbies like me in JS.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 3rd 2013, 7:45:59 pm">December 3rd 2013</span>
+											by <span class='authorname'>Manuel Conde Vendrell</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Cool, glad it helped, Manuel.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 3rd 2013, 9:50:13 pm">December 3rd 2013</span>
+											by <span class='authorname'>Adam Paxton</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-272071">
+				
+						<section>
+							<p>No, you need to provide a callback to accept the True or False. Like this;</p>
+<pre><code class="hljs">exports<span class="hljs-built_in">.</span>checkChildren = function (<span class="hljs-keyword">parent</span>, parent_id, onComplete) {
+
+<span class="hljs-attribute">...</span><span class="hljs-built_in">..
+
+
+</span>ACS<span class="hljs-built_in">.</span>Objects<span class="hljs-built_in">.</span>query({
+        classname: clsname,
+        <span class="hljs-keyword">where</span>: where_param,
+        <span class="hljs-keyword">order</span>: <span class="hljs-string">'name'</span>,
+        response_json_depth: <span class="hljs-number">1</span>
+    }, function(<span class="hljs-built_in">data</span>) {
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">data</span><span class="hljs-built_in">.</span>success) {
+            onComplete(<span class="hljs-built_in">data</span><span class="hljs-built_in">.</span>meta<span class="hljs-built_in">.</span>total_results &gt; <span class="hljs-number">0</span> ? <span class="hljs-literal">true</span> : <span class="hljs-literal">false</span>); 
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">// error</span>
+        onComplete(<span class="hljs-literal">false</span>);
+        }
+    });
+</code></pre><p>then</p>
+<pre><code class="hljs">db.checkChildren('<span class="hljs-type">Country</span>', id, function(<span class="hljs-literal">result</span>){
+    <span class="hljs-keyword">if</span> (<span class="hljs-literal">result</span> === <span class="hljs-literal">true</span>){
+        res.send(<span class="hljs-number">400</span>, '<span class="hljs-type">Database</span> restriction: <span class="hljs-type">The</span> <span class="hljs-keyword">object</span> has foreign keys');
+        } <span class="hljs-keyword">else</span> {
+            res.send(<span class="hljs-number">400</span>, '<span class="hljs-type">No</span> <span class="hljs-type">Database</span> restriction');
+    }
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 3rd 2013, 2:53:19 pm">December 3rd 2013</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/160069/querying-with-acs-inside-a-function-to-return-truefalse#answer-272071" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank you, I&#39;m starting with JS and didn&#39;t know about this way to work (in my own functions), although I was implicitly using it with the ACS functions.<br>Let me mark Adam answer as best, because his explanations.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 3rd 2013, 7:06:42 pm">December 3rd 2013</span>
+											by <span class='authorname'>Manuel Conde Vendrell</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

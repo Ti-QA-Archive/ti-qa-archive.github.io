@@ -1,0 +1,275 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTPClient.js does not support PATCH method » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTPClient.js does not support PATCH method</h1>
+		</header>
+		<section>
+			<p>Hi guys,</p>
+<p>I am trying to use a RESTful API. It utilizes the PATCH method to update entities on the API. RFC5789; https:&#x2F;&#x2F;tools.ietf.org&#x2F;html&#x2F;rfc5789</p>
+<p>This method must be implemented in a &quot;SDK&quot;. Why is it not implemented, and how can I get it to work?</p>
+<p>If I fire a request with the &quot;PATCH&quot; method, like so;</p>
+<pre><code class="hljs">var client = Ti.Network.createHTTPClient({
+        onload : function(e) {
+            Ti.API.info(<span class="hljs-string">"Received text: "</span> + this.responseText);
+            onSuccess(e, this);
+        },
+        onerror : function(e) {
+            onError(e, this);
+        },
+        timeout : <span class="hljs-number">5000</span>  // in milliseconds
+    });
+    // Prepare the connection.
+    client.open(<span class="hljs-string">"<span class="hljs-keyword">PATCH</span>"</span>, url, false);
+    //client.open(<span class="hljs-string">"<span class="hljs-keyword">POST</span>"</span>, url, false);
+    //client.setRequestHeader('X-HTTP-Method-Override', <span class="hljs-string">"<span class="hljs-keyword">PATCH</span>"</span>);
+    client.setRequestHeader(<span class="hljs-string">"Content-Type"</span>, Alloy.Globals.apiTypes<span class="hljs-string">['content']</span>);
+    client.setRequestHeader(<span class="hljs-string">"Accept"</span>, Alloy.Globals.apiTypes<span class="hljs-string">['accept']</span>);
+    if (typeof(content) === 'undefined') {
+        var sendData = JSON.stringify(object);
+    } else {
+        var sendData = content;
+    }
+    // Send the request.
+    client.send(sendData);
+</code></pre><p>I get the following error; </p>
+<pre><code class="hljs"><span class="hljs-type">Location</span>: [<span class="hljs-number">28</span>,<span class="hljs-number">9</span>] ti:/httpclient.js
+<span class="hljs-type">Message</span>: <span class="hljs-type">Uncahught</span> <span class="hljs-type">Error</span>: <span class="hljs-type">PATCH</span> <span class="hljs-keyword">method</span> <span class="hljs-keyword">not</span> supported
+<span class="hljs-type">Source</span>: _send.call(this, options);
+</code></pre><p>I found the xhr.js file <code>Titanium&amp;#x2F;mobilesdk&amp;#x2F;win32&amp;#x2F;3.2.1.GA&amp;#x2F;node_modules&amp;#x2F;node-forge&amp;#x2F;js&amp;#x2F;xhr.js</code>, and indeed, on line 443 - 461 it shows;</p>
+<pre><code class="hljs">switch(<span class="hljs-keyword">method</span>) {
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">DELETE</span>':
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">GET</span>':
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">HEAD</span>':
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">OPTIONS</span>':
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">POST</span>':
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">PUT</span>':
+      // valid <span class="hljs-keyword">method</span>
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">CONNECT</span>':
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">TRACE</span>':
+    <span class="hljs-keyword">case</span> '<span class="hljs-type">TRACK</span>':
+      // <span class="hljs-type">FIXME</span>: handle exceptions
+      throw <span class="hljs-type">SECURITY_ERR</span>;
+    default:
+      // <span class="hljs-type">FIXME</span>: handle exceptions
+      //throw new <span class="hljs-type">SyntaxError</span>('<span class="hljs-type">Invalid</span> <span class="hljs-keyword">method</span>: ' + <span class="hljs-keyword">method</span>);
+      throw <span class="hljs-type">SYNTAX_ERR</span>;
+    }
+</code></pre><p>Huh? No PATCH? What the…<br>So, I went on to add &quot;PATCH&quot; in the switch block, but it did not help.</p>
+<p>Is there any other way for me to consume HTTP, as it is designed (would love that)? Or do I have to hack something into the SDK or its modules (hah.)? Or fake a PATCH request (blergh)?</p>
+<p>I&#39;ve tried adding the following header;<br><code>client.setRequestHeader(&amp;#39;X-HTTP-Method-Override&amp;#39;, &amp;quot;PATCH&amp;quot;);</code><br>But my API still sees it as a POST (as it should!)</p>
+<p>So does anybody know a solution for this problem?</p>
+<p>Thanks in advance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 19th 2014, 2:37:18 pm">March 19th 2014</span>
+				by <span class='authorname'>Rob Quist</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>http</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>patch</span></li>
+					
+						<li><span class='tagname'>request</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Ofcourse, another (blergh) method would be to GET the current set, then edit it and PUT it to the API. But I don&#39;t want that. I want to use it as its supposed to work!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 19th 2014, 2:39:06 pm">March 19th 2014</span>
+								by <span class='authorname'>Rob Quist</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Missing from your question are a number of important pieces of information. I suggest you take a look at the <a href="https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Using+Questions+and+Answers">Using Questions and Answers</a> article, specifically the Q&amp;A Question Checklist.  The missing information is critical to reproducing problems in a test environment and often indicates other factors that cause the undesirable outcome you are experiencing.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 19th 2014, 5:23:10 pm">March 19th 2014</span>
+								by <span class='authorname'>Stephen Feather</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Rob, did you find any solution to make PATCH requests?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 9th 2015, 6:04:40 am">February 9th 2015</span>
+								by <span class='authorname'>Igor Kravchenko</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>-3</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-276717">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Make a feature request in the community <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;secure&#x2F;Dashboard.jspa">JIRA</a> and link it back to the post.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 19th 2014, 4:28:49 pm">March 19th 2014</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/163715/httpclientjs-does-not-support-patch-method#answer-276717" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks, I think this the best of a few OPTIONS. I&#39;ll CONNECT to Jira and TRACK down some devs and GET some more information Titianium and a PATCH method. I know its not a real spec, but it is a lovely one to PUT in your code. I will POST a new message here if I get some more information. Also, DELETE HEAD.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 20th 2014, 6:46:52 am">March 20th 2014</span>
+											by <span class='authorname'>Rob Quist</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Any update on this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 18th 2014, 11:23:05 am">June 18th 2014</span>
+											by <span class='authorname'>André Mafra</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m getting a really similar error:</p>
+<pre><code class="hljs"><span class="hljs-type">Location</span>: [<span class="hljs-number">28</span>,<span class="hljs-number">9</span>] ti:/httpclient.js
+<span class="hljs-type">Message</span>: <span class="hljs-type">Uncahught</span> <span class="hljs-type">Error</span>: null <span class="hljs-keyword">method</span> <span class="hljs-keyword">not</span> supported
+<span class="hljs-type">Source</span>: _send.call(this, options);
+</code></pre><p>I have a feeling it&#39;s the same root problem?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 2nd 2014, 2:58:49 pm">July 2nd 2014</span>
+											by <span class='authorname'>Brendan Young</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>not sure - are you trying to send the &#39;PATCH&#39; method in your httpClient request ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 2nd 2014, 3:21:20 pm">July 2nd 2014</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-284835">
+				
+						<section>
+							<p>Hello guys,</p>
+<p>I am running into the same issues.  Can&#39;t seem to get PATCH method to work on Android.  It&#39;s giving the above mentioned errors.  Any updates?  Work arounds?</p>
+<p>Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 30th 2014, 4:40:21 pm">December 30th 2014</span>
+								by <span class='authorname'>Paulo Dichone</span><br>
+								<a class="icon-bg icon-link" href="question/163715/httpclientjs-does-not-support-patch-method#answer-284835" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

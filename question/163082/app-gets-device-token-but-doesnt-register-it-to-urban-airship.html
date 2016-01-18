@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>App gets device token but doesn&#39;t register it to Urban Airship » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>App gets device token but doesn&#39;t register it to Urban Airship</h1>
+		</header>
+		<section>
+			<p>Hi at all! I&#39;m relatively new to Titanium. I&#39;m trying to add Push Notification&#39; system to my App, but I have a big problem. I have an app.js file with this code:</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'urbanairship.js'</span>);
+
+UrbanAirship.key=<span class="hljs-string">'xxx'</span>;
+UrbanAirship.secret =<span class="hljs-string">'xxx'</span>;
+UrbanAirship.master_secret=<span class="hljs-string">'xxx'</span>;
+UrbanAirship.baseurl = <span class="hljs-string">'https://go.urbanairship.com'</span>;
+
+
+Ti.Network.registerForPushNotifications({
+  types: [
+    Ti.Network.NOTIFICATION_TYPE_BADGE,
+    Ti.Network.NOTIFICATION_TYPE_ALERT,
+    Ti.Network.NOTIFICATION_TYPE_SOUND
+  ],
+  success:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">var</span> deviceToken = e.deviceToken;
+    Ti.API.info(<span class="hljs-string">'successfully registered for apple device token with '</span>+e.deviceToken);
+    <span class="hljs-keyword">var</span> params = {
+      tags: [<span class="hljs-string">'version'</span>+Ti.App.getVersion()],
+      alias: alias.value
+    };
+    UrbanAirship.register(params, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+      Ti.API.debug(<span class="hljs-string">"registerUrban success: "</span> + JSON.stringify(data));
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(errorregistration)</span> </span>{
+      Ti.API.warn(<span class="hljs-string">"Couldn't register for Urban Airship"</span>);
+    });
+  },
+  error:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    Ti.API.warn(<span class="hljs-string">"push notifications disabled: "</span>+e);
+  },
+  callback:<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">var</span> a = Ti.UI.createAlertDialog({
+      title:<span class="hljs-string">'New Message'</span>,
+      message:e.data.alert
+    });
+    a.show();
+  }
+});
+</code></pre><p>And a urbanairship.js with this code in the &quot;Resources&quot; folder:</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> UrbanAirship = {
+    getToken: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">return</span> Ti.Network.remoteDeviceUUID;
+    },
+    register: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">params, lambda, lambdaerror</span>) </span>{
+        <span class="hljs-keyword">var</span> method = <span class="hljs-string">'PUT'</span>;
+        <span class="hljs-keyword">var</span> token = UrbanAirship.getToken();
+        <span class="hljs-keyword">var</span> url = UrbanAirship.baseurl+<span class="hljs-string">'/api/device_tokens/'</span>+token;
+        payload = (params) ? <span class="hljs-built_in">JSON</span>.stringify(params) : <span class="hljs-string">''</span>;
+        Ti.API.info(<span class="hljs-string">'sending registration with params '</span>+payload);
+        UrbanAirship.helper(url, method, payload, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data,status</span>)</span>{
+            Ti.API.log(<span class="hljs-string">'completed registration: '</span>+<span class="hljs-built_in">JSON</span>.stringify(status));
+            <span class="hljs-keyword">if</span> (status == <span class="hljs-number">200</span>) {
+                lambda({action:<span class="hljs-string">"updated"</span>,success:<span class="hljs-literal">true</span>});
+            } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (status == <span class="hljs-number">201</span>) {
+                lambda({action:<span class="hljs-string">"created"</span>,success:<span class="hljs-literal">true</span>});
+            } <span class="hljs-keyword">else</span> {
+              Ti.API.log(<span class="hljs-string">'error registration: '</span>+<span class="hljs-built_in">JSON</span>.stringify(status));
+            }
+        },<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">xhr,error</span>) </span>{
+          Ti.API.log(<span class="hljs-string">'xhr error registration: '</span>+<span class="hljs-built_in">JSON</span>.stringify(error));
+        });
+    },
+    unregister: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">lambda</span>) </span>{
+        <span class="hljs-keyword">var</span> method = <span class="hljs-string">'DELETE'</span>;
+        <span class="hljs-keyword">var</span> token = UrbanAirship.getToken();
+        <span class="hljs-keyword">var</span> url = UrbanAirship.baseurl+<span class="hljs-string">'/api/device_tokens/'</span>+token;
+        UrbanAirship.helper(url, method, <span class="hljs-literal">null</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data,status</span>)</span>{
+            <span class="hljs-keyword">if</span> (status == <span class="hljs-number">204</span>) {
+              lambda({status:status});
+            } <span class="hljs-keyword">else</span> {
+              lambda({status: status});
+            }
+        },<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">xhr,error</span>) </span>{
+          lambda({success:<span class="hljs-literal">false</span>,xhr:xhr.status,error:error});
+        });
+    },
+    getAlias: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">lambda</span>) </span>{
+        <span class="hljs-keyword">var</span> method = <span class="hljs-string">'GET'</span>;
+        <span class="hljs-keyword">var</span> token = UrbanAirship.getToken();
+        <span class="hljs-keyword">var</span> url= UrbanAirship.baseurl+<span class="hljs-string">'/api/device_tokens/'</span>+token;
+        UrbanAirship.helper(url, method, <span class="hljs-literal">null</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data,status</span>) </span>{
+            lambda(data);
+        },<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">xhr,e</span>) </span>{
+          lambda({status:xhr.status,e:e});
+        });
+    },
+    helper: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">url, method, params, lambda, lambdaerror</span>) </span>{
+      <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+      xhr.setTimeout(<span class="hljs-number">60000</span>);
+      xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        lambdaerror(<span class="hljs-keyword">this</span>,e);
+      };
+      xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> results = <span class="hljs-keyword">this</span>.responseText;
+        lambda(results, <span class="hljs-keyword">this</span>.status);
+      };
+      <span class="hljs-comment">// open the client</span>
+      xhr.open(method, url);
+      xhr.setRequestHeader(<span class="hljs-string">'Content-Type'</span>,<span class="hljs-string">'application/json'</span>);
+      xhr.setRequestHeader(<span class="hljs-string">'Authorization'</span>,<span class="hljs-string">'Basic '</span>+Ti.Utils.base64encode(UrbanAirship.key + <span class="hljs-string">":"</span> + UrbanAirship.master_secret));
+      <span class="hljs-comment">// send the data</span>
+      xhr.send(params);
+    }
+};
+</code></pre><p>I get the device token but in the Urban Airship panel it says &quot;You don&#39;t have any registered device yet&quot;</p>
+<p>I get this code from here:<br>https:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;Push+Notifications+with+Urban+Airship</p>
+<p>There are no errors. What can be the problem?</p>
+<p>Additional informations:</p>
+<ul>
+<li>It&#39;s a classic titanium app for iOS and Android based on a web view with local html code</li>
+<li>I have already checked my provisioning profile and certificates and are all OK</li>
+</ul>
+<p>Thank you in advance.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 1st 2014, 9:22:17 am">March 1st 2014</span>
+				by <span class='authorname'>Gianluca Mozzillo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>push notifications</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+						<li><span class='tagname'>urban airship</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-275823">
+				
+						<section>
+							<p>I would first consider using the Ti <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_modules&#x2F;blob&#x2F;master&#x2F;urbanairship&#x2F;mobile&#x2F;ios&#x2F;documentation&#x2F;index.md">module</a> instead of the js version. It is quite old now and I&#39;m unsure if it still works.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 1st 2014, 9:57:14 am">March 1st 2014</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/163082/app-gets-device-token-but-doesnt-register-it-to-urban-airship#answer-275823" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-275901">
+				
+						<section>
+							<p><a href="http:&#x2F;&#x2F;kikeremiau.blogspot.mx&#x2F;2014&#x2F;02&#x2F;push-notification-en-android-e-ios.html">Push Notification en Android e iOS (Parte 1 Configuracion ACS Appcelerator)</a></p>
+<p><a href="http:&#x2F;&#x2F;kikeremiau.blogspot.mx&#x2F;2014&#x2F;03&#x2F;push-notification-en-android-e-ios.html">Push Notification en Android e iOS (Parte 2 Programación Appcelerator)</a></p>
+<p>You can do it with ACS, That blog help me a lot!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 3rd 2014, 6:06:34 pm">March 3rd 2014</span>
+								by <span class='authorname'>Luis Enrique Gamboa</span><br>
+								<a class="icon-bg icon-link" href="question/163082/app-gets-device-token-but-doesnt-register-it-to-urban-airship#answer-275901" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

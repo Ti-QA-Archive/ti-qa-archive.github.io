@@ -1,0 +1,255 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>NavigationWindow with navbarHidden results in drag gesture bug in iOS 7 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>NavigationWindow with navbarHidden results in drag gesture bug in iOS 7</h1>
+		</header>
+		<section>
+			<p>In titanium 3.1.3 and up, the NavigationGroup was replaced with the new top-level NavigationWindow. When the navBarHidden property of the child Window is set to false, you can navigate back to the previous window with a tap on the back button(inside the navbar), but you can also drag the Window from left to right. (with drag, I mean physically moving the window, no swiping).</p>
+<pre><code class="hljs"><span class="hljs-comment">// Dragging gesture works when the second window is opened</span>
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> win1</span> = Ti.UI.createWindow({
+    title:<span class="hljs-string">"win1"</span>,
+    navBarHidden:<span class="hljs-literal">false</span>
+});
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> navWin</span> = Ti.UI.iOS.createNavigationWindow({
+    window:win1
+});
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> win2</span> = Ti.UI.createWindow({
+    title:<span class="hljs-string">"win2"</span>,
+    navBarHidden:<span class="hljs-literal">false</span>
+});
+</code></pre><p>When this property(navBarHidden) is set to true, the navigation bar is hidden. You can still go back to previous windows by calling the Window.close() method, but the dragging gesture is gone. I solved this by listening for a swipe (right) event, but I cant make the window draggable like when navBarHidden = false.</p>
+<pre><code class="hljs"><span class="hljs-comment">// Dragging gesture doesn't work when the second window is opened</span>
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> win1</span> = Ti.UI.createWindow({
+    title:<span class="hljs-string">"win1"</span>,
+    navBarHidden:<span class="hljs-literal">true</span>
+});
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> navWin</span> = Ti.UI.iOS.createNavigationWindow({
+    window:win1
+});
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> win2</span> = Ti.UI.createWindow({
+    title:<span class="hljs-string">"win2"</span>,
+    navBarHidden:<span class="hljs-literal">true</span>
+});
+</code></pre><p>Does anybody know how to enable dragging with the navBarHidden property set to true?</p>
+<p>Thanks.</p>
+<p>(iOS 7, Titanium 3.1.3, iPhone)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 4th 2013, 12:27:33 pm">December 4th 2013</span>
+				by <span class='authorname'>Leon Smit</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>navbar</span></li>
+					
+						<li><span class='tagname'>navigationwindow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-272130">
+				
+						<section>
+							<p>Hi Leon, </p>
+<p>the drag feature, is automatically enabled through the existence of a back button, but it is possible to enable this feature manually if you don&#39;t have one or use a customized one. To do that, you have to modify the Titanium SDK Source, or write a module which subclasses &quot;TiUIiOSNavWindowProxy&quot;.</p>
+<p>Here is the quick (and dirty) way (aka editing the sdk):   </p>
+<p>Open the file  &quot;TiUIiOSNavWindowProxy.m&quot; of the current mobilesdk ( should be in ~&#x2F;Library&#x2F;Application\ Support&#x2F;Titanium&#x2F;mobilesdk&#x2F;osx&#x2F;3.1.3.GA&#x2F;iphone&#x2F;Classes&#x2F;)</p>
+<p>and add these lines after Line 66 &quot;navController.delegate = self;&quot;</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> ([<span class="hljs-constant">TiUtils</span> isIOS7OrGreater]) {
+    navController.interactivePopGestureRecognizer.delegate = <span class="hljs-keyword">self</span>;
+}
+</code></pre><p>After that clean your Project and rebuild.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 4th 2013, 3:29:56 pm">December 4th 2013</span>
+								by <span class='authorname'>Moritz Knecht</span><br>
+								<a class="icon-bg icon-link" href="question/160112/navigationwindow-with-navbarhidden-results-in-drag-gesture-bug-in-ios-7#answer-272130" rel="permalink">permalink</a>
+							</div>
+
+							<h5>9 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks, that works, do you know how to solve this with a TabGroup?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 4th 2013, 5:54:19 pm">December 4th 2013</span>
+											by <span class='authorname'>Leon Smit</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>These Files: </p>
+<p>TiUIiOSNavWindowProxy.m<br>TiUITabProxy.m</p>
+<p>search: &quot;navController.delegate = self;&quot;<br>then paste code above</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 4th 2013, 6:49:56 pm">December 4th 2013</span>
+											by <span class='authorname'>Moritz Knecht</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><ul>
+<li>in TiUITabProxy.m the variable name is &quot;controller&quot; not &quot;navController&quot;.</li>
+</ul>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 4th 2013, 7:02:16 pm">December 4th 2013</span>
+											by <span class='authorname'>Moritz Knecht</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This solution results is buggy I found out just now. When gesturing the navigationWindows to the root window, if you do the back gesture again(in the root window), the window becomes unresponsive to all touch events or gestures.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 9:48:17 am">April 3rd 2014</span>
+											by <span class='authorname'>Leon Smit</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Bug explained further:</p>
+<p>This solution results in a bug, try this:</p>
+<ol>
+<li>Open a child window inside the navigationwindow</li>
+<li>close the window with the back gesture (swipe left to right)</li>
+<li>in the root window, do the gesture again (swipe left to right)</li>
+<li>open the child window again</li>
+<li>no window appears</li>
+</ol>
+<p>Stranger even, if you swipe from left to right again, the child window appears in the opposite direction of the swipe gesture</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:26:51 am">April 3rd 2014</span>
+											by <span class='authorname'>Leon Smit</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>leon, i think there is no need for that hack anymore. Since Version 3.2.x the popGestureRecognizer is built into sdk. Can you try with a unmodified 3.2.2 SDK?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 10:36:00 am">April 3rd 2014</span>
+											by <span class='authorname'>Moritz Knecht</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes I tried without the hack, but my problem is that the swipe gesture is gone when the navbar is hidden. I want the swipe gesture to work, even if the navbar is hidden.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 12:37:33 pm">April 3rd 2014</span>
+											by <span class='authorname'>Leon Smit</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>hey leon, </p>
+<p>i assembled a fix for Ti 3.2.2, using several answers from this <a href="http:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;19054625&#x2F;changing-back-button-in-ios-7-disables-swipe-to-navigate-back">thread</a></p>
+<p>copy these files into your sdk,<br>i uploaded the fix here:<br><a href="https:&#x2F;&#x2F;gist.github.com&#x2F;moritzknecht&#x2F;9959350">https:&#x2F;&#x2F;gist.github.com&#x2F;moritzknecht&#x2F;9959350</a></p>
+<p>if you are having any questions or issues with the code post a comment on the gists page</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 3:59:52 pm">April 3rd 2014</span>
+											by <span class='authorname'>Moritz Knecht</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>the solution was to disable the gesture on the root window and on in-between states</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2014, 4:14:01 pm">April 3rd 2014</span>
+											by <span class='authorname'>Moritz Knecht</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

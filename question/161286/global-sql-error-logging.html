@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Global SQL Error Logging » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Global SQL Error Logging</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I am working on an app that uses SQLite db using Titanium Appcelerator Alloy framework.</p>
+<p>Here&#39;s one of my models: <strong>customer_order_queue.js</strong></p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+        <span class="hljs-string">"columns"</span>: {
+            <span class="hljs-string">"QueueId"</span>:<span class="hljs-string">"INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE"</span>,
+            <span class="hljs-string">"CustomerId"</span>:<span class="hljs-string">"INTEGER"</span>,
+            <span class="hljs-string">"BasketData"</span>:<span class="hljs-string">"TEXT"</span>, <span class="hljs-comment">// JSON Encoded Sku, Name, Qty, Price Array</span>
+            <span class="hljs-string">"OrderCurrency"</span>:<span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"PaymentMethod"</span>:<span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"ShippingMethod"</span>:<span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"ShippingMethodTitle"</span>:<span class="hljs-string">"TEXT"</span>,
+            <span class="hljs-string">"Subtotal"</span>:<span class="hljs-string">"REAL"</span>,
+            <span class="hljs-string">"ShippingAmount"</span>:<span class="hljs-string">"REAL"</span>,
+            <span class="hljs-string">"TaxAmount"</span>:<span class="hljs-string">"REAL"</span>,
+            <span class="hljs-string">"CurrencyRate"</span>:<span class="hljs-string">"REAL"</span>,
+            <span class="hljs-string">"TaxRate"</span>:<span class="hljs-string">"REAL"</span>,
+            <span class="hljs-string">"GrandTotal"</span>:<span class="hljs-string">"REAL"</span>,
+            <span class="hljs-string">"Status"</span>:<span class="hljs-string">"TEXT"</span>, <span class="hljs-comment">// Pending OR Error OR Synced</span>
+            <span class="hljs-string">"LastError"</span>:<span class="hljs-string">"TEXT"</span>
+        },
+        <span class="hljs-string">"adapter"</span>: {
+            <span class="hljs-string">"type"</span>:<span class="hljs-string">"sql"</span>,
+            <span class="hljs-string">"collection_name"</span>:<span class="hljs-string">"customer_order_queues"</span>,
+            <span class="hljs-string">"db_name"</span>:<span class="hljs-string">"myApp"</span>,
+            <span class="hljs-string">"idAttribute"</span>:<span class="hljs-string">"QueueId"</span>
+        }
+    },
+    extendModel : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span> </span>{
+        _.extend(Model.prototype, {
+        });
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span> </span>{
+        _.extend(Collection.prototype, {
+            executeQuery : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(sqlStatement)</span> </span>{
+                db = Ti.Database.open(<span class="hljs-keyword">this</span>.config.adapter.db_name);
+                db.execute(sqlStatement);
+                db.close(); db = <span class="hljs-literal">null</span>;
+                <span class="hljs-keyword">this</span>.trigger(<span class="hljs-string">'sync'</span>);
+            },
+            deleteAll : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                db = Ti.Database.open(<span class="hljs-keyword">this</span>.config.adapter.db_name);
+                db.execute(<span class="hljs-string">'DELETE FROM '</span>+ <span class="hljs-keyword">this</span>.config.adapter.collection_name);
+                db.execute(<span class="hljs-string">'DELETE FROM sqlite_sequence where name = \''</span>+ <span class="hljs-keyword">this</span>.config.adapter.collection_name +<span class="hljs-string">'\''</span>);
+                db.close(); db = <span class="hljs-literal">null</span>;
+                <span class="hljs-keyword">this</span>.trigger(<span class="hljs-string">'sync'</span>);
+            }
+        });
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre><p>I had someone test the app thoroughly and they ended up getting an application error randomly, which reads:</p>
+<p>&gt; invalid SQL Statement at Customer_order_queue.js (line 1)</p>
+<p>Can anyone see anything wrong with this model?</p>
+<p>Anyway, my question was, is it possible to have some sort of global error logging for all SQL errors? So I can see when SQL errors occurred, the last statement and the error message?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 8th 2014, 7:34:12 am">January 8th 2014</span>
+				by <span class='authorname'>Latheesan Kanesamoorthy</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I don&#39;t think there&#39;s much of a chance that anyone is going to be able to help with just the model and no context. It also seems like there should be more to that error log. In any case, I&#39;m not aware of global sql logging, but you&#39;ll need to provide some more details, preferably in the form of a reproducible test case.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 8th 2014, 1:15:13 pm">January 8th 2014</span>
+								by <span class='authorname'>Tony Lukasavage</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

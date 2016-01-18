@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Making variables available outside a function without globals » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Making variables available outside a function without globals</h1>
+		</header>
+		<section>
+			<p>Hi, I&#39;m struggling to get my head around how to pass information around in javascript. Can some kind person show me how to take a variable from within a function and use it in another function but without making the variable global. I think i need to use return but I am stuck and not sure what to google to get something I can learn from.</p>
+<p>For example, how can I make the &quot;json&quot; variable available so i can use it in the &quot;MasterView&quot; function. Thank you in advance.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchData</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+        onload : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.App.Properties.setString(<span class="hljs-string">'cachedJson'</span>, <span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(Ti.App.Properties.getString(<span class="hljs-string">'cachedJson'</span>,<span class="hljs-string">''</span>));
+        },
+        timeout: <span class="hljs-number">5000</span>
+    });
+
+    xhr.open(<span class="hljs-string">"GET"</span>, site_url + <span class="hljs-string">"?get_json=postObjects"</span>);
+    xhr.send();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MasterView</span>(<span class="hljs-params"></span>) </span>{};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 8th 2014, 12:57:55 pm">March 8th 2014</span>
+				by <span class='authorname'>Matt Pilott</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>variables</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-276170">
+				
+						<section>
+							<p>In your example you have already kind of made your data globally available by storing it in App.Properties. So you would just</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MasterView</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(Ti.App.Properties.getString(<span class="hljs-string">'cachedJson'</span>,<span class="hljs-string">''</span>));
+};
+</code></pre><p>Or you could do</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchData</span>(<span class="hljs-params">onComplete</span>) </span>{
+
+    <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(Ti.App.Properties.getString(<span class="hljs-string">'cachedJson'</span>,<span class="hljs-string">''</span>));
+
+    <span class="hljs-keyword">if</span> (json.length &gt;<span class="hljs-number">0</span>){
+    onComplete(json);
+    <span class="hljs-keyword">return</span>; <span class="hljs-comment">// dont want to perform the httpClient operation</span>
+    }
+
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+        onload : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.App.Properties.setString(<span class="hljs-string">'cachedJson'</span>, <span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(Ti.App.Properties.getString(<span class="hljs-string">'cachedJson'</span>,<span class="hljs-string">''</span>));
+        onComplete(json);
+        },
+        timeout: <span class="hljs-number">5000</span>
+    });
+
+    xhr.open(<span class="hljs-string">"GET"</span>, site_url + <span class="hljs-string">"?get_json=postObjects"</span>);
+    xhr.send();
+}
+
+<span class="hljs-keyword">var</span> masterView = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">json</span>) </span>{
+
+ <span class="hljs-comment">// do something with your json</span>
+};
+
+fetchData(masterView);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 8th 2014, 1:12:31 pm">March 8th 2014</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/163310/making-variables-available-outside-a-function-without-globals#answer-276170" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Nick I&#39;m using the master&#x2F;detail template which i have not used before and I cannot seem to get my json into the tableview. I can get the data into an alert but not where its needed. Do have any experience with this template?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 8th 2014, 2:04:26 pm">March 8th 2014</span>
+											by <span class='authorname'>Matt Pilott</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

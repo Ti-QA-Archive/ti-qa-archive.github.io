@@ -1,0 +1,362 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Android Ti.Network.createHTTPClient memory leak » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Android Ti.Network.createHTTPClient memory leak</h1>
+		</header>
+		<section>
+			<p>I have created a background service that every second has to ask to the server if there are any new data. Using debug monitor what I notice is that the allocated memory is growing and growing till it says memory leak.</p>
+<p>index.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> intent = Titanium.Android.createServiceIntent({
+    url: <span class="hljs-string">'service.js'</span>
+  });
+intent.putExtra(<span class="hljs-string">'interval'</span>, <span class="hljs-number">1000</span>); <span class="hljs-comment">// Needs to be milliseconds</span>
+
+Titanium.Android.startService(intent);
+</code></pre><p>service.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> URL = <span class="hljs-string">"localhost:8051"</span>;
+Ti.API.info(<span class="hljs-string">"checkForNotification: "</span> + URL );
+
+<span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+     onload: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+             Ti.API.info(<span class="hljs-string">'onload called, HTTP status = '</span>+<span class="hljs-keyword">this</span>.status); 
+      },
+     onerror: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+             Ti.API.info(<span class="hljs-string">'error, HTTP status = '</span>+<span class="hljs-keyword">this</span>.status); 
+     },
+     timeout:<span class="hljs-number">5000</span>  <span class="hljs-comment">/* in milliseconds */</span>
+});
+
+xhr.open(<span class="hljs-string">'GET'</span>, URL);
+xhr.send();
+</code></pre><p>What I have realized so far is fault of xhr.send(), it does not get clean or maybe it&#39;s me doing something wrong. Can anyone suggest, how to avoid this memory leak?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 18th 2014, 4:38:29 pm">February 18th 2014</span>
+				by <span class='authorname'>erinda jaupaj</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello Erinda,</p>
+<p>do you have any cleaning code after processing the xhr? Like &quot;read the response, now delete&#x2F;remove xhr from memory?&quot;.</p>
+<p>Would be nice if you can post more info about your testing, screenshots and such.</p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 19th 2014, 3:53:32 am">February 19th 2014</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I just read the response inside onload, exactly as in the example.<br>I followed your documentation and actually I did not see anything like remove&#x2F;clean xhr, how do I do that?<br>I tried putting <strong>xhr=null</strong> after doing <strong>send</strong> but nothing changed.<br>For testing I used <strong>Android Debug Monitor</strong> and <strong>MAT(memory analyzer)</strong> that was classifying <strong>ti.modules.titanium.network.TiHTTPClient</strong> as a leak suspect</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 19th 2014, 6:57:01 am">February 19th 2014</span>
+								by <span class='authorname'>erinda jaupaj</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-275458">
+				
+						<section>
+							<p>Hello Erinda!</p>
+<p>I did some testing with httpclient. I went up to 1400 httpclients, and I keep under 13MB of RAM usage in a Nexus device. </p>
+<h2 id="code-sample">Code Sample</h2>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Titanium.UI.createWindow({
+    title : <span class="hljs-string">"leaky xhr"</span>
+});
+
+<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; 
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">startUpload</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> image = Ti.Filesystem.getResourcesDirectory() + <span class="hljs-string">"KS_nav_ui.png"</span>;
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.log(<span class="hljs-string">"Error in xhr #"</span> + i + <span class="hljs-string">" "</span> + e.error);
+        image = <span class="hljs-literal">null</span>;
+        xhr = <span class="hljs-literal">null</span>;
+        i++;
+    };
+    xhr.setTimeout(<span class="hljs-number">5000</span>);
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Status xhr #'</span> + i + <span class="hljs-string">' IN ONLOAD '</span> + <span class="hljs-keyword">this</span>.status + <span class="hljs-string">' readyState '</span> + <span class="hljs-keyword">this</span>.readyState);
+        image = <span class="hljs-literal">null</span>; 
+        xhr = <span class="hljs-literal">null</span>;
+        i++;
+    };
+    xhr.onsendstream = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Status xhr #'</span> + i + <span class="hljs-string">'ONSENDSTREAM - PROGRESS: '</span> + e.progress);
+    };
+    <span class="hljs-comment">// open the client</span>
+    xhr.open(<span class="hljs-string">'POST'</span>, <span class="hljs-string">'https://twitpic.com/api/uploadAndPost'</span>);
+
+    <span class="hljs-comment">// send the data</span>
+    xhr.send({
+        media : image,
+        username : <span class="hljs-string">'fgsandford1000'</span>,
+        password : <span class="hljs-string">'sanford1000'</span>,
+        message : <span class="hljs-string">'check me out '</span> + i
+    });
+}
+
+setInterval(startUpload, <span class="hljs-number">1000</span>);
+
+win.open();
+</code></pre><h2 id="steps-to-use-the-sample-code">Steps to use the sample code</h2>
+<ol>
+<li>Create a new mobile project (classic titanium) with Mobile SDK 3.2.1</li>
+<li>Copy the sample code into app.js</li>
+<li>Modify the tiapp.xml, changing the android section (one line) to:</li>
+</ol>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">android</span> <span class="hljs-attribute">xmlns:android</span>=<span class="hljs-value">"http://schemas.android.com/apk/res/android"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">manifest</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">application</span> <span class="hljs-attribute">android:debuggable</span>=<span class="hljs-value">"true"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">manifest</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">android</span>&gt;</span>
+</code></pre><p>Save the tiapp.xml</p>
+<ol>
+<li>Run the code into device.</li>
+<li>Launch android monitor</li>
+<li>After 1400 or so xhr in console, save the hprof</li>
+</ol>
+<h2 id="hprof-analysis">hprof analysis</h2>
+<p>Going to MAT and reading the analysis, it says that httpclient might be leaking memory. Only 200 of them, in my case. This is not conclusive, since those sound like the ones that just time out. </p>
+<p>I will try to find another way to show that the httpclient is leaking memory (we need a tes tcase easy to reproduce) so we can add a bug into JIRA.</p>
+<p>Best,</p>
+<p>Mauro</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 20th 2014, 12:07:26 am">February 20th 2014</span>
+								by <span class='authorname'>Mauro Parra</span><br>
+								<a class="icon-bg icon-link" href="question/162742/android-tinetworkcreatehttpclient-memory-leak#answer-275458" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hello Mauro, I created a project <a href="https:&#x2F;&#x2F;bitbucket.org&#x2F;linnal&#x2F;testtitaniumhttp">here</a> that shows the problem. I run the service 1000 times every 500ms and have a timeout of 2s , so maximum I should have 4 timeouts. I tried it in HTC-sense and SamsungS3 having at most <strong>8 timeouts in total</strong> but Memory analyzer says <strong>39 instances of ti.modules.titanium.network.TiHTTPClient</strong>. There is a Readme that explains what&#39;s inside. Thank you!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 20th 2014, 10:14:59 am">February 20th 2014</span>
+											by <span class='authorname'>erinda jaupaj</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>BTW no where in your documentation is written to put xhr=null , maybe you should mention it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 20th 2014, 10:35:46 am">February 20th 2014</span>
+											by <span class='authorname'>erinda jaupaj</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello Erinda,<br>the memory management is usually left to the programmer. A nice article about memory management is <a href="http:&#x2F;&#x2F;zenborgium.blogspot.mx&#x2F;2012&#x2F;04&#x2F;ultimate-answer-to-titanium-memory.html">here</a>. </p>
+<p>Best,</p>
+<p>Mauro</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 20th 2014, 9:53:25 pm">February 20th 2014</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Mauro Parra!</p>
+<p>I don&#39;t works to set &quot;xhr = null;&quot; to clear it from the memory in this case. I have the same issue. All other controllers disappears from the memory one you null them out, but not the HTTPClient!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2014, 8:04:59 am">February 27th 2014</span>
+											by <span class='authorname'>Tobias Høegh</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m using a recursive function now and put xhr null any time in success or error, this way there are no more memory leaks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 27th 2014, 10:20:14 am">February 27th 2014</span>
+											by <span class='authorname'>erinda jaupaj</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@erinda - I&#39;m having a similar problem. This recursive function you mention how does that work?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 6th 2015, 6:12:24 pm">March 6th 2015</span>
+											by <span class='authorname'>Anders Dahl Pape</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><h2 id="-anders-dahl-pape-this-is-an-example">@Anders Dahl Pape : this is an example</h2>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">requestData</span><span class="hljs-params">()</span><span class="hljs-comment">{
+    var xhr = Titanium.Network.createHTTPClient();
+    var postData = {}</span>;</span>
+    xhr.open(<span class="hljs-function"><span class="hljs-keyword">method</span>, <span class="hljs-title">url</span>);</span>
+
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span><span class="hljs-comment">{
+            // go recursive in here set a timeout if you wish to call every
+         // 2seconds
+            requestData();
+    }</span>
+
+    <span class="hljs-title">xhr</span>.<span class="hljs-title">onerror</span> = <span class="hljs-title">function</span><span class="hljs-params">(e)</span><span class="hljs-comment">{
+    }</span>
+
+    <span class="hljs-title">xhr</span>.<span class="hljs-title">send</span><span class="hljs-params">(postData)</span>;</span>
+    }
+}
+</code></pre><hr>
+<p>Let me know if you have any questions.Hope it is</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 10th 2015, 6:35:47 am">March 10th 2015</span>
+											by <span class='authorname'>erinda jaupaj</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-275752">
+				
+						<section>
+							<p>Looks like it works fine. The proxy is empty after a while. I null it out in the onload function: client = null;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://www.appcelerator.com"</span>;
+<span class="hljs-keyword">var</span> client = Ti.Network.createHTTPClient({
+    <span class="hljs-comment">// function called when the response data is available</span>
+    <span class="hljs-comment">// timeout : 5000 // in milliseconds</span>
+});
+
+client.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-comment">// Ti.API.info("Received text: " + this.responseText);</span>
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> client){
+        Ti.API.info(i);
+    }
+    client = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">var</span> d = alert(<span class="hljs-string">'success'</span>);
+    d = <span class="hljs-literal">null</span>;
+};
+<span class="hljs-comment">// function called when an error occurs, including a timeout</span>
+client.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    Ti.API.debug(e.error);
+    alert(<span class="hljs-string">'error'</span>);
+};
+
+<span class="hljs-comment">// Prepare the connection.</span>
+client.open(<span class="hljs-string">"GET"</span>, url);
+<span class="hljs-comment">// Send the request.</span>
+client.send();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 27th 2014, 10:06:46 am">February 27th 2014</span>
+								by <span class='authorname'>Tobias Høegh</span><br>
+								<a class="icon-bg icon-link" href="question/162742/android-tinetworkcreatehttpclient-memory-leak#answer-275752" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

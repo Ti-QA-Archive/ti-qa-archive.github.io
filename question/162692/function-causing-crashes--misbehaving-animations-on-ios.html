@@ -1,0 +1,327 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Function causing crashes &amp; misbehaving animations on iOS » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Function causing crashes &amp; misbehaving animations on iOS</h1>
+		</header>
+		<section>
+			<p>Hi guys,</p>
+<p>I&#39;m really struggling with the last part of my app on iOS which is causing me a massive headache with crashes and misbehaving animations.</p>
+<p>The app is a flashcard app, users get random words, tap the screen to flip in the other language and tap again to flip it back to english. They can then swipe for a new word, and just keep on going.</p>
+<p>I&#39;m running this on Titanium 3.2.1 and iOS 7 (both simulator and device), and here are the issues I&#39;m experiencing;</p>
+<ol>
+<li><p>If user swipes too fast through the views (and function reload) the app can crash occasionally</p>
+</li>
+<li><p>When the user taps the view to flip to the &#39;back&#39; view the second word displays before the animation happens, also happens when they tap to flip to the front view, the text (label 2) shows before the animation flips around, which just looks weird, the words musn&#39;t show until the animation has finished. Bonus would be for the words to actually be on the view as it flips around, would look tons better!</p>
+</li>
+<li><p>when tapping the &#39;drop&#39; button, if i&#39;ve swiped through say 3 words, and i hit &#39;drop&#39;, rather than just delete the word i&#39;m on, it deletes all 3 words, and pops the alert 3 times. It&#39;s almost like when you request a new word, it needs to clear itself down. I don&#39;t know how to achieve this.</p>
+</li>
+</ol>
+<p>A lot of work happens in my loadWords() function, i&#39;ve tried to take as much of it outside the function as I can, but i&#39;m at a complete dead end.</p>
+<p>Below is my complete code from &#39;random.js&#39;, all marked up so you can see what happens at each stage of the code, it&#39;s reasonably straight forward.</p>
+<p>I&#39;d happily slip someone a few quid if they can help me! I&#39;ve lost the will to live.</p>
+<p>Many thanks in advance</p>
+<p>Simon</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Titanium.UI.currentWindow;
+
+<span class="hljs-keyword">var</span> selectedlanguage = Ti.App.Properties.getString(<span class="hljs-string">'langSelect'</span>);
+
+<span class="hljs-comment">// detect height</span>
+<span class="hljs-keyword">if</span> (Titanium.Platform.displayCaps.platformHeight == <span class="hljs-number">480</span>) {
+    <span class="hljs-keyword">var</span> MVTOP = <span class="hljs-number">115</span>;
+    <span class="hljs-keyword">var</span> tapTOP = <span class="hljs-number">83</span>;
+    <span class="hljs-keyword">var</span> swipeTOP = <span class="hljs-number">275</span>;
+} <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">var</span> MVTOP = <span class="hljs-number">165</span>;
+    <span class="hljs-keyword">var</span> tapTOP = <span class="hljs-number">133</span>;
+    <span class="hljs-keyword">var</span> swipeTOP = <span class="hljs-number">325</span>;
+}
+
+<span class="hljs-keyword">var</span> masterView = Ti.UI.createView({
+    backgroundColor: <span class="hljs-string">'#FFF'</span>,
+    top: MVTOP,
+    width: <span class="hljs-number">300</span>,
+    height: <span class="hljs-number">140</span>,
+    opacity: <span class="hljs-number">0.7</span>
+});
+
+win.add(masterView);
+
+<span class="hljs-keyword">var</span> state = <span class="hljs-literal">true</span>;
+
+<span class="hljs-keyword">var</span> front = Ti.UI.createView({
+    backgroundColor: <span class="hljs-string">'#FFF'</span>,
+    top: <span class="hljs-number">0</span>,
+    left: <span class="hljs-number">0</span>,
+    width: <span class="hljs-number">300</span>,
+    height: <span class="hljs-number">140</span>,
+    opacity: <span class="hljs-number">1.0</span>,
+    touchEnabled: <span class="hljs-literal">false</span>
+});
+
+<span class="hljs-keyword">var</span> back = Titanium.UI.createView({
+    backgroundColor: <span class="hljs-string">'#FFF'</span>,
+    top: <span class="hljs-number">0</span>,
+    left: <span class="hljs-number">0</span>,
+    width: <span class="hljs-number">300</span>,
+    height: <span class="hljs-number">140</span>,
+    opacity: <span class="hljs-number">1.0</span>,
+    touchEnabled: <span class="hljs-literal">false</span>
+});
+
+<span class="hljs-keyword">var</span> label1 = Ti.UI.createLabel({
+    <span class="hljs-comment">//text: verb_german,</span>
+    text: <span class="hljs-string">''</span>,
+    textAlign: <span class="hljs-string">'center'</span>,
+    color: <span class="hljs-string">'#000'</span>,
+    font: {
+        fontSize: <span class="hljs-number">30</span>
+    },
+    top: <span class="hljs-number">50</span>
+});
+
+<span class="hljs-keyword">var</span> label2 = Ti.UI.createLabel({
+    <span class="hljs-comment">//text: verb_english,</span>
+    text: <span class="hljs-string">''</span>,
+    textAlign: <span class="hljs-string">'center'</span>,
+    color: <span class="hljs-string">'#000'</span>,
+    font: {
+        fontSize: <span class="hljs-number">30</span>
+    },
+    top: <span class="hljs-number">50</span>
+});
+
+<span class="hljs-comment">// labels for on screen prompts</span>
+<span class="hljs-keyword">var</span> tapLabel = Ti.UI.createLabel({
+    width: <span class="hljs-number">200</span>,
+    top: tapTOP,
+    text: <span class="hljs-string">'tap to flip'</span>,
+    textAlign: <span class="hljs-string">'center'</span>,
+    color: <span class="hljs-string">'#FFF'</span>,
+    font: {
+        fontSize: <span class="hljs-number">15</span>
+    }
+});
+
+<span class="hljs-comment">// add to the window</span>
+win.add(tapLabel);
+
+<span class="hljs-keyword">var</span> dropButton = Ti.UI.createButton({
+    width: <span class="hljs-number">120</span>,
+    height: <span class="hljs-number">41</span>,
+    right: <span class="hljs-number">15</span>,
+    bottom: <span class="hljs-number">15</span>,
+    title: <span class="hljs-string">'drop word'</span>,
+    backgroundColor: <span class="hljs-string">'#fd0100'</span>,
+    color: <span class="hljs-string">'#FFF'</span>,
+    font: {
+        fontSize: <span class="hljs-number">15</span>
+    },
+    opacity: <span class="hljs-number">1.0</span>
+});
+
+<span class="hljs-comment">// add buttons to window</span>
+win.add(dropButton);
+
+
+<span class="hljs-comment">// the main function which controls the word display</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadWords</span><span class="hljs-params">()</span> </span>{
+
+    <span class="hljs-comment">// step 1. get a random pair of words (English &amp; German)</span>
+    <span class="hljs-keyword">var</span> db = Ti.Database.open(<span class="hljs-string">'germanV6'</span>);
+    <span class="hljs-keyword">var</span> rows = db.execute(<span class="hljs-string">'SELECT word_id, word_english, word_german FROM Words WHERE word_dropped = 0 ORDER BY RANDOM() LIMIT 1;'</span>);
+
+    <span class="hljs-keyword">var</span> x = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">while</span> (rows.isValidRow()) {
+        <span class="hljs-comment">// step 2. set each label to the correct language (this comes from app.js when user selects their default language)</span>
+        <span class="hljs-keyword">if</span> (selectedlanguage == <span class="hljs-string">'en'</span>) {
+            <span class="hljs-keyword">var</span> word_1 = rows.fieldByName(<span class="hljs-string">'word_english'</span>);
+            <span class="hljs-keyword">var</span> word_2 = rows.fieldByName(<span class="hljs-string">'word_german'</span>);
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (selectedlanguage == <span class="hljs-string">'de'</span>) {
+            <span class="hljs-keyword">var</span> word_2 = rows.fieldByName(<span class="hljs-string">'word_english'</span>);
+            <span class="hljs-keyword">var</span> word_1 = rows.fieldByName(<span class="hljs-string">'word_german'</span>);
+        }
+
+        <span class="hljs-comment">// step 3. set the word id, to be used later when wanting to 'drop' a word</span>
+        <span class="hljs-keyword">var</span> word_id = rows.fieldByName(<span class="hljs-string">'word_id'</span>);
+    }
+
+    <span class="hljs-comment">// close database</span>
+    rows.close();
+
+    <span class="hljs-comment">// step 4. set the first label to show the first word</span>
+    label1.text = word_1;
+    <span class="hljs-comment">// step 5. add the label to the front 'view'</span>
+    front.add(label1);
+    <span class="hljs-comment">// step 6. add the front view to the master 'view'</span>
+    masterView.add(front);
+    <span class="hljs-comment">// step 7. set the second label to show the second word when the user taps the view</span>
+    label2.text = word_2;
+    <span class="hljs-comment">// step 8. add the second label to the back 'view'</span>
+    back.add(label2);
+
+    <span class="hljs-comment">// event listener on 'click' for the master view, when user taps this view, the view flip aniamtion between 'front' and 'back'</span>
+    masterView.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-keyword">switch</span> (state) {
+        <span class="hljs-keyword">case</span> <span class="hljs-literal">true</span>:
+            Ti.API.info(<span class="hljs-string">'true'</span>);
+            masterView.animate({
+                view: back,
+                transition: Ti.UI.iPhone.AnimationStyle.FLIP_FROM_LEFT
+            });
+
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-literal">false</span>:
+            Ti.API.info(<span class="hljs-string">'false'</span>);
+            masterView.animate({
+                view: front,
+                transition: Ti.UI.iPhone.AnimationStyle.FLIP_FROM_RIGHT
+            });
+            <span class="hljs-keyword">break</span>;
+        }
+        state = !state;
+    });
+
+    <span class="hljs-comment">// event listener for when the user taps the 'drop word' button</span>
+    dropButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+
+        <span class="hljs-comment">// step 1. update the DB to tell it the word has been dropped</span>
+        <span class="hljs-keyword">var</span> dbDelete = Ti.Database.open(<span class="hljs-string">'germanV6'</span>);
+        <span class="hljs-keyword">var</span> rowsDelete = dbDelete.execute(<span class="hljs-string">'UPDATE Words SET word_dropped=1 WHERE word_id='</span> + word_id);
+
+        <span class="hljs-comment">// step 2. pop up an alert to notify the user the word has been dropped</span>
+        <span class="hljs-keyword">var</span> alertDialog = Titanium.UI.createAlertDialog({
+            title: <span class="hljs-string">'Word Dropped'</span>,
+            message: <span class="hljs-string">'This word has been dropped!'</span> + word_id,
+            buttonNames: [<span class="hljs-string">'OK'</span>]
+        });
+        <span class="hljs-comment">// show the message</span>
+        alertDialog.show();
+
+        <span class="hljs-comment">// step 3. when user taps the OK button in the alert, we load in a new word by calling the loadwords() function again</span>
+        alertDialog.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(j)</span> </span>{
+            loadWords();
+        });
+    });
+
+
+}
+
+<span class="hljs-comment">// fire the function and load our words into play</span>
+loadWords();
+
+<span class="hljs-comment">// action for when view is swiped</span>
+masterView.addEventListener(<span class="hljs-string">'swipe'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-comment">// reload the new word</span>
+    loadWords();
+
+});
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 17th 2014, 10:15:28 am">February 17th 2014</span>
+				by <span class='authorname'>Simon Hume</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>animation</span></li>
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>flip</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-275430">
+				
+						<section>
+							<p>I ended up resolving this myself by moving the dropButton and masterView event listeners outside of the main loadWords() function and applying some small tweaks to how the word_id is stored.</p>
+<p>No more crashes! hurrah</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 19th 2014, 8:39:08 am">February 19th 2014</span>
+								by <span class='authorname'>Simon Hume</span><br>
+								<a class="icon-bg icon-link" href="question/162692/function-causing-crashes--misbehaving-animations-on-ios#answer-275430" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

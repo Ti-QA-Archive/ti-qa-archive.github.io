@@ -1,0 +1,673 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>android memory leaks » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>android memory leaks</h1>
+		</header>
+		<section>
+			<p>i&#39;ve faced that backgroundImage property is place where disappear bunch of memory on android, you just can&#39;t open more then 5 windows at a same time if they have background image, i&#39;ve removed this properties everywhere where i can and use instead imageView but this not the 100% solution application still can die at any time with out of memory error</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 10th 2014, 5:29:25 pm">February 10th 2014</span>
+				by <span class='authorname'>andrei perv</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-275027">
+				
+						<section>
+							<p>Hello Andrei!</p>
+<p>I did some testing with Titanium Mobile SDK 3.2.0.GA, Nexus 4 with Kitkat and a huge wallpaper from Samsung for S4 as backgroundImage in my windows. </p>
+<h2 id="code-testing">Code testing</h2>
+<h4 id="app-js">app.js</h4>
+<pre><code class="hljs"><span class="hljs-comment">// INcluding memory management utils.</span>
+Ti.include(<span class="hljs-string">'utils.js'</span>);
+
+<span class="hljs-comment">// root window.</span>
+var win = Ti.UI.createWindow({
+  backgroundImage:<span class="hljs-string">'b1.jpg'</span>,
+  exitOnclose:<span class="hljs-keyword">true</span>,
+});
+
+var <span class="hljs-built_in">image</span> = Ti.UI.createView({
+    backgroundImage:<span class="hljs-string">'KS_nav_ui.png'</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-number">200</span>,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">200</span>,
+    top:<span class="hljs-number">10</span>,
+    left:<span class="hljs-number">100</span>,
+}); 
+
+win.<span class="hljs-built_in">add</span>(<span class="hljs-built_in">image</span>);
+
+<span class="hljs-comment">// creating buttons </span>
+var rh = Ti.UI.createButton({
+    title:<span class="hljs-string">'Recursos humanos'</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-number">200</span>,
+    <span class="hljs-variable">height</span>:<span class="hljs-number">44</span>,
+    top: <span class="hljs-number">215</span>, 
+    left: <span class="hljs-number">100</span>,
+});
+
+
+function rh_build(){
+    var label = Ti.UI.createLabel({
+        <span class="hljs-built_in">text</span>: <span class="hljs-string">'Hello'</span>,
+        <span class="hljs-built_in">color</span>:<span class="hljs-string">'white'</span>,
+        top:<span class="hljs-number">100</span>,
+        left:<span class="hljs-number">100</span>,
+    });
+}
+
+rh.addEventListener(<span class="hljs-string">'click'</span>,function(){
+    win2 = Ti.UI.createWindow({
+      backgroundImage:<span class="hljs-string">'b2.jpg'</span>,
+    });
+    registerEventListener(win2, {event: <span class="hljs-string">'androidback'</span>, callback: win2Close});
+    Ti.App.addEventListener(<span class="hljs-string">'win2:close'</span>,win2Clean);
+    rh_build();    
+    win2.<span class="hljs-built_in">open</span>();
+});
+
+
+<span class="hljs-comment">//add buttons to the window</span>
+win.<span class="hljs-built_in">add</span>(rh);
+win.<span class="hljs-built_in">open</span>();
+</code></pre><h4 id="utils-js">utils.js</h4>
+<pre><code class="hljs"><span class="hljs-comment">/// Recursive Clean of Memory </span>
+<span class="hljs-comment">// by Mauro Parra</span>
+<span class="hljs-comment">// https://gist.github.com/mauropm/2655813</span>
+<span class="hljs-comment">// Begin recursive clean of memory</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">do_clean</span>(<span class="hljs-params">e,c</span>)</span>{
+  clean(c);
+  e.remove(c);
+    Ti.API.info( <span class="hljs-string">'Deleted child at do_clean'</span> );
+    <span class="hljs-keyword">return</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">clean</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">if</span> (e!=<span class="hljs-literal">null</span>){
+        <span class="hljs-keyword">if</span>(e.children){
+            Ti.API.info( <span class="hljs-string">'Number of children: '</span> + e.children.length );
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i&lt;e.children.length;i++){
+                do_clean(e, e.children[<span class="hljs-number">0</span>]);
+            }
+        } <span class="hljs-keyword">else</span> {     
+            <span class="hljs-keyword">return</span>; 
+        }
+    }
+}
+
+<span class="hljs-comment">// End recursive clean of memory</span>
+
+<span class="hljs-comment">/// &lt;&lt;&lt; Register &amp; UnRegister Event Listeners</span>
+<span class="hljs-comment">// Original from: https://gist.github.com/minhnc/2333095</span>
+<span class="hljs-comment">// Thanks minhnc! </span>
+
+
+<span class="hljs-comment">/**
+ * params: {event: 'event', callback: eventCallback}
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerEventListener</span>(<span class="hljs-params">obj, params</span>) </span>{
+    <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">typeof</span> obj._eventListeners == <span class="hljs-string">'undefined'</span> ) {
+        obj._eventListeners = [];    
+    }
+
+    obj.addEventListener(params.event, params.callback);
+
+    <span class="hljs-keyword">var</span> eventListeners = obj._eventListeners;
+    eventListeners.push(params);
+    obj._eventListeners = eventListeners;
+
+    Ti.API.info( <span class="hljs-built_in">JSON</span>.stringify(obj._eventListeners) );
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">unRegisterAllEventListeners</span>(<span class="hljs-params">obj</span>) </span>{
+    <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">typeof</span> obj._eventListeners == <span class="hljs-string">'undefined'</span> || obj._eventListeners.length == <span class="hljs-number">0</span> ) {
+        <span class="hljs-keyword">return</span>;    
+    }
+
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, len = obj._eventListeners.length; i &lt; len; i++) {
+        <span class="hljs-keyword">var</span> e = obj._eventListeners[i];
+        obj.removeEventListener(e.event, e.callback);
+    }
+
+    obj._eventListeners = [];
+}
+
+<span class="hljs-comment">/// Register &amp; UnRegister Event Listeners &gt;&gt;&gt;</span>
+
+
+<span class="hljs-comment">// Begin win2 clean (all secondary windows are named win2)</span>
+
+<span class="hljs-comment">// Function to clean the win2 (i.e., remove all the attached listeners, close it, null it)</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">win2Clean</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-keyword">if</span>(win2!=<span class="hljs-literal">null</span>){
+        win2.close();
+        clean(win2);
+        unRegisterAllEventListeners(win2);
+        win2 = <span class="hljs-literal">null</span>;
+    }    
+    Ti.App.removeEventListener(<span class="hljs-string">'win2:close'</span>,win2Clean);
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">win2Close</span>(<span class="hljs-params"></span>)</span>{
+    Ti.App.fireEvent(<span class="hljs-string">'win2:close'</span>);
+}
+</code></pre><h4 id="tiapp-xml">tiapp.xml</h4>
+<p>Change from:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">android</span> <span class="hljs-attribute">xmlns:android</span>=<span class="hljs-value">"http://schemas.android.com/apk/res/android"</span>/&gt;</span>
+</code></pre><p>to: </p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">android</span> <span class="hljs-attribute">xmlns:android</span>=<span class="hljs-value">"http://schemas.android.com/apk/res/android"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">manifest</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">application</span> <span class="hljs-attribute">android:debuggable</span>=<span class="hljs-value">"true"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">manifest</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">android</span>&gt;</span>
+</code></pre><h2 id="related-files">Related files</h2>
+<p>Get <a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B439umN-AOyxc0RIcHhhU3o5bGc&#x2F;edit?usp=sharing">bg1.jpg</a>, <a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B439umN-AOyxc0xFUTZYWDV3RVk&#x2F;edit?usp=sharing">bg2.jpg</a> and <a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B439umN-AOyxaUs5M0Q0NDZqMTA&#x2F;edit?usp=sharing">KS_nav_ui.png</a>. </p>
+<h2 id="instructions-how-to-test-a-memory-leak">Instructions how to test a memory leak</h2>
+<ul>
+<li>Create a new mobile project (classic titanium)</li>
+<li>Paste app.js into app.js from your project.</li>
+<li>Paste utils.js into a file named utils.js at the same level in the directory as app.js</li>
+<li>Get the files from &quot;Related files&quot; and named them as in the code (please move them to the same level as app.js in the Resources directory).</li>
+<li>Launch Android Monitor</li>
+<li>Modify your tiapp.xml as in the tiapp.xml section of this comment.</li>
+<li>Compile your app into device</li>
+<li>Go to the monitor and click into the app listed, and click into the &quot;green harddisk icon&quot; in order to track the memory consumption.</li>
+<li>Repeat the process of click into the button &quot;Recursos humanos&quot;, then press android back button and again. </li>
+<li>Click on the GC button in the Heap section of the Android Monitor</li>
+<li>Check if there is an unusual increase in memory usage.</li>
+<li>Repeat the process of clicking the button and go back with android back. </li>
+</ul>
+<h2 id="conclusions">Conclusions</h2>
+<p>After running the app for something like 30 minutes, going back and forth, there is no clear sign of memory leaks.</p>
+<h2 id="postmortem">Postmortem</h2>
+<p>We can either work in two different ways: You share the pattern of window creation and cleaning, so we can suggest improvements, or you check the way the windows are created and removed in the sample code. </p>
+<p>Let us know how it goes!</p>
+<p>Best,</p>
+<p>Mauro</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 10th 2014, 8:06:58 pm">February 10th 2014</span>
+								by <span class='authorname'>Mauro Parra</span><br>
+								<a class="icon-bg icon-link" href="question/162431/android-memory-leaks#answer-275027" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>well, after some testing with background images my app was growing up to 160mb, but no outOfMemory error happens, so i&#39;ve tried some other code that i use: imageAsResized</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> count = <span class="hljs-number">0</span>;
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    backgroundImage : <span class="hljs-string">'b1.png'</span>,
+    layout : <span class="hljs-string">'vertical'</span>
+});
+<span class="hljs-keyword">var</span> closeBtn = Ti.UI.createButton({
+    title : <span class="hljs-string">'close'</span>,
+    top : <span class="hljs-string">'44dp'</span>,
+});
+<span class="hljs-keyword">var</span> resizeBtn = Ti.UI.createButton({
+    title : <span class="hljs-string">'resize: '</span> + count,
+    top : <span class="hljs-string">'20dp'</span>,
+});
+<span class="hljs-keyword">var</span> imageView = Ti.UI.createImageView({
+    width : <span class="hljs-string">'200dp'</span>,
+    height : <span class="hljs-string">'200dp'</span>,
+});
+
+<span class="hljs-comment">//--</span>
+win.add(closeBtn);
+win.add(resizeBtn);
+win.add(imageView);
+
+<span class="hljs-comment">//--</span>
+
+resizeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(<span class="hljs-string">'b1.png'</span>);
+    <span class="hljs-keyword">var</span> blob = f.read();
+    imageView.image = blob.imageAsResized(<span class="hljs-number">512</span>, <span class="hljs-number">512</span>);
+    count++;
+    resizeBtn.title = <span class="hljs-string">'resize: '</span> + count;
+});
+closeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    win.close();
+});
+
+win.open();
+</code></pre><p>and final logs:</p>
+<pre><code class="hljs"><span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">47</span>:<span class="hljs-number">59.929</span>: D/dalvikvm(<span class="hljs-number">806</span>): GC_EXTERNAL_ALLOC freed <span class="hljs-number">524</span>K, <span class="hljs-number">29</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">8201</span>K/<span class="hljs-number">11463</span>K, external <span class="hljs-number">29831</span>K/<span class="hljs-number">36007</span>K, paused <span class="hljs-number">35</span>ms
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">47</span>:<span class="hljs-number">59.991</span>: D/dalvikvm(<span class="hljs-number">806</span>): GC_EXTERNAL_ALLOC freed &lt;<span class="hljs-number">1</span>K, <span class="hljs-number">29</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">8201</span>K/<span class="hljs-number">11463</span>K, external <span class="hljs-number">29831</span>K/<span class="hljs-number">36007</span>K, paused <span class="hljs-number">30</span>ms
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">48</span>:<span class="hljs-number">00.038</span>: I/dalvikvm-heap(<span class="hljs-number">806</span>): Clamp target GC heap from <span class="hljs-number">48.414</span>MB to <span class="hljs-number">48.000</span>MB
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">48</span>:<span class="hljs-number">00.046</span>: D/dalvikvm(<span class="hljs-number">806</span>): GC_FOR_MALLOC freed &lt;<span class="hljs-number">1</span>K, <span class="hljs-number">29</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">8201</span>K/<span class="hljs-number">11463</span>K, external <span class="hljs-number">37031</span>K/<span class="hljs-number">39079</span>K, paused <span class="hljs-number">38</span>ms
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">48</span>:<span class="hljs-number">01.108</span>: D/dalvikvm(<span class="hljs-number">806</span>): GC_EXTERNAL_ALLOC freed <span class="hljs-number">541</span>K, <span class="hljs-number">29</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">8414</span>K/<span class="hljs-number">11719</span>K, external <span class="hljs-number">30343</span>K/<span class="hljs-number">31367</span>K, paused <span class="hljs-number">79</span>ms
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">48</span>:<span class="hljs-number">01.124</span>: E/dalvikvm-heap(<span class="hljs-number">806</span>): <span class="hljs-number">7372800</span>-byte external allocation too large <span class="hljs-keyword">for</span> <span class="hljs-keyword">this</span> process.
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">48</span>:<span class="hljs-number">01.163</span>: D/dalvikvm(<span class="hljs-number">806</span>): GC_FOR_MALLOC freed &lt;<span class="hljs-number">1</span>K, <span class="hljs-number">29</span>% <span class="hljs-built_in">free</span> <span class="hljs-number">8413</span>K/<span class="hljs-number">11719</span>K, external <span class="hljs-number">23143</span>K/<span class="hljs-number">30343</span>K, paused <span class="hljs-number">24</span>ms
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">48</span>:<span class="hljs-number">01.186</span>: D/GraphicsJNI(<span class="hljs-number">806</span>): Waiting <span class="hljs-keyword">for</span> heap walker to <span class="hljs-built_in">free</span> more memory
+<span class="hljs-number">02</span>-<span class="hljs-number">11</span> <span class="hljs-number">12</span>:<span class="hljs-number">48</span>:<span class="hljs-number">01.194</span>: D/GraphicsJNI(<span class="hljs-number">806</span>): Heap walker done, retry to allocate
+</code></pre><p>i need to do about 50 click&#39;s with imageAsResized(512, 512) to get this error and about 20 click&#39;s with imageAsResized(960, 960)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 11th 2014, 8:54:37 am">February 11th 2014</span>
+											by <span class='authorname'>andrei perv</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello Andrei,</p>
+<p>I did some changes in your code (please take a look into the click event handler for the resize button, and I went up to 503 resize actions without growing more than 14MB.</p>
+<h2 id="code-">Code </h2>
+<pre><code class="hljs">  <span class="hljs-keyword">var</span> count = <span class="hljs-number">0</span>;
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    backgroundImage : <span class="hljs-string">'b1.png'</span>,
+    layout : <span class="hljs-string">'vertical'</span>
+});
+<span class="hljs-keyword">var</span> closeBtn = Ti.UI.createButton({
+    title : <span class="hljs-string">'close'</span>,
+    top : <span class="hljs-string">'44dp'</span>,
+});
+<span class="hljs-keyword">var</span> resizeBtn = Ti.UI.createButton({
+    title : <span class="hljs-string">'resize: '</span> + count,
+    top : <span class="hljs-string">'20dp'</span>,
+});
+<span class="hljs-keyword">var</span> imageView = Ti.UI.createImageView({
+    width : <span class="hljs-string">'200dp'</span>,
+    height : <span class="hljs-string">'200dp'</span>,
+});
+
+<span class="hljs-comment">//--</span>
+win.add(closeBtn);
+win.add(resizeBtn);
+win.add(imageView);
+
+<span class="hljs-comment">//--</span>
+
+resizeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(<span class="hljs-string">'b1.png'</span>);
+    <span class="hljs-keyword">var</span> blob = f.read();
+    win.remove(imageView);
+    imageView = <span class="hljs-literal">null</span>; 
+    imageView = Ti.UI.createImageView({
+    width : <span class="hljs-string">'200dp'</span>,
+    height : <span class="hljs-string">'200dp'</span>,
+    });
+    imageView.image = blob.imageAsResized(<span class="hljs-number">960</span>, <span class="hljs-number">960</span>);
+    count++;
+    resizeBtn.title = <span class="hljs-string">'resize: '</span> + count;
+    f = <span class="hljs-literal">null</span>; 
+});
+closeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    win.close();
+});
+
+win.open();
+</code></pre><h2 id="screen-of-my-memory-usage">Screen of my memory usage</h2>
+<p><a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B439umN-AOyxTXhkam9PdDF5YnM&#x2F;edit?usp=sharing">Memory Usage in Monitor</a></p>
+<h2 id="screen-of-my-phone">Screen of my phone</h2>
+<p><a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B439umN-AOyxTi1rbUx1MERSQzA&#x2F;edit?usp=sharing">Clicked 503 times in my phone</a>.</p>
+<h2 id="setup">Setup</h2>
+<p>Version: Titanium Mobile SDK 3.2.1<br>Device: Nexus 4<br>OS: Android 4.4 </p>
+<p>Please implement those changes to your app and let us know how it goes.</p>
+<p>Best,</p>
+<p>Mauro</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 11th 2014, 4:33:40 pm">February 11th 2014</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Am I being daft ? In your</p>
+<pre><code class="hljs">resizeBtn.addEventListener(<span class="hljs-string">'click'</span>,
+</code></pre><p>you remove the imageView from the window but never add it again ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 11th 2014, 5:19:43 pm">February 11th 2014</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello Nick,</p>
+<p>I modified the code (added the needed code to add the imageView again) and it never crashed; but, at the 200 or so, the resize started to fail.</p>
+<h2 id="updated-code">Updated Code</h2>
+<pre><code class="hljs">  <span class="hljs-keyword">var</span> count = <span class="hljs-number">0</span>;
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    backgroundImage : <span class="hljs-string">'b1.png'</span>,
+    layout : <span class="hljs-string">'vertical'</span>
+});
+<span class="hljs-keyword">var</span> closeBtn = Ti.UI.createButton({
+    title : <span class="hljs-string">'close'</span>,
+    top : <span class="hljs-string">'44dp'</span>,
+});
+<span class="hljs-keyword">var</span> resizeBtn = Ti.UI.createButton({
+    title : <span class="hljs-string">'resize: '</span> + count,
+    top : <span class="hljs-string">'20dp'</span>,
+});
+<span class="hljs-keyword">var</span> imageView = Ti.UI.createImageView({
+    width : <span class="hljs-string">'200dp'</span>,
+    height : <span class="hljs-string">'200dp'</span>,
+});
+
+<span class="hljs-comment">//--</span>
+win.add(closeBtn);
+win.add(resizeBtn);
+win.add(imageView);
+
+<span class="hljs-comment">//--</span>
+
+resizeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(<span class="hljs-string">'b1.jpg'</span>);
+    <span class="hljs-keyword">var</span> blob = f.read();
+    f = <span class="hljs-literal">null</span>;
+    win.remove(imageView);
+    imageView.view = <span class="hljs-literal">null</span>;
+    imageView = <span class="hljs-literal">null</span>; 
+    imageView = Ti.UI.createImageView({
+    width : <span class="hljs-string">'200dp'</span>,
+    height : <span class="hljs-string">'200dp'</span>,
+    });
+    imageView.image = blob.imageAsResized(<span class="hljs-number">960</span>, <span class="hljs-number">960</span>);
+    blob = <span class="hljs-literal">null</span>;
+    win.add(imageView);
+    count++;
+    resizeBtn.title = <span class="hljs-string">'resize: '</span> + count;
+});
+closeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    win.close();
+});
+
+win.open();
+</code></pre><h2 id="memory-usage">Memory usage</h2>
+<p>The memory went up to 189MB, with the app no crashing, but the resize stopped happening: </p>
+<pre><code class="hljs">
+[ERROR] :  TiBlob: (KrollRuntimeThread) [<span class="hljs-number">3227</span>,<span class="hljs-number">231234</span>] Unable to <span class="hljs-attribute">resize</span> the image. Not enough memory: null
+[ERROR] :  TiBlob: java<span class="hljs-class">.lang</span><span class="hljs-class">.OutOfMemoryError</span>
+[ERROR] :  TiBlob:     at android<span class="hljs-class">.graphics</span><span class="hljs-class">.Bitmap</span><span class="hljs-class">.nativeCreate</span>(Native Method)
+[ERROR] :  TiBlob:     at android<span class="hljs-class">.graphics</span><span class="hljs-class">.Bitmap</span><span class="hljs-class">.createBitmap</span>(Bitmap<span class="hljs-class">.java</span>:<span class="hljs-number">809</span>)
+[ERROR] :  TiBlob:     at android<span class="hljs-class">.graphics</span><span class="hljs-class">.Bitmap</span><span class="hljs-class">.createBitmap</span>(Bitmap<span class="hljs-class">.java</span>:<span class="hljs-number">786</span>)
+[ERROR] :  TiBlob:     at android<span class="hljs-class">.graphics</span><span class="hljs-class">.Bitmap</span><span class="hljs-class">.createBitmap</span>(Bitmap<span class="hljs-class">.java</span>:<span class="hljs-number">718</span>)
+[ERROR] :  TiBlob:     at android<span class="hljs-class">.graphics</span><span class="hljs-class">.Bitmap</span><span class="hljs-class">.createScaledBitmap</span>(Bitmap<span class="hljs-class">.java</span>:<span class="hljs-number">594</span>)
+[ERROR] :  TiBlob:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.titanium</span><span class="hljs-class">.TiBlob</span><span class="hljs-class">.imageAsResized</span>(TiBlob<span class="hljs-class">.java</span>:<span class="hljs-number">543</span>)
+[ERROR] :  TiBlob:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.nativeFireEvent</span>(Native Method)
+[ERROR] :  TiBlob:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.runtime</span><span class="hljs-class">.v8</span><span class="hljs-class">.V8Object</span><span class="hljs-class">.fireEvent</span>(V8Object<span class="hljs-class">.java</span>:<span class="hljs-number">64</span>)
+[ERROR] :  TiBlob:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollProxy</span><span class="hljs-class">.doFireEvent</span>(KrollProxy<span class="hljs-class">.java</span>:<span class="hljs-number">884</span>)
+[ERROR] :  TiBlob:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollProxy</span><span class="hljs-class">.handleMessage</span>(KrollProxy<span class="hljs-class">.java</span>:<span class="hljs-number">1107</span>)
+[ERROR] :  TiBlob:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.titanium</span><span class="hljs-class">.proxy</span><span class="hljs-class">.TiViewProxy</span><span class="hljs-class">.handleMessage</span>(TiViewProxy<span class="hljs-class">.java</span>:<span class="hljs-number">327</span>)
+[ERROR] :  TiBlob:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Handler</span><span class="hljs-class">.dispatchMessage</span>(Handler<span class="hljs-class">.java</span>:<span class="hljs-number">98</span>)
+[ERROR] :  TiBlob:     at android<span class="hljs-class">.os</span><span class="hljs-class">.Looper</span><span class="hljs-class">.loop</span>(Looper<span class="hljs-class">.java</span>:<span class="hljs-number">136</span>)
+[ERROR] :  TiBlob:     at org<span class="hljs-class">.appcelerator</span><span class="hljs-class">.kroll</span><span class="hljs-class">.KrollRuntime</span><span class="hljs-variable">$KrollRuntimeThread</span>.<span class="hljs-function"><span class="hljs-title">run</span><span class="hljs-params">(KrollRuntime.java:<span class="hljs-number">112</span>)</span></span>
+[INFO] :   I/dalvikvm-heap: Grow heap (frag case) to <span class="hljs-number">182.277</span>MB <span class="hljs-keyword">for</span> <span class="hljs-number">1474561</span>
+</code></pre><h2 id="recap">Recap</h2>
+<p>Looks like either the Filesystem file or the blob is not releasing all the memory. I will be adding a bug related to this. On the other hand, with the modifications, the problem doesn&#39;t start until image 100th. </p>
+<p>Bug report @ Jira: <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-16450">https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-16450</a></p>
+<h2 id="images-of-the-testing">Images of the testing</h2>
+<p><a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B439umN-AOyxcjc1d2RVa1AxVzA&#x2F;edit?usp=sharing">App didn&#39;t crash</a></p>
+<p><a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B439umN-AOyxVW5vQ1RBY0RuZU0&#x2F;edit?usp=sharing">Used memory</a></p>
+<p>Best,</p>
+<p>Mauro</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 11th 2014, 10:49:49 pm">February 11th 2014</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-275201">
+				
+						<section>
+							<p>ok after some more testing,<br>the problem in 9path background images<br>using image 400x400 give out of memory error and application crash after opening 13 windows on motorola defy+<br>and this count depense on the device and image size</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> count = <span class="hljs-number">0</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">run</span><span class="hljs-params">()</span> </span>{
+
+    <span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+        backgroundImage : <span class="hljs-string">'b1.png'</span>,
+        layout : <span class="hljs-string">'vertical'</span>
+    });
+    <span class="hljs-keyword">var</span> closeBtn = Ti.UI.createButton({
+        title : <span class="hljs-string">'close'</span>,
+        top : <span class="hljs-string">'44dp'</span>,
+    });
+    <span class="hljs-keyword">var</span> resizeBtn = Ti.UI.createButton({
+        title : <span class="hljs-string">'resize: '</span> + count,
+        top : <span class="hljs-string">'20dp'</span>,
+    });
+
+    <span class="hljs-comment">//--</span>
+    win.add(closeBtn);
+    win.add(resizeBtn);
+    <span class="hljs-comment">//--</span>
+
+    resizeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        resizeBtn.title = <span class="hljs-string">'resize: '</span> + count;
+        count++;
+        run();
+    });
+    closeBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        win.close();
+    });
+
+    win.open();
+}
+
+run();
+</code></pre><p>logs</p>
+<pre><code class="hljs"><span class="hljs-number">02-14 11:36</span>:08.124: E/dalvikvm-heap(18615): 640000-byte external allocation too large for this process.
+<span class="hljs-number">02-14 11:36</span>:08.163: E/GraphicsJNI(18615): VM won't let us allocate 640000 bytes
+<span class="hljs-number">02-14 11:36</span>:08.163: D/dalvikvm(18615): GC_FOR_MALLOC freed 0K, 54% free 3784K/8199K, external 40449K/41247K, paused 28ms
+<span class="hljs-number">02-14 11:36</span>:08.218: D/AndroidRuntime(18615): Shutting down VM
+<span class="hljs-number">02-14 11:36</span>:08.218: W/dalvikvm(18615): threadid=1: thread exiting with uncaught exception (group=<span class="hljs-number">0x40018560</span>)
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615): (main) [<span class="hljs-number">45040,45040</span>] Sending event: exception on thread: main msg:java.lang.OutOfMemoryError: bitmap size exceeds VM budget<span class="hljs-comment">; Titanium 3.2.0,2013/12/20 10:57,d9182d6</span>
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615): java.lang.OutOfMemoryError: bitmap size exceeds VM budget
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615):     at android.graphics.Bitmap.nativeCreate(Native Method)
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615):     at android.graphics.Bitmap.createBitmap(Bitmap.java:507)
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615):     at org.appcelerator.titanium.util.TiNinePatchHelper.cropNinePatch(TiNinePatchHelper.java:125)
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615):     at org.appcelerator.titanium.util.TiNinePatchHelper.process(TiNinePatchHelper.java:49)
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615):     at org.appcelerator.titanium.util.TiFileHelper.loadDrawable(TiFileHelper.java:333)
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615):     at org.appcelerator.titanium.util.TiUIHelper.buildBackgroundDrawable(TiUIHelper.java:508)
+<span class="hljs-number">02-14 11:36</span>:08.436: E/TiApplication(18615):     at org.appcelerator.titanium.util.TiUIHelper.buildBackgroundDrawable(TiUIHelper.java:572)
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 14th 2014, 7:42:51 am">February 14th 2014</span>
+								by <span class='authorname'>andrei perv</span><br>
+								<a class="icon-bg icon-link" href="question/162431/android-memory-leaks#answer-275201" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B7h3IfWxhyL5d2pUWkpwMjNyN1k&#x2F;edit?usp=sharing</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 14th 2014, 7:49:47 am">February 14th 2014</span>
+											by <span class='authorname'>andrei perv</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello Andrei!</p>
+<p>The problem with the testcase is that the close of the window is not cleaning any memory, it&#39;s likely to leak and kill your app. </p>
+<p>After closing, you will need to:</p>
+<ol>
+<li>Remove all the children added to the window (i.e., to any item that you did a win.add(something), you will need to do a win.remove(something), then clean something, then do something=null;</li>
+<li>After you clean everything, you need to win.close and then win=null; </li>
+</ol>
+<p>Best,</p>
+<p>Mauro</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 14th 2014, 9:35:55 pm">February 14th 2014</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>seriously? please play with background images more, because after closing, windows release the memory, but i have to workflows:</p>
+<ul>
+<li><p>application with non 9path backgroundImage (i can open over 50 windows even if the image 1900x1900)</p>
+</li>
+<li><p>application with 9path background image (even image 400x400 make &quot;OutOfMemoryError: bitmap size exceeds VM budget;&quot; after 13 windows)</p>
+</li>
+</ul>
+<p>also let&#39;s count:</p>
+<ul>
+<li><p>screen size: 480x854</p>
+</li>
+<li><p>32 bit bitmap size: 480<em>854</em>4 = 1601.25 kb</p>
+</li>
+<li><p>for 13 windows: 1601.25kb *13 = 20.3 Mb</p>
+</li>
+</ul>
+<p>not so much for out of memory error</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 15th 2014, 4:34:08 am">February 15th 2014</span>
+											by <span class='authorname'>andrei perv</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>any news?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2014, 8:43:19 am">February 18th 2014</span>
+											by <span class='authorname'>andrei perv</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello Andrei,</p>
+<p>do you have a testcase with the 9path image? Do you have a 9path image around that we can use? So we can push this issue up to the Platform team (but we need an actual testcase that will show the issue clearly).</p>
+<p>Best,</p>
+<p>Mauro</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 18th 2014, 4:21:20 pm">February 18th 2014</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>i&#39;ve used this one<br><a href="https:&#x2F;&#x2F;drive.google.com&#x2F;file&#x2F;d&#x2F;0B7h3IfWxhyL5d2pUWkpwMjNyN1k&#x2F;edit?usp=sharing">image</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 22nd 2014, 8:15:15 am">February 22nd 2014</span>
+											by <span class='authorname'>andrei perv</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>for testcase you can use previous code.<br>for the real e.g. i have tabgroup with 4-6 windows with 9path background, if user open at least 2 more windows in each tab he will get out of memory error</p>
+<p>it happens very quick even on devices with 1gb RAM</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 22nd 2014, 8:28:23 am">February 22nd 2014</span>
+											by <span class='authorname'>andrei perv</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

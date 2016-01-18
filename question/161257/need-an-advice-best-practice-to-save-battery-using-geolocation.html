@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Need an advice: Best practice to save battery using Geolocation » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Need an advice: Best practice to save battery using Geolocation</h1>
+		</header>
+		<section>
+			<p>I&#39;m developing something that&#39;s ping a server.The server must tracer where you are.<br>So, actually, my code is…</p>
+<pre><code class="hljs">Ti.Geolocation.purpose = <span class="hljs-string">"Receive User Location"</span>;
+    Titanium.Geolocation.accuracy = Titanium.Geolocation.HUNDRED_METERS;
+    Titanium.Geolocation.distanceFilter = <span class="hljs-number">100</span>;
+    Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        getLocation();
+    });
+</code></pre><p>GetLocation() obviously will send data to the server.Ok, fine so far…but if I decide to go to bed…When I wake up my battery will be very low :(</p>
+<p>Now, my question is…what is better ? set the accuracy to BEST and create a timer that&#39;s compare your location minute by minute (or 10 by 10 seconds) or create a timer that&#39;s detects your location each 10 minutes and if the location is the same, it&#39;s set the accuracy to LOW ?</p>
+<p>Any others good practices will be very welcome !</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 7th 2014, 12:17:43 pm">January 7th 2014</span>
+				by <span class='authorname'>Marco Jr</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>accuracy</span></li>
+					
+						<li><span class='tagname'>battery</span></li>
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-273572">
+				
+						<section>
+							<p>Once you add the event listener, you&#39;re turning on the location providers, which usually involves powering up the GPS circuitry, network card, or 3&#x2F;4G radio (unless the needed provider is already powered up). Adding the event listener will begin high-power draw. You will need to remove the event listener to power down any circuitry that was turned on.</p>
+<p>Setting the accuracy to LOW simply helps the operating system tune which provider is powered on. For example, network-based (IP address) locations are less accurate than GPS or AGPS geo-fixes. Thus you&#39;d expect that the network card would be powered up for LOW accuracy. (But it&#39;s up to the operating system to determine what actually gets powered on.) There will still be higher than normal power draw as some provider will have to be powered on (unless it happened to be on already for other operations) to determine your location.</p>
+<p>You don&#39;t say which platform you&#39;re running on. (Please be more complete in future questions.) With iOS, the Ti.Geolocation.getCurrentLocation() function will return an accurate location in most cases. iOS determines if the cached location data is valid: if so, it returns that, if not, it determines the current location and returns that. On Android, however, getCurrentLocation() always returns the cached location, which is rarely accurate.</p>
+<p>So, if you&#39;re looking for an iOS-only solution, simply call getCurrentLocation() periodically. If you&#39;re building for Android or cross-platform, you will need to turn on the listener periodically to determine the current location. </p>
+<p>If you are building for Android, you&#39;re using the wrong accuracy constants. The BEST&#x2F;LOW constants put Android into the deprecated legacy mode, which is largely inaccurate and kept around only for backward compatibility. Use HIGH&#x2F;LOW instead. Or, consider using manual mode and specifying providers explicitly.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 7th 2014, 1:00:18 pm">January 7th 2014</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/161257/need-an-advice-best-practice-to-save-battery-using-geolocation#answer-273572" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Your follow up question was:</p>
+<p><em>So, if I set the accuracy to low…this will turn off my gps radio and save battery ?</em></p>
+<p>No, only removing the event listener will turn off the GPS (or whatever provider was enabled).</p>
+<pre><code class="hljs">Ti.Geolocation.addEventListener(<span class="hljs-string">'location'</span>, getLocation);
+
+// <span class="hljs-keyword">then</span> later, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">signatures</span> <span class="hljs-title">must</span> <span class="hljs-title">match</span> <span class="hljs-title">exactly</span>
+<span class="hljs-title">Ti.Geolocation.removeEventListener</span><span class="hljs-params">('location', getLocation)</span></span>;
+</code></pre><p>Please add any further follow ups as comments to my original answer not new answers. This will help future readers keep track of the conversation and know which pieces go together. And please mark this answer best if it solves your question.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 7th 2014, 5:06:34 pm">January 7th 2014</span>
+											by <span class='authorname'>Tim Poulsen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-273589">
+				
+						<section>
+							<p>Thanks, Tim ! My bad…I am using iOS…Android Version will be a different build.<br>So, if I set the accuracy to low…this will turn off my gps radio and save battery ?<br>Reading again my text..I think I messed up.</p>
+<p>Actually, my code is </p>
+<pre><code class="hljs">Ti.Geolocation.purpose = <span class="hljs-string">"Receive User Location"</span>;
+    Titanium.Geolocation.accuracy = Titanium.Geolocation.HUNDRED_METERS;
+    Titanium.Geolocation.distanceFilter = <span class="hljs-number">100</span>;
+    Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        getLocation();
+    });
+</code></pre><p>I am considering to remove the EventListener based on location and setup a new one based on time.Maybe minute by minute.The tick will fires the getLocation() with accuracy set to the best.Not clear to me..does &quot;best&quot; accepted by iOS ?</p>
+<p>And more…I wanna create a sort of algorhyntin…like…</p>
+<p>Start minute by minute…<br>After 1 minute: location is the same ? So, set timer x 2<br>After 3 minutes: Location is the same ? Timer x3<br>After 6 minutes: Location is the same ? Timer x4</p>
+<p>Until it&#39;s reach a half hour and y app will query my location 30 by 30 minutes and I believe this will be a very good strategy to save battery.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 7th 2014, 4:45:42 pm">January 7th 2014</span>
+								by <span class='authorname'>Marco Jr</span><br>
+								<a class="icon-bg icon-link" href="question/161257/need-an-advice-best-practice-to-save-battery-using-geolocation#answer-273589" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

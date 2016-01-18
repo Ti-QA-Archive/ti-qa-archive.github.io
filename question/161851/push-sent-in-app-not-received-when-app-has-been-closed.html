@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Push sent in-app not received when app has been closed » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Push sent in-app not received when app has been closed</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I&#39;m working with Appcelerator&#39;s cloud service and am having some issues with push notifications for iOS.</p>
+<p>Sending a push to channel X using the web service (https:&#x2F;&#x2F;cloud.appcelerator.com&#x2F;apps&#x2F;…) works flawlessy; the units subscribed to channel X receive the push, regardless of whether they have the app open or closed.</p>
+<p>However:</p>
+<p><strong>Push notifications sent in-app using notifyTokens are received only if the subscribed unit(s) haven&#39;t closed the app since they subscribed.</strong></p>
+<h3 id="examples">Examples</h3>
+<p>User A and User B open the app, are logged in (as admins) and subscribe to channel X.</p>
+<p>####Case 1<br>While they both still have the app open, user A triggers notifyTokens.</p>
+<p>Result: User B receives a push. (<strong>Works</strong>)</p>
+<p>####Case 2:<br>User A and User B close the app. Some time later, User A opens the app again, is logged in (as admin) and triggers notifyTokens.</p>
+<p>Result: <strong>no push</strong> is received. (<strong>Doesn&#39;t work</strong>)</p>
+<p>####Case 3:<br>User A and User B close the app. Some time later, someone sends a push using the webservice (https:&#x2F;&#x2F;cloud.appcelerator.com&#x2F;apps&#x2F;…)</p>
+<p>Result: User A and User B receive the push. (<strong>Works</strong>)</p>
+<p><strong>Any ideas on how to make it so that a push sent in-app is received even though the subscribed unit(s)&#39;s app is closed?</strong></p>
+<p>Code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> deviceToken = <span class="hljs-literal">null</span>;
+
+Ti.Network.registerForPushNotifications({
+    <span class="hljs-comment">// Specifies which notifications to receive</span>
+    types: [
+        Ti.Network.NOTIFICATION_TYPE_BADGE,
+        Ti.Network.NOTIFICATION_TYPE_ALERT,
+        Ti.Network.NOTIFICATION_TYPE_SOUND
+    ],
+    success: deviceTokenSuccess,
+    error: deviceTokenError,
+    callback: receivePush
+});
+<span class="hljs-comment">// Process incoming push notifications</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">receivePush</span>(<span class="hljs-params">e</span>) </span>{
+    Titanium.Media.vibrate();
+    alert(<span class="hljs-string">'Received push: '</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+}
+<span class="hljs-comment">// Save the device token for subsequent API calls</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span>(<span class="hljs-params">e</span>) </span>{
+    deviceToken = e.deviceToken;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span>(<span class="hljs-params">e</span>) </span>{
+    alert(<span class="hljs-string">'Failed to register for push notifications! '</span> + e.error);
+}
+
+<span class="hljs-comment">// Require in the Cloud module</span>
+<span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">"ti.cloud"</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">cloudLogin</span> (<span class="hljs-params"></span>) </span>{
+    Cloud.Users.login({
+        login : <span class="hljs-string">'testuser'</span>, <span class="hljs-comment">//global admin that has already been created</span>
+        password : <span class="hljs-string">'password'</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            <span class="hljs-keyword">var</span> user = e.users[<span class="hljs-number">0</span>];
+            alert(<span class="hljs-string">'Success:\n'</span> + <span class="hljs-string">'id: '</span> + user.id);
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">'Error:\\n'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+        }
+    });
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">subscribeToChannel</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">// Subscribes the device to the 'test' channel</span>
+    <span class="hljs-comment">// Specify the push type as either 'android' for Android or 'ios' for iOS</span>
+    Cloud.PushNotifications.subscribeToken({
+        device_token: deviceToken,
+        channel: <span class="hljs-string">'test'</span>,
+        type: Ti.Platform.name == <span class="hljs-string">'android'</span> ? <span class="hljs-string">'android'</span> : <span class="hljs-string">'ios'</span>
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            alert(<span class="hljs-string">'Subscribed'</span>);
+            cloudLogin();
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">'Error:\n'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+        }
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendNotification</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">// Sends an 'This is a test.' alert to specified device if its subscribed to the 'test' channel.</span>
+    Cloud.PushNotifications.notifyTokens({
+        to_tokens: <span class="hljs-string">'everyone'</span>,
+        channel: <span class="hljs-string">'test'</span>,
+        payload: <span class="hljs-string">'Test-test, '</span> + <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>()
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            alert(<span class="hljs-string">'Push notification sent'</span>);
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">'Error:\n'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+        }
+    });
+}
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+    backgroundColor: <span class="hljs-string">'white'</span>,
+    <span class="hljs-comment">//layout:'vertical',</span>
+    exitOnClose: <span class="hljs-literal">true</span>
+});
+
+<span class="hljs-keyword">var</span> subscribe = Ti.UI.createButton({
+    title:<span class="hljs-string">'Subscribe'</span>,
+    font:{fontFamily: <span class="hljs-string">'HelveticaNeue-Light'</span>},
+    top: <span class="hljs-number">80</span>    
+});
+subscribe.addEventListener(<span class="hljs-string">'click'</span>, subscribeToChannel);
+win.add(subscribe);
+
+<span class="hljs-keyword">var</span> notify = Ti.UI.createButton({
+    title:<span class="hljs-string">'Notify'</span>,
+    font:{fontFamily: <span class="hljs-string">'HelveticaNeue-Light'</span>},
+    bottom: <span class="hljs-number">80</span>
+});
+notify.addEventListener(<span class="hljs-string">'click'</span>, sendNotification);
+win.add(notify);
+
+win.open();
+</code></pre><p>Platform: iOS 7<br>Titanium SDK: 3.2.0</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 23rd 2014, 4:16:36 pm">January 23rd 2014</span>
+				by <span class='authorname'>Max Leverin</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>cloud</span></li>
+					
+						<li><span class='tagname'>notify</span></li>
+					
+						<li><span class='tagname'>notifytokens</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Not sure what the problem was (or even if there was one) but it seems to work now. Lock&#x2F;remove post.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 23rd 2014, 5:06:37 pm">January 23rd 2014</span>
+								by <span class='authorname'>Max Leverin</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

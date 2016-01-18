@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy - Backbone - how to save model to collection » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy - Backbone - how to save model to collection</h1>
+		</header>
+		<section>
+			<p>I&#39;ve read all the doc I could find, and as many of the QA posts that seemed relevent, but I&#39;m still not clear how the API for models and collections works. I know that roughly model = record and a group of models = collection. That&#39;s about it. Manipulating either one or both is a bit beyond my understanding right now.</p>
+<p>I have two models - tracker and page. Tracker is a singleton and parent of page. When a user visits a page, I fire the track() function:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">track</span><span class="hljs-params">(_pageId)</span> </span>{
+
+    tracker.fetch(); <span class="hljs-comment">//singleton created in alloy.js</span>
+
+    <span class="hljs-keyword">var</span> userId = tracker.<span class="hljs-keyword">get</span>(<span class="hljs-string">'user_id'</span>);
+
+    <span class="hljs-keyword">var</span> pages = Alloy.createCollection(<span class="hljs-string">'page'</span>);
+
+    <span class="hljs-keyword">if</span> (tracker.has(<span class="hljs-string">'user_id'</span>)) { 
+
+        <span class="hljs-comment">//find an array of matching records (hint: only one record expected)</span>
+        <span class="hljs-keyword">var</span> page = pages.where({
+            page_viewed : _pageId,
+            fk_user_id : userId
+        });
+
+        <span class="hljs-comment">//if no record, make one</span>
+        <span class="hljs-keyword">if</span> (page.length === <span class="hljs-number">0</span>) {            
+            pages.add({
+                view_count : <span class="hljs-number">1</span>,
+                visit_timestamp : helper.timestamp(),
+                page_viewed : _pageId,
+                fk_user_id : userId
+            });
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//otherwise update model</span>
+            <span class="hljs-keyword">var</span> viewCount = page[<span class="hljs-number">0</span>].<span class="hljs-keyword">get</span>(<span class="hljs-string">'view_count'</span>);
+            viewCount++;
+            page[<span class="hljs-number">0</span>].save(<span class="hljs-string">'view_count'</span>, viewCount);
+        }
+debugger;
+        pages.sync(<span class="hljs-string">'create'</span>, <span class="hljs-string">'page'</span>);
+
+    } <span class="hljs-keyword">else</span> {
+        helper.log(<span class="hljs-string">'error: analyze:track: no matching record.'</span>);
+    }
+
+    <span class="hljs-keyword">return</span>;
+}
+</code></pre><p>Since I&#39;m learning this as I go, I don&#39;t know if this code makes any sense for what I want to do. I do that it&#39;s not working. I get an error in the sql.js module when executing <code>pages.sync(&amp;#39;create&amp;#39;, &amp;#39;page&amp;#39;);</code>:</p>
+<pre><code class="hljs"><span class="hljs-keyword">message</span> = <span class="hljs-string">"'undefined' is not an object (evaluating 'model.config.adapter')"</span>;
+</code></pre><p>Tracker appears to be working as intended. Page is what I&#39;m having difficulty with. The use case: On any given page, check to see if the user has been here before. If so, update the viewCount. If not, create an new page and add it to the collection with a viewCount=1. Then save it.</p>
+<p>Am I close to achieving the use case?  I&#39;m struggling with understanding how sync works and what it needs. As always, your help is most appreciated.</p>
+<p>Regards.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 8th 2014, 8:31:29 pm">January 8th 2014</span>
+				by <span class='authorname'>Michael Stelly</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>api</span></li>
+					
+						<li><span class='tagname'>backbone</span></li>
+					
+						<li><span class='tagname'>collections</span></li>
+					
+						<li><span class='tagname'>sync</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Slowly working through the issues. Still need some help to find a speedy resolution. <code>pages.sync()</code> should be <code>pages.at(0).save();</code>. I figured that out, at least. Now my query is not returning rows:</p>
+<pre><code class="hljs">        <span class="hljs-tag">pages</span><span class="hljs-class">.fetch</span>(<span class="hljs-rules">{
+        <span class="hljs-rule"><span class="hljs-attribute">query </span>:<span class="hljs-value"> <span class="hljs-string">'select * from pages where page_viewed = ? and fk_user_id = ?'</span>,
+        params : [_pageId, userId]
+        </span></span></span>});
+</code></pre><p>although a generic fetch() does:</p>
+<pre><code class="hljs"><span class="hljs-tag">pages</span><span class="hljs-class">.fetch</span>();
+</code></pre><p>So, need help understanding the proper syntax for a parameterized Backbone fetch().</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 9th 2014, 4:50:46 pm">January 9th 2014</span>
+								by <span class='authorname'>Michael Stelly</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-273715">
+				
+						<section>
+							<p>Took me awhile. But finally got it working. Hope this will help someone else:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">track</span><span class="hljs-params">(_pageId)</span> </span>{
+    <span class="hljs-comment">//<span class="hljs-doctag">TODO:</span> track() needs more testing</span>
+
+    tracker.fetch();
+
+    <span class="hljs-keyword">var</span> userId = tracker.<span class="hljs-keyword">get</span>(<span class="hljs-string">'user_id'</span>);
+
+    <span class="hljs-keyword">var</span> pages = Alloy.createCollection(<span class="hljs-string">'page'</span>);
+
+    <span class="hljs-keyword">if</span> (userId) {
+
+        <span class="hljs-comment">//retrieve the collection</span>
+        pages.fetch();
+
+        <span class="hljs-comment">//retrieve page matching _pageId</span>
+        <span class="hljs-keyword">var</span> page = pages.where({
+            page_viewed : _pageId,
+            fk_user_id : userId
+        });
+        debugger;
+
+        <span class="hljs-keyword">if</span> (page.length !== <span class="hljs-number">0</span> &amp;&amp; page[<span class="hljs-number">0</span>].<span class="hljs-keyword">get</span>(<span class="hljs-string">'page_viewed'</span>) === _pageId) {
+            <span class="hljs-comment">// update model            </span>
+            <span class="hljs-keyword">var</span> viewCount = page[<span class="hljs-number">0</span>].<span class="hljs-keyword">get</span>(<span class="hljs-string">'view_count'</span>);
+            viewCount++;
+            page[<span class="hljs-number">0</span>].save(<span class="hljs-string">'view_count'</span>, viewCount);
+
+        } <span class="hljs-keyword">else</span> {
+
+            <span class="hljs-comment">//otherwise: no record or no page match, make one</span>
+            <span class="hljs-comment">//add model to front of collection, so it'll be [0] index</span>
+            pages.unshift({
+                view_count : <span class="hljs-number">1</span>,
+                visit_timestamp : helper.timestamp(),
+                page_viewed : _pageId,
+                fk_user_id : userId
+            });
+        }
+
+        pages.at(<span class="hljs-number">0</span>).save();
+        pages.fetch();
+
+    } <span class="hljs-keyword">else</span> {
+        helper.log(<span class="hljs-string">'error: analyze:track: no matching record.'</span>);
+    }
+
+    <span class="hljs-keyword">return</span>;
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 9th 2014, 7:17:53 pm">January 9th 2014</span>
+								by <span class='authorname'>Michael Stelly</span><br>
+								<a class="icon-bg icon-link" href="question/161326/alloy---backbone---how-to-save-model-to-collection#answer-273715" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

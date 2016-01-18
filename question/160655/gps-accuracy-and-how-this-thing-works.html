@@ -1,0 +1,265 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>GPS, accuracy, and how this thing works » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>GPS, accuracy, and how this thing works</h1>
+		</header>
+		<section>
+			<p>So I&#39;ve been following samples from the kitchen sink, and adapting the existing code to my needs. Problem is, I think I might have made some mistakes along the way.</p>
+<p>I ran my app while I was driving and got somewhere along the lines of 50x the distance I actually traveled.</p>
+<p>I am using the following formula to get the distance between to lat&#x2F;long points:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> getDistance = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">lat1, lat2, lon1, lon2</span>)</span>{
+    <span class="hljs-keyword">var</span> R = <span class="hljs-number">6371</span>; <span class="hljs-comment">// km</span>
+    <span class="hljs-keyword">var</span> dLat = toRad(lat2-lat1);
+    <span class="hljs-keyword">var</span> dLon = toRad(lon2-lon1);
+    <span class="hljs-keyword">var</span> lat1 = toRad(lat1);
+    <span class="hljs-keyword">var</span> lat2 = toRad(lat2);
+
+    <span class="hljs-keyword">var</span> a = <span class="hljs-built_in">Math</span>.sin(dLat/<span class="hljs-number">2</span>) * <span class="hljs-built_in">Math</span>.sin(dLat/<span class="hljs-number">2</span>) +
+            <span class="hljs-built_in">Math</span>.sin(dLon/<span class="hljs-number">2</span>) * <span class="hljs-built_in">Math</span>.sin(dLon/<span class="hljs-number">2</span>) * <span class="hljs-built_in">Math</span>.cos(lat1) * <span class="hljs-built_in">Math</span>.cos(lat2); 
+    <span class="hljs-keyword">var</span> c = <span class="hljs-number">2</span> * <span class="hljs-built_in">Math</span>.atan2(<span class="hljs-built_in">Math</span>.sqrt(a), <span class="hljs-built_in">Math</span>.sqrt(<span class="hljs-number">1</span>-a)); 
+    <span class="hljs-keyword">var</span> d = R * c;
+
+    <span class="hljs-keyword">return</span> d * <span class="hljs-number">0.621371</span>; <span class="hljs-comment">// converting to miles</span>
+};
+</code></pre><p>I&#39;ve assumed the return value for that function is in km so I do a conversion towards the end.</p>
+<p>The way I call it is as follows:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> updates = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> locationChangedHandler = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+    <span class="hljs-keyword">if</span> (!e.success || e.error){
+        <span class="hljs-comment">// error handling</span>
+    }
+    <span class="hljs-keyword">if</span> (e.coords != <span class="hljs-literal">null</span>){
+        <span class="hljs-keyword">var</span> longitude = e.coords.longitude;
+        <span class="hljs-keyword">var</span> latitude = e.coords.latitude;
+        <span class="hljs-keyword">var</span> altitude = e.coords.altitude;
+        <span class="hljs-keyword">var</span> heading = e.coords.heading;
+        <span class="hljs-keyword">var</span> accuracy = e.coords.accuracy;
+        <span class="hljs-keyword">var</span> speed = e.coords.speed;
+        <span class="hljs-keyword">var</span> timestamp = e.coords.timestamp;
+        <span class="hljs-keyword">var</span> altitudeAccuracy = e.coords.altitudeAccuracy;
+
+        addNewCoordinate(latitude,longitude);
+        updates ++;
+        $.status.text = <span class="hljs-string">"UPDATED "</span> + updates;
+        $.lblSpeed.text = speed + <span class="hljs-string">" mi/h"</span>;
+    }
+};
+
+<span class="hljs-keyword">var</span> addNewCoordinate = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">lat, lon</span>)</span>{
+    <span class="hljs-keyword">var</span> lastDistance = distance;
+    distance += getDistance(lastLat, lat, lastLong, lon);
+
+    model.distance = <span class="hljs-built_in">Math</span>.round(distance*<span class="hljs-number">100</span>)/<span class="hljs-number">100</span>; <span class="hljs-comment">// max 500</span>
+    $.lblDistance.text = model.distance + <span class="hljs-string">" mi"</span>;
+    $.lblDistance.text = model.distance;
+
+    <span class="hljs-keyword">if</span> (distance &gt; lastDistance){
+        <span class="hljs-keyword">var</span> m = Alloy.createModel(<span class="hljs-string">'Coordinate'</span>, {lat: lat, lon: lon, exerciseInstanceID: model.id});
+        m.save();
+    }
+
+    $.lastupdated.text = (<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>()).toString();
+    $.lat.text = lat;
+    $.lon.text = lon;
+};
+
+<span class="hljs-keyword">this</span>.startGPSTracking = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+
+    Titanium.Geolocation.accuracy = Titanium.Geolocation.ACCURACY_BEST;
+    Titanium.Geolocation.preferredProvider = Titanium.Geolocation.PROVIDER_GPS;
+    Titanium.Geolocation.purpose = <span class="hljs-string">"C7 Tracking"</span>;
+    Titanium.Geolocation.distanceFilter = <span class="hljs-number">2</span>;  <span class="hljs-comment">// <span class="hljs-doctag">TODO:</span> make this adaptive</span>
+
+    $.status.text = <span class="hljs-string">"GPS tracking STARTED"</span>;
+    <span class="hljs-comment">// we need to save the model to have an id</span>
+    <span class="hljs-keyword">if</span> ((model.id == <span class="hljs-literal">null</span>)||(model.id === <span class="hljs-string">""</span>)||(model.id === <span class="hljs-number">0</span>)){
+        exerciseID = <span class="hljs-number">0</span>;
+        setEditor.saveCurrentExercise(updateExerciseID);
+    }
+    <span class="hljs-keyword">else</span>{
+        exerciseID = model.id;
+    }
+    setDistance(model);
+
+    Titanium.Geolocation.getCurrentPosition(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        $.status.text = <span class="hljs-string">"First Position Retrieved"</span>;
+        <span class="hljs-keyword">if</span> (!e.success || e.error) {
+            <span class="hljs-comment">// error handling</span>
+        }
+        <span class="hljs-keyword">var</span> longitude = e.coords.longitude;
+        <span class="hljs-keyword">var</span> latitude = e.coords.latitude;
+        <span class="hljs-keyword">var</span> altitude = e.coords.altitude;
+
+        lastLat = latitude;
+        lastLong = longitude;
+
+        addNewCoordinate(latitude, longitude);
+    });
+    $.status.text = <span class="hljs-string">"STARTED"</span>;
+    Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>,locationChangedHandler);    
+};
+
+<span class="hljs-keyword">this</span>.stopGPSTracking = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    Titanium.Geolocation.removeEventListener(<span class="hljs-string">'location'</span>, locationChangedHandler);
+    $.status.text = <span class="hljs-string">"STOPPED"</span>;
+
+};
+</code></pre><p>The problem is the distance I am getting is about 50x the actual distance. It&#39;s probably noteworthy I tested this while driving my car.</p>
+<p>I did notice that the speed returned by e.coords.speed returns 28 when I&#39;m traveling at 60 mph. I also noticed that when the car is in full stop, the distance continues incrementing, so there&#39;s probably something wrong with how I&#39;m handling the event as well.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 19th 2013, 4:39:30 pm">December 19th 2013</span>
+				by <span class='authorname'>David Glass</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>calculation</span></li>
+					
+						<li><span class='tagname'>gps</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>iOS or Android ?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 19th 2013, 4:48:39 pm">December 19th 2013</span>
+								by <span class='authorname'>Nick Milner</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>In this case, Android. I have only been able to test it on the simulator for iOS, which isn&#39;t very helpful when it comes to GPS</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 19th 2013, 6:21:31 pm">December 19th 2013</span>
+								by <span class='authorname'>David Glass</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-272799">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>I encourage you to check out a couple of things:</p>
+<ul>
+<li>For Android GPS, you&#39;ll want to use the Simple or Manual modes for higher accuracy. You&#39;re using Legacy (deprecated) mode by setting accuracy to Titanium.Geolocation.ACCURACY_BEST. That mode is notoriously inaccurate on Android. See the <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator-training&#x2F;AndroidGeo">Android Geo</a> sample app on the training repository. Sorry, the code is a bit convoluted because it&#39;s meant to demo all the various modes. But look at how Simple and Manual modes are enabled with the various buttons. (Or, use ACCURACY_HIGH for Simple mode with your current code)</li>
+<li>For distance calculations you might want to check out <a href="http:&#x2F;&#x2F;www.packtpub.com&#x2F;augmented-reality-using-appcelerator-titanium-starter&#x2F;book">Trevor Ward&#39;s book on augmented reality</a>. He includes some routines for such calculations. </li>
+</ul>
+<p>Finally, according to <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;LocationCoordinates">the docs</a>, speed is in meters per second. 28 meters per second is roughly <a href="https:&#x2F;&#x2F;www.google.com&#x2F;search?q=28+meters+per+second+to+miles+per+hour&amp;oq=28+meters+per&amp;aqs=chrome.1.69i57j0l2.4661j0j4&amp;sourceid=chrome&amp;ie=UTF-8">60 miles per hour</a>.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 20th 2013, 12:47:04 am">December 20th 2013</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/160655/gps-accuracy-and-how-this-thing-works#answer-272799" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank you very much, Tim!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2013, 10:28:51 am">December 20th 2013</span>
+											by <span class='authorname'>David Glass</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I had a chance to play with your app and figured out what was happening. While sitting in my driveway, I ran it and I saw the GPS was picking up different coordinates at about 1 second intervals, even though I wasn&#39;t going anywhere. I also noticed fluctuations in the GPS accuracy readings.</p>
+<p>Since I was taking different readings as &quot;distance traveled&quot;, in essence, I was adding them up even though I wasn&#39;t going anywhere.</p>
+<p>At times the GP was placing me up to half a block away from where I was sitting, so I guess my next challenge is to figure out  a way to make up for these inaccuracies. Maybe just ignore readings with a reliability under a certain threshold</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 26th 2013, 2:44:59 pm">December 26th 2013</span>
+											by <span class='authorname'>David Glass</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

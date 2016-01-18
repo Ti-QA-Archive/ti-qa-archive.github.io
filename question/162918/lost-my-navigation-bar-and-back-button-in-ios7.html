@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Lost my Navigation Bar and Back button in iOS7 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Lost my Navigation Bar and Back button in iOS7</h1>
+		</header>
+		<section>
+			<p>Since adapting my app to work on iOS7, my app no longer displays a Navigation Bar (and quite critically the Back button!).</p>
+<p>In order to make my NavigationController.js file work and do the job of actually opening windows in iOS7 (SDK 3.2.0), I had to change createNavigationGroup to createNavigationWindow. Would this have caused the Navigation Bar to disappear?</p>
+<p>If so, what is the best way to put a Navigation Bar back into iOS7 apps please?</p>
+<p>Many thanks</p>
+<p>Caroline</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 24th 2014, 5:19:53 pm">February 24th 2014</span>
+				by <span class='authorname'>Dr Caroline Wilkins</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>back button</span></li>
+					
+						<li><span class='tagname'>ios7</span></li>
+					
+						<li><span class='tagname'>navigation bar</span></li>
+					
+						<li><span class='tagname'>navigationcontroller</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-275610">
+				
+						<section>
+							<p>My NavigationController.js now looks like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//NavigationController.js</span>
+exports.NavigationController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.windowStack = [];
+};
+
+exports.NavigationController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>) </span>{
+    <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+    <span class="hljs-keyword">this</span>.windowStack.push(windowToOpen);
+    Ti.API.info(<span class="hljs-keyword">this</span>.windowStack.length + <span class="hljs-string">' is the size of the current windowstack'</span>);
+    <span class="hljs-comment">//grab a copy of the current nav controller for use in the callback</span>
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    windowToOpen.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        that.windowStack.pop();
+    });
+
+    <span class="hljs-comment">//hack - setting this property ensures the window is "heavyweight" (associated with an Android activity)</span>
+    windowToOpen.navBarHidden = windowToOpen.navBarHidden || <span class="hljs-literal">false</span>;
+    windowToOpen.orientationModes=[Ti.UI.PORTRAIT];
+
+    <span class="hljs-comment">//This is the first window</span>
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.windowStack.length === <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+            windowToOpen.exitOnClose = <span class="hljs-literal">true</span>;
+            Ti.API.info(<span class="hljs-string">'Opening Window'</span>);
+            windowToOpen.open();
+            Ti.API.info(<span class="hljs-string">'Window Opened'</span>);
+        } <span class="hljs-keyword">else</span> {
+            windowToOpen.open();
+           <span class="hljs-comment">// alert('Window toopen:' + windowToOpen);</span>
+            <span class="hljs-comment">//this.navGroup = Ti.UI.iPhone.createNavigationGroup({</span>
+            Ti.API.info(<span class="hljs-string">'iPhone branch'</span>);
+            <span class="hljs-keyword">this</span>.navGroup = Ti.UI.iOS.createNavigationWindow({    
+                <span class="hljs-built_in">window</span> : windowToOpen
+            });
+            <span class="hljs-keyword">var</span> containerWindow = Ti.UI.createWindow();
+            containerWindow.add(<span class="hljs-keyword">this</span>.navGroup);
+            containerWindow.open();
+        }
+    }
+    <span class="hljs-comment">//All subsequent windows</span>
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+<span class="hljs-comment">/*          var homeView = Ti.UI.createView({});
+            var homeButton = Ti.UI.createButton({title:'Home', width:55, height:35, top:0, right:5});
+            homeButton.addEventListener('click', function() {
+                that.home();
+            });
+            homeView.add(homeButton); */</span>
+            windowToOpen.open();
+        } <span class="hljs-keyword">else</span> {
+<span class="hljs-comment">/*          var homeView = Ti.UI.createView({});
+            var homeButton = Ti.UI.createButton({title:'Home', width:55, height:35});
+            homeButton.addEventListener('click', function() {
+                that.home();
+            });
+            homeView.add(homeButton); */</span>
+            <span class="hljs-keyword">this</span>.navGroup.open(windowToOpen);
+            windowToOpen.backButtonTitle = <span class="hljs-string">'back'</span>;
+            <span class="hljs-comment">// windowToOpen.rightNavButton = homeView; </span>
+            windowToOpen.open();
+        }
+    }
+};
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+exports.NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">1</span>, l = windows.length; i &lt; l; i++) {
+        (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[i]) : windows[i].close();
+    }
+    <span class="hljs-keyword">this</span>.windowStack = [<span class="hljs-keyword">this</span>.windowStack[<span class="hljs-number">0</span>]]; <span class="hljs-comment">//reset stack</span>
+};
+
+exports.NavigationController.prototype.pop = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.info(<span class="hljs-string">'poping window'</span>);
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[windows.length-<span class="hljs-number">1</span>]) : windows[windows.length-<span class="hljs-number">1</span>].close();
+};
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 24th 2014, 5:24:11 pm">February 24th 2014</span>
+								by <span class='authorname'>Dr Caroline Wilkins</span><br>
+								<a class="icon-bg icon-link" href="question/162918/lost-my-navigation-bar-and-back-button-in-ios7#answer-275610" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-275621">
+				
+						<section>
+							<p>Hi  Dr Caroline Wilkins,<br>As i can see in your code , you are adding the navigation window to another window, that is not the case with the createNavigationWindow, it is a standalone UI component. You just add a window to it and open it you will get your navigation bar. Please note that </p>
+<pre><code class="hljs"><span class="hljs-variable">createNavigationWindow=</span> Navigation <span class="hljs-keyword">group</span> <span class="hljs-title">add</span> to the Window.
+</code></pre><p>Please mark the answer if your query is resolved to find others the answer easily.<br>And you can ask any question if have any confusion</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 25th 2014, 2:09:06 am">February 25th 2014</span>
+								by <span class='authorname'>Ishan Singh</span><br>
+								<a class="icon-bg icon-link" href="question/162918/lost-my-navigation-bar-and-back-button-in-ios7#answer-275621" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Do you think I can achieve that within the NavigationController.js file above or do you think I need to make the changes in the files that open the windows? I can&#39;t quite get my head round what I need to do!</p>
+<p>Many thanks for your time helping me with this.</p>
+<p>Caroline</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 25th 2014, 6:08:42 pm">February 25th 2014</span>
+											by <span class='authorname'>Dr Caroline Wilkins</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

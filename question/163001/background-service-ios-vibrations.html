@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Background Service iOS vibrations » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Background Service iOS vibrations</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I&#39;ve created a background service and the vibrate function is not working in the background.</p>
+<p>Some Information:</p>
+<ul>
+<li>Titanium SDK: 3.1.1</li>
+<li>Platform: iOS 7 </li>
+<li>Device: iPhone 4S</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+ <span class="hljs-keyword">var</span> service;
+
+  Ti.App.addEventListener(<span class="hljs-string">'resume'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+       Titanium.API.info(<span class="hljs-string">"Status: App is resuming from the background"</span>);
+  });
+
+  Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+       Titanium.API.info(<span class="hljs-string">"Status: App has resumed from the background"</span>);
+
+       <span class="hljs-comment">// this will unregister the service if the user just opened the app</span>
+       <span class="hljs-keyword">if</span>(service!=<span class="hljs-literal">null</span>){
+         service.stop();
+         service.unregister();
+       }
+
+       Titanium.UI.iPhone.appBadge = <span class="hljs-literal">null</span>;
+  });
+
+  Ti.App.addEventListener(<span class="hljs-string">'pause'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+      Titanium.API.info(<span class="hljs-string">"Status: App was paused from the foreground"</span>);
+        service = Ti.App.iOS.registerBackgroundService({url:<span class="hljs-string">'hyservice.js'</span>});
+        Titanium.API.info(<span class="hljs-string">"registered background service = "</span>+ service);
+  });
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//hyservice.js</span>
+Titanium.API.info(<span class="hljs-string">"Status: SERVICE IS ON!"</span>);
+
+<span class="hljs-keyword">var</span> alertCount = <span class="hljs-number">0</span>; 
+<span class="hljs-keyword">var</span> notification = <span class="hljs-literal">null</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">notify</span>(<span class="hljs-params">resp</span>)</span>{
+    <span class="hljs-comment">// This creates the notification alert on a 'paused' app</span>
+    notification = Ti.App.iOS.scheduleLocalNotification({
+        alertBody:resp,
+        alertAction:<span class="hljs-string">"OK"</span>,
+        userInfo:{<span class="hljs-string">"hello"</span>:<span class="hljs-string">"world"</span>},
+        badge:alertCount,
+        date:<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() + <span class="hljs-number">10</span>)
+    });
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">vibreren</span>(<span class="hljs-params"></span>) </span>{
+    Titanium.API.info(<span class="hljs-string">"Status: VIBRATE IS ON!"</span>);
+    Ti.Media.vibrate();
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkFeed</span>(<span class="hljs-params"></span>)</span>{
+
+    <span class="hljs-comment">// silently ignore this if there's no network connection</span>
+    <span class="hljs-keyword">if</span> (Titanium.Network.online == <span class="hljs-literal">false</span>) {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">var</span> t = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime();
+    Ti.API.info(<span class="hljs-string">'checking feed in bg.. '</span>+t);
+
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.timeout = <span class="hljs-number">1000000</span>;
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">'IN ERROR '</span> + e.error);
+    };
+
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-comment">// demo to increase the badge number...</span>
+        alertCount++;
+
+        <span class="hljs-keyword">var</span> response = <span class="hljs-keyword">this</span>.responseText;    
+        <span class="hljs-comment">//Ti.API.info("the reply was: "+response);</span>
+
+        <span class="hljs-comment">// open the notification</span>
+        notify(response);
+    };
+
+    xhr.open(<span class="hljs-string">'GET'</span>,<span class="hljs-string">'http://xxxx/service_test.php'</span>);
+    xhr.send(); 
+}
+
+Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    Ti.API.info(<span class="hljs-string">'background event received = '</span>+notification);
+    Ti.App.currentService.stop();
+    Ti.App.currentService.unregister();
+});
+
+<span class="hljs-keyword">if</span> (Ti.App.Properties.getBool(<span class="hljs-string">'isRunning'</span>)) {
+    <span class="hljs-keyword">var</span> timer = setInterval(checkFeed, <span class="hljs-number">10000</span>); <span class="hljs-comment">//10sec</span>
+    <span class="hljs-keyword">var</span> timer2 = setInterval(vibreren, <span class="hljs-number">60000</span>); <span class="hljs-comment">//60sec</span>
+}<span class="hljs-keyword">else</span>{
+    <span class="hljs-comment">//do nothing</span>
+    Titanium.API.info(<span class="hljs-string">"Status: SERVICE IS NOT RUNNING!"</span>);
+    Ti.App.currentService.stop();
+    Ti.App.currentService.unregister();
+}
+</code></pre><p>The notifications are working fine but the vibrate function is not running with the methods Ti.Media.vibrate() and Titanium.Media.vibrate(). Am I doing it wrong or forgetting something like defining a permission or something? In xcode I am also not seeing any errors. </p>
+<p>Does anyone know a solution? :-)</p>
+<p>Thanks,</p>
+<p>Leonard</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 26th 2014, 9:59:03 pm">February 26th 2014</span>
+				by <span class='authorname'>Leonard Kalkman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>service</span></li>
+					
+						<li><span class='tagname'>vibrate</span></li>
+					
+						<li><span class='tagname'>vibration</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

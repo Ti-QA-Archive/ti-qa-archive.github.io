@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Handy Logger Class -- enjoy » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Handy Logger Class -- enjoy</h1>
+		</header>
+		<section>
+			<p>If you would like to be able to turn logging on&#x2F;Off on a per-class or per-object basis, you may find this handy.   For android, It also gives you the option of adding source-code line numbers to your log messages, and even stackTraces </p>
+<p>Usage:</p>
+<pre><code class="hljs">    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">myClass</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">var</span> logger = createLogger({info:<span class="hljs-number">1</span>, warn:<span class="hljs-number">0</span>}, <span class="hljs-literal">true</span> <span class="hljs-comment">/*addLineNos*/</span>);
+        .....
+        logger.info(<span class="hljs-string">'Blah blah blah'</span>);
+    }
+</code></pre><p>This will give you an log message:<br>    &quot;Blah Blah Blah at myClass (resources&#x2F;myClass.js.50,4)</p>
+<p>To Turn ALL logging off for the module, just initialize with {info:0}; or no params;<br>This will shut it up efficiently, and you don&#39;t have to comment out a bunch of Ti.API.info lines.</p>
+<pre><code class="hljs">logger = createLogger()<span class="hljs-comment">;</span>
+</code></pre><p>You can add custom channels like this</p>
+<pre><code class="hljs">    var logger = createLogger({info:<span class="hljs-number">1</span>, customChannel: <span class="hljs-number">1</span>};
+
+    ....
+    logger.customChannel('A <span class="hljs-command">log</span> message <span class="hljs-function_start"><span class="hljs-keyword">on</span></span> <span class="hljs-keyword">my</span> own channel');
+</code></pre><p>Here&#39;s the source – ENJOY</p>
+<pre><code class="hljs">  <span class="hljs-comment">/**
+     * Handy logger that allows debugging to be turned on/off per-module
+     * 
+     * Usage:
+     *         var logger = Util.createLogger({info: 1, myChannel:1});
+     *         logger.info("An info message");
+     *         logger.myChannel('a message on my channel')
+     *
+     *         // Turn logging OFF
+     *         logger = Util.createLogger()
+     */</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createLogger</span>(<span class="hljs-params"> channels, addLineNos </span>) </span>{
+        <span class="hljs-keyword">var</span> logger = {};
+
+        channels = _.extend({ info:<span class="hljs-number">0</span>, warn:<span class="hljs-number">0</span>, debug:<span class="hljs-number">0</span>, stackTrace:<span class="hljs-number">0</span>  }, channels);
+
+        <span class="hljs-keyword">var</span> atLine = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{ <span class="hljs-keyword">return</span> <span class="hljs-string">''</span> };
+        <span class="hljs-keyword">var</span> stackTrace = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{ <span class="hljs-keyword">return</span> <span class="hljs-string">''</span> }; 
+
+        <span class="hljs-keyword">if</span> (addLineNos) {
+            <span class="hljs-keyword">var</span> error = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>();
+            <span class="hljs-keyword">if</span> (error.stack) {
+                atLine = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                        <span class="hljs-keyword">var</span> error = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>();
+                        <span class="hljs-keyword">var</span> errorLines = error.stack.split(<span class="hljs-string">"\n"</span>);
+                        errorIndex = <span class="hljs-built_in">Math</span>.min(<span class="hljs-number">3</span>, errorLines.length-<span class="hljs-number">1</span>);
+                        <span class="hljs-keyword">var</span> errorLine = errorLines[errorIndex];
+                        <span class="hljs-keyword">return</span> errorLine;
+                }
+                stackTrace = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+                    <span class="hljs-keyword">var</span> error = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>();
+                    <span class="hljs-keyword">return</span> error.stack;
+                }
+            }
+        }
+
+        <span class="hljs-keyword">for</span> (channel <span class="hljs-keyword">in</span> channels ){
+            <span class="hljs-keyword">if</span> (channels[channel]) {
+                <span class="hljs-keyword">switch</span>(channel){
+                    <span class="hljs-keyword">case</span> <span class="hljs-string">'info'</span>:        logger[channel] = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">m</span>)</span>{Ti.API.info(m + atLine())     }; <span class="hljs-keyword">break</span>;
+                    <span class="hljs-keyword">case</span> <span class="hljs-string">'warn'</span>:        logger[channel] = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">m</span>)</span>{Ti.API.warn(m + atLine())     }; <span class="hljs-keyword">break</span>;
+                    <span class="hljs-keyword">case</span> <span class="hljs-string">'debug'</span>:       logger[channel] = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">m</span>)</span>{Ti.API.debug(m + atLine())    }; <span class="hljs-keyword">break</span>;
+                    <span class="hljs-keyword">case</span> <span class="hljs-string">'stackTrace'</span>:  logger[channel] = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">m</span>)</span>{Ti.API.info(m + stackTrace()) }; <span class="hljs-keyword">break</span>;
+                    <span class="hljs-keyword">default</span>:            logger[channel] = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">m</span>)</span>{Ti.API.info(channel + <span class="hljs-string">': '</span> + m + atLine()) };
+                }
+            } <span class="hljs-keyword">else</span> {
+                logger[channel] = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{};
+            }
+        }
+        <span class="hljs-keyword">return</span> logger;
+    }
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 20th 2014, 11:07:13 am">January 20th 2014</span>
+				by <span class='authorname'>Mark Riggins</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>debugging</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-274149">
+				
+						<section>
+							<p>If you&#39;re not using the underscore.js,  just use these lines instead</p>
+<pre><code class="hljs">
+        channels = channels ||{};
+
+    <span class="hljs-comment">//    channels = _.extend({ info:0, warn:0, de<span class="hljs-doctag">bug:</span>0, stackTrace:0  }, channels);</span>
+
+        <span class="hljs-keyword">var</span> defaultChannels = [<span class="hljs-string">'info'</span>, <span class="hljs-string">'warn'</span>, <span class="hljs-string">'debug'</span>, <span class="hljs-string">'stackTrace'</span> ];
+            defaultChannels.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(defaultChannel)</span></span>{
+            <span class="hljs-keyword">if</span> (!(defaultChannel <span class="hljs-keyword">in</span> channels)) {
+                channels[defaultChannel] = <span class="hljs-number">0</span>;
+            }
+        });
+</code></pre><p>That makes sure that your logger will define &#39;info&#39;, &#39;warn&#39;, &#39;debug&#39; and &#39;stackTrace&#39; as no-ops by default</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 20th 2014, 11:16:11 am">January 20th 2014</span>
+								by <span class='authorname'>Mark Riggins</span><br>
+								<a class="icon-bg icon-link" href="question/161718/handy-logger-class----enjoy#answer-274149" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-283767">
+				
+						<section>
+							<p>If anyone is interested, I&#39;ve developed a new logger class that is extendable using appenders:</p>
+<p><a href="https:&#x2F;&#x2F;github.com&#x2F;developer82&#x2F;log4ti">https:&#x2F;&#x2F;github.com&#x2F;developer82&#x2F;log4ti</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 12th 2014, 8:08:41 am">November 12th 2014</span>
+								by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span><br>
+								<a class="icon-bg icon-link" href="question/161718/handy-logger-class----enjoy#answer-283767" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
