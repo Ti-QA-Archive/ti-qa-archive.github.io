@@ -1,0 +1,367 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>TableView delete (row) indexing issues » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>TableView delete (row) indexing issues</h1>
+		</header>
+		<section>
+			<p>Context: email application with &quot;unread&quot; images in leftImage, with several labels added to row</p>
+<p>Setting (row)rowData[e.index].leftImage = &#39;&#39; clears icon successfully while table is unchanged.</p>
+<p>After a a row is deleted, the new row at that index and those that come after cannot be cleared.  Those before that index STILL CAN.  Should this work?</p>
+<p>Here&#39;s a modified version of (Kitchen Sink) table_view_delete_2.js event handler which shows this behavior.</p>
+<pre><code class="hljs">
+<span class="hljs-comment">// create table view data object</span>
+var data = [
+    {<span class="hljs-string">title:</span><span class="hljs-string">'Row 1'</span>, <span class="hljs-string">leftImage:</span> <span class="hljs-string">'../images/appcelerator_small.png'</span>, <span class="hljs-string">hasChild:</span><span class="hljs-literal">true</span>, <span class="hljs-string">foo:</span><span class="hljs-string">'row1'</span>},
+    {<span class="hljs-string">title:</span><span class="hljs-string">'Row 2'</span>, <span class="hljs-string">leftImage:</span> <span class="hljs-string">'../images/appcelerator_small.png'</span>, <span class="hljs-string">hasDetail:</span><span class="hljs-literal">true</span>, <span class="hljs-string">foo:</span><span class="hljs-string">'row2'</span>},
+    {<span class="hljs-string">title:</span><span class="hljs-string">'Row 3'</span>, <span class="hljs-string">leftImage:</span> <span class="hljs-string">'../images/appcelerator_small.png'</span>, <span class="hljs-string">foo:</span><span class="hljs-string">'row3'</span>},
+    {<span class="hljs-string">title:</span><span class="hljs-string">'Row 4'</span>, <span class="hljs-string">leftImage:</span> <span class="hljs-string">'../images/appcelerator_small.png'</span>, <span class="hljs-string">foo:</span><span class="hljs-string">'row4'</span>}
+
+
+];
+
+
+...
+
+<span class="hljs-comment">// create table view event listener</span>
+tableview.addEventListener(<span class="hljs-string">'click'</span>, function(e)
+{
+    <span class="hljs-comment">// event data</span>
+    var index = e.index;
+    var section = e.section;
+    var row = e.row;
+    var rowdata = e.rowData;
+    rowdata.leftImage = <span class="hljs-string">''</span>;
+    rowdata.className = <span class="hljs-string">'selected'</span>; <span class="hljs-comment">// doesn't help</span>
+    Titanium.UI.createAlertDialog({<span class="hljs-string">title:</span><span class="hljs-string">'Table View'</span>,<span class="hljs-string">message:</span><span class="hljs-string">'row '</span> + row + <span class="hljs-string">' index '</span> + index + <span class="hljs-string">' section '</span> + section  + <span class="hljs-string">' row data '</span> + rowdata}).show();
+});
+</code></pre><p>Test:</p>
+<ol>
+<li><p>Tap &quot;Row 1&quot; –  icon clears</p>
+</li>
+<li><p>Delete &quot;Row 1&quot;</p>
+</li>
+<li><p>Tap &quot;Row 2&quot; and &quot;Row 3&quot; – no action</p>
+</li>
+<li><p>Tap &quot;Row 4&quot; – CRASH</p>
+</li>
+</ol>
+<p>If the correct solution is to use updateRow(), the result is &quot;better&quot; but still not right.  The first click event, returns the &quot;previous&quot; index value of the row clicked –not its current&#x2F;correct value.</p>
+<p>Here&#39;s the event handler change (same: table_view_delete_2.js) for this:</p>
+<pre><code class="hljs"><span class="hljs-comment">// create table view event listener</span>
+tableview.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-comment">// event data</span>
+    <span class="hljs-keyword">var</span> index = e.index;
+    <span class="hljs-keyword">var</span> section = e.section;
+    <span class="hljs-keyword">var</span> row = e.row;
+    <span class="hljs-keyword">var</span> rowdata = e.rowData;
+
+    <span class="hljs-keyword">var</span> tStr = <span class="hljs-string">'e.index = '</span> + e.index;
+    tableview.updateRow(e.index, {
+        title: tStr,
+        hasCheck: <span class="hljs-literal">true</span>,
+        className: <span class="hljs-string">'selected'</span>
+    });
+    Titanium.UI.createAlertDialog({title:<span class="hljs-string">'Table View'</span>,message:<span class="hljs-string">'row '</span> + row + <span class="hljs-string">' index '</span> + index + <span class="hljs-string">' section '</span> + section  + <span class="hljs-string">' row data '</span> + rowdata}).show();
+});
+</code></pre><p>To test:</p>
+<ol>
+<li><p>Delete &quot;Row 1&quot;</p>
+</li>
+<li><p>Tap &quot;Row 2&quot; – &quot;Row 3&quot; updates <strong>WRONG</strong></p>
+</li>
+<li><p>Tap &quot;Row 2&quot; again – &quot;Row 2&quot; updates <strong>RIGHT</strong></p>
+</li>
+<li><p>Later taps (&quot;Row 4&quot;) work too</p>
+</li>
+</ol>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 5th 2010, 10:02:48 pm">April 5th 2010</span>
+				by <span class='authorname'>Brad Broulik</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>delete</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>5</span> Votes</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-203321">
+				
+						<section>
+							<p>I was just able to fix a problem very similar to this by adding the following in the delete message.</p>
+<pre><code class="hljs">tableView.addEventListener(<span class="hljs-string">'delete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+  tableView.setData(tableView.data); // &lt;<span class="hljs-comment">-- Hack.</span>
+
+  // <span class="hljs-keyword">do</span> whatever <span class="hljs-keyword">else</span>...
+});
+</code></pre><p>Titanium 1.6 came out a few days and I do not know if this is fixed there or not.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 25th 2011, 8:40:13 pm">February 25th 2011</span>
+								by <span class='authorname'>Shad Reynolds</span><br>
+								<a class="icon-bg icon-link" href="question/12081/tableview-delete-row-indexing-issues#answer-203321" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This <em>hack</em> fixed a problem I was having with the &#39;click&#39; event.index being off by 1 after deleting a row via the swipe editing function. Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 2nd 2011, 6:44:25 pm">August 2nd 2011</span>
+											by <span class='authorname'>Dave Macpherson</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>5</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-180301">
+				
+						<section>
+							<p>I know my answer&#39;s propably not gonna help the original asker but… I think I&#39;ve come up with a neat workaround!</p>
+<p>when exiting delete mode, meaning right before<br><code>tableView.editing = false;</code>,<br><strong>simply append and delete a blank row!</strong></p>
+<p>code:</p>
+<pre><code class="hljs">tableView.appendRow(Ti.UI.createTableViewRow());
+tableView.deleteRow(tableView.data[<span class="hljs-number">0</span>].rowCount-<span class="hljs-number">1</span>); <span class="hljs-comment">// or whatever the length of your table rows is</span>
+
+tableView.editing = <span class="hljs-literal">false</span>;
+</code></pre><p>The adding - removing isn&#39;t even visible to the user!</p>
+<p>Titanium team… it&#39;s been 10 months since the original question… You couldn&#39;t just pull out an official fix? Come on…</p>
+<p>Thank me later :P</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 16th 2011, 12:20:58 pm">January 16th 2011</span>
+								by <span class='authorname'>George Marmaridis</span><br>
+								<a class="icon-bg icon-link" href="question/12081/tableview-delete-row-indexing-issues#answer-180301" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks sir..!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 2nd 2011, 3:30:03 am">May 2nd 2011</span>
+											by <span class='authorname'>sachin thakur</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This hack worked for me also. My edit button had the <strong>tableView.editing = false;</strong> and I added the two lines of code above to fix the exception errors. Thanks for posting this <strong>Sachin</strong>.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 17th 2011, 9:23:00 am">June 17th 2011</span>
+											by <span class='authorname'>Sky Apperley</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-28111">
+				
+						<section>
+							<p>These were not fixed in the Ti 1.2.0 release.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 6th 2010, 2:04:08 pm">April 6th 2010</span>
+								by <span class='authorname'>Brad Broulik</span><br>
+								<a class="icon-bg icon-link" href="question/12081/tableview-delete-row-indexing-issues#answer-28111" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I desperately need a fix for this too.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 29th 2010, 11:27:07 am">May 29th 2010</span>
+											by <span class='authorname'>Daniel Zimmermann</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-208271">
+				
+						<section>
+							<p>If you are having trouble. Getting a warning about &quot;not being able to delete from the table&quot;. </p>
+<p>It might be because you have misunderstood ( like me ) how the &quot;delete&quot; event works. It does the magic of deleting and animating the deletion for you.</p>
+<p>You only have to take care of things like deleting the entry from the database, array, json object, xml etc.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 22nd 2011, 2:22:36 pm">May 22nd 2011</span>
+								by <span class='authorname'>freshteapot #</span><br>
+								<a class="icon-bg icon-link" href="question/12081/tableview-delete-row-indexing-issues#answer-208271" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-245822">
+				
+						<section>
+							<p>Version 2.1.1.  The table click event index property is still incorrect after deleting a row.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 22nd 2012, 12:05:43 pm">August 22nd 2012</span>
+								by <span class='authorname'>Simon Buckingham</span><br>
+								<a class="icon-bg icon-link" href="question/12081/tableview-delete-row-indexing-issues#answer-245822" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-269838">
+				
+						<section>
+							<p>3.1.3 still has this issue. Guys when you will fix it? Working with tables is main functionality in many applications!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 9th 2013, 9:37:48 pm">October 9th 2013</span>
+								by <span class='authorname'>Andrew Kuzkov</span><br>
+								<a class="icon-bg icon-link" href="question/12081/tableview-delete-row-indexing-issues#answer-269838" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
