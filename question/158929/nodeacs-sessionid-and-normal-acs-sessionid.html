@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Node.ACS Session_id and Normal ACS Session_id » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Node.ACS Session_id and Normal ACS Session_id</h1>
+		</header>
+		<section>
+			<p>I Noticed if I login via Cloud.Users.login(), I get a session id (in meta.session_id), if I use that session_id to make calls to Node.ACS (both connected to the same ACS Key), I get a different Session_id?</p>
+<p>So my question is, does Node.ACS have a different Session_id than normal ACS&#39;s Session_id for a particular user?</p>
+<p>Issue I&#39;m facing:<br>Client Side:</p>
+<pre><code class="hljs">    button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        Ti.API.info(<span class="hljs-string">'ACS User Session_id: '</span> + Ti.App.Properties.getObject(<span class="hljs-string">'account'</span>).session_id);
+        NodeACS.services_loginXtra({username:<span class="hljs-string">'username'</span>, password:<span class="hljs-string">'password'</span>}, <span class="hljs-keyword">callback</span>);
+    });
+    self.add(button);
+
+   <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">callback</span><span class="hljs-params">(_e)</span> </span>{
+        nodeACSSessionId = _e;
+        Ti.API.info(<span class="hljs-string">'Node.ACS Session id: '</span> + _e);
+
+        <span class="hljs-comment">// Post Status</span>
+        NodeACS.services_postStatus({session_id:_e}, statusCallback);
+    };
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">statusCallback</span><span class="hljs-params">(_e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Status Callback: '</span> + _e);
+    }
+</code></pre><p>Trace out: <code>404 - Failed to authenticate user</code></p>
+<p>Node.ACS side:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'acs'</span>).ACS;
+Cloud.init(<span class="hljs-string">'XXXXX'</span>, <span class="hljs-string">'XXXXXXX'</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loginXtra</span>(<span class="hljs-params">req, res</span>) </span>{
+    Cloud.Users.login({
+        login: req.username, 
+        password: req.password
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+        res.send(data.meta.session_id);
+    });
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">postStatus</span>(<span class="hljs-params">req, res</span>) </span>{
+    Cloud.Statuses.create({
+        message: <span class="hljs-string">'What a great view!'</span>,
+        session_id: req.session_id
+    }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+            <span class="hljs-keyword">var</span> status = e.statuses[<span class="hljs-number">0</span>];
+            res.send(<span class="hljs-string">'done'</span>);
+        } <span class="hljs-keyword">else</span> {
+            res.send(e);
+        }
+    });
+};
+</code></pre><p>What am I missing?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 30th 2013, 3:16:02 am">October 30th 2013</span>
+				by <span class='authorname'>Robert Massa</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>node.acs</span></li>
+					
+						<li><span class='tagname'>session</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>If I change postStatus to simply throw back the <code>req</code> I send:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">postStatus</span><span class="hljs-params">(req, res)</span> </span>{
+    res.send(req.session_id);
+};
+</code></pre><p>I get an annoying error I keep getting when <code>res</code> are Objects:</p>
+<p><code>Status Callback: An error has occurred: {&amp;#39;code&amp;#39;:&amp;#39;ECONNREFUSED&amp;#39;,&amp;#39;errno&amp;#39;:&amp;#39;ECONNREFUSED&amp;#39;,&amp;#39;syscall&amp;#39;:&amp;#39;connect&amp;#39;}</code></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 30th 2013, 3:19:54 am">October 30th 2013</span>
+								by <span class='authorname'>Robert Massa</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-270651">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi Robert,</p>
+<p>If you are POST-ing, you retrieve the params like so:<br><code>req.body.session_id</code></p>
+<p>Now for the Node.ACS Session_id VS &quot;Normal&quot; ACS Session_id, when you connect Node.ACS to ACS with <code>Cloud.init(&amp;#39;OAuth key&amp;#39;, &amp;#39;OAuth secret&amp;#39;);</code> you <strong>already have the sessions</strong>, you are getting a different Session_id because you are Re-logging in… which defeats the purpose of Node.ACS. </p>
+<p>You pass the Session_id if you&#39;ve connected the user already to ACS, and call Node.ACS methods, by passing the <code>session_id</code> as a param of the ACS call from Node.ACS, this way you can call any ACS feature by doing that, and it&#39;ll know which user made the request.</p>
+<p>On another note, you are GET-ing, you retrieve the params like so:<br><code>req.params.something</code></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 30th 2013, 11:59:03 am">October 30th 2013</span>
+								by <span class='authorname'>Joseph Sachs</span><br>
+								<a class="icon-bg icon-link" href="question/158929/nodeacs-sessionid-and-normal-acs-sessionid#answer-270651" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p><code>req.body.session_id</code> was the magic syntax! Thanks Joseph!!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 30th 2013, 12:08:16 pm">October 30th 2013</span>
+											by <span class='authorname'>Robert Massa</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

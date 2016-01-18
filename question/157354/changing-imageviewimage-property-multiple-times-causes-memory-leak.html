@@ -1,0 +1,251 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Changing imageView.image property multiple times causes memory leak? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Changing imageView.image property multiple times causes memory leak?</h1>
+		</header>
+		<section>
+			<p>Hello everyone, </p>
+<p>I&#39;ve read a few articles about imageview in android. (even in native) and they seem to be a constant source of memory leaks. I have such problems in my app so I decided to do a simple test.</p>
+<p>In this test I do a simple automatic slideshow. There is a single imageview on the screen. Its &quot;image&quot; property is updated to display the next image.</p>
+<p>After running the test I check memory in the Android monitor tool. There I can see how the heap is growing and memory never released (even with manual GC, even after closing the slideshow window)</p>
+<p>The test consists of:</p>
+<ul>
+<li>launching the app</li>
+<li>open a new window with the slideshow.</li>
+<li>display images one after another with imageview.image = &quot;imagepath&quot;</li>
+<li>close the window</li>
+<li>cause GC manually multiple times </li>
+</ul>
+<p>The heap is growing proportionally with the number of images set. And memory does not seem to be freed at any moment.<br>Please have a look at the screenshots below. </p>
+<ul>
+<li><p><a href="http:&#x2F;&#x2F;d.pr&#x2F;i&#x2F;l8f6">Memory state when launching the app</a> </p>
+</li>
+<li><p><a href="http:&#x2F;&#x2F;d.pr&#x2F;i&#x2F;ulAJ">Test with 12 images (images are all 400x400)</a> </p>
+</li>
+<li><p><a href="http:&#x2F;&#x2F;d.pr&#x2F;i&#x2F;JyFU">Test with 24 images (images are all 400x400)</a> </p>
+</li>
+</ul>
+<p>In my &quot;real&quot; app, the user may look at hundreds and hundreds of pictures so you can see the problem.</p>
+<p>I am using SDK 3.1.2GA with an Android 4.2.2 device (HTC Sensation)</p>
+<p>It this normal behaviour? there seem to be two issues:</p>
+<ul>
+<li>changing imageview image property seems to &quot;stack&quot; all images that were set</li>
+<li>in both my app and the test, GC does not seem to free the memory.</li>
+</ul>
+<p>To be more precise, it looks like it can free the equivalent of &quot;one image weight in memory&quot; (when the window is closed) but previous images are lost somewhere. Maybe trapped with some reference I can&#39;t seem to find.</p>
+<p>Also it&#39;s worth mentioning the differences between my real app and the test app. (2 different process but same problem)</p>
+<ul>
+<li>real app:</li>
+</ul>
+<p>the image changes when the user swipe left or right (like an image gallery)<br>remote images are managed with a download manager: first downloaded, stored on SDcard (cache), then assigned as a blob.</p>
+<ul>
+<li>test app:</li>
+</ul>
+<p>it&#39;s done automatically with a recursive function that calls itself with a timeout.<br>the images are automatically managed by the OS &#x2F; app. Android caches them automatically.</p>
+<p>So I thought about references in eventlisteners or timeout problems.</p>
+<p>Here you can see the general idea of the test app and the real app. (both are made with Alloy)</p>
+<p>test app</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> images = [imagesurls]
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setAutoImg</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-keyword">if</span> (images.length &gt; <span class="hljs-number">0</span>) {
+        $.pix.image = images.shift()
+        setTimeout(setAutoImg, <span class="hljs-number">1000</span>)
+    }
+}
+</code></pre><p>real app (simplified code)</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">navigate</span>(<span class="hljs-title">event</span>) {</span>
+
+    <span class="hljs-keyword">if</span> (event.direction === <span class="hljs-string">'right'</span>) {
+        <span class="hljs-keyword">item</span> = nextItem()
+        updateViewData()
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (event.direction === <span class="hljs-string">'left'</span>) {
+        <span class="hljs-keyword">item</span> = prevItem()
+        updateViewData()
+    }
+       <span class="hljs-comment"> // more things...</span>
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">updateViewData</span>() {</span>
+
+    var imageURL
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">item</span>.fingerprint) {
+
+        imageURL = APP.helper.getRessourceURL(<span class="hljs-keyword">item</span>.id, <span class="hljs-keyword">item</span>.fingerprint, <span class="hljs-number">400</span>)
+        $.pix.image = imageURL
+    }
+       <span class="hljs-comment"> // more things</span>
+}
+</code></pre><p>Any idea? I can&#39;t provide the app code but I can for the test.<br>Thank you.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 19th 2013, 7:22:10 am">September 19th 2013</span>
+				by <span class='authorname'>Kevin Purnelle</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>imageview</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-268823">
+				
+						<section>
+							<pre><code class="hljs"><span class="hljs-comment">//var images = [imagesurls]</span>
+<span class="hljs-comment">//instead you need to define it as an Array</span>
+<span class="hljs-keyword">var</span> images = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>();
+
+<span class="hljs-comment">/*
+function setAutoImg() {
+
+    if (images.length &gt; 0) {
+        $.pix.image = images.shift()
+        setTimeout(setAutoImg, 1000)
+    }
+}
+*/</span>
+
+<span class="hljs-comment">//You should do a for loop and there is no need for setTimeout inside setAutoImg instead use setInterval</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setAudioImg</span>(<span class="hljs-params"></span>)</span>{
+
+   <span class="hljs-keyword">var</span> HowManyImages = images.length;
+   <span class="hljs-keyword">var</span> currentImage = <span class="hljs-number">0</span>;    
+
+      setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        <span class="hljs-keyword">if</span>(currentImage == HowManyImages){ currentImage = <span class="hljs-number">0</span>; }
+
+            $.pix.image = images[currentImage];
+
+            currentImage++;
+
+         }, <span class="hljs-number">1500</span>); <span class="hljs-comment">//1500 is are nice milliseconds :) </span>
+}
+</code></pre><p>Have a blessed day.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 19th 2013, 1:46:50 pm">September 19th 2013</span>
+								by <span class='authorname'>Zeshan Bilal</span><br>
+								<a class="icon-bg icon-link" href="question/157354/changing-imageviewimage-property-multiple-times-causes-memory-leak#answer-268823" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I didn&#39;t ask how to rewrite my test app. I put this pseudocode to illustrate better how I&#39;m testing to find the problem I have with imageview memory.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 19th 2013, 3:43:47 pm">September 19th 2013</span>
+											by <span class='authorname'>Kevin Purnelle</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Have you tried limiting the images array to 10 images and null the images array after  the 10th image is displayed and recreate the variable for images array and assign it the next set of 10 images from phones SD Card?</p>
+<p>Also there is another thing:</p>
+<pre><code class="hljs">//if something is an<span class="hljs-instruction"> array </span>and you just assign it without making it a string..aren't you making what you are assigning to an Array<span class="hljs-instruction"> array </span>also<span class="hljs-instruction"> and </span>it will get larger<span class="hljs-instruction"> and </span>larger<span class="hljs-instruction"> and </span>consume memory.
+
+//try doing this
+
+imageURL = <span class="hljs-string">""</span>+<span class="hljs-function"> APP.helper.getRessourceURL(</span>item.id, item.fingerprint, 400<span class="hljs-function">)</span> +<span class="hljs-string">""</span>;
+        $.pix.image = imageUR<span class="hljs-class">L;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="September 19th 2013, 4:39:57 pm">September 19th 2013</span>
+											by <span class='authorname'>Zeshan Bilal</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

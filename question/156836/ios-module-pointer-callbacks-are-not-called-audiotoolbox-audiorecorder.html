@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iOS Module: Pointer callbacks are not called (AudioToolbox Audiorecorder) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iOS Module: Pointer callbacks are not called (AudioToolbox Audiorecorder)</h1>
+		</header>
+		<section>
+			<p>Hello!</p>
+<p>I am trying to get my first iOS Module going.. I believe I am pretty close to get it to work…</p>
+<p>I got a native class which basically has 3 functions: record, stop and play. If i do these 3 in a native x-code project it all works, and I can record stop and play just like it is supposed to. </p>
+<p>If i include the module in my Titanium Project, I can init the class, can start the recording.. but It seems like the &quot;NewAudioInputCallback&quot; is never called :(</p>
+<p>This is my record function</p>
+<pre><code class="hljs">-(<span class="hljs-keyword">void</span>) record:(id) args{
+    NSLog(@<span class="hljs-string">"record"</span>);
+    OSStatus status = AudioQueueNewInput(&amp;audioState.dataFormat,
+                                         NewAudioInputCallback,
+                                         &amp;audioState,
+                                         CFRunLoopGetCurrent(),
+                                         kCFRunLoopCommonModes,
+                                         <span class="hljs-number">0</span>,
+                                         &amp;audioState.<span class="hljs-built_in">queue</span>);
+    <span class="hljs-keyword">if</span>(status == <span class="hljs-number">0</span>)
+    {
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; NUM_BUFFERS; i++)
+        {
+            NSLog(@<span class="hljs-string">"%ld"</span>,AudioQueueAllocateBuffer(audioState.<span class="hljs-built_in">queue</span>,
+                                     <span class="hljs-number">512</span>, &amp;audioState.buffers[i]));
+            NSLog(@<span class="hljs-string">"%ld"</span>,AudioQueueEnqueueBuffer(audioState.<span class="hljs-built_in">queue</span>,
+                                    audioState.buffers[i], <span class="hljs-number">0</span>, <span class="hljs-literal">NULL</span>));
+        }
+
+        status = AudioFileCreateWithURL(fileURL,
+                                            kAudioFileWAVEType,
+                                            &amp;audioState.dataFormat,
+                                            kAudioFileFlags_EraseFile,
+                                            &amp;audioState.audioFile);
+
+        <span class="hljs-keyword">if</span>(status == <span class="hljs-number">0</span>)
+        {
+            status = AudioQueueAddPropertyListener(audioState.<span class="hljs-built_in">queue</span>, kAudioQueueProperty_IsRunning, NewAudioIsRunningCallback, &amp;audioState);
+            NSLog(@<span class="hljs-string">"S3 %ld"</span>,status);
+            <span class="hljs-keyword">if</span>(status==<span class="hljs-number">0</span>){
+                audioState.status = Recording;
+                status = AudioQueueStart(audioState.<span class="hljs-built_in">queue</span>, <span class="hljs-literal">NULL</span>);
+                <span class="hljs-keyword">if</span>(status == <span class="hljs-number">0</span>)
+                {
+                    <span class="hljs-keyword">return</span>;
+                }
+            }
+        }
+    }
+
+    <span class="hljs-keyword">if</span>(status != <span class="hljs-number">0</span>)
+    {
+        [self stop:nil];
+    }
+}
+</code></pre><p>And this is my NewAudioInputCallback</p>
+<pre><code class="hljs"><span class="hljs-literal">void</span> NewAudioOutputCallback(<span class="hljs-literal">void</span>* inUserData, AudioQueueRef outAQ, AudioQueueBufferRef outBuffer)
+{
+    NSLog(@<span class="hljs-string">"NewAudioOutputCallback!"</span>);
+
+    NewAudioState* audioState = (NewAudioState*)inUserData;
+
+    <span class="hljs-keyword">if</span>(audioState<span class="hljs-subst">-&gt;</span>status != Playing){
+        <span class="hljs-keyword">return</span>;
+    }
+
+    AudioStreamPacketDescription* packetDescs;
+
+    UInt32 bytesRead;
+    UInt32 numPackets = <span class="hljs-number">2048</span>;
+    OSStatus status;
+
+    status = AudioFileReadPackets(
+                                  audioState<span class="hljs-subst">-&gt;</span>audioFile,
+                                  <span class="hljs-literal">false</span>,
+                                  <span class="hljs-subst">&amp;</span>bytesRead,
+                                  packetDescs,
+                                  audioState<span class="hljs-subst">-&gt;</span>currentPacket,
+                                  <span class="hljs-subst">&amp;</span>numPackets,
+                                  outBuffer<span class="hljs-subst">-&gt;</span>mAudioData);
+
+    <span class="hljs-keyword">if</span>(numPackets)
+    {
+        outBuffer<span class="hljs-subst">-&gt;</span>mAudioDataByteSize = bytesRead;
+        status = AudioQueueEnqueueBuffer(
+                                         audioState<span class="hljs-subst">-&gt;</span><span class="hljs-built_in">queue</span>,
+                                         outBuffer,
+                                         <span class="hljs-number">0</span>,
+                                         packetDescs);
+
+        audioState<span class="hljs-subst">-&gt;</span>currentPacket += numPackets;
+
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        <span class="hljs-keyword">if</span>(audioState<span class="hljs-subst">-&gt;</span>status == Playing)
+        {
+            AudioQueueStop(audioState<span class="hljs-subst">-&gt;</span><span class="hljs-built_in">queue</span>, <span class="hljs-literal">true</span>);
+            AudioFileClose(audioState<span class="hljs-subst">-&gt;</span>audioFile);
+            audioState<span class="hljs-subst">-&gt;</span>status = AutoStopped;
+            <span class="hljs-comment">//AudioQueueFreeBuffer(audioState-&gt;queue, outBuffer);</span>
+            f<span class="hljs-subst">or</span>(int i = <span class="hljs-number">0</span>; i &lt; NUM_BUFFERS; i++){
+                AudioQueueFreeBuffer(audioState<span class="hljs-subst">-&gt;</span><span class="hljs-built_in">queue</span>,
+                                     audioState<span class="hljs-subst">-&gt;</span>buffers<span class="hljs-preprocessor">[</span>i<span class="hljs-preprocessor">]</span><span class="hljs-markup">);
+            }
+        }
+    }
+
+
+}</span>
+</code></pre><p>Hope you can help me,<br>best regards<br>Manuel</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 5th 2013, 11:01:38 am">September 5th 2013</span>
+				by <span class='authorname'>Manuel Fegerl</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>callback</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>pointer</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Not sure why it got downvoted.. however:</p>
+<p>The problem was that this happened in a thread other than the main thread - which is not allowed to get the audio recorder going. after Ensuring it is running in the main thread with the argument <code>ENSURE_UI_THREAD_0_ARGS</code> made it work.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 6th 2013, 8:12:26 am">September 6th 2013</span>
+								by <span class='authorname'>Manuel Fegerl</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>-1</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy + Common JS Organization » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy + Common JS Organization</h1>
+		</header>
+		<section>
+			<p>Hey all. I&#39;m just digging into Alloy and absolutely love it. As a self-described &quot;sloppy developer&quot;, Alloy really forces me to organize my code. I have seen the light! I&#39;m rebuilding an app that I had built a few years a go. The code had gotten so ugly that I started to lose control. </p>
+<p>But I&#39;m not sure when and how to best organize my code and worry that creating too many modules is going to make things more complicated. I was looking for a few tips to help me better understand the best way go about this. Here&#39;s an example. </p>
+<p>I have an opening screen of my app that allows a user to search for remote files. The screen shows various search filters in the form of tableview rows that open modal windows with pickers, dialogs, multi select tableviews, etc. Each row click reveals these modal windows. </p>
+<p>I actually got a few rows of this first search screen rebuilt and working (in a fraction of the code used in the previous version). I used one commonJS module when building it as a test.</p>
+<p>My search.js file has a few functions that do things like &quot;openDateTimeSelector&quot; and &quot;openFileTypeSelector&quot;. </p>
+<p>This is where I hit my crossroads. Most of these functions (createFileTypeString, openFileTypeSelector, openDateTimeSelector) are specific to search.js and probably won&#39;t be used anywhere else in the app. </p>
+<p>One thought I had was to continue with how I created my first commonJS module and create separate ones for openDateTimeSelector and one for openFileTypeSelector. But is that necessary? Should I just leave these functions in search.js? </p>
+<p>OR… should I rename the lib file fileTypeString.js to searchUtil.js and drop all those functions as separate exports in a single file? </p>
+<p>Below is the code of a few key files. Now while you may frown and some of this. I&#39;m really proud of how much more organized that my previous version :). But I&#39;d greatly appreciate some guidance as I&#39;m about to move forward with building out the rest of these search filters but wanted to do it as best as possible.</p>
+<p>Many thanks!</p>
+<p><strong>&#x2F;lib&#x2F;fileTypeString.js</strong></p>
+<pre><code class="hljs">exports.createFileTypeString = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(obj)</span> </span>{
+    <span class="hljs-keyword">var</span> recoverDatabase = Alloy.createCollection(<span class="hljs-string">"fileTypes"</span>);
+    <span class="hljs-keyword">var</span> filetypelist = <span class="hljs-string">""</span>;
+    <span class="hljs-comment">//We need the database to iterate through it</span>
+    recoverDatabase.fetch({query:<span class="hljs-string">"SELECT * FROM fileTypes where hasCheck = 1"</span>});
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;recoverDatabase.length;i++){
+        filetypelist += recoverDatabase.at(i).<span class="hljs-keyword">get</span>(<span class="hljs-string">"title"</span>) + <span class="hljs-string">", "</span>;
+    }
+    filetypelist = filetypelist.slice(<span class="hljs-number">0</span>, -<span class="hljs-number">2</span>);
+    <span class="hljs-keyword">return</span> filetypelist;
+};
+</code></pre><p><strong>controllers&#x2F;search.js</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> fileTypeString = <span class="hljs-built_in">require</span>(<span class="hljs-string">'fileTypeString'</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openFileTypeSelector</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> (Ti.Platform.osname === <span class="hljs-string">'ipad'</span>) {
+        <span class="hljs-keyword">var</span> popover = Alloy.createController(<span class="hljs-string">'fileTypeSelector'</span>).getView();
+        popover.show({view:$.button});
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">var</span> fileTypesController = Alloy.createController(<span class="hljs-string">'fileTypeSelector'</span>, {
+            beforeClose: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">var</span> ftypes = fileTypeString.createFileTypeString();
+                $.filetypes_set.setText( ftypes );
+            }
+        });
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openDateTimeSelector</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> FADE_DOWN = Ti.UI.createAnimation({opacity:<span class="hljs-number">0.3</span>, duration:<span class="hljs-number">300</span>, curve:Ti.UI.ANIMATION_CURVE_EASE_IN_OUT});
+    <span class="hljs-keyword">var</span> FADE_UP = Ti.UI.createAnimation({opacity:<span class="hljs-number">1</span> , duration:<span class="hljs-number">300</span>, curve:Ti.UI.ANIMATION_CURVE_EASE_IN_OUT});
+
+    <span class="hljs-keyword">if</span> (Ti.Platform.osname === <span class="hljs-string">'ipad'</span>) {
+        <span class="hljs-keyword">var</span> popover = Alloy.createController(<span class="hljs-string">'dateSelector'</span>).getView();
+        popover.show({view:$.button});
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">var</span> dateTimeController = Alloy.createController(<span class="hljs-string">'dateSelector'</span>, {
+            beforeClose: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                $.datetime_lower.setText(e.lowText);
+                $.datetime_upper.setText(e.highText);
+                $.datetime_lower.rowValue = e.lowValue;
+                $.datetime_upper.rowValue = e.highValue;
+                $.searchTable.animate(FADE_UP);
+            }
+        });
+        $.searchTable.animate(FADE_DOWN);
+    }
+}
+</code></pre><p><strong>controllers&#x2F;fileTypeSelector.js</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">args</span> = arguments[0] || {};
+
+$.closeButton.addEventListener('click', function (<span class="hljs-keyword">e</span>) {
+    <span class="hljs-comment">// do whatever you would normally do</span>
+
+    <span class="hljs-comment">// then if set pass back any value you want to the function that called this</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">args</span>.beforeClose) {
+        <span class="hljs-keyword">args</span>.beforeClose();
+    }
+    <span class="hljs-comment">// assumes the window is called "win"</span>
+   <span class="hljs-comment">// THEN close</span>
+   $.fileTypeSelector.<span class="hljs-keyword">close</span>();
+});
+
+<span class="hljs-comment">// checkmark on/off (borrowd from todo list)</span>
+$.filetypesTable.addEventListener('click',function(<span class="hljs-keyword">e</span>){
+      <span class="hljs-comment">//Factory method for instantiating a Backbone collection of model objects</span>
+      <span class="hljs-keyword">var</span> recoverDatabase = Alloy.createCollection(<span class="hljs-string">"fileTypes"</span>);
+      <span class="hljs-comment">//We need the database to iterate through it</span>
+      recoverDatabase.fetch({<span class="hljs-keyword">query</span>:<span class="hljs-string">"SELECT * FROM fileTypes"</span>});
+
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=0; i&lt;recoverDatabase.length;i++){
+            <span class="hljs-keyword">if</span>(recoverDatabase.at(i).<span class="hljs-literal">get</span>(<span class="hljs-string">"id_filetypes"</span>) == <span class="hljs-keyword">e</span>.row.rowId){
+                  <span class="hljs-keyword">var</span> <span class="hljs-keyword">table</span> = Alloy.createCollection(<span class="hljs-string">"fileTypes"</span>);
+                  <span class="hljs-comment">//e.row.rowId is a custom property created in the .xml file that contains the primary key of every value in the database</span>
+                  <span class="hljs-keyword">table</span>.fetch({<span class="hljs-keyword">query</span>:<span class="hljs-string">"SELECT * FROM fileTypes where id_filetypes = "</span> + <span class="hljs-keyword">e</span>.row.rowId });
+                  <span class="hljs-comment">//if the query returned with more than 0 rows</span>
+                <span class="hljs-keyword">if</span>(<span class="hljs-keyword">table</span>.length &gt; 0){
+                  <span class="hljs-comment">//if the record(hasCheck) of the column is false</span>
+                      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">table</span>.at(0).<span class="hljs-literal">get</span>(<span class="hljs-string">"hasCheck"</span>) == false){
+                             <span class="hljs-keyword">e</span>.row.hasCheck = true;
+                             <span class="hljs-comment">//This is how we set a value to the database</span>
+                             <span class="hljs-keyword">table</span>.at(0).<span class="hljs-keyword">set</span>({
+                                   id_filetypes:<span class="hljs-keyword">e</span>.row.rowId,
+                                   <span class="hljs-comment">//then we set it to true</span>
+                                   hasCheck:true
+                             });
+                             <span class="hljs-keyword">table</span>.at(0).<span class="hljs-keyword">save</span>();
+                        }
+                        <span class="hljs-keyword">else</span>{
+                             <span class="hljs-comment">//if not we set it to false</span>
+                             <span class="hljs-keyword">e</span>.row.hasCheck = false;
+                             <span class="hljs-keyword">table</span>.at(0).<span class="hljs-keyword">set</span>({
+                                   id_filetypes:<span class="hljs-keyword">e</span>.row.rowId,
+                                   hasCheck:false
+                             });
+                             <span class="hljs-keyword">table</span>.at(0).<span class="hljs-keyword">save</span>();
+                        }
+                        <span class="hljs-comment">//Get the latest database state</span>
+                      Alloy.Collections.fileTypes.fetch();
+                }
+            }
+        }
+});
+
+Alloy.Collections.fileTypes.fetch();
+
+$.fileTypeSelector.<span class="hljs-keyword">open</span>();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 20th 2013, 2:03:54 pm">November 20th 2013</span>
+				by <span class='authorname'>Dave F</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>best-practices</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>modules</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-271564">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi</p>
+<p>These are some of the rules I follow when laying out my apps - remember these are subject to evolution as time and features come and go.</p>
+<ul>
+<li><p>Use Widgets to manage a specific of your app, good examples; login and search.</p>
+<p>As Widgets can contain controllers, views, stylesheets and local assets - they naturally allow common elements to be grouped together.  If you have images or other local files that are ONLY used here - place them in the local assets folder - this keeps things together and allow you to re-use this on other projects - or easily swap in a new version without impacting other section of the app.</p>
+</li>
+<li><p>Use Widgets to manage repeatable things you use option, and example would be; a TextField you have built to include validation rules internally.  Once completed this can be used anywhere else in the app - any changes occur in once place but get used wherever it was referenced.</p>
+</li>
+<li><p>Use CommonJS (place in <strong>lib</strong> folder under <strong>app</strong>) for re-usable code within your app (so used in more than one section).  </p>
+<p>When using CommonJS and Alloy I would avoid including ANY UI elements in the CommonJS, these are for controllers and widgets.  Use this for App logic, business rules, your version of a network XHR library.</p>
+</li>
+<li><p>Controllers - create your own versions of templates for app elements that are not worth being Widgets - these are usually for things like TableViewRow variations, OptionDialog templates and more.  Then use require or Alloy.createController to use them in the app.</p>
+</li>
+</ul>
+<p>Any more detail you need?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 20th 2013, 2:54:05 pm">November 20th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/159685/alloy--common-js-organization#answer-271564" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p><strong>Why I avoid using UI in CommonJS when combined with Alloy</strong></p>
+<p>When you use alloy to its full advantage you have a combination of; controller, stylesheet and view.  With these three distinct things you place your mark-up in one, the look in another and the logic in one more.  This way you can easily see how each thing works and focus on that single thing - be it style, which views or how it interacts.</p>
+<p>With CommonJS and UI - you are not taking that advantage with you - you are using the code as if Alloy was not involved.  This is not prohibited and used correctly can be powerful - but for most of the time things are simply easier to maintain when you split them up.</p>
+<p>As this is a confusing point - an example if called for;</p>
+<ul>
+<li>Traditional very simple ui based CommonJS</li>
+</ul>
+<p><strong>&#x2F;lib&#x2F;example.js</strong></p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">create</span><span class="hljs-params">(obj)</span> </span>{
+    <span class="hljs-keyword">var</span> lbl = Ti.UI.createLabel({
+        text: obj.title || <span class="hljs-string">''</span>;
+    });
+    <span class="hljs-keyword">return</span> lbl;
+}
+exports.create = create;
+</code></pre><p><strong>example usage</strong></p>
+<pre><code class="hljs"><span class="hljs-variable">$.</span>win.add(<span class="hljs-keyword">require</span>(<span class="hljs-string">'example'</span>).create({ <span class="hljs-symbol">title:</span> <span class="hljs-string">'Hello'</span> }));
+</code></pre><p>Now as it is not an alloy built you want to show this label in exactly the same way as all your other labels, so you add some style.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">create</span><span class="hljs-params">(obj)</span> </span>{
+    <span class="hljs-keyword">var</span> lbl = Ti.UI.createLabel({
+        color: <span class="hljs-string">'red'</span>,
+        font: {
+            fontSize: <span class="hljs-number">14</span>,
+            fontWeight: <span class="hljs-string">'bold'</span>,
+        },
+        text: obj.title || <span class="hljs-string">''</span>;
+        textAlign: <span class="hljs-string">'center'</span>
+    });
+    <span class="hljs-keyword">return</span> lbl;
+}
+exports.create = create;
+</code></pre><p>This works OK because you copied the style from the tss you use.  Problem is thought this is not linked to that file so any changes that occur will not appear here.  You can use <strong>createStyle</strong>, <strong>addClass</strong> etc, but again you are adding extra code to get around the building of things.</p>
+<ul>
+<li>Alloy way</li>
+</ul>
+<p><strong>example.xml</strong></p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"lbl"</span> /&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p><strong>example.tss</strong></p>
+<pre><code class="hljs"><span class="hljs-string">"Label"</span>: {
+    <span class="hljs-built_in">color</span>: <span class="hljs-string">'red'</span>,
+    font: {
+        fontSize: <span class="hljs-number">14</span>,
+        fontWeight: <span class="hljs-string">'bold'</span>,
+    },
+    <span class="hljs-built_in">textAlign</span>: <span class="hljs-string">'center'</span>
+}
+</code></pre><p><strong>example.js</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> args = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">0</span>] || {};
+$.lbl.setText(args.title || <span class="hljs-string">''</span>);
+</code></pre><p><strong>Usage</strong></p>
+<pre><code class="hljs"><span class="hljs-variable">$.</span>win.add(<span class="hljs-constant">Alloy.</span>createController(<span class="hljs-string">'example'</span>, { <span class="hljs-symbol">title:</span> <span class="hljs-string">'Hello'</span> }).getView());
+</code></pre><p>Now the styles are built directly into the related tss.  Better still, that still is included in the <strong>app.tss</strong> file, as this file is the app wide global stylesheet, you place your default label style here - and leave just red for the local version.</p>
+<p>So;</p>
+<p><strong>app.tss</strong></p>
+<pre><code class="hljs"><span class="hljs-string">"Label"</span>: {
+    <span class="hljs-built_in">color</span>: <span class="hljs-string">'#000'</span>,
+    font: {
+        fontSize: <span class="hljs-number">14</span>,
+        fontWeight: <span class="hljs-string">'bold'</span>,
+    },
+    <span class="hljs-built_in">textAlign</span>: <span class="hljs-string">'center'</span>
+}
+</code></pre><p><strong>example.tss</strong></p>
+<pre><code class="hljs">"<span class="hljs-tag">Label</span>": <span class="hljs-rules">{
+    <span class="hljs-rule"><span class="hljs-attribute">color</span>:<span class="hljs-value"> <span class="hljs-string">'red'</span>,
+</span></span></span>}
+</code></pre><p>This provides a label that gives you a the global default style which you assert an override for this local version.</p>
+<p>Obviously this is a very simple example and you can have whatever UI you need in here.  Plus your controller can include whatever logic you want.</p>
+<p>So the idea here is allowing you to use the same techniques to separate your mark-up from styles from logic - in all places.</p>
+<p>Imagine your app uses lots of textFields, each one is likely meant to look the same style as the others - just the values and hint text change for each one.  Now imagine you choose to tweak the look - if your style was in <strong>app.tss</strong> then they will all change at once.  But if your CommonJS file also created a text field you would have to attend to that field separately from everything else.</p>
+<p>The idea here is to let Alloy take the pain away from you and you build the bits and pieces together.</p>
+<p>This is a very difficult topic to explain in such a small space.  Which is why I be releasing a series of &quot;Deep Dive&quot; issues in a new iPad news stand app starting next month.  This subject will be covered in depth as will many others.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 4:31:08 pm">November 20th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Malcolm. Thank you so much for your detailed suggestions and followed up explanations. Widgets are a whole different thing that I plan to tackle after I nail down using commonJS but your recommendations are great and paint a much clearer picture for me. I think for my case, it sounds like keeping the functions within search.js is appropriate and keeps things clean and organized. I think where I willstart to need commonJS is when I need to start communicating with the server and building responses. This really is fantastic. I&#39;m gonna read it a few more times and let it really sink in. Please post here when your deep dive app is out. Excited to check it out. Thanks again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 5:19:49 pm">November 20th 2013</span>
+											by <span class='authorname'>Dave F</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The great thing here is that you can use either way - you can mix and match and you can transfer out older ways to newer ways when&#x2F;if they are required.  You balance this with the needs of the app and the time available to get to grips with each new thing or technique.</p>
+<p>I will let you know when I push the first issue.</p>
+<p>BTW if you think this has given you sufficient detail to answer the question - remember to mark it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 5:42:56 pm">November 20th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I was just about to mark it actually. Also I wanted to ask. What are your thoughts on using commonJS as a means to manage global variables. I had read <a href="http:&#x2F;&#x2F;www.thewarpedcoder.net&#x2F;2011&#x2F;12&#x2F;apccelrator-titanium-commonjs-global-variables&#x2F;">this older article</a> used for classic Ti but I think it still stands.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 5:45:34 pm">November 20th 2013</span>
+											by <span class='authorname'>Dave F</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>For example. when I animate my modals pickers  on screen, I use this:</p>
+<pre><code class="hljs">var SLIDE_IN = Ti.UI.createAnimation({<span class="hljs-string">bottom:</span><span class="hljs-number">0</span>, <span class="hljs-string">duration:</span>SLIDE_DURATION, <span class="hljs-string">curve:</span>Ti.UI.ANIMATION_CURVE_EASE_IN_OUT});
+</code></pre><p>Since I use it a few times in search.js. And likely in other areas in the site (for consistency). I thought that maybe I should store it in a global var rather than have it lose at the top of my search.js file. I can&#39;t use these animation values in my tss file, right? </p>
+<p>Thanks again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 5:49:56 pm">November 20th 2013</span>
+											by <span class='authorname'>Dave F</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This is where I would use a commonJS function as a animation helper;</p>
+<p><strong>&#x2F;lib&#x2F;animations.js</strong></p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">slideIn</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">return</span> Ti.UI.createAnimation({
+        bottom: <span class="hljs-number">0</span>,
+        duration: SLIDE_DURATION,
+        curve: Ti.UI.ANIMATION_CURVE_EASE_IN_OUT
+    });
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">slideOut</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">return</span> Ti.UI.createAnimation({
+        bottom: <span class="hljs-number">100</span>, <span class="hljs-comment">// example of course</span>
+        duration: SLIDE_DURATION,
+        curve: Ti.UI.ANIMATION_CURVE_EASE_IN_OUT
+    });
+}
+exports.slideIn = slideIn;
+exports.slideOut = slideOut;
+</code></pre><p><strong>Usage</strong></p>
+<pre><code class="hljs">$.something.animate(<span class="hljs-built_in">require</span>(<span class="hljs-string">'animations'</span>).slideIn());
+<span class="hljs-comment">// you could also do this</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">in</span> = <span class="hljs-built_in">require</span>(<span class="hljs-string">'animations'</span>).slideOut();
+<span class="hljs-keyword">in</span>.addEventListener(<span class="hljs-string">'start'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    Ti.API.info(<span class="hljs-string">'started'</span>);
+});
+<span class="hljs-keyword">in</span>.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    Ti.API.info(<span class="hljs-string">'complete'</span>);
+});
+</code></pre><p>By placing them in a CommonJS module they are not part of the app until they are actually used - this makes the app itself smaller to start up and if they do not get called a smaller memory footprint when running.</p>
+<p>Whilst they could be added to a global of some sort I would say this is not the ideal place for this sort of thing as you need to keep this in memory at all times.</p>
+<p>If you do use globals with alloy - there is something built-in to do this for you - but again - only use when there is no other sensible way.  The link you gave was pre-alloy.</p>
+<pre><code class="hljs"><span class="hljs-comment">// a property</span>
+Alloy.Globals.someproperty = 'safe <span class="hljs-keyword">for</span> later';
+Alloy.Globals.somefunction = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(str)</span> {</span>
+    alert(<span class="hljs-built_in">str</span>);
+};
+<span class="hljs-comment">// a function</span>
+</code></pre><p><strong>Usage</strong></p>
+<pre><code class="hljs">alert(Alloy.Globals.someproperty)<span class="hljs-comment">;</span>
+// and
+Alloy.Globals.somefunction()<span class="hljs-comment">;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 6:04:10 pm">November 20th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Awesome suggestions! I was on the right track but your use of animations.js is much cleaner. I was actually using Alloy.Globals for something else but realized I should maybe be careful of when i&#39;m using them. Will be more wary to when thats the right usage.</p>
+<p>This is great…thanks again.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 6:29:07 pm">November 20th 2013</span>
+											by <span class='authorname'>Dave F</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-271566">
+				
+						<section>
+							<p>Malcolm, thanks for supplying the great suggestions!  Can you elaborate on why you suggest avoiding any UI elements in CommonJS modules, and some of the issues that you would be preventing?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 20th 2013, 3:54:15 pm">November 20th 2013</span>
+								by <span class='authorname'>Sam Robertson</span><br>
+								<a class="icon-bg icon-link" href="question/159685/alloy--common-js-organization#answer-271566" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Sorry for the placement of my followup question… meant to go under Malcolm&#39;s comment.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 3:56:41 pm">November 20th 2013</span>
+											by <span class='authorname'>Sam Robertson</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

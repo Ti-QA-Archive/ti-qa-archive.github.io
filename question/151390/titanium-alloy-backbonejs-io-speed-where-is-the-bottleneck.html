@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium Alloy BackboneJS I/O Speed Where is the bottleneck? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium Alloy BackboneJS I/O Speed Where is the bottleneck?</h1>
+		</header>
+		<section>
+			<p>Hello Everyone!</p>
+<p>I am currently using Alloy to build an App using the Model-Tableview binding. The App currently shows a list of categories, then when you click on a category it does a lookup using SQL (custom collections.fetch) where I join between the category-id and the ID of the main data table. I have everything indexed. And it is still running slow. </p>
+<p>Currently, when I do a full fetch() of the data, It takes 52ms to pull 146 objects. Using my custom SQL query it takes 22ms to fetch 58 items. Doing some math shows that this is linear time O(n) so there is no difference in speed between the default fetch() and the custom one. These times are all using the Simulator, it takes roughly 10 times as long on the iPhone 4S(Still linear though)</p>
+<p>My question is this: Everytime we do a collections.fetch, are we pulling from either my hard disk or flash memory? I don&#39;t feel it should take my desktop less than 5ms to pull 150 items.  </p>
+<p>Where is the bottleneck? Is it the overhead of Backbone.js? Is it the disk I&#x2F;O? Should I do one massive fetch at site load, then write javascript to search through a hash already stored in memory(This would break the neat Tableview-Model binding that Tony wrote)</p>
+<p>I am trying to figure out what I need to do. If I need to do a collection.fetch at app load once, then use Javascript to look through it I am fine with that. If using Titanium.Database is faster, I don&#39;t mind using that either but that sort of defeats the purpose of MVC. Currently, for me to load 50 items into the table view it takes about a second on the iPhone. I feel that it should be a bit faster than this. </p>
+<p>Thank you so much for your help!</p>
+<p>Sincerely,</p>
+<p>John J. Donna II</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 22nd 2013, 7:11:18 pm">April 22nd 2013</span>
+				by <span class='authorname'>John Donna</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>backbonejs</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>7 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Could you give details on your TiSDK and Alloy version? Also, if you could provide a small test case that shows this issue I can start reproducing it on my end and trying to roto out where the problem is.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 22nd 2013, 7:34:43 pm">April 22nd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Tony,</p>
+<p>Thanks for responding, if it helps I don&#39;t mind providing you my source. Ill start by giving you this info:</p>
+<p>This is the JSON I am loading http:&#x2F;&#x2F;vapep.vs48.richweb.com&#x2F;json&#x2F;important-contacts&#x2F; There are 3 different data types listed here. Post, is the data to be shown in the app. taxonomy are the categories for the objects in post. Join is the relationship between Post and Taxonomy</p>
+<p>This is the code I am using to load my model: the object data parameter is the data coming from my HTTP request</p>
+<pre><code class="hljs">exports.updateContacts = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span></span>{
+    <span class="hljs-keyword">var</span> contact_map = [
+        <span class="hljs-string">"ID"</span>,
+        <span class="hljs-string">"title"</span>,
+        <span class="hljs-string">"address"</span>,
+        <span class="hljs-string">"address_2"</span>,
+        <span class="hljs-string">"city"</span>,
+        <span class="hljs-string">"state"</span>,
+        <span class="hljs-string">"zip"</span>,
+        <span class="hljs-string">"phone"</span>,
+        <span class="hljs-string">"fax"</span>,
+        <span class="hljs-string">"email"</span>,
+        <span class="hljs-string">"website"</span>,
+        <span class="hljs-string">"other"</span>,
+    ];
+    <span class="hljs-keyword">var</span> category_map = [
+        <span class="hljs-string">"category_id"</span>,
+        <span class="hljs-string">"slug"</span>,
+        <span class="hljs-string">"name"</span>
+    ];
+    <span class="hljs-keyword">var</span> relation_map = [
+        <span class="hljs-string">"ID"</span>,
+        <span class="hljs-string">"category_id"</span>
+    ];
+    exports.updateCollection(data, contact_map, <span class="hljs-string">'important_contacts_post'</span>, <span class="hljs-string">'post'</span>);
+    exports.updateCollection(data, category_map, <span class="hljs-string">'important_contacts_taxonomy'</span>, <span class="hljs-string">'taxonomy'</span>);
+    exports.updateCollection(data, relation_map, <span class="hljs-string">'important_contacts_join'</span>, <span class="hljs-string">'join'</span>);
+}
+exports.updateCollection = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data, map, model_str, hash_str)</span></span>{
+    <span class="hljs-keyword">var</span> collection = Alloy.createCollection(model_str);
+    exports.clearCollection(collection);
+    <span class="hljs-keyword">var</span> length = data[hash_str].length;
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; length; i++){
+              <span class="hljs-keyword">var</span> vars = {};
+              <span class="hljs-keyword">var</span> maplength = map.length;
+              <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> j = <span class="hljs-number">0</span>; j &lt; maplength; j++){
+                   vars[map[j]] = data[hash_str][i][map[j]];
+              }
+              <span class="hljs-keyword">var</span> model = Alloy.createModel(model_str, vars);
+              model.<span class="hljs-keyword">set</span>();
+              collection.add(model);
+              model.save();
+    }
+    collection.fetch();
+}
+</code></pre><p>I have three models. important_contacts_post, important_contacts_taxonomy, and important_contacts_join that get loaded. I have this query to generate the string that goes into collections.fetch</p>
+<pre><code class="hljs">exports.getJoinQuery = function(<span class="hljs-keyword">post</span>, category_id){
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">query</span> = 'SELECT ' + <span class="hljs-keyword">post</span> + '_post.* FROM ' + <span class="hljs-keyword">post</span> + '_post join ' + <span class="hljs-keyword">post</span> + '_join <span class="hljs-keyword">on</span> ' + <span class="hljs-keyword">post</span> +'_post.ID = ' + <span class="hljs-keyword">post</span> + '_join.ID  where ' + <span class="hljs-keyword">post</span> +'_join.category_id = ' + category_id; 
+    Ti.API.info(<span class="hljs-keyword">query</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">query</span>;
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="April 23rd 2013, 12:15:39 pm">April 23rd 2013</span>
+								by <span class='authorname'>John Donna</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Currently, we are only loading about 150 objects. If I do a important_contacts_post.fetch() and grab the entire thing and load it into the tableview, it takes 146ms to perform the pull. When I use my custom fetch, it takes 58ms to do the pull(Its roughly 1&#x2F;3 the number of objects) </p>
+<p>I am wondering if it would be better to not use the cool Model-&gt;Tableview binding and to just do important_contacts_post.fetch() on app load and make it so that my JSON redundently stores all the category data. I would have tons of data, but when moving through the app it would be a lot faster.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 23rd 2013, 12:18:40 pm">April 23rd 2013</span>
+								by <span class='authorname'>John Donna</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I am using Alloy 1.10 and the latest version of Titanium. When I started yesterday I was still on Alloy 1.0, but was hoping that the new Alloy version would work better. </p>
+<p>I also thought about switching over to the new ListViews, but I don&#39;t think that will give me the speed I am looking for. It takes about a second or so to load my Tableview on an iPhone 4S with only 50 items. I am worried as to the App speed when I have 200(4 seconds to load)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 23rd 2013, 12:20:28 pm">April 23rd 2013</span>
+								by <span class='authorname'>John Donna</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Also, we added a test parameter to increase the number of objects in the DB. </p>
+<p>http:&#x2F;&#x2F;vapep.vs48.richweb.com&#x2F;json&#x2F;important-contacts&#x2F;?extra_posts=1000</p>
+<p>If you adjust the extra_posts variable you will be able to add n posts. </p>
+<p>Also those times that I gave in ms, are on my iMac core i7, when I do it on the phone its 4 times as long. Thats why I am assuming its IO because I know the flash memory on the iPhone is fairly slow. I figured that the database when I load the app would be in memory, it seems to be on disk.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 23rd 2013, 12:25:17 pm">April 23rd 2013</span>
+								by <span class='authorname'>John Donna</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I could still use a small, complete test case to reproduce this on my end, since much of what you are doing is still not represented here. Please not the whole app though, just a small example of how I can reproduce this issue.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 23rd 2013, 4:14:27 pm">April 23rd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>@John, how did you manage this?<br>I have a tableview with a  singletap eventListener that show row details in new window and I have this benchmark (on Android Emulator):</p>
+<pre><code class="hljs">beforeFetch: <span class="hljs-number">0</span> <span class="hljs-keyword">ms</span>
+<span class="hljs-title">afterFetch</span>: <span class="hljs-number">254</span> <span class="hljs-keyword">ms</span>
+<span class="hljs-title">afterGet</span>: <span class="hljs-number">3</span> <span class="hljs-keyword">ms</span>
+
+<span class="hljs-title">beforeWinOpen</span>: <span class="hljs-number">0</span> <span class="hljs-keyword">ms</span>
+<span class="hljs-title">afterWinOpen</span>:  <span class="hljs-number">110ms</span>
+</code></pre><p>Total operation from tap to opened window takes 364ms and <strong>Fetch takes 70%</strong> of the time !!!</p>
+<p>PS: Alloy 1.3 with SDK 3.2.1</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 26th 2014, 11:47:50 am">June 26th 2014</span>
+								by <span class='authorname'>f fabreti</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

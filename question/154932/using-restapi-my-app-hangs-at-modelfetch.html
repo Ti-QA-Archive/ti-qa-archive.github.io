@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Using restapi, my app hangs at model.fetch » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Using restapi, my app hangs at model.fetch</h1>
+		</header>
+		<section>
+			<p>Using:</p>
+<ul>
+<li>Ti Studio SDK 3.1.1</li>
+<li>Alloy 1.1.3</li>
+<li>Backbone 0.9.2, </li>
+<li>node.js is not quite current 0.8.14 vs 0.8.22</li>
+</ul>
+<p>I&#39;ve got a model that uses the restapi adaptor, https:&#x2F;&#x2F;github.com&#x2F;viezel&#x2F;napp.alloy.adapter.restapi version 1.1.0.  I&#39;ve used this adaptor previously (v1.0.5) with SDK 3.0.x and had no problems.  So, new project comes along, and in between projects, I&#39;ve done TI upgrades.  This time no worky with either of the restapi versions.  </p>
+<p>Now when I call model.fetch, it runs away and hides…no response.  I&#39;ve put debug statements in the success and error callbacks, but it never gets there.</p>
+<p>I&#39;ve tried debugging and stepping through the code, but after the fetch call, it goes off into a &quot;source unavailable&quot; area for 3 steps before hanging. I&#39;ve tried with both v1.0.5 and 1.1.0 of restapi, so I think it&#39;s something in the various TI upgrades that isn&#39;t synced up correctly.  But if it&#39;s my code, here it is…</p>
+<p>model = login.js</p>
+<pre><code class="hljs">exports.definition = {
+    config: {
+        baseURL:<span class="hljs-string">'url not shown here'</span>,
+        URL:<span class="hljs-string">''</span>,
+        DEBUG:<span class="hljs-literal">true</span>,
+        adapter: {
+            type: <span class="hljs-string">"restapi"</span>,
+            collection_name: <span class="hljs-string">"login"</span>
+        }
+    },        
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span> </span>{        
+        _.extend(Model.prototype, {
+            <span class="hljs-comment">// extended functions and properties go here</span>
+            buildFullURL: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                <span class="hljs-keyword">this</span>.config.URL = <span class="hljs-keyword">this</span>.config.baseURL + <span class="hljs-string">'&amp;username='</span> + <span class="hljs-keyword">this</span>.username + <span class="hljs-string">'&amp;password='</span> + <span class="hljs-keyword">this</span>.password + <span class="hljs-string">'&amp;RedirectTo=/url_removed&amp;uc='</span> + <span class="hljs-keyword">this</span>.username;
+                Ti.API.debug(<span class="hljs-string">'config.URL: '</span> + <span class="hljs-keyword">this</span>.config.URL);
+            },
+
+            initialize: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(attributes, options)</span></span>{
+                Ti.API.debug(<span class="hljs-string">'model.initialize has been extended'</span>);
+                Ti.API.debug(attributes);
+                <span class="hljs-keyword">this</span>.username = attributes.username;
+                <span class="hljs-keyword">this</span>.password = attributes.password;
+                <span class="hljs-keyword">this</span>.buildFullURL();
+            },
+
+            fetch: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                <span class="hljs-comment">// last line seen on the console before it goes bye bye, have also run without this line</span>
+                Ti.API.debug(<span class="hljs-string">'model fetching...'</span>);
+            }
+        });
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span> </span>{        
+        _.extend(Collection.prototype, {
+            <span class="hljs-comment">// extended functions and properties go here</span>
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+}
+</code></pre><p>Code that calls the model is:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> attributes = {
+            username:username,
+            password:password
+        };
+
+        <span class="hljs-keyword">var</span> m_login = Alloy.createModel(<span class="hljs-string">'login'</span>, attributes);
+        Ti.API.debug(<span class="hljs-string">'login model created'</span>);
+        m_login.fetch({
+            success: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(_model, _response)</span></span>{
+                Ti.API.debug(<span class="hljs-string">'success response'</span>);
+                Ti.API.debug(_model.<span class="hljs-keyword">get</span>(<span class="hljs-string">'utoken'</span>));
+                Alloy.Globals.session_id = _model.<span class="hljs-keyword">get</span>(<span class="hljs-string">'utoken'</span>);
+
+                <span class="hljs-comment">// now open the main_menu view</span>
+                $.actLogin.hide();
+                <span class="hljs-keyword">var</span> viewMenu = Alloy.createController(<span class="hljs-string">'main_menu'</span>).getView();
+                $.index.add(viewMenu);                
+            },
+
+            error: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(_model, _response)</span></span>{
+                Ti.API.debug(<span class="hljs-string">'error response'</span>);
+                Ti.API.debug(_response);
+                Alloy.CFG.login_failed=<span class="hljs-literal">true</span>;
+            }
+        });
+</code></pre><p>Simulator just sits and waits after the fetch debug message.  Not sure what to check next.  TIA</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 16th 2013, 3:00:20 pm">July 16th 2013</span>
+				by <span class='authorname'>Lance Spellman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>model</span></li>
+					
+						<li><span class='tagname'>restapi</span></li>
+					
+						<li><span class='tagname'>sync</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-265996">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi there,</p>
+<p>So what you are doing is taking my rest adapter and throwing it away :) </p>
+<pre><code class="hljs">fetch: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+   <span class="hljs-comment">// This kills my adapter - you are overriding it :)</span>
+   Ti.API.debug(<span class="hljs-string">'model fetching...'</span>);
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 16th 2013, 3:34:14 pm">July 16th 2013</span>
+								by <span class='authorname'>Mads Møller</span><br>
+								<a class="icon-bg icon-link" href="question/154932/using-restapi-my-app-hangs-at-modelfetch#answer-265996" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-265997">
+				
+						<section>
+							<p>I threw that debug line in just to see if it was calling fetch at all.  It was failing before that.  I&#39;ve removed and now I just don&#39;t get the debug message :-)</p>
+<p>Thanks for this adapter by the way… has been of great use.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 16th 2013, 3:40:34 pm">July 16th 2013</span>
+								by <span class='authorname'>Lance Spellman</span><br>
+								<a class="icon-bg icon-link" href="question/154932/using-restapi-my-app-hangs-at-modelfetch#answer-265997" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>okay, then change:</p>
+<pre><code class="hljs"><span class="hljs-tag">config</span>: <span class="hljs-rules">{
+  <span class="hljs-rule"><span class="hljs-attribute">DEBUG</span>:<span class="hljs-value">true
+</span></span></span>}
+</code></pre><p>to:</p>
+<pre><code class="hljs"><span class="hljs-tag">config</span>: <span class="hljs-rules">{
+  <span class="hljs-rule"><span class="hljs-attribute">debug</span>:<span class="hljs-value">true
+</span></span></span>}
+</code></pre><p>to get the debugging output, and see where it is stuck.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 16th 2013, 3:42:13 pm">July 16th 2013</span>
+											by <span class='authorname'>Mads Møller</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-265998">
+				
+						<section>
+							<p>Was finally able to debug into source after commenting that back out, and it looks like I may be able to trace this down now.  Looks like response is not coming back with JSON and parseJSON is failing on that.  Thanks for making me take the debug function back out.  </p>
+<p>I&#39;ll test this out and close it if that&#39;s the case.</p>
+<p>Thanks!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 16th 2013, 3:47:35 pm">July 16th 2013</span>
+								by <span class='authorname'>Lance Spellman</span><br>
+								<a class="icon-bg icon-link" href="question/154932/using-restapi-my-app-hangs-at-modelfetch#answer-265998" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-265999">
+				
+						<section>
+							<p>Yes, this is it.  When bad parameters are given to the apicall, the server is returning an HTML response rather.  On success, it returns JSON.  So, when HTML gets to parseJSON, it fails on:</p>
+<pre><code class="hljs"><span class="hljs-title">function</span> parseJSON(<span class="hljs-type">DEBUG</span>, _response, parentNode) {
+    var <span class="hljs-typedef"><span class="hljs-keyword">data</span> = <span class="hljs-type">JSON</span>.parse<span class="hljs-container">(<span class="hljs-title">_response</span>.<span class="hljs-title">responseText</span>)</span>;</span>
+    _.isUndefined(parentNode) || (<span class="hljs-typedef"><span class="hljs-keyword">data</span> = traverseProperties<span class="hljs-container">(<span class="hljs-title">data</span>, <span class="hljs-title">parentNode</span>)</span>);     //  dies here</span>
+    logger(<span class="hljs-type">DEBUG</span>, <span class="hljs-string">"server response"</span>, <span class="hljs-typedef"><span class="hljs-keyword">data</span>);</span>
+    return <span class="hljs-typedef"><span class="hljs-keyword">data</span>;</span>
+}
+</code></pre><p>This isn&#39;t really a problem for &quot;restapi&quot;, as the server response is breaking the contract.  I&#39;ll throw a handler in to deal with it.</p>
+<p>Thanks again!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 16th 2013, 4:01:18 pm">July 16th 2013</span>
+								by <span class='authorname'>Lance Spellman</span><br>
+								<a class="icon-bg icon-link" href="question/154932/using-restapi-my-app-hangs-at-modelfetch#answer-265999" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

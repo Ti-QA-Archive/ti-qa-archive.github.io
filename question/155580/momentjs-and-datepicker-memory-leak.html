@@ -1,0 +1,564 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Moment.js and DatePicker Memory Leak » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Moment.js and DatePicker Memory Leak</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I&#39;m back with more memory leak issues (spending a whole 2 week sprint monitoring memory on our app, yuk!). </p>
+<p>Anyway, in the dumbed down example below I&#39;m using the Alloy builtin moment.js to manipulate dates and set them as the min, max and value of a date picker. I&#39;m using moment.js as I can easily set the min value to today minus 6 months, etc. However, this prevents the picker from being garbage collected on window close…</p>
+<p>index.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">NavigationGroup</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"navGroup"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"container"</span>&gt;</span>
+
+                <span class="hljs-tag">&lt;<span class="hljs-title">Button</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"nextPage"</span> <span class="hljs-attribute">top</span>=<span class="hljs-value">"40"</span>&gt;</span>Next page<span class="hljs-tag">&lt;/<span class="hljs-title">Button</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">NavigationGroup</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>index.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">nextPage</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> page2 = Alloy.createController(<span class="hljs-string">'page2'</span>).getView();
+    $.navGroup.open(page2);
+}
+
+$.index.open();
+</code></pre><p>page2.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"page2"</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">Button</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"openPicker"</span>&gt;</span>Open Picker<span class="hljs-tag">&lt;/<span class="hljs-title">Button</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>page2.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'alloy/moment'</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openPicker</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-keyword">var</span> dateValue = moment().format(<span class="hljs-string">"YYYY-MM-DD"</span>);
+    <span class="hljs-keyword">var</span> min = moment(<span class="hljs-string">"12-25-1995"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>);            
+    <span class="hljs-keyword">var</span> max = moment(<span class="hljs-string">"12-25-2014"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>);
+
+    <span class="hljs-comment">/*
+    var dateValue = new Date();
+    var min = new Date(2013,1,1);            
+    var max = new Date(2013,12,1);
+    */</span>
+
+    <span class="hljs-keyword">var</span> pickerView = Titanium.UI.createView({
+        height:<span class="hljs-number">251</span>,
+        bottom: <span class="hljs-number">0</span>,
+        layout: <span class="hljs-string">'vertical'</span>,
+        zIndex: <span class="hljs-number">2</span>
+    });
+    <span class="hljs-keyword">var</span> cancel =  Titanium.UI.createButton({
+        title:<span class="hljs-string">'Cancel'</span>,
+        style:Titanium.UI.iPhone.SystemButtonStyle.BORDERED
+    });
+    <span class="hljs-keyword">var</span> done =  Titanium.UI.createButton({
+        title:<span class="hljs-string">'Done'</span>,
+        style:Titanium.UI.iPhone.SystemButtonStyle.DONE
+    });
+    <span class="hljs-keyword">var</span> spacer =  Titanium.UI.createButton({
+        systemButton:Titanium.UI.iPhone.SystemButton.FLEXIBLE_SPACE
+    });
+    <span class="hljs-keyword">var</span> toolbar =  Ti.UI.iOS.createToolbar({
+        top: <span class="hljs-number">0</span>,
+        borderTop: <span class="hljs-literal">true</span>,
+        borderBottom: <span class="hljs-literal">false</span>,
+        translucent: <span class="hljs-literal">true</span>,
+        barColor: <span class="hljs-string">'transparent'</span>,
+        items:[cancel, spacer, done]
+    });
+
+    <span class="hljs-keyword">var</span> picker = Ti.UI.createPicker({            
+        type:Ti.UI.PICKER_TYPE_DATE,            
+        minDate:min,            
+        maxDate:max,            
+        value:dateValue,            
+        selectionIndicator:<span class="hljs-literal">true</span> 
+    });
+
+    pickerView.add(toolbar);
+    pickerView.add(picker);
+
+    <span class="hljs-comment">// cancel btn</span>
+    cancel.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        pickerView.animate({ bottom:-<span class="hljs-number">251</span>, duration: <span class="hljs-number">500</span> });            
+    });
+
+    <span class="hljs-comment">// update picker value</span>
+    picker.addEventListener(<span class="hljs-string">'change'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+        Ti.API.info(<span class="hljs-string">'value: '</span> + e.value);
+    });
+
+    <span class="hljs-comment">// close picker            </span>
+    done.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{                        
+        pickerView.animate({ bottom:-<span class="hljs-number">251</span>, duration: <span class="hljs-number">500</span> });
+    });
+
+    $.page2.add(pickerView);
+
+}
+</code></pre><p>…but if you change the min, max and value to a regular date, everything gets cleaned up fine. Now I&#39;m sure Tony Lukasavage will once again point out some obvious mistake I&#39;m making here but I just can&#39;t figure out the problem! Any help would be much appreciated.</p>
+<p>Thanks</p>
+<p>James</p>
+<p>(Mac OSX Mountain Lion, iOS6, Ti 3.1.1, Alloy)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 2nd 2013, 12:05:37 pm">August 2nd 2013</span>
+				by <span class='authorname'>James Draper</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>picker</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-266981">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>First off, your date formatting string is wrong. You have your date in <strong>DD-MM-YYYY</strong> format, but your specified <strong>YYYY-MM-DD</strong> as your formatting string.</p>
+<p>This memory leak is occurring because you are passing a &quot;moment&quot; to the Picker properties, when it is expecting a JS Date object. A &quot;moment&quot;, as described in the <a href="http:&#x2F;&#x2F;momentjs.com&#x2F;docs&#x2F;#&#x2F;parsing&#x2F;">moment.js docs</a>, is a wrapper around a JS Date object, it is not an actual Date object. To get the actual Date object, which is what you should be giving to the Picker, use the <a href="http:&#x2F;&#x2F;momentjs.com&#x2F;docs&#x2F;#&#x2F;displaying&#x2F;as-javascript-date&#x2F;">toDate() function</a> on the moment.</p>
+<p>So instead of doing this</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> dateValue</span> = moment().format(<span class="hljs-string">"YYYY-MM-DD"</span>);
+<span class="hljs-variable"><span class="hljs-keyword">var</span> min</span> = moment(<span class="hljs-string">"12-25-1995"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>);
+<span class="hljs-variable"><span class="hljs-keyword">var</span> max</span> = moment(<span class="hljs-string">"12-25-2014"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>);
+</code></pre><p>do this</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> dateValue</span> = moment().toDate();
+<span class="hljs-variable"><span class="hljs-keyword">var</span> min</span> = moment(<span class="hljs-string">"1995-12-25"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>).toDate();
+<span class="hljs-variable"><span class="hljs-keyword">var</span> max</span> = moment(<span class="hljs-string">"2014-12-25"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>).toDate();
+</code></pre><p>I ran the app and confirmed in Instruments. This resolves your issue.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 8th 2013, 1:46:40 pm">August 8th 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/155580/momentjs-and-datepicker-memory-leak#answer-266981" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Once again sir I take my hat off to you! Thanks a million Tony</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 8th 2013, 1:54:20 pm">August 8th 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If you provide full reproducible test cases like that, expect in-depth analysis and response from me. :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 8th 2013, 1:57:02 pm">August 8th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-266721">
+				
+						<section>
+							<pre><code class="hljs"><span class="hljs-built_in">var</span> dateValue = <span class="hljs-literal">new</span> moment()<span class="hljs-built_in">.</span>format(<span class="hljs-string">"YYYY-MM-DD"</span>);
+<span class="hljs-built_in">var</span> <span class="hljs-keyword">min</span> = <span class="hljs-literal">new</span> moment(<span class="hljs-string">"12-25-1995"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>);           
+<span class="hljs-built_in">var</span> <span class="hljs-keyword">max</span> = <span class="hljs-literal">new</span> moment(<span class="hljs-string">"12-25-2014"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 2nd 2013, 12:17:05 pm">August 2nd 2013</span>
+								by <span class='authorname'>Stephen Feather</span><br>
+								<a class="icon-bg icon-link" href="question/155580/momentjs-and-datepicker-memory-leak#answer-266721" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Stephen.</p>
+<p>Thanks for the suggestion but that doesn&#39;t seem to work, the number of TiUIPickerProxy objects in Xcode Instruments keeps rising and none of them get garbage collected. I would have thought since evrything is declared inside of a function they would automatically be destroyed on window close but it&#39;s not happening…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 2nd 2013, 12:59:34 pm">August 2nd 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-266723">
+				
+						<section>
+							<p>Hi,</p>
+<p>I think you need to convert that object to date so try this one..</p>
+<pre><code class="hljs">    <span class="hljs-built_in">var</span> dateValue = moment()<span class="hljs-built_in">.</span>format(<span class="hljs-string">"YYYY-MM-DD"</span>);
+    <span class="hljs-built_in">var</span> <span class="hljs-keyword">min</span> = <span class="hljs-literal">new</span> <span class="hljs-built_in">Date</span>(moment(<span class="hljs-string">"12-25-1995"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>));           
+    <span class="hljs-built_in">var</span> <span class="hljs-keyword">max</span> = <span class="hljs-literal">new</span> <span class="hljs-built_in">Date</span>(moment(<span class="hljs-string">"12-25-2014"</span>, <span class="hljs-string">"YYYY-MM-DD"</span>));
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 2nd 2013, 12:28:28 pm">August 2nd 2013</span>
+								by <span class='authorname'>Mitul Bhalia</span><br>
+								<a class="icon-bg icon-link" href="question/155580/momentjs-and-datepicker-memory-leak#answer-266723" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Mitul,</p>
+<p>Thanks, but this doesn&#39;t seem to work either, I&#39;m starting to wonder if it&#39;s a bug…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 2nd 2013, 1:00:13 pm">August 2nd 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-266728">
+				
+						<section>
+							<p>How about adding this last line</p>
+<pre><code class="hljs">
+$.page2.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    pickerView = <span class="hljs-literal">null</span>;
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 2nd 2013, 2:17:44 pm">August 2nd 2013</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/155580/momentjs-and-datepicker-memory-leak#answer-266728" rel="permalink">permalink</a>
+							</div>
+
+							<h5>12 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Or try moving</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'alloy/moment'</span>);
+</code></pre><p>inside your method</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 2nd 2013, 2:18:53 pm">August 2nd 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Nick.</p>
+<p>Thanks but neither of these worked either, I&#39;d imagine there wouldn&#39;t be a need to null the pickerView on window close anyway since it should be undefined outside of my function, but I&#39;ll try anything at this stage. So basically everything is now inside the scope of my <code>openPicker</code> function but is still not getting garbage collected. These things alway happen on a Friday evening!</p>
+<p>Thanks again for your suggestion though,<br>James</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 2nd 2013, 2:29:03 pm">August 2nd 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>What about…</p>
+<pre><code class="hljs">$.page2.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    pickerView = <span class="hljs-literal">null</span>;
+    moment = <span class="hljs-literal">null</span>;
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="August 2nd 2013, 2:34:14 pm">August 2nd 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>or</p>
+<pre><code class="hljs">$.page2.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    $.page2.remove(pickerView);
+    pickerView= <span class="hljs-literal">null</span>;
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="August 2nd 2013, 2:35:46 pm">August 2nd 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Nick,</p>
+<p>Thanks for the suggestion but <code>$.page2.remove(pickerView)</code> returns an error as <code>pickerView</code> is undefined outside of the <code>openPicker</code> function, which would suggest it should be automatically garbage collected anyway. There&#39;s definitely something fishy about this…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 7:00:34 am">August 6th 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Put the event listener code I posted, inside the openPicker function… Or declare the pickerView variable outside the openPicker method then…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 7:03:18 am">August 6th 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Nick</p>
+<p>I&#39;ve put everything inside the openPicker function and created an <code>animateDown</code> function for the picker animations which is then removed on window close. I then created a new function to clean up the memory as follows:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">windowCleanup</span>(<span class="hljs-params"></span>)</span>{
+        moment = <span class="hljs-literal">null</span>;
+
+        done.removeEventListener(<span class="hljs-string">'click'</span>, animateDown);
+        cancel.removeEventListener(<span class="hljs-string">'click'</span>, animateDown);
+
+        pickerView.remove(picker);
+        toolbar.setItems([]);
+        pickerView.remove(toolbar);
+
+        picker = <span class="hljs-literal">null</span>;
+        cancel = <span class="hljs-literal">null</span>;
+        done = <span class="hljs-literal">null</span>;
+        spacer = <span class="hljs-literal">null</span>;
+        toolbar = <span class="hljs-literal">null</span>;
+
+        $.page2.remove(pickerView);
+        pickerView= <span class="hljs-literal">null</span>;
+
+        $.page2.removeEventListener(<span class="hljs-string">'close'</span>, windowCleanup);
+}
+
+
+<span class="hljs-comment">// close window</span>
+$.page2.addEventListener(<span class="hljs-string">'close'</span>, windowCleanup);
+</code></pre><p>I can&#39;t see anything else that needs to be removed or nulled out but still have the memory leak</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 7:52:58 am">August 6th 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Some devs  suggest this pattern for child object removal that performs a recursive remove on all children objects in the window&#x2F;view</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">removeChildren</span><span class="hljs-params">(obj)</span> </span>{
+    Ti.API.info(<span class="hljs-string">'removing children - start'</span>);
+    <span class="hljs-keyword">for</span> (i <span class="hljs-keyword">in</span> obj.children) {
+        <span class="hljs-keyword">var</span> child = obj.children[<span class="hljs-number">0</span>];
+        removeChildren(child);
+        obj.remove(child);
+        child = <span class="hljs-literal">null</span>;
+    }
+    Ti.API.info(<span class="hljs-string">'removing children - stop'</span>);
+}
+</code></pre><p>So try adding that method and calling it;</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-title">removeChildren</span><span class="hljs-params">($.page2)</span></span>
+</code></pre><p>[taken from Malcolm&#39;s answer <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;154344&#x2F;in-which-order-am-i-expected-to-remove-views-and-their-subviews">here</a>]</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 8:20:17 am">August 6th 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>BTW:  I hope you are waiting a while before assuming the GC hasnt fired as it doesnt always happen immediately !</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 8:21:24 am">August 6th 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Nick, thanks for the above function, it looks very useful but unfortunately doesn&#39;t work in this case! And yes I&#39;ve had the Xcode Instruments running for 20 mins now with no GC on the pickers :(</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 9:03:44 am">August 6th 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok - Another track… How about downloading the most recent moment.js and reference it elsewhere (temporarily) to see if the latest moment.js still causes problems ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 9:12:20 am">August 6th 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ha ha I was actually originally doing that so I could use all the newer moment.js methods, but I switched to the Alloy builtin version during an early test case just in case the new version was the problem! I really appreciate your persistence though!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 9:20:13 am">August 6th 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-266860">
+				
+						<section>
+							<p>Ha ha I was actually originally doing that so I could use all the newer moment.js methods, but I switched to the Alloy builtin version during an early test case just in case the new version was the problem! I really appreciate your persistence though!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 6th 2013, 9:18:54 am">August 6th 2013</span>
+								by <span class='authorname'>James Draper</span><br>
+								<a class="icon-bg icon-link" href="question/155580/momentjs-and-datepicker-memory-leak#answer-266860" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Sorry, the above was meant to be a comment, need a delete functionality on here…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 6th 2013, 9:19:46 am">August 6th 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

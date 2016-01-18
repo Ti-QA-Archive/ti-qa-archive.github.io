@@ -1,0 +1,326 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>push android acs - receive push notification the second time » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>push android acs - receive push notification the second time</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>here is my code.</p>
+<p>after subscribing to push (i see it in acs console). i send a global push from console but push is not received..<br>but after subscribing a second time that all push sended all received…</p>
+<p>can you tell me why ? thanks.</p>
+<p>ps : in this code, i create objects for the user to receive only special push notifications (for job offers for example which should interest user..)</p>
+<pre><code class="hljs">exports.managePush = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">queryData</span>) </span>{
+    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+    <span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloudpush'</span>);
+    CloudPush.enabled = <span class="hljs-literal">true</span>;
+
+    <span class="hljs-comment">//Callback and errors.</span>
+    CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+        <span class="hljs-comment">//What to do when get notified</span>
+        <span class="hljs-comment">//alert('push received');</span>
+        <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(evt.payload);
+        alert(json.android.alert);
+    });
+
+    <span class="hljs-keyword">var</span> userName = Titanium.Platform.getId();
+    <span class="hljs-keyword">var</span> searchIdCloud;
+    <span class="hljs-keyword">var</span> searchIdDb = queryData.searchId;
+
+    <span class="hljs-keyword">var</span> userCreated = Ti.App.Properties.hasProperty(<span class="hljs-string">'userCreated'</span>);
+    <span class="hljs-keyword">var</span> registredForPush = Ti.App.Properties.hasProperty(<span class="hljs-string">'registredForPush'</span>);
+
+    <span class="hljs-keyword">if</span>(!userCreated){
+        createUser();
+    }
+    <span class="hljs-keyword">else</span>{
+        loginUser();
+    }
+    <span class="hljs-comment">//user registeration on cloud</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createUser</span>(<span class="hljs-params"></span>) </span>{
+        Cloud.Users.create(
+            {
+                username: userName,
+                password: <span class="hljs-string">"pass"</span>,
+                password_confirmation: <span class="hljs-string">"pass"</span>
+            }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    <span class="hljs-keyword">var</span> user = e.users[<span class="hljs-number">0</span>].id;
+                    queryData.userId = user;
+                    Ti.App.Properties.setString(<span class="hljs-string">'userCreated'</span>, <span class="hljs-literal">true</span>);
+                    loginUser();
+                }
+                <span class="hljs-keyword">else</span>{
+                    <span class="hljs-keyword">if</span> (e.error &amp;&amp; e.message) {
+                        loginUser();   
+                    }
+                }
+            }
+        );
+    }
+
+    <span class="hljs-comment">//user login on cloud using default credential</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loginUser</span>(<span class="hljs-params"></span>) </span>{
+        Cloud.Users.login(
+            {
+                login : userName,
+                password : <span class="hljs-string">'pass'</span>
+            }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    Cloud.Objects.create(
+                        {
+                             classname : <span class="hljs-string">'search_data'</span>,
+                              fields: {
+                                  searchType: queryData.searchType,
+                                ville: queryData.ville,
+                                region: queryData.region,
+                                keyword: queryData.keyword,
+                                fonction: queryData.fonctions,
+                                secteur: queryData.secteurs,
+                                experience: queryData.experiences,
+                                niveau: queryData.niveau,
+                                entreprise: queryData.entreprise,
+                                state: <span class="hljs-number">1</span>
+                              }
+                        }, 
+                        <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                              <span class="hljs-keyword">if</span>(e.success) {
+                                searchIdCloud = e.search_data[<span class="hljs-number">0</span>].id;
+                                <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/updateDb'</span>).updateFavoris(searchIdDb, searchIdCloud);
+                                setTimeout(
+                                    <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                                        Ti.App.fireEvent(<span class="hljs-string">'update'</span>, {changed : <span class="hljs-literal">true</span>});            
+                                    }, 
+                                    <span class="hljs-number">900</span>
+                                );
+                              } 
+                              <span class="hljs-keyword">else</span> {
+                                <span class="hljs-comment">//alert('Error: ' + ((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+                              }
+                        }
+                    ); 
+
+                    <span class="hljs-keyword">if</span>(!Ti.App.Properties.hasProperty(<span class="hljs-string">'registredForPush'</span>))
+                        getDeviceToken();
+                }
+                <span class="hljs-keyword">else</span> {
+                    <span class="hljs-comment">//alert("Error :" + e.message);</span>
+                }
+            }
+        );
+    }
+
+    <span class="hljs-comment">// getting device token</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getDeviceToken</span>(<span class="hljs-params"></span>) </span>{
+        CloudPush.retrieveDeviceToken(
+            {
+                success: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span>(<span class="hljs-params">e</span>) </span>{
+                    <span class="hljs-comment">//alert('Device Token: ' + e.deviceToken);</span>
+                    registerForPush(e.deviceToken);
+                },
+                error: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span>(<span class="hljs-params">e</span>) </span>{
+                    <span class="hljs-comment">//alert('Failed to register for push! ' + e.error);    </span>
+                }
+            }
+        );
+    }
+
+        <span class="hljs-comment">// register for push notification on cloud server</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span>(<span class="hljs-params">deviceToken</span>) </span>{
+        Cloud.PushNotifications.subscribe(
+            {
+                channel : <span class="hljs-string">'my_channel'</span>,
+                type : <span class="hljs-string">'android'</span>,
+                device_token : deviceToken
+            }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    Ti.App.Properties.setString(<span class="hljs-string">'registredForPush'</span>, <span class="hljs-literal">true</span>);
+
+
+                    <span class="hljs-comment">//alert('registred for push');</span>
+                    <span class="hljs-comment">//alert('Registred for Push Success :' + ((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+                }
+                <span class="hljs-keyword">else</span> {
+                    <span class="hljs-comment">//alert('Error:' + ((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+                }
+            }
+        );
+    }
+};    
+
+exports.updateObject = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">searchIdCloud, state, searchIdDb</span>) </span>{    
+    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+    <span class="hljs-keyword">var</span> userName = Titanium.Platform.getId();
+
+    Cloud.Users.login(
+        {
+            login : userName,
+            password : <span class="hljs-string">'pass'</span>
+        }, 
+        <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                <span class="hljs-keyword">var</span> user = e.users[<span class="hljs-number">0</span>].id;
+                <span class="hljs-comment">//alert("Loggin successfully");</span>
+                Cloud.Objects.update(
+                    {
+                          classname : <span class="hljs-string">'search_data'</span>,
+                          id: searchIdCloud,
+                          fields: {
+                            state: state
+                          }    
+                    }, 
+                    <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                          <span class="hljs-keyword">if</span>(e.success) {
+                            <span class="hljs-comment">//alert("created");</span>
+                            <span class="hljs-keyword">var</span> result = <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/updateDb'</span>).setPushState(searchIdDb, state);
+                            setTimeout(
+                                <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                                    Ti.App.fireEvent(<span class="hljs-string">'update'</span>, {changed : <span class="hljs-literal">true</span>});            
+                                }, 
+                                <span class="hljs-number">900</span>
+                            );
+                          } 
+                          <span class="hljs-keyword">else</span> {
+                            <span class="hljs-comment">//alert('Create Error:' + ((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+                          }
+                    }
+                );
+            }
+            <span class="hljs-keyword">else</span> {
+                <span class="hljs-comment">//Ti.API.info("Error :" + e.message);</span>
+            }
+        }
+    );
+};
+
+exports.removeObject = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">searchIdCloud, searchIdDb, state</span>) </span>{    
+    <span class="hljs-keyword">if</span>(state == <span class="hljs-literal">null</span>){
+        <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/updateDb'</span>).deleteSearchFromFavoris(searchIdDb);
+        setTimeout(
+            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                Ti.App.fireEvent(<span class="hljs-string">'update'</span>, {changed : <span class="hljs-literal">true</span>});            
+            }, 
+            <span class="hljs-number">900</span>
+        );
+    }
+    <span class="hljs-keyword">else</span>{
+        <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+        <span class="hljs-keyword">var</span> userName = Titanium.Platform.getId();
+
+        Cloud.Users.login(
+            {
+                login : userName,
+                password : <span class="hljs-string">'pass'</span>
+            }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    <span class="hljs-keyword">var</span> user = e.users[<span class="hljs-number">0</span>].id;
+                    <span class="hljs-comment">//alert("Loggin successfully");</span>
+                    Cloud.Objects.remove(
+                        {
+                              classname : <span class="hljs-string">'search_data'</span>,
+                              id: searchIdCloud
+                        }, 
+                        <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                              <span class="hljs-keyword">if</span>(e.success) {
+                                <span class="hljs-comment">//alert("created");</span>
+                                <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/updateDb'</span>).deleteSearchFromFavoris(searchIdDb);
+                                setTimeout(
+                                    <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                                        Ti.App.fireEvent(<span class="hljs-string">'update'</span>, {changed : <span class="hljs-literal">true</span>});            
+                                    }, 
+                                    <span class="hljs-number">900</span>
+                                );
+                              } 
+                              <span class="hljs-keyword">else</span> {
+                                <span class="hljs-comment">//alert('Create Error:' + ((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+                              }
+                        }
+                    );
+                }
+                <span class="hljs-keyword">else</span> {
+                    <span class="hljs-comment">//alert("Error :" + e.message);</span>
+                }
+            }
+        );
+    }
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 14th 2013, 4:59:34 pm">July 14th 2013</span>
+				by <span class='authorname'>Djamel ZAHAL</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>cloudpush</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

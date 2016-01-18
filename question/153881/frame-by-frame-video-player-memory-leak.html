@@ -1,0 +1,312 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Frame by frame video player: Memory leak? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Frame by frame video player: Memory leak?</h1>
+		</header>
+		<section>
+			<p>I am building an app for Android that plays a digitized super 8 film frame by frame, controlled by a drag gesture. I converted the film to individual jpg files. The maximum speed that I&#39;d like to achieve is about 5 frames a second, so not very fast. The app simulates the opening and closing of a shutter: Upon registration of a touchmove event, a black image blends in on top of the video frame, the next video frame is loaded into the ImageView, and the black image blends out again.</p>
+<p>The problem is the following:<br>Often everything runs smoothly, but every now and then things get terribly slow and the frame jump sequence which should only take about 200ms takes over a second. </p>
+<p>Could this be a memory leak? I did notice that with every event the memory decreases significantly and is only recovered every 20 or 30 events. This always occurs. When the app runs smoothly it seems to have no effect, but during the &#39;slow phases&#39; things seems to slow down more when the available memory gets lower.</p>
+<p>I don&#39;t understand why the problem occurs though:<br>-I&#39;m always using the same event listeners, so no memory leak should occur from this I&#39;d think.<br>-The image is replaced every time, so there should never be more than one image in the memory. The images are about 35kB in jpg format, so shouldn&#39;t take more than 500kB when they&#39;re unpacked in the memory, right?<br>-I guess my method of loading the images one by one during the process may be considered a bit clunky. However, I tried the same thing with a preloaded set of 20 images in loop, and the same problem occured.</p>
+<p>I&#39;m probably misunderstanding or overlooking something. Could you give me some advice?</p>
+<p>The code is below (sorry it&#39;s a bit long, but I didn&#39;t know how to show the issue more concisely). </p>
+<p>Many thanks,<br>Dani</p>
+<p>mobile, Titanium SDK 3.1.1.v20130523143543, Android 2.3.3, physical device: Samsung S3, OSX 10.7.5, Titanium Studio 3.1.1.201306071720 </p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> imageFile = <span class="hljs-string">'/ascending_jpg/ascending100.jpg'</span>
+<span class="hljs-keyword">var</span> imageShutter = <span class="hljs-string">'shutter_1400_1000.png'</span>;
+<span class="hljs-keyword">var</span> imageSheet = <span class="hljs-string">'plain sheet.png'</span>;
+
+<span class="hljs-keyword">var</span> 
+currentFrame = <span class="hljs-number">100</span>,
+shutterIdle = <span class="hljs-number">1</span>, 
+startY, previousY,
+shutterMovement, 
+currentZoneAnterior=<span class="hljs-number">0</span>;
+
+
+<span class="hljs-comment">// CREATE WINDOW</span>
+<span class="hljs-keyword">var</span> win1 = Titanium.UI.createWindow ({
+    backgroundColor: <span class="hljs-string">'#000'</span>,
+    navBarHidden: <span class="hljs-literal">true</span>,
+    fullscreen: <span class="hljs-literal">true</span>,
+});
+
+win1.orientationModes=[Titanium.UI.PORTRAIT];
+
+
+<span class="hljs-comment">// CREATE LABEL</span>
+<span class="hljs-comment">// My device doesn't seem to report to Console. I'm using a label to display debugging info cos I'm too lazy to fix the issue...</span>
+
+<span class="hljs-keyword">var</span> infoLabel = Ti.UI.createLabel ({
+    width:<span class="hljs-string">'auto'</span>,
+    height: <span class="hljs-string">'10%'</span>,
+    top: <span class="hljs-string">'70%'</span>,
+    left: <span class="hljs-string">'40%'</span>,
+    text: <span class="hljs-string">'info'</span>,
+    font: { fontSize:<span class="hljs-number">48</span> },
+    zIndex: <span class="hljs-number">3</span>,
+    color: <span class="hljs-string">'white'</span>
+});
+win1.add(infoLabel);
+
+
+
+
+<span class="hljs-comment">// FILM IMAGE</span>
+
+<span class="hljs-keyword">var</span> indicator = Ti.UI.createImageView({
+    image: imageFile,
+    height: <span class="hljs-string">'50%'</span>,
+    top: <span class="hljs-string">'25%'</span>,
+    borderColor: <span class="hljs-string">'#000'</span>,
+    zIndex: <span class="hljs-number">1</span>
+  }); 
+win1.add(indicator);
+
+
+<span class="hljs-comment">// SHUTTER IMAGE (black rectangle)</span>
+
+<span class="hljs-keyword">var</span> shutter = Titanium.UI.createImageView({
+  image: imageShutter,
+  center: <span class="hljs-string">'50%'</span>,
+  width: <span class="hljs-string">'100%'</span>,
+  height: <span class="hljs-string">'43%'</span>,
+  left: <span class="hljs-number">0</span>,
+  zIndex: <span class="hljs-number">2</span>,
+  opacity: <span class="hljs-number">0</span> 
+});
+win1.add (shutter);
+
+
+<span class="hljs-comment">// TOUCH IMAGE (transparent full screen image, highest zIndex , to assure that touch event coordinates are consistent)</span>
+
+<span class="hljs-keyword">var</span> sheet = Titanium.UI.createImageView({
+  image: imageSheet,
+  width: <span class="hljs-string">'100%'</span>,
+  height: <span class="hljs-string">'100%'</span>,
+  opacity: <span class="hljs-number">0</span>,
+  zIndex: <span class="hljs-number">4</span>
+});
+win1.add (sheet);
+
+
+<span class="hljs-comment">// FRAME JUMP</span>
+<span class="hljs-comment">// to move forward one frame, animation1 blends in the shutter image (black rectangle) --&gt; opacity to 1</span>
+<span class="hljs-comment">// subsequently, the function 'jumpFrame' loads the next image file into the 'indicator' ImageView</span>
+<span class="hljs-comment">// after this, animation2 blends out the shutter image --&gt; opacity to 0</span>
+<span class="hljs-comment">// finally, the shutterIdle variable is set to 1 so the frame jump sequence can be triggered again </span>
+
+
+<span class="hljs-keyword">var</span> animation1 = Titanium.UI.createAnimation();
+animation1.opacity = <span class="hljs-number">1</span>;
+animation1.duration =<span class="hljs-number">50</span>;
+
+animation1.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{    
+           jumpFrame();
+});
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">jumpFrame</span>(<span class="hljs-params"></span>)</span>{
+
+    currentFrame = currentFrame + <span class="hljs-number">1</span>;
+    imageFile = <span class="hljs-string">'/ascending_jpg/ascending'</span>+currentFrame+<span class="hljs-string">'.jpg'</span>;
+    indicator.setImage (imageFile);
+
+    infoLabel.setText (Ti.Platform.availableMemory);             
+
+       shutter.animate (animation2);
+
+}
+
+
+<span class="hljs-keyword">var</span> animation2 = Titanium.UI.createAnimation();
+
+animation2.opacity = <span class="hljs-number">0</span>;
+animation2.duration =<span class="hljs-number">50</span>;
+
+animation2.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+               shutterIdle = <span class="hljs-number">1</span>;                            <span class="hljs-comment">// once shutterIdle == 1 a new frame jump can be triggered</span>
+        },<span class="hljs-number">100</span>);
+
+});
+
+
+
+
+<span class="hljs-comment">// TOUCH TRACKING</span>
+<span class="hljs-comment">// the screen is divided into segments of 10% of screen hight</span>
+<span class="hljs-comment">// each time a new segment ('zone') is reached during a 'touchmove' event, a frame jump sequence is triggered (see above).</span>
+
+win1.addEventListener(<span class="hljs-string">'touchstart'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> pos = (e.y*<span class="hljs-number">100</span>)/win1.size.height;             <span class="hljs-comment">//calculate the place of the finger on the window in %   </span>
+    currentZoneAnterior = <span class="hljs-number">0</span>;
+    previousY= <span class="hljs-number">0</span>;
+    startY = (e.y);
+});
+
+win1.addEventListener(<span class="hljs-string">'touchmove'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">f</span>) </span>{
+   <span class="hljs-keyword">if</span>(f.y&gt;previousY){
+        <span class="hljs-keyword">var</span> moved = (((f.y-startY)*<span class="hljs-number">100</span>)/win1.size.height+<span class="hljs-number">9</span>); <span class="hljs-comment">// set the starting point of the touch just before the beginning of new segment </span>
+        currentZone = <span class="hljs-built_in">Math</span>.floor(moved/<span class="hljs-number">10</span>); <span class="hljs-comment">// screen is divided into segments of 10% of screen length</span>
+
+
+           <span class="hljs-keyword">if</span>(currentZone&gt;currentZoneAnterior &amp;&amp; shutterIdle == <span class="hljs-number">1</span>){      <span class="hljs-comment">// only trigger a frame jump if shutter is idle</span>
+            shutterIdle = <span class="hljs-number">0</span>;                                        <span class="hljs-comment">// before frame jump sequence starts, set shutter to busy so touchevent doesn't trigger the sequence again  before it's finished</span>
+            currentZoneAnterior=currentZone;
+            shutter.animate (animation1);                             <span class="hljs-comment">// this starts the frame jump sequence</span>
+        }
+   }
+   previousY=f.y;
+});
+
+
+win1.open ();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 20th 2013, 10:15:00 pm">June 20th 2013</span>
+				by <span class='authorname'>Daniel Ploeger</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>imageview</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>video</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>This is quite interesting, looks like when you reset the image, the old image is being keep in memory somehow. Do you mind to provide a set of images so I can test this? 100 or so. I don&#39;t know, any number where the app starts to be slow. </p>
+<p>iOS or Android? both?</p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 21st 2013, 11:58:01 pm">June 21st 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Mauro,</p>
+<p>Thanks.<br>I have done further testing and the problem actually also occurs when I don&#39;t change the film frames and merely let the shutter open and close, controlled by the touch event. </p>
+<p>(I bracketed out</p>
+<pre><code class="hljs">    imageFile = <span class="hljs-string">'/ascending_jpg/ascending'</span>+currentFrame+<span class="hljs-string">'.jpg'</span>;
+    indicator.setImage (imageFile);
+</code></pre><p>in the function &#39;jumpFrame&#39;)</p>
+<p>So I think it should be possible to replicate without the images.</p>
+<p>The slowing down happens at seemingly arbitrary points (sometimes after about 100-200 shutter movements, sometimes 500 or more), but then lasts until I reset the app in the application manager.</p>
+<p>The app is for Android only and I&#39;m testing on a Samsung Galaxy S3. The device is brand new and doesn&#39;t seem to have any problems with other apps. I tested in flight mode as well to see if this would make things faster, but the problem occurs in exactly the same form.</p>
+<p>Best,<br>Dani</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 22nd 2013, 6:49:47 am">June 22nd 2013</span>
+								by <span class='authorname'>Daniel Ploeger</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-265466">
+				
+						<section>
+							<p>I have now tested this more extensively on different Android devices. </p>
+<p>-On all Samsung S3s the erratic behaviour seems to occur in the same way (on both Android 4.1.2 and 4.1.1). When installed things work fine for a little while. Then the app slows down more and more. Opening and closing the app doesn&#39;t make a difference, but if storage data is cleared with the Applications Manager it works faster again for a little. Then the problem repeats itself.</p>
+<p>-On a Samsung Galaxy Tab 2 7.0 the app always works perfectly. Everything runs smoothly and I never encountered any problems.</p>
+<p>-On a Samsung Galaxy S1 with Android 2.3.5 the app runs extremely slowly, but appears stable. I.e. although slow, the speed of the actions appears to always be of similar length.</p>
+<p>Does anybody have any idea what may cause this problem?<br>Am I trying to do something for which Appcelerator is just not really suitable?<br>Since I&#39;m only building this for Android, I&#39;m considering rebuilding it with the ADT. Do you think this would improve my chances of success?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 5th 2013, 9:58:02 pm">July 5th 2013</span>
+								by <span class='authorname'>Daniel Ploeger</span><br>
+								<a class="icon-bg icon-link" href="question/153881/frame-by-frame-video-player-memory-leak#answer-265466" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

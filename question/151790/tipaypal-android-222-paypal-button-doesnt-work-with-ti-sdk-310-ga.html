@@ -1,0 +1,372 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ti.Paypal Android 2.2.2 Paypal Button doesn&#39;t work with Ti SDK 3.1.0 GA » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ti.Paypal Android 2.2.2 Paypal Button doesn&#39;t work with Ti SDK 3.1.0 GA</h1>
+		</header>
+		<section>
+			<p>Mobile 3.1.0 GA. Android emulator and T-Mobile GS2<br>Mac 10.8.2</p>
+<p>Titanium Studio, build: 3.1.0.201304151600</p>
+<p>How can I make the the Paypal Button work on SDK 3.1.0 GA.  I was struggling with this for several days that I just tried and switched to an older SDK build and it works fine. Ti. Paypal for iOS works fine with 3.1.0 GA but not android.  If anyone has solved this problem </p>
+<pre><code class="hljs"><span class="hljs-comment">// Include Order Processing callbacks</span>
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">"/core/ProcessOrder.js"</span>);
+
+<span class="hljs-comment">// Add PayPal (requires module package)</span>
+<span class="hljs-keyword">var</span> PaypalModule = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ti.paypal'</span>);
+
+<span class="hljs-comment">// Add CartManager</span>
+<span class="hljs-keyword">var</span> CartManager = <span class="hljs-keyword">require</span>(<span class="hljs-string">'core/CartManager'</span>);
+
+<span class="hljs-comment">// Add ProductManager</span>
+<span class="hljs-keyword">var</span> ProductManager = <span class="hljs-keyword">require</span>(<span class="hljs-string">'core/ProductManager'</span>);
+
+<span class="hljs-comment">// Get Util Library</span>
+<span class="hljs-keyword">var</span> Util = <span class="hljs-keyword">require</span>(<span class="hljs-string">'core/Util'</span>);
+
+<span class="hljs-comment">// Get Configuration Data</span>
+<span class="hljs-keyword">var</span> config = <span class="hljs-keyword">require</span>(<span class="hljs-string">'data/Config'</span>);
+
+<span class="hljs-comment">// get loading indicator</span>
+<span class="hljs-keyword">var</span> LoadingIndicator = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/Indicator'</span>);
+
+<span class="hljs-keyword">var</span> PayPalConts = {
+    <span class="hljs-string">"SANDBOX"</span>    : PaypalModule.PAYPAL_ENV_SANDBOX,
+    <span class="hljs-string">"LIVE"</span>       : PaypalModule.PAYPAL_ENV_LIVE,
+    <span class="hljs-string">"NONE"</span>       : PaypalModule.PAYPAL_ENV_NONE,
+    <span class="hljs-string">"HARD_GOODS"</span> : PaypalModule.PAYMENT_TYPE_HARD_GOODS,
+    <span class="hljs-string">"SERVICE"</span>    : PaypalModule.PAYMENT_TYPE_SERVICE,
+    <span class="hljs-string">"PERSONAL"</span>   : PaypalModule.PAYMENT_TYPE_PERSONAL,
+    <span class="hljs-string">"PAY"</span>        : PaypalModule.PAYPAL_TEXT_PAY,
+    <span class="hljs-string">"DONATE"</span>     : PaypalModule.PAYPAL_TEXT_DONATE
+};
+
+exports.create = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+
+    <span class="hljs-keyword">var</span> total = CartManager.getSubTotal(),
+        checkoutWin = Ti.UI.createWindow({
+            barColor        : <span class="hljs-string">"#000"</span>,
+            title           : <span class="hljs-string">"Checkout"</span>,
+            backgroundColor : <span class="hljs-string">"#fff"</span>,
+            layout          : <span class="hljs-string">"vertical"</span>
+        }),
+        checkoutLbl = Ti.UI.createLabel({
+            text      : <span class="hljs-string">"Total: $"</span> + total,
+            textAlign : <span class="hljs-string">"center"</span>,
+            height    : <span class="hljs-number">30</span>,
+            top       : <span class="hljs-number">100</span>,
+            color     : <span class="hljs-string">"#000"</span>
+        }),
+        cartData  = CartManager.getCartData(),
+        paypalBtn = getPayPalButton(parseFloat(CartManager.getSubTotal()), cartData),
+        cancelButton;
+
+    <span class="hljs-keyword">if</span>(Util.osname===<span class="hljs-string">'iphone'</span>){
+        cancelButton = Ti.UI.createButton({
+            systemButton : Ti.UI.iPhone.SystemButton.CANCEL
+        });
+        checkoutWin.setLeftNavButton(cancelButton);
+
+        cancelButton.addEventListener(
+            <span class="hljs-string">'click'</span>,
+            <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+                checkoutWin.close();
+            }
+        );
+    }
+    checkoutWin.add(paypalBtn);
+    checkoutWin.add(checkoutLbl);
+
+    paypalBtn.addEventListener(
+        <span class="hljs-string">'paymentCancelled'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            ProcessOrder.cancelled(cartData);
+            checkoutWin.close();
+        }
+    );
+
+    paypalBtn.addEventListener(
+        <span class="hljs-string">'paymentSuccess'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            CartManager.<span class="hljs-keyword">empty</span>();
+            checkoutWin.close();
+            ProcessOrder.success(cartData, e.transactionID);
+        }
+    );
+    paypalBtn.addEventListener(
+        <span class="hljs-string">'paymentError'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            ProcessOrder.failed(cartData, e.errorCode, e.errorMessage);
+            alert(e.errorMessage);
+            checkoutWin.close();
+        }
+    );
+    paypalBtn.addEventListener(
+        <span class="hljs-string">'buttonDisplayed'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+            setTimeout(
+                <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+                    <span class="hljs-keyword">if</span>(LoadingIndicator.isOpen()){
+                        LoadingIndicator.hide();
+                    }
+                }, <span class="hljs-number">1000</span>
+            );
+        }
+    );
+    paypalBtn.addEventListener(
+        <span class="hljs-string">'buttonError'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+            ProcessOrder.failed(cartData, e.errorCode, e.errorMessage);
+            alert(e.errorMessage);
+            checkoutWin.close();        }
+    );
+
+    checkoutWin.addEventListener(
+        <span class="hljs-string">"open"</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+            LoadingIndicator.show();
+            setTimeout(
+                <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+                    <span class="hljs-keyword">if</span>(LoadingIndicator.isOpen()){
+                        LoadingIndicator.hide();
+                    }
+                }, <span class="hljs-number">4000</span>
+            );
+        }
+    );
+
+    <span class="hljs-keyword">return</span> checkoutWin;
+}
+
+<span class="hljs-comment">/*
+ * Create PayPal Button object
+ *
+ * <span class="hljs-doctag">@param</span> {Number} amount: The total amount of the order
+ * <span class="hljs-doctag">@param</span> {Number} tax: Tax amount to apply to transaction
+ * <span class="hljs-doctag">@param</span> {Number} shipping: Shipping cost to apply to transaction
+ * <span class="hljs-doctag">@param</span> {String} memo: Description (not required)
+ * <span class="hljs-doctag">@returns</span> {Object} PayPal button UI object
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getPayPalButton</span><span class="hljs-params">(amount, cartData, tax, shipping, memo)</span></span>{
+    <span class="hljs-keyword">return</span> PaypalModule.createPaypalButton({
+        <span class="hljs-comment">// <span class="hljs-doctag">NOTE:</span> height/width only determine the size of the view that </span>
+        <span class="hljs-comment">// the button is embedded in - the actual button size</span>
+        <span class="hljs-comment">// is determined by the buttonStyle property!</span>
+        width             : <span class="hljs-number">194</span>,
+        height            : <span class="hljs-number">37</span>,
+        top               : <span class="hljs-number">10</span>,
+        language          : <span class="hljs-string">'en_US'</span>,
+        textStyle         : PayPalConts[config.PAYPAL_PAYMENT_TYPE], <span class="hljs-comment">// Set to "Pay" or "Donate"</span>
+        appId             : config.PAYPAL_APP_ID,
+        buttonStyle       : PaypalModule.BUTTON_194x37, <span class="hljs-comment">// The style &amp; size of the button</span>
+        paypalEnvironment : PayPalConts[config.PAYPAL_ENVIRONMENT],
+        feePaidByReceiver : <span class="hljs-keyword">false</span>, <span class="hljs-comment">// This will only be applied when the transaction type is Personal</span>
+        enableShipping    : config.PAYPAL_ENABLE_SHIPPING, <span class="hljs-comment">// Whether or not to select/send shipping information</span>
+        cancelUrl         : <span class="hljs-string">""</span>,
+        returnUrl         : <span class="hljs-string">""</span>,
+
+        payment : { <span class="hljs-comment">// The payment itself</span>
+            paymentType     : PayPalConts[config.PAYPAL_TRANSACTION_TYPE], <span class="hljs-comment">// The type of payment</span>
+            subtotal        : amount, <span class="hljs-comment">// The total cost of the order, excluding tax and shipping</span>
+            tax             : tax || <span class="hljs-number">0.00</span>,
+            shipping        : shipping || <span class="hljs-number">0.00</span>,
+            currency        : <span class="hljs-string">'USD'</span>,
+            recipient       : config.PAYPAL_RECIPIENT,
+            merchantName    : config.MERCHANT_NAME,
+            ipnUrl          : config.PAYPAL_IPN_URL || <span class="hljs-string">""</span>,
+             invoiceItems    : cartData
+        }
+    });
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 30th 2013, 6:58:22 pm">April 30th 2013</span>
+				by <span class='authorname'>Wayne Grimes Hirakawa</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>paypal</span></li>
+					
+						<li><span class='tagname'>sdk 3.1.0 ga</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello,</p>
+<p>any log or crashlog that you can share? </p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 30th 2013, 9:00:21 pm">April 30th 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#x2F;ActivityManager(  148): START {cmp=testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity (has extras) u=0} from pid 1202<br>W&#x2F;WindowManager(  148): Failure taking screenshot for (246x437) to layer 21020<br>I&#x2F;PaypalButton( 1202): (Thread-117) [172,28880] buttonStyle: 1<br>W&#x2F;dalvikvm( 1202): threadid=20: thread exiting with uncaught exception (group=0x40a13300)<br>E&#x2F;TiApplication( 1202): (Thread-117) [39,28919] Sending event: exception on thread: Thread-117 msg:java.lang.NullPointerException: src == null; Titanium 3.1.0,2013&#x2F;04&#x2F;15 18:46,57634ef<br>E&#x2F;TiApplication( 1202): java.lang.NullPointerException: src == null<br>E&#x2F;TiApplication( 1202):     at java.lang.System.arraycopy(Native Method)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.a.g.a(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.a.h.c(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.MEP.PayPal.setLanguage(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.MEP.PayPal.initWithAppID(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at ti.modules.titanium.paypal.PaypalButton.createButton(PaypalButton.java:54)<br>E&#x2F;TiApplication( 1202):     at ti.modules.titanium.paypal.PaypalButton.&lt;init&gt;(PaypalButton.java:29)<br>E&#x2F;TiApplication( 1202):     at ti.modules.titanium.paypal.PaypalButtonProxy$1.run(PaypalButtonProxy.java:50)<br>D&#x2F;dalvikvm( 1202): GC_CONCURRENT freed 1342K, 6% free 24536K&#x2F;25927K, paused 30ms+10ms, total 146ms<br>D&#x2F;dalvikvm( 1202): WAIT_FOR_CONCURRENT_GC blocked 31ms<br>D&#x2F;dalvikvm( 1202): WAIT_FOR_CONCURRENT_GC blocked 52ms<br>D&#x2F;dalvikvm( 1202): WAIT_FOR_CONCURRENT_GC blocked 56ms<br>E&#x2F;AndroidRuntime( 1202): FATAL EXCEPTION: Thread-117<br>E&#x2F;AndroidRuntime( 1202): java.lang.NullPointerException: src == null<br>E&#x2F;AndroidRuntime( 1202):     at java.lang.System.arraycopy(Native Method)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.a.g.a(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.a.h.c(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.MEP.PayPal.setLanguage(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.MEP.PayPal.initWithAppID(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at ti.modules.titanium.paypal.PaypalButton.createButton(PaypalButton.java:54)<br>E&#x2F;AndroidRuntime( 1202):     at ti.modules.titanium.paypal.PaypalButton.&lt;init&gt;(PaypalButton.java:29)<br>E&#x2F;AndroidRuntime( 1202):     at ti.modules.titanium.paypal.PaypalButtonProxy$1.run(PaypalButtonProxy.java:50)<br>W&#x2F;ActivityManager(  148):   Force finishing activity testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity<br>W&#x2F;ActivityManager(  148):   Force finishing activity testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity<br>W&#x2F;ActivityManager(  148): Activity pause timeout for ActivityRecord{4168e3e8 testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity}<br>D&#x2F;webviewglue( 1202): nativeDestroy view: 0x2a2c0d78<br>I&#x2F;Choreographer( 1202): Skipped 205 frames!  The application may be doing too much work on its main thread.<br>I&#x2F;TiRootActivity( 1202): (main) [0,0] checkpoint, on root activity resume. activity = testapp.wayne.com.ZippySActivity@41247de8<br>I&#x2F;dalvikvm(  148): Jit: resizing JitTable from 8192 to 16384<br>I&#x2F;ActivityManager(  148): Displayed testapp.wayne.com&#x2F;.ZippySActivity: +35s161ms (total +2s297ms)<br>I&#x2F;Choreographer( 1202): Skipped 51 frames!  The application may be doing too much work on its main thread.<br>I&#x2F;TiAnalyticsSvc( 1202): (Thread-116) [1560,1560] Stopping Analytics Service<br>I&#x2F;Process ( 1202): Sending signal. PID: 1202 SIG: 9<br>I&#x2F;WindowState(  148): WIN DEATH: Window{416836d8 testapp.wayne.com&#x2F;testapp.wayne.com.ZippySActivity paused=false}<br>I&#x2F;ActivityManager(  148): Process testapp.wayne.com (pid 1202) has died.<br>W&#x2F;ActivityManager(  148): Force removing ActivityRecord{41673f20 testapp.wayne.com&#x2F;.ZippySActivity}: app died, no saved state<br>W&#x2F;InputMethodManagerService(  148): Got RemoteException sending setActive(false) notification to pid 1202 uid 10049</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 30th 2013, 9:07:09 pm">April 30th 2013</span>
+								by <span class='authorname'>Wayne Grimes Hirakawa</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-261923">
+				
+						<section>
+							<p>I&#x2F;ActivityManager(  148): START {cmp=testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity (has extras) u=0} from pid 1202<br>W&#x2F;WindowManager(  148): Failure taking screenshot for (246x437) to layer 21020<br>I&#x2F;PaypalButton( 1202): (Thread-117) [172,28880] buttonStyle: 1<br>W&#x2F;dalvikvm( 1202): threadid=20: thread exiting with uncaught exception (group=0x40a13300)<br>E&#x2F;TiApplication( 1202): (Thread-117) [39,28919] Sending event: exception on thread: Thread-117 msg:java.lang.NullPointerException: src == null; Titanium 3.1.0,2013&#x2F;04&#x2F;15 18:46,57634ef<br>E&#x2F;TiApplication( 1202): java.lang.NullPointerException: src == null<br>E&#x2F;TiApplication( 1202):     at java.lang.System.arraycopy(Native Method)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.a.g.a(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.a.h.c(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.MEP.PayPal.setLanguage(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at com.paypal.android.MEP.PayPal.initWithAppID(Unknown Source)<br>E&#x2F;TiApplication( 1202):     at ti.modules.titanium.paypal.PaypalButton.createButton(PaypalButton.java:54)<br>E&#x2F;TiApplication( 1202):     at ti.modules.titanium.paypal.PaypalButton.&lt;init&gt;(PaypalButton.java:29)<br>E&#x2F;TiApplication( 1202):     at ti.modules.titanium.paypal.PaypalButtonProxy$1.run(PaypalButtonProxy.java:50)<br>D&#x2F;dalvikvm( 1202): GC_CONCURRENT freed 1342K, 6% free 24536K&#x2F;25927K, paused 30ms+10ms, total 146ms<br>D&#x2F;dalvikvm( 1202): WAIT_FOR_CONCURRENT_GC blocked 31ms<br>D&#x2F;dalvikvm( 1202): WAIT_FOR_CONCURRENT_GC blocked 52ms<br>D&#x2F;dalvikvm( 1202): WAIT_FOR_CONCURRENT_GC blocked 56ms<br>E&#x2F;AndroidRuntime( 1202): FATAL EXCEPTION: Thread-117<br>E&#x2F;AndroidRuntime( 1202): java.lang.NullPointerException: src == null<br>E&#x2F;AndroidRuntime( 1202):     at java.lang.System.arraycopy(Native Method)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.a.g.a(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.a.h.c(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.MEP.PayPal.setLanguage(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at com.paypal.android.MEP.PayPal.initWithAppID(Unknown Source)<br>E&#x2F;AndroidRuntime( 1202):     at ti.modules.titanium.paypal.PaypalButton.createButton(PaypalButton.java:54)<br>E&#x2F;AndroidRuntime( 1202):     at ti.modules.titanium.paypal.PaypalButton.&lt;init&gt;(PaypalButton.java:29)<br>E&#x2F;AndroidRuntime( 1202):     at ti.modules.titanium.paypal.PaypalButtonProxy$1.run(PaypalButtonProxy.java:50)<br>W&#x2F;ActivityManager(  148):   Force finishing activity testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity<br>W&#x2F;ActivityManager(  148):   Force finishing activity testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity<br>W&#x2F;ActivityManager(  148): Activity pause timeout for ActivityRecord{4168e3e8 testapp.wayne.com&#x2F;org.appcelerator.titanium.TiActivity}<br>D&#x2F;webviewglue( 1202): nativeDestroy view: 0x2a2c0d78<br>I&#x2F;Choreographer( 1202): Skipped 205 frames!  The application may be doing too much work on its main thread.<br>I&#x2F;TiRootActivity( 1202): (main) [0,0] checkpoint, on root activity resume. activity = testapp.wayne.com.ZippySActivity@41247de8<br>I&#x2F;dalvikvm(  148): Jit: resizing JitTable from 8192 to 16384<br>I&#x2F;ActivityManager(  148): Displayed testapp.wayne.com&#x2F;.ZippySActivity: +35s161ms (total +2s297ms)<br>I&#x2F;Choreographer( 1202): Skipped 51 frames!  The application may be doing too much work on its main thread.<br>I&#x2F;TiAnalyticsSvc( 1202): (Thread-116) [1560,1560] Stopping Analytics Service<br>I&#x2F;Process ( 1202): Sending signal. PID: 1202 SIG: 9<br>I&#x2F;WindowState(  148): WIN DEATH: Window{416836d8 testapp.wayne.com&#x2F;testapp.wayne.com.ZippySActivity paused=false}<br>I&#x2F;ActivityManager(  148): Process testapp.wayne.com (pid 1202) has died.<br>W&#x2F;ActivityManager(  148): Force removing ActivityRecord{41673f20 testapp.wayne.com&#x2F;.ZippySActivity}: app died, no saved state<br>W&#x2F;InputMethodManagerService(  148): Got RemoteException sending setActive(false) notification to pid 1202 uid 10049</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 30th 2013, 9:06:36 pm">April 30th 2013</span>
+								by <span class='authorname'>Wayne Grimes Hirakawa</span><br>
+								<a class="icon-bg icon-link" href="question/151790/tipaypal-android-222-paypal-button-doesnt-work-with-ti-sdk-310-ga#answer-261923" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Any updates on this?  I seem to have the same issue.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 20th 2013, 9:48:39 pm">May 20th 2013</span>
+											by <span class='authorname'>mitch duitz</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Still an issue. Needs pretty urgent fixing.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 23rd 2013, 1:15:04 pm">August 23rd 2013</span>
+											by <span class='authorname'>Mark Steadman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Dear look for new version released 17 hours ago. Its 2.2.3, and the button click listener issue is fixed now….. Cheers</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 29th 2013, 10:36:42 am">August 29th 2013</span>
+											by <span class='authorname'>Maroof Saeed</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>could you give us the link for ti.paypal-android-2.2.3 please</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 8th 2013, 1:08:10 pm">September 8th 2013</span>
+											by <span class='authorname'>walaa gomaa</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-270677">
+				
+						<section>
+							<p>everything is working with paypal-android-2.2.3 except i cant login into paypal any idea whay might be the problem</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 31st 2013, 4:35:20 am">October 31st 2013</span>
+								by <span class='authorname'>Mubashir khan</span><br>
+								<a class="icon-bg icon-link" href="question/151790/tipaypal-android-222-paypal-button-doesnt-work-with-ti-sdk-310-ga#answer-270677" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

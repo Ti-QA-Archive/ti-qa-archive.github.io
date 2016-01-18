@@ -1,0 +1,236 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy: Multiple instances of controllers? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy: Multiple instances of controllers?</h1>
+		</header>
+		<section>
+			<p>Hi!</p>
+<p>In my app I have a certain window that is reused often. It gets data from a database and populates the page from there. This works without problems. However, from within each page there may be links to other pages, thus &quot;nesting&quot; multiple instances of the view. This is where the problems start.</p>
+<p>The first time I open a window from within a window everything works as it should. I close the window with a <code>$.pm_page.close()</code> where $.pm_page is the view file name (pm_page.xml).</p>
+<p>However, the second time I open a link from within a window, it seems that the old window wasn&#39;t closed but simply brought to front, and I have to close the window two times. If I click a link again, I have to close the window three times, etc. Also, after a few times the app get noticeably slow. Thus, I conclude that the old instance of the controller is retained.</p>
+<p>I use this code to open windows:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> newPm_controller = Alloy.Globals.openWindow('pm_page');
+newPm_controller.openPm(<span class="hljs-keyword">e</span>.url, <span class="hljs-keyword">e</span>.title);
+</code></pre><p>where <code>Alloy.Globals.openWindow()</code> has the following code:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> controller</span> = Alloy.createController(windowName);
+Alloy.Globals.navcontroller.<span class="hljs-keyword">open</span>(controller.getView());
+<span class="hljs-keyword">return</span> controller;
+</code></pre><p>and the <code>newPm_controller.openPm()</code> is just to fetch the data.</p>
+<p><code>Alloy.Globals.navcontroller</code> is just a reference to the following lib:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">NavigationController</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.windowStack = [];
+};
+
+NavigationController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen</span>) </span>{
+    Ti.API.log(<span class="hljs-string">"Open function."</span>);
+    <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+    <span class="hljs-keyword">this</span>.windowStack.push(windowToOpen);
+
+    <span class="hljs-comment">//grab a copy of the current nav controller for use in the callback</span>
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    <span class="hljs-keyword">var</span> lastPushed = windowToOpen;
+    windowToOpen.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (that.windowStack.length &gt; <span class="hljs-number">1</span>) <span class="hljs-comment">// don't pop the last Window, which is the base one</span>
+        {
+            Ti.API.log(<span class="hljs-string">"Event 'close': "</span> + <span class="hljs-keyword">this</span>.title);
+            <span class="hljs-keyword">var</span> popped = that.windowStack.pop();
+
+            <span class="hljs-keyword">if</span> (lastPushed != popped)
+            {
+                Ti.API.info(<span class="hljs-string">"Last window should NOT have been popped. Push it back on the stack!"</span>);
+                that.windowStack.push(popped);
+            }
+
+            <span class="hljs-comment">// close dependent window ?</span>
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.toClose) {
+                Ti.API.log(<span class="hljs-string">"Invoke close on dependent window:"</span> + <span class="hljs-keyword">this</span>.toClose.title);
+                 <span class="hljs-comment">// close "parent" window, do not use animation (it looks weird with animation)</span>
+                 (that.navGroup) ? that.navGroup.close(<span class="hljs-keyword">this</span>.toClose, {animated : <span class="hljs-literal">false</span>}) : <span class="hljs-keyword">this</span>.toClose.close({animated:<span class="hljs-literal">false</span>});
+            }
+
+            <span class="hljs-comment">// open dependent window ?</span>
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.toOpen) {
+                Ti.API.log(<span class="hljs-string">"Invoke open on dependent window:"</span> + <span class="hljs-keyword">this</span>.toOpen.title);
+                 that.open(<span class="hljs-keyword">this</span>.toOpen);
+            } 
+
+            Ti.API.log(<span class="hljs-string">"End event 'close'. Stack: "</span> + that.windowStack.map(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">v</span>) </span>{<span class="hljs-keyword">return</span> v.title;}));
+        } <span class="hljs-comment">// end if windowStack.length &gt; 1, and end of my hack</span>
+    }); <span class="hljs-comment">// end eventListener 'close'</span>
+
+    windowToOpen.addEventListener(<span class="hljs-string">'set.to.close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">dict</span>) </span>{
+        Ti.API.log(<span class="hljs-string">"Event 'set.to.close': "</span> + <span class="hljs-keyword">this</span>.title);
+        <span class="hljs-keyword">this</span>.toClose = dict.win;
+    });
+
+    windowToOpen.addEventListener(<span class="hljs-string">'set.to.open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">dict</span>) </span>{
+        Ti.API.log(<span class="hljs-string">"Event 'set.to.open': "</span> + <span class="hljs-keyword">this</span>.title);
+        <span class="hljs-keyword">this</span>.toOpen = dict.win;
+    });
+
+    <span class="hljs-comment">//hack - setting this property ensures the window is "heavyweight" (associated with an Android activity)</span>
+    windowToOpen.navBarHidden = windowToOpen.navBarHidden || <span class="hljs-literal">false</span>;
+
+    <span class="hljs-comment">//This is the first window</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.windowStack.length === <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">if</span> (Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+            windowToOpen.exitOnClose = <span class="hljs-literal">true</span>;
+            windowToOpen.open();
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">this</span>.navGroup = Ti.UI.iPhone.createNavigationGroup({
+                <span class="hljs-built_in">window</span> : windowToOpen
+            });
+
+            <span class="hljs-comment">// let's use the NavigationController's createWindow function to create a window here</span>
+            <span class="hljs-keyword">var</span> containerWindow = Ti.UI.createWindow();
+            containerWindow.add(<span class="hljs-keyword">this</span>.navGroup);
+            containerWindow.open();
+        }
+    }
+    <span class="hljs-comment">//All subsequent windows</span>
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span> (Ti.Platform.osname === <span class="hljs-string">'android'</span>) {
+            windowToOpen.open();
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">this</span>.navGroup.open(windowToOpen);
+        }
+    }
+    Ti.API.log(<span class="hljs-string">"End Open. Stack: "</span> + <span class="hljs-keyword">this</span>.windowStack.map(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">v</span>) </span>{<span class="hljs-keyword">return</span> v.title;}));
+}; <span class="hljs-comment">// end of open function</span>
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.log(<span class="hljs-string">"Home function."</span>);
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.windowStack.length &gt; <span class="hljs-number">1</span>) {
+        <span class="hljs-comment">// setup chain reaction by setting up the flags on all the windows</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-keyword">this</span>.windowStack.length - <span class="hljs-number">1</span>; i &gt; <span class="hljs-number">1</span>; i--)
+        {
+            <span class="hljs-comment">// set dependent window</span>
+            <span class="hljs-keyword">this</span>.windowStack[i].fireEvent(<span class="hljs-string">'set.to.close'</span>, {win: <span class="hljs-keyword">this</span>.windowStack[i - <span class="hljs-number">1</span>]});
+           }
+        <span class="hljs-comment">// start chain reaction, close first window</span>
+        (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(<span class="hljs-keyword">this</span>.windowStack[<span class="hljs-keyword">this</span>.windowStack.length - <span class="hljs-number">1</span>]) : <span class="hljs-keyword">this</span>.windowStack[<span class="hljs-keyword">this</span>.windowStack.length - <span class="hljs-number">1</span>].close();
+    }
+    Ti.API.log(<span class="hljs-string">"End Home. Stack: "</span> + <span class="hljs-keyword">this</span>.windowStack.map(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">v</span>) </span>{<span class="hljs-keyword">return</span> v.title;}));
+};
+
+NavigationController.prototype.openFromHome = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">windowToOpen</span>) </span>{
+    Ti.API.log(<span class="hljs-string">"openFromHome function."</span>);
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.windowStack.length == <span class="hljs-number">1</span>)
+        <span class="hljs-keyword">this</span>.open(windowToOpen);
+    <span class="hljs-keyword">else</span>
+    {
+        <span class="hljs-comment">// delegate opening of the window to last window to close</span>
+        <span class="hljs-keyword">this</span>.windowStack[<span class="hljs-number">1</span>].fireEvent(<span class="hljs-string">'set.to.open'</span>, {win: windowToOpen});
+        <span class="hljs-keyword">this</span>.home();
+    }
+    Ti.API.log(<span class="hljs-string">"End openFromHome. Stack: "</span> + <span class="hljs-keyword">this</span>.windowStack.map(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">v</span>) </span>{<span class="hljs-keyword">return</span> v.title;}));
+};
+
+<span class="hljs-built_in">module</span>.exports = NavigationController;
+</code></pre><p>So again, it seems that calling .close() on the window does not actually close it, since after opening several of them, I have to close them again. I&#39;ve also tried adding <code>$.destroy();</code> to a close event in the window but that makes no difference.</p>
+<p>Any ideas?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 21st 2013, 10:40:38 pm">October 21st 2013</span>
+				by <span class='authorname'>Erik Håkansson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>controller</span></li>
+					
+						<li><span class='tagname'>multiple instances</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I&#39;m al little lost with all the snippets here. In all likelihood, you have an issue with how you are closing the windows in the first place, but that&#39;s hard to discern from the code above. Can you trim this down to an actual test case that we can run to reproduce your problem?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 22nd 2013, 12:34:58 pm">October 22nd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I solved it!</p>
+<p>All these links were opened from within a WebView, and I handled them through an <code>Ti.App.addEventListener</code>.</p>
+<p>What I did wrong, however, was to place the event listener within the actual window code, rather than in alloy.js. Thus, each time a new window was opened, a new event listener was added, thus on each click, several windows were opened.</p>
+<p>I think this is the third time I did something stupid like this, asked a question here, and then went and solved it myself! :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 22nd 2013, 10:11:08 pm">October 22nd 2013</span>
+								by <span class='authorname'>Erik Håkansson</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

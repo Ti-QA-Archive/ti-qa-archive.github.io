@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy Collections across screens » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy Collections across screens</h1>
+		</header>
+		<section>
+			<p>Hi all! I&#39;ve built and deployed our first Alloy app, and after a few days of filling the knowledge gap, the outcome has been great. That said, there are a few rough edges that I&#39;m not sure I have resolved correctly. </p>
+<p>The main one seems to be when you use a Collection across pages and apply filtering to the .where clause. An example follows:</p>
+<p>I have a screen that shows latest &#39;Specials&#39;. There are about 2k specials in the database and I&#39;m using the restsql adaptor:</p>
+<p><strong>latest.xml</strong></p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Collection</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"specials"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Latest Specials"</span> <span class="hljs-attribute">onAndroid:back</span>=<span class="hljs-value">"closeMe"</span> <span class="hljs-attribute">onOpen</span>=<span class="hljs-value">"doOpen"</span> <span class="hljs-attribute">onFocus</span>=<span class="hljs-value">"getData"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"latestWindow"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"specials"</span> <span class="hljs-attribute">dataTransform</span>=<span class="hljs-value">"dataTransform"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"showVenue"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"latestTable"</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"container"</span> <span class="hljs-attribute">venueId</span>=<span class="hljs-value">"{venueid}"</span> <span class="hljs-attribute">layout</span>=<span class="hljs-value">"horizontal"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"row"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">text</span>=<span class="hljs-value">"{venue}"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"h3 venue"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">text</span>=<span class="hljs-value">"{summary}"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"h5 summary"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">text</span>=<span class="hljs-value">"{days}"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"h5 days"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">text</span>=<span class="hljs-value">"{updatedate}"</span> /&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">TableViewRow</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p><strong>latest.js</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'alloy/moment'</span>);
+<span class="hljs-keyword">var</span> specials = Alloy.Collections.specials;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dataTransform</span>(<span class="hljs-params">model</span>) </span>{
+    <span class="hljs-keyword">var</span> t = model.toJSON();
+    t.days = <span class="hljs-string">'Days: '</span> + Alloy.Globals.dayString(model);
+    t.updatedate = <span class="hljs-string">'Last Updated on '</span> +moment(t.updated).format(<span class="hljs-string">"D MMM D YY hh:mm a"</span>);
+    <span class="hljs-keyword">return</span> t;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showVenue</span>(<span class="hljs-params">e</span>) </span>{
+    venues.fetch({
+        query: {
+             sql: <span class="hljs-string">'SELECT * FROM venues WHERE id = ?'</span>,
+             params: [e.row.venueId]
+        },
+        localOnly:<span class="hljs-literal">true</span>
+    });
+    <span class="hljs-keyword">var</span> venue = venues.get(e.row.venueId);
+    <span class="hljs-keyword">var</span> detail = Alloy.createController(<span class="hljs-string">'venue/detailWindow'</span>, venue).getView();
+    detail.open();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getData</span>(<span class="hljs-params">e</span>) </span>{
+    specials.fetch({  
+        query: {
+             sql: <span class="hljs-string">'SELECT * specials ORDER BY specials.updated DESC LIMIT 20;'</span>,
+             params: []
+        },
+        localOnly:<span class="hljs-literal">true</span>
+    });
+}
+
+$.latestWindow.addEventListener(<span class="hljs-string">"close"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    $.destroy();
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">closeMe</span>(<span class="hljs-params">e</span>) </span>{
+    $.latestWindow.close();
+};
+</code></pre><p>When you click on a row, it opens a venue detail screen. On that screen I list all the &#39;Specials&#39; for that venue on page load using:</p>
+<pre><code class="hljs">...
+    <span class="hljs-tag">specials</span><span class="hljs-class">.fetch</span>({
+        <span class="hljs-tag">sql</span>: {
+            <span class="hljs-tag">where</span>:{
+                <span class="hljs-attribute">venueid</span>: venueid
+            }
+        },
+        <span class="hljs-attribute">localOnly</span>:true
+    });
+...
+</code></pre><p>If I then click back (aka win.close) on the venue detail screen, the TableView only shows the specials for the previously opened venue. I added an onFocus event to refresh the TableView and call <code>getData()</code> again, but this seems like a work around rather than a proper fix. The venue detail screen also has a TableView that uses the &#39;Specials&#39; collection, and the only way I can think of stopping this from occurring is to not use the Alloy Collection binding for table views and fill the venue specials manually, but I want to use Alloy for all the things :)</p>
+<p>venueDetail.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Collection</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"specials"</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Venue Details"</span> <span class="hljs-attribute">onAndroidbackbutton</span>=<span class="hljs-value">"closeMe"</span> <span class="hljs-attribute">onOpen</span>=<span class="hljs-value">"doOpen"</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"detailWindow"</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">View</span> <span class="hljs-attribute">height</span>=<span class="hljs-value">"Ti.UI.SIZE"</span> <span class="hljs-attribute">top</span>=<span class="hljs-value">"0"</span>&gt;</span> 
+            <span class="hljs-tag">&lt;<span class="hljs-title">View</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"container"</span> <span class="hljs-attribute">top</span>=<span class="hljs-value">"0"</span>&gt;</span>
+
+                <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"title"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"h1 venue"</span>/&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"address"</span>/&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"updated"</span>/&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"description"</span>/&gt;</span>
+
+                <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"specialsTable"</span> <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"specials"</span> <span class="hljs-attribute">dataTransform</span>=<span class="hljs-value">"transformFunction"</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">Require</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"venue/detailRow"</span>/&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">View</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">View</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 23rd 2013, 12:49:27 am">September 23rd 2013</span>
+				by <span class='authorname'>Karl Kopp</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>collections</span></li>
+					
+						<li><span class='tagname'>data</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-268998">
+				
+						<section>
+							<p>Why don&#39;t you create 2 instances of the Specials collection, one for each view. They will still be operating on the same stored data, but won&#39;t respond to each other&#39;s events. That way you can continue to use Alloy and its data binding and still have full control over how the data is represented on each screen.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 23rd 2013, 11:26:00 am">September 23rd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/157489/alloy-collections-across-screens#answer-268998" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Tony - In each view, I&#39;m using a reference to a Alloy.Globals.specials collection. Are you suggesting I create 2 global collections (eg Alloy.Globals.specials and Alloy.Globals.specials2)? Can definitely give it a go, just didn&#39;t feel like the &#39;right way&#39; :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 23rd 2013, 9:45:31 pm">September 23rd 2013</span>
+											by <span class='authorname'>Karl Kopp</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The problem is that if you don&#39;t create 2 instances, you are always going to be sharing events, which will impact the UI rendering on both screens. You&#39;re still referencing the same storage, so there&#39;s no duplication of data, just separate instances for better control.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 24th 2013, 11:54:30 am">September 24th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Tony - managed to give this a try last night, wthout success. I added this to alloy.js:</p>
+<pre><code class="hljs"><span class="hljs-attribute">...</span>
+Alloy<span class="hljs-built_in">.</span>Collections<span class="hljs-built_in">.</span>specials = Alloy<span class="hljs-built_in">.</span>createCollection(<span class="hljs-string">'specials'</span>);
+Alloy<span class="hljs-built_in">.</span>Collections<span class="hljs-built_in">.</span>specialsLatest = Alloy<span class="hljs-built_in">.</span>createCollection(<span class="hljs-string">'specials'</span>);
+<span class="hljs-attribute">...</span>
+</code></pre><p>Updating the view:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Collection</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">"specialsLatest"</span>&gt;</span>
+...
+</code></pre><p>And updating the controller:</p>
+<pre><code class="hljs"><span class="hljs-attribute">...</span>
+<span class="hljs-built_in">var</span> specialsLatest = Alloy<span class="hljs-built_in">.</span>Collections<span class="hljs-built_in">.</span>specialsLatest;
+<span class="hljs-attribute">...</span>
+</code></pre><p>But I get the following error:</p>
+<pre><code class="hljs">[<span class="hljs-keyword">ERROR</span>] Application Installer abnormal process termination. Process <span class="hljs-keyword">exit</span> value was 1
+[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-keyword">Error</span> with &lt;Collection&gt; at <span class="hljs-keyword">line</span> 2
+[<span class="hljs-keyword">ERROR</span>] :  Alloy compiler failed
+</code></pre><p>Do I need to create a duplicate model js file as well??</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 1st 2013, 10:51:39 pm">October 1st 2013</span>
+											by <span class='authorname'>Karl Kopp</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

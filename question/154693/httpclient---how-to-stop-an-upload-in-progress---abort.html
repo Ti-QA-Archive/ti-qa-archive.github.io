@@ -1,0 +1,504 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTPClient - How to STOP an upload in progress - abort? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTPClient - How to STOP an upload in progress - abort?</h1>
+		</header>
+		<section>
+			<p>This one is giving me gray hairs - I&#39;ve been stuck for days, trying absolutely everything I can think of.<br>Really hope someone has some insight :)</p>
+<p>Problem:<br>I want to allow the user to cancel an upload. It can be a large file, and maybe the user regrets.<br>Using xhr.abort() just doesn&#39;t seem to work for this. </p>
+<p>How does it manifest?<br>After calling xhr.abort(), by pressing a button, the upload appears to be aborted. The upload is still going on though, in the background, which I can see on bandwidth usage via. DU Meter for Windows, plus serverside - and the server receives a new connection from Titanium.</p>
+<p>Server:<br>I&#39;ve used a node.js express server to test this. Upload request is sent and received by server fine, but as soon as abort is called on client, a NEW connection is opened on the server - server has no chance to react to anything. I of course close the initial connection to the server, but the 2nd connection remains - and if undisturbed, will finish the upload progress. How weird is that? I mean, who on earth does Titanium fire off another connection when it&#39;s been told to abort?</p>
+<p>Sample Titanium 3.1.1 Code:</p>
+<pre><code class="hljs">
+        <span class="hljs-keyword">var</span> upload_url = <span class="hljs-string">"http://some_host_with_your_node_server/upload"</span>;
+    <span class="hljs-keyword">var</span> path_to_upload_file = Ti.Filesystem.resourcesDirectory+<span class="hljs-string">"0.mp4"</span>;
+
+
+    <span class="hljs-comment">//create our win + view</span>
+    <span class="hljs-keyword">var</span> win = Ti.UI.createWindow({
+        backgroundColor:<span class="hljs-string">'#000'</span>,
+        navBarHidden:<span class="hljs-literal">true</span>,
+        exitOnClose:<span class="hljs-literal">true</span>
+    });
+
+    <span class="hljs-keyword">var</span> view=Ti.UI.createView({
+        top:<span class="hljs-number">0</span>, left:<span class="hljs-number">0</span>,
+        backgroundColor:<span class="hljs-string">'#fff'</span>,
+        layout: <span class="hljs-string">"horizontal"</span>,
+    });
+
+    win.add(view);
+    win.open();
+
+
+    <span class="hljs-keyword">var</span> xhr;    <span class="hljs-comment">//global xhr var to keep our request in so we can call abort on it while it's uploading</span>
+
+    <span class="hljs-comment">//abort button</span>
+    <span class="hljs-keyword">var</span> button = Ti.UI.createButton({ title:  <span class="hljs-string">"ABORT"</span> });
+    view.add(button);
+    button.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+       xhr.abort();
+    });
+
+
+    <span class="hljs-comment">//upload button - creates new httpclient stored in xhr, starting the upload</span>
+    <span class="hljs-keyword">var</span> button = Ti.UI.createButton({ title:  <span class="hljs-string">"UPLOAD"</span> });
+    view.add(button);
+    button.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+
+        <span class="hljs-comment">//get handle for our file, complain if it's not found</span>
+        <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(path_to_upload_file); 
+        <span class="hljs-keyword">if</span> (!file.exists()) { alert(<span class="hljs-string">"File not found"</span>); <span class="hljs-keyword">return</span>; }
+
+        xhr = Titanium.Network.createHTTPClient({ keepAlive:  <span class="hljs-literal">false</span> });
+        xhr.open(<span class="hljs-string">'POST'</span>,upload_url);<span class="hljs-comment">///cloud/upload_file');</span>
+
+        xhr.timeout = <span class="hljs-number">5000</span>;
+        xhr.onreadystatechange = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+             <span class="hljs-keyword">switch</span> (<span class="hljs-keyword">this</span>.readyState) {
+                <span class="hljs-keyword">case</span> <span class="hljs-number">0</span>: <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"UNSENT"</span>); <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>: <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"OPENED"</span>); <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">case</span> <span class="hljs-number">2</span>: <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"HEADERS_RECEIVED"</span>); <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">case</span> <span class="hljs-number">3</span>: <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"LOADING"</span>); <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">case</span> <span class="hljs-number">4</span>: <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"DONE"</span>); <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">default</span>: <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"UNKNOWN STATE "</span>+<span class="hljs-keyword">this</span>.readyState);
+            }
+        }
+        xhr.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+           <span class="hljs-comment">// Ti.API.info('ONDATASTREAM1 - PROGRESS: ' + e.progress);</span>
+        };
+        xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
+            alert(<span class="hljs-string">"xhr.onerror:: "</span> +e.error);
+        };
+
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{    
+            alert(<span class="hljs-string">"onload - ok"</span>);
+        };
+
+        xhr.send({
+            my_file: file.read()
+        }); 
+    });
+</code></pre><p>Application type: mobile</p>
+<p>Titanium SDK version: 3.1.1 (06&#x2F;15&#x2F;13 16:09 f7592c1)</p>
+<p>Platform &amp; version: Android 4.1.2</p>
+<p>Device: Android emulator + Physical devices (Nexus 7, Nexus phone)</p>
+<p>Host Operating System: Windows 7 64 bit</p>
+<p>Titanium Studio: Titanium Studio, build: 3.1.0.201304151600</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 10th 2013, 9:48:47 am">July 10th 2013</span>
+				by <span class='authorname'>Dan Kronholm (Bitfabrikken)</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>abort</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>stop</span></li>
+					
+						<li><span class='tagname'>upload</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Out of curiosity, what would happen if you set xhr to null instead of aborting or maybe setting xhr to null after abort ()?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 10th 2013, 11:41:48 am">July 10th 2013</span>
+								by <span class='authorname'>Darren Adams</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>As far as I can tell, nothing happens in both cases - it still opens up a new connection and continues the upload as if nothing happens. Wish I could look at the source code for Ti.Network.Httpclient, to see what&#39;s going on - weirdness!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 10th 2013, 4:55:59 pm">July 10th 2013</span>
+								by <span class='authorname'>Dan Kronholm (Bitfabrikken)</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-265825">
+				
+						<section>
+							<p>Answering this myself now that I worked it out. </p>
+<p>Using TCP socket instead of HTTPClient is the only way of having a proper upload abort it seems.</p>
+<p>Quick example here, error handling is not too good, but should work - and takes multiple files :)</p>
+<pre><code class="hljs">
+<span class="hljs-comment">//create our win + view + buttons</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">win</span> = Ti.UI.createWindow({ backgroundColor:'#000', navBarHidden:true, exitOnClose:true });
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">view</span>=Ti.UI.createView({ bottom: 0, height: 100, left: 0, layout: <span class="hljs-string">"horizontal"</span> });
+<span class="hljs-keyword">win</span>.add(<span class="hljs-keyword">view</span>);
+
+<span class="hljs-keyword">var</span> button = Ti.UI.createButton({ title:  <span class="hljs-string">"QUIT"</span> });
+<span class="hljs-keyword">view</span>.add(button);
+button.addEventListener('click',function(<span class="hljs-keyword">e</span>){
+   <span class="hljs-keyword">if</span> (Ti.Android) Ti.Android.currentActivity.finish();
+   <span class="hljs-keyword">win</span>.<span class="hljs-keyword">close</span>();
+});
+
+<span class="hljs-keyword">var</span> button = Ti.UI.createButton({ title:  <span class="hljs-string">"ABORT"</span> });
+<span class="hljs-keyword">view</span>.add(button);
+button.addEventListener('click',function(<span class="hljs-keyword">e</span>){
+   abort = true;
+   <span class="hljs-comment">//socket.close();</span>
+   alert(<span class="hljs-string">"aborted"</span>);
+});
+
+<span class="hljs-keyword">var</span> button = Ti.UI.createButton({ title:  <span class="hljs-string">"UPLOAD"</span> });
+<span class="hljs-keyword">view</span>.add(button);
+button.addEventListener('click',function(<span class="hljs-keyword">e</span>){
+
+    <span class="hljs-keyword">var</span> files = [
+        Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory+<span class="hljs-string">"icon.png"</span>),
+        Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory+<span class="hljs-string">"0.mp4"</span>),
+        Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory+<span class="hljs-string">"app.js"</span>),
+    ];
+
+
+    upload(files, <span class="hljs-string">"scanhow.dk"</span>, 80);
+
+
+});
+
+<span class="hljs-keyword">var</span> button = Ti.UI.createButton({ title:  <span class="hljs-string">"CLOSE"</span> });
+<span class="hljs-keyword">view</span>.add(button);
+button.addEventListener('click',function(<span class="hljs-keyword">e</span>){
+    <span class="hljs-keyword">if</span> (socket) socket.<span class="hljs-keyword">close</span>();    
+});
+
+<span class="hljs-keyword">win</span>.<span class="hljs-keyword">open</span>();
+
+
+
+
+<span class="hljs-keyword">var</span> socket;
+<span class="hljs-keyword">var</span> abort = false;    <span class="hljs-comment">//global for aborting</span>
+
+
+
+
+function upload(files,host,port) {
+    <span class="hljs-keyword">if</span> (!files || !files.length || !host || !port) {
+        alert(<span class="hljs-string">"Upload called with no files, host or port"</span>);
+        <span class="hljs-keyword">return</span>;
+    }
+
+
+    socket = Ti.Network.Socket.createTCP({ host: host, port: port });
+    socket.connected = function(<span class="hljs-keyword">e</span>){
+
+        <span class="hljs-comment">//listen for responses from server</span>
+        Ti.Stream.pump(<span class="hljs-keyword">e</span>.socket, function(<span class="hljs-keyword">e</span>){
+
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.bytesProcessed == -1) {  
+                alert(<span class="hljs-string">"EOF or error on socket"</span>);
+            }
+            try {
+                <span class="hljs-keyword">if</span>(<span class="hljs-keyword">e</span>.buffer) {
+                    <span class="hljs-keyword">var</span> received = <span class="hljs-keyword">e</span>.buffer.<span class="hljs-keyword">toString</span>();
+                    alert('Received: ' + received);
+                } <span class="hljs-keyword">else</span> {
+                    Ti.API.<span class="hljs-keyword">error</span>('<span class="hljs-keyword">Error</span>: socket called with <span class="hljs-keyword">no</span> buffer!');
+                }
+            } catch (<span class="hljs-keyword">ex</span>) {
+                alert(<span class="hljs-string">"err: "</span>+<span class="hljs-keyword">ex</span>);
+            }                
+        }, 1024, true);
+
+
+
+        <span class="hljs-comment">//prepare our http header, containing start, body and end</span>
+        <span class="hljs-keyword">var</span> http_boundary = <span class="hljs-string">"lkwerohzchsdf"</span>;    <span class="hljs-comment">//use any random string for boundary seperator</span>
+        <span class="hljs-keyword">var</span> http_body = <span class="hljs-string">""</span>;
+        <span class="hljs-keyword">var</span> http_body_end = <span class="hljs-string">"\r\n--"</span>+http_boundary+<span class="hljs-string">"--"</span>;
+        <span class="hljs-keyword">var</span> http_header = <span class="hljs-string">""</span>;
+
+        <span class="hljs-keyword">var</span> file_objs = [];
+        <span class="hljs-keyword">var</span> http_content_length = http_body_end.length; 
+
+        <span class="hljs-comment">//The total content length specified in header also includes the individual content-disposition entries</span>
+        <span class="hljs-comment">//So before making the first part of the header, we must know total content length etc., so we run thru files here and get required data</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> files) {
+
+            <span class="hljs-comment">//we just use the file obj itself for storing some of the data we require later</span>
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span> = files[i];
+            <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">file</span>.exists()) {
+                alert(<span class="hljs-string">"File not found: "</span>+<span class="hljs-keyword">file</span>.name);
+                <span class="hljs-keyword">return</span>;    
+            }
+            <span class="hljs-keyword">file</span>.mimetype = <span class="hljs-keyword">file</span>.<span class="hljs-keyword">read</span>().getMimeType();  <span class="hljs-comment">//get mimetype by read() - gives us a blob, which has getMimeType function</span>
+
+            <span class="hljs-keyword">file</span>.body_str   =   <span class="hljs-string">"--"</span>+http_boundary+<span class="hljs-string">"\r\n"</span>
+                            +   'Content-Disposition: <span class="hljs-keyword">form</span>-data; name=<span class="hljs-string">"myfile'+i+'"</span>; filename=<span class="hljs-string">"'+file.name+'"</span>\r\<span class="hljs-keyword">n</span>'   <span class="hljs-comment">//do NOT have identical names here, or the files will be merged on server</span>
+                            +   <span class="hljs-string">"Content-Type: "</span>+<span class="hljs-keyword">file</span>.mimetype+<span class="hljs-string">"\r\n\r\n"</span>   <span class="hljs-comment">//note the double linebreak here</span>
+                                <span class="hljs-comment">// ((binary file data will go here, when we start sending the data))</span>
+
+            <span class="hljs-keyword">if</span> (i &gt; 0) <span class="hljs-keyword">file</span>.body_str = <span class="hljs-string">"\r\n"</span>+<span class="hljs-keyword">file</span>.body_str; <span class="hljs-comment">//append a linebreak before boundary if it's not the first one                </span>
+
+            http_content_length += <span class="hljs-keyword">file</span>.size + <span class="hljs-keyword">file</span>.body_str.length;
+        }
+
+
+
+        <span class="hljs-comment">//prepare the first part of the header for sending</span>
+        http_header = <span class="hljs-string">"POST /cloud/upload_file HTTP/1.1\r\n"</span>
+            +       <span class="hljs-string">"Host: scanhow.dk\r\n"</span>
+            +       <span class="hljs-string">"Connection: Keep-Alive\r\n"</span>
+            +       <span class="hljs-string">"Content-Length: "</span>+http_content_length+<span class="hljs-string">"\r\n"</span>
+            +       <span class="hljs-string">"Content-Type: multipart/form-data; boundary="</span>+http_boundary+<span class="hljs-string">"\r\n\r\n"</span>
+
+        <span class="hljs-comment">//send the very first part of the header, which includes our total content length and defines our boundary between content elements</span>
+        socket.write(Ti.createBuffer({value: http_header}));
+
+        <span class="hljs-comment">//loop thru files and send each one</span>
+        <span class="hljs-keyword">while</span> (files){
+
+            <span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span> = files.shift();
+            <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">file</span>) <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">var</span> stream = <span class="hljs-keyword">file</span>.<span class="hljs-keyword">open</span>(Ti.Stream.MODE_READ);
+
+            <span class="hljs-comment">//write the content part of the header for this file</span>
+            socket.write(Ti.createBuffer({ value: <span class="hljs-keyword">file</span>.body_str }));
+
+            <span class="hljs-comment">//attach our pump in the blobstream, allowing us to incrementally read the blob x numbers of bytes per loop</span>
+            Ti.Stream.pump(
+                stream, 
+                function(<span class="hljs-keyword">e</span>){        <span class="hljs-comment">//handler, called with incremental blob data every 1024 bytes</span>
+                    <span class="hljs-keyword">if</span> (abort) <span class="hljs-keyword">return</span>;
+
+
+                    <span class="hljs-comment">//are we done pumping data? </span>
+                    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.bytesProcessed &lt; 0) {
+                        <span class="hljs-comment">//socket.close();</span>
+                    }
+
+                    <span class="hljs-keyword">if</span> (!socket || socket.state != Ti.Network.Socket.CONNECTED){
+                        alert(<span class="hljs-string">"socket closed?"</span>);
+                        abort = true;
+                        <span class="hljs-keyword">return</span>;
+                    }
+
+                    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">e</span>.buffer) {
+                        try{
+                            socket.write(<span class="hljs-keyword">e</span>.buffer);
+                        }catch(<span class="hljs-keyword">err</span>){
+                            alert(<span class="hljs-string">"Err while writing to stream socket: "</span>+<span class="hljs-keyword">err</span>);
+                            abort = true;
+                            <span class="hljs-keyword">return</span>;
+                        }
+                    } <span class="hljs-keyword">else</span> {
+                        abort = true;
+                        <span class="hljs-keyword">return</span>;
+                    }           
+
+
+
+                },
+                1024,   <span class="hljs-comment">//maxChunkSize</span>
+                false   <span class="hljs-comment">//isAsync - we don't want to do async request, since we're looping multiple files and need to send our http_body_end part of the header in the end</span>
+            );
+
+        }
+
+        <span class="hljs-comment">//finally, send our http_body_end part of header, to indicate the end of the header</span>
+        socket.write(Ti.createBuffer({value: http_body_end})); 
+
+
+    }
+
+    socket.<span class="hljs-keyword">error</span> = function(<span class="hljs-keyword">e</span>){
+        <span class="hljs-comment">//this'll trigger even if you manually close the socket with socket.close()</span>
+        alert(<span class="hljs-string">"Socket.error: "</span>+JSON.stringify(<span class="hljs-keyword">e</span>,null,<span class="hljs-string">"    "</span>));
+    };
+    socket.connect();
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 12th 2013, 8:31:08 am">July 12th 2013</span>
+								by <span class='authorname'>Dan Kronholm (Bitfabrikken)</span><br>
+								<a class="icon-bg icon-link" href="question/154693/httpclient---how-to-stop-an-upload-in-progress---abort#answer-265825" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Up-voting this excellent workaround</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 12th 2013, 8:34:58 am">July 12th 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m now back again, with this same problem, as I now need to use SSL (secure connection). And TCPSocket doesn&#39;t support that yet. So I&#39;m yet again stuck. Argh! :) </p>
+<p>Any ideas Nick &#x2F; anyone?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 25th 2013, 10:08:04 am">October 25th 2013</span>
+											by <span class='authorname'>Dan Kronholm (Bitfabrikken)</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Interestingly, the test case in <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-1033">this ticket</a> shows the abort method being called from within the <code>ondatastream</code> callback. Perhaps that will work ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 25th 2013, 10:25:13 am">October 25th 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Just tried it, and doesn&#39;t work sadly - ondatastream keeps firing and I can see from network traffic that the upload is still in progress. I&#39;ve even tried calling abort() on every ondatastream call, but nope, nada.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 25th 2013, 10:42:01 am">October 25th 2013</span>
+											by <span class='authorname'>Dan Kronholm (Bitfabrikken)</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-265667">
+				
+						<section>
+							<p>Looks like the only way to address this is to use raw TCP sockets <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;144392&#x2F;android-httpclientabort-does-not-stop-file-upload">as described here</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 10th 2013, 9:57:31 am">July 10th 2013</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/154693/httpclient---how-to-stop-an-upload-in-progress---abort#answer-265667" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I&#39;ll try that tomorrow and report back :) Have tried it before, but couldn&#39;t get file streaming to work properly, but I&#39;ll give it another go since it seems it&#39;s the only solution. Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2013, 4:55:02 pm">July 10th 2013</span>
+											by <span class='authorname'>Dan Kronholm (Bitfabrikken)</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>BTW you can see the source. The java implementation is <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;blob&#x2F;master&#x2F;android&#x2F;modules&#x2F;network&#x2F;src&#x2F;java&#x2F;ti&#x2F;modules&#x2F;titanium&#x2F;network&#x2F;TiHTTPClient.java">here</a> and iOS <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;blob&#x2F;master&#x2F;iphone&#x2F;Classes&#x2F;TiNetworkHTTPClientProxy.m">here</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 10th 2013, 5:09:12 pm">July 10th 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Nick, I based my solution on  your linked example :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 12th 2013, 8:31:46 am">July 12th 2013</span>
+											by <span class='authorname'>Dan Kronholm (Bitfabrikken)</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

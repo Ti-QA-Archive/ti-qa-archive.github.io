@@ -1,0 +1,340 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>module.exports in Android Alloy not working - Uncaught TypeError » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>module.exports in Android Alloy not working - Uncaught TypeError</h1>
+		</header>
+		<section>
+			<p>I have an app which all works fine in ios but not android and I&#39;m struggling to understand why.</p>
+<p>In Android I get a Message: Uncaught TypeError: Object function Controller() { error</p>
+<p>and another error of</p>
+<p>has no method &#39;allEvents&#39;</p>
+<p>If I remove the loadEvents function the app will load fine, I&#39;m a little unsure what the error is but it sounds like it can&#39;t find the function in the module.exports.</p>
+<p>So i have a file events.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>), ui = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui'</span>), Events = <span class="hljs-built_in">require</span>(<span class="hljs-string">'Events'</span>);
+
+$.loading = Alloy.createController(<span class="hljs-string">'loading'</span>);
+$.events.add($.loading.getView());
+$.loading.start();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadEvents</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> listEvents = [];
+    Events.allEvents(<span class="hljs-number">5000</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
+        <span class="hljs-keyword">if</span> (data) {
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; data.length; i++) {
+                <span class="hljs-keyword">var</span> event = data[i], row = <span class="hljs-keyword">new</span> ui.EventRow(event);
+                listEvents.push(row);
+            }
+            $.eventsTable.setData(listEvents);
+            $.loading.stop();
+            $.events.remove($.loading.getView());
+        }
+    });
+}
+
+<span class="hljs-comment">//Listen for status update, and refresh.</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">startRefresh</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.info(<span class="hljs-string">'Events refresh'</span>);
+    $.events.add($.loading.getView());
+    $.loading.start();
+    loadEvents();
+}
+startRefresh();
+</code></pre><p>and Events.js in my lib folder</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> XHR = <span class="hljs-built_in">require</span>(<span class="hljs-string">'xhr'</span>);
+<span class="hljs-keyword">var</span> xhr = <span class="hljs-keyword">new</span> XHR();
+<span class="hljs-comment">//Empty constructor (for now)</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Events</span>(<span class="hljs-params"></span>) </span>{
+}
+
+Events.allEvents = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">timeout, onSuccess</span>) </span>{
+    Ti.API.info(<span class="hljs-string">"allEvents function was called..."</span>);
+    <span class="hljs-keyword">var</span> url = <span class="hljs-string">'https://myapi.com'</span>;
+
+    <span class="hljs-keyword">var</span> onSuccessCallback = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.status == <span class="hljs-string">'ok'</span> || e.status == <span class="hljs-string">'cache'</span>) {
+            <span class="hljs-keyword">var</span> data = <span class="hljs-built_in">JSON</span>.parse(e.data);
+            onSuccess(data, e.code);
+            Ti.App.fireEvent(<span class="hljs-string">'app:eventsLoaded'</span>);
+        }
+    }
+    <span class="hljs-keyword">var</span> onErrorCallback = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.App.fireEvent(<span class="hljs-string">'app:eventsLoaded'</span>);
+        Ti.API.info(e.status);
+    }
+    <span class="hljs-keyword">var</span> options = {
+        ttl : <span class="hljs-number">5</span>,
+    };
+    xhr.get(url, onSuccessCallback, onErrorCallback, options);
+}
+
+<span class="hljs-built_in">module</span>.exports = Events;
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 8th 2013, 4:54:30 pm">April 8th 2013</span>
+				by <span class='authorname'>Marcus Williams</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Where you are saving the common js modules i n alloy?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 8th 2013, 4:56:58 pm">April 8th 2013</span>
+								by <span class='authorname'>Muhammad Wahhab Mirza</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>In app&#x2F;lib</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 8th 2013, 4:59:15 pm">April 8th 2013</span>
+								by <span class='authorname'>Marcus Williams</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-260347">
+				
+						<section>
+							<p>I&#39;m not sure why but renaming the files fixed the issue. I changed it from Events to plugevents and now all is fine, guess there much have been a conflict somewhere.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 9th 2013, 6:58:13 am">April 9th 2013</span>
+								by <span class='authorname'>Marcus Williams</span><br>
+								<a class="icon-bg icon-link" href="question/150645/moduleexports-in-android-alloy-not-working---uncaught-typeerror#answer-260347" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>oh…..greate…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 9th 2013, 7:24:49 am">April 9th 2013</span>
+											by <span class='authorname'>Mitul Bhalia</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I had the same problem and the same solution.</p>
+<p>The issue seems to be that you cannot have a commonJS module with the same name as an alloy controller, otherwise you see this issue.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 7th 2014, 4:25:37 am">July 7th 2014</span>
+											by <span class='authorname'>Reuben Turk</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-260335">
+				
+						<section>
+							<p>hi,</p>
+<p>just try this one…</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> XHR = <span class="hljs-built_in">require</span>(<span class="hljs-string">'xhr'</span>);
+<span class="hljs-keyword">var</span> xhr = <span class="hljs-keyword">new</span> XHR();
+
+<span class="hljs-keyword">var</span> Events = {
+}
+
+exports.allEvents = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">timeout, onSuccess</span>) </span>{
+
+}
+
+exports.Events = Events;
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 9th 2013, 3:22:25 am">April 9th 2013</span>
+								by <span class='authorname'>Mitul Bhalia</span><br>
+								<a class="icon-bg icon-link" href="question/150645/moduleexports-in-android-alloy-not-working---uncaught-typeerror#answer-260335" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-260314">
+				
+						<section>
+							<p>Hello MArcus,</p>
+<p>Just require &quot;alloy&quot; in the existing file. Like this : </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>), ui = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui'</span>), Events = <span class="hljs-built_in">require</span>(<span class="hljs-string">'Events'</span>), Alloy = <span class="hljs-built_in">require</span>(<span class="hljs-string">"alloy"</span>);
+</code></pre><p>Now Clean build and run app again.</p>
+<p>thanks Jigar</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 8th 2013, 5:34:03 pm">April 8th 2013</span>
+								by <span class='authorname'>Jigar Maheshwari</span><br>
+								<a class="icon-bg icon-link" href="question/150645/moduleexports-in-android-alloy-not-working---uncaught-typeerror#answer-260314" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Helllo Marcus ,</p>
+<p>Just refer this link :<br><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Alloy_Controllers-section-34636384_AlloyControllers-ExtendingAlloy%2CUnderscore.jsandBackbone.js">http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;guide&#x2F;Alloy_Controllers-section-34636384_AlloyControllers-ExtendingAlloy%2CUnderscore.jsandBackbone.js</a></p>
+<p>Thanks<br>Jigar</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 8th 2013, 5:41:37 pm">April 8th 2013</span>
+											by <span class='authorname'>Jigar Maheshwari</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Let me know if need more help</p>
+<p>Thanks<br>Jigar</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 8th 2013, 5:42:15 pm">April 8th 2013</span>
+											by <span class='authorname'>Jigar Maheshwari</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>any luk MArcus.?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 8th 2013, 5:59:07 pm">April 8th 2013</span>
+											by <span class='authorname'>Jigar Maheshwari</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes that issue has gone but there are now more errors which are probably related. I&#39;ve added </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Alloy = <span class="hljs-built_in">require</span>(<span class="hljs-string">"alloy"</span>);
+</code></pre><p>to all my files now apart from the ones in lib, but now I&#39;m getting the error</p>
+<p>Message: Uncaught TypeError: Cannot call method &#39;createController&#39; of undefined<br>Source:     $.__views.header = Alloy.createController(&quot;header&quot;, {</p>
+<p>but this error now also occurs in ios</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 8th 2013, 7:55:12 pm">April 8th 2013</span>
+											by <span class='authorname'>Marcus Williams</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If using this code <code>var Alloy = require(&amp;quot;alloy&amp;quot;);</code>, you are looking for filename &quot;alloy&quot; in CONTROLLERS folder, STYLES folder, and VIEWS folder in Alloy structure and definitely will not work unless there&#39;s a name in it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 16th 2014, 7:43:50 am">May 16th 2014</span>
+											by <span class='authorname'>David Dimalanta</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

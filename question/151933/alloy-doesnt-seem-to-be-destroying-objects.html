@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy doesn&#39;t seem to be destroying objects » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy doesn&#39;t seem to be destroying objects</h1>
+		</header>
+		<section>
+			<p>I have an Alloy app where the home page is a TableView where each row contain three thumbnails and each of these thumbnails is an Alloy Controller.  (They are all the same controller, and each row has the same class.)</p>
+<p>After a few minutes of usage the app slows down horribly.  i.e. very responsive switching and updating views initially, then it just gets slow.  I don&#39;t see a particular operation in the debugger where it gets slow.</p>
+<p>(Targeted to iOS, using iOS sdk 6.1, Ti Studio 3.1.1 beta and Titanium 3.1.1.GA.  Xcode 4.6 (4H127))</p>
+<p>When the user changes views, I need to remove all the thumbnails and replace them with new thumbnail controllers.</p>
+<p>Before I remove the thumbnails, I send a notification which causes them all to null out any global variables and then call <code>$.destroy();</code></p>
+<p>After notifying the thumbnails to close, for each row, I&#39;ve added a similar:</p>
+<pre><code class="hljs">$.imageRow.closeController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  args = <span class="hljs-literal">null</span>; <span class="hljs-comment">// etc.</span>
+  $.destroy();
+}
+</code></pre><p>I then remove the thumbnail controllers from the rows. (<code>row.remove(thumbnail)</code>)</p>
+<p>I go through the table tell all the rows to destroy themselves:</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> ($.mainImageTable.sections.length &amp;&amp; $.mainImageTable.sections[<span class="hljs-number">0</span>].rowCount) {
+            _.each($.mainImageTable.sections[<span class="hljs-number">0</span>].rows, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">curRow</span>)</span>{
+                curRow.closeController();
+            })
+        }
+
+$.mainImageTable.setData([]);
+</code></pre><p>Yet, when I run the app in Instruments and filter for &quot;TiUi&quot; I see the &quot;live bytes&quot; and &quot;# living&quot; for TiUIViewProxy and TiUIView (as well as others) continually increasing.</p>
+<p>So it seems that with all my calls to $.destroy(), these elements are not being released.</p>
+<p>Is there a better way to get Alloy to release objects?  Does $.destroy() remove all the other Alloy generated elements in the controller?</p>
+<p>I can&#39;t find much info on proper memory management for Titanium and esp. for Alloy.</p>
+<p>Any suggestions would be much appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 3rd 2013, 12:25:09 pm">May 3rd 2013</span>
+				by <span class='authorname'>Joel Margolese</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-262101">
+				
+						<section>
+							<p><code>$.destroy()</code> does not cleanup your UI elements. It simply removes any event handlers that Alloy creates under-the-hood when you utilize data binding via dataCollection. You don&#39;t seem to have mentioned this so $.destroy() is probably not doing what you think it&#39;s doing. So you are probably not properly free your assets when you are attempting to eliminate a controller and its UI components.</p>
+<p>I&#39;m not entirely clear how closeController() is supposed to be working, or if you are holding references somewhere that would cause you to retain memory. We&#39;ll probably need to see a small test case that reproduces this memory leak in order to be able to help. Don&#39;t just post your whole app up, but instead boil it down to the smallest possible case that reproduces the leak and we can investigate as nothing (to my knowledge and experience) in Alloy fundamentally causes memory leaks. You may find that in boiling down the test case you find the source of the problem.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 3rd 2013, 12:47:41 pm">May 3rd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/151933/alloy-doesnt-seem-to-be-destroying-objects#answer-262101" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Tony, I will work on a sample.<br>I had misunderstood $.destroy().  I&#39;m not using Alloy data, so that&#39;s not doing anything for me.</p>
+<p>My closeController() is a routine I put in each controller to null out references to globals, remove any eventListeners etc.  </p>
+<p>Perhaps a better question then is: What is the proper way to remove an Alloy controller to cause it to release all it&#39;s resources?</p>
+<p>I would expect that removing a controller from it&#39;s parent View and nulling out any reference to it, make its eligible for garbage collection at which point it should no longer register as &#39;live&#39;.  Is that a correct understanding?</p>
+<p>Is there a way to tell a controller: release all of its elements?</p>
+<p>When you reset a table, do TableViewRows get released&#x2F;eligible for garbage collection?<br>(It would be great if this stuff were documented somewhere.)</p>
+<p>thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 3rd 2013, 1:33:58 pm">May 3rd 2013</span>
+											by <span class='authorname'>Joel Margolese</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That is the create notion of what you should do, though they wouldn&#39;t prevent you from accidentally holding a reference to a UI component in the controller, or to the controller itself, that lives past your manual cleanup. Same goes for the TableViewRow. Memory leaks almost always occur when you are inadvertantly holding a reference to a UI component that you thought you had fully released.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 3rd 2013, 1:59:06 pm">May 3rd 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Ok, I will double check again and work on a minimal sample.<br>thx</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 3rd 2013, 2:07:27 pm">May 3rd 2013</span>
+											by <span class='authorname'>Joel Margolese</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>So it turns out I&#39;ve just misunderstood how Alloy works. I  had presumed that since a framework that created objects would manage them.</p>
+<p>I&#39;ve now added code to my controllers that I call when they are closing (if they have no window with a close event) that removes all event listeners created by Alloy.  (Was already removing my own.)<br>And then:</p>
+<pre><code class="hljs"><span class="hljs-variable">$.</span>topLevelElement.removeAllChildren();
+</code></pre><p>It seems that Alloy should have a <code>$.dealloc()</code> function that removes all views and event listeners created by Alloy.  Just my 2-cents.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 8th 2013, 1:33:49 pm">May 8th 2013</span>
+											by <span class='authorname'>Joel Margolese</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That would make sense, but… there&#39;s no way for Alloy to know if you&#39;ve added&#x2F;removed UI components programmatically, which is pretty common. I don&#39;t want to create something like a <code>$.dealloc</code> and have developers think &quot;well this will take care of everything&quot; when in many cases it won&#39;t.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 8th 2013, 2:08:51 pm">May 8th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-262374">
+				
+						<section>
+							<p>The answer is you have to remove all elements and event listeners manually, just a with non-Alloy.  It&#39;s not elegant, but it works.  (It&#39;s also not documented, nor it is in any of the Alloy samples.)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 8th 2013, 1:34:52 pm">May 8th 2013</span>
+								by <span class='authorname'>Joel Margolese</span><br>
+								<a class="icon-bg icon-link" href="question/151933/alloy-doesnt-seem-to-be-destroying-objects#answer-262374" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I also suggest that the requirement to remove all of Alloy&#39;s constructs be added to the documentation and samples.  I may be the only person confused on this point, but it&#39;s possible others are as well.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 8th 2013, 1:35:41 pm">May 8th 2013</span>
+											by <span class='authorname'>Joel Margolese</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>By nature it&#39;s not necessary to do all of this, it would have to do with specifically how you are using the controllers. Again, it&#39;s tough to assess without a test case.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 8th 2013, 2:10:33 pm">May 8th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

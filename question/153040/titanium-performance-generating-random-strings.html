@@ -1,0 +1,314 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Titanium performance generating random strings » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Titanium performance generating random strings</h1>
+		</header>
+		<section>
+			<p>Hi there,</p>
+<p>this is quite a long post. I just made a very simple experiment and I don&#39;t like the results. I want to know if I did something wrong. Be patient and read through all the post before answering. You can even try the experiment yourself and see if you get the same results.</p>
+<p>I am writing an API in Titanium, and one of the things I have to do is generate 8 char strings that will serve as echo tokens and session ids. I use the following (simple) algorithm to generate the strings:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">randomId</span> (<span class="hljs-params">length</span>) </span>{
+    <span class="hljs-keyword">var</span> textArray = [];
+    <span class="hljs-keyword">var</span> possible = <span class="hljs-string">"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"</span>;
+    <span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt; length; i++ )
+        textArray.push(possible.charAt(<span class="hljs-built_in">Math</span>.floor(<span class="hljs-built_in">Math</span>.random() * possible.length)));
+
+   <span class="hljs-keyword">return</span> textArray.join(<span class="hljs-string">''</span>);
+}
+</code></pre><p>And I test this code using Jasmine. The test is also simple: I generate one million of these 8 char strings, I put them in an array, and then I check if there is any duplicate in the array. Here is the code:</p>
+<pre><code class="hljs">it<span class="hljs-list">(<span class="hljs-quoted">'should</span> return different <span class="hljs-number">8</span> chars strings', function<span class="hljs-list">()</span> {
+    var arrayIds = []<span class="hljs-comment">;</span>
+    for <span class="hljs-list">(<span class="hljs-keyword">var</span> i=0<span class="hljs-comment">; i&lt;1000000; i++)</span>
+        arrayIds.push<span class="hljs-list">(<span class="hljs-keyword">randomId</span><span class="hljs-list">(<span class="hljs-number">8</span>)</span>)</span><span class="hljs-comment">;</span>
+    var reducedArray = util.removeDuplicates<span class="hljs-list">(<span class="hljs-keyword">arrayIds</span>)</span><span class="hljs-comment">;</span>
+    expect<span class="hljs-list">(<span class="hljs-keyword">arrayIds</span>.length)</span>.toBe<span class="hljs-list">(<span class="hljs-keyword">reducedArray</span>.length)</span><span class="hljs-comment">;</span>
+})</span><span class="hljs-comment">;</span></span>
+</code></pre><p>And the code to remove duplicates in an array is:</p>
+<pre><code class="hljs">function removeDuplicates(arr) {
+    <span class="hljs-keyword">var</span> <span class="hljs-literal">result</span> = [];
+    <span class="hljs-keyword">var</span> auxobj = {};
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;arr.length; i++) 
+        auxobj[arr[i]] = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> auxobj)
+            <span class="hljs-literal">result</span>.push(i);
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">result</span>;
+}
+</code></pre><p>I compile and run in the iOS simulator and here is what I get.</p>
+<p><img src="https:&#x2F;&#x2F;dl.dropboxusercontent.com&#x2F;u&#x2F;17255919&#x2F;Pictures&#x2F;test_results_titanium.png" alt="Test results Titanium"></p>
+<p>The test fails. And what&#39;s more important, if I repeat the test several times, <strong>it consistently fails</strong>, giving an average number of 40 repeated strings out of 1 million. This doesn&#39;t make sense from a probabilistic point of view. Maybe javascript&#39;s <code>Math.random()</code> function does not work well. I decided to try the <strong>exact same code</strong> and run it with node.js. Here is the code for node.js.</p>
+<pre><code class="hljs"><span class="hljs-comment">// constants</span>
+<span class="hljs-keyword">var</span> max = process.argv[<span class="hljs-number">2</span>];
+<span class="hljs-comment">// globals</span>
+<span class="hljs-keyword">var</span> tokens = {};
+<span class="hljs-keyword">var</span> tokenArray = [];
+<span class="hljs-keyword">var</span> maxTimes = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> maxToken = <span class="hljs-literal">null</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">randomId</span>(<span class="hljs-params">length</span>) </span>{
+    <span class="hljs-keyword">var</span> textArray = [];
+    <span class="hljs-keyword">var</span> possible = <span class="hljs-string">"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"</span>;
+    <span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt; length; i++ )
+    textArray.push(possible.charAt(<span class="hljs-built_in">Math</span>.floor(<span class="hljs-built_in">Math</span>.random() * possible.length)));
+
+    <span class="hljs-keyword">return</span> textArray.join(<span class="hljs-string">''</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">removeDuplicates</span> (<span class="hljs-params">arr</span>) </span>{
+    <span class="hljs-keyword">var</span> result = [];
+    <span class="hljs-keyword">var</span> auxobj = {};
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;arr.length; i++) 
+        auxobj[arr[i]] = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> auxobj) 
+        result.push(i);
+    <span class="hljs-keyword">return</span> result;
+}
+
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; max; i++) {
+    <span class="hljs-keyword">var</span> token = randomId(<span class="hljs-number">8</span>);
+    tokenArray.push(token);
+    <span class="hljs-keyword">if</span> (!(token <span class="hljs-keyword">in</span> tokens)) {
+        tokens[token] = <span class="hljs-number">0</span>;
+    }
+    tokens[token] += <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">if</span> (tokens[token] &gt; maxTimes) {
+        maxTimes = tokens[token];
+        maxToken = token;
+    }
+}
+
+<span class="hljs-keyword">var</span> reducedArray = removeDuplicates(tokenArray);
+
+<span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Max times: '</span> + maxTimes + <span class="hljs-string">' at '</span> + maxToken);
+<span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Tokens: '</span> + tokenArray.length + <span class="hljs-string">'. Reduced tokens: '</span> + reducedArray.length);
+</code></pre><p>No matter how many times I run the test in node, it always works. <strong>It consistently works</strong>.</p>
+<p><img src="https:&#x2F;&#x2F;dl.dropboxusercontent.com&#x2F;u&#x2F;17255919&#x2F;Pictures&#x2F;test_results_node.png" alt="Test results Node"></p>
+<p>Weird. I am using the same unseeded <code>Math.random()</code> method to generate the strings. Maybe something is &quot;lost in translation&quot;, so I decided to complete my experiment coding the same test in native iOS. I created a category of NSString and added this method:</p>
+<pre><code class="hljs">+(<span class="hljs-type">NSString</span> *)randomStringWithLength:(<span class="hljs-type">NSInteger</span>)length {
+    <span class="hljs-type">NSString</span> *alphabet = @<span class="hljs-string">"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"</span>;
+    <span class="hljs-type">NSString</span> *<span class="hljs-literal">result</span> = @<span class="hljs-string">""</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-type">NSInteger</span> i=<span class="hljs-number">0</span>; i&lt;length; i++) {
+        <span class="hljs-literal">result</span> = [<span class="hljs-literal">result</span> stringByAppendingString:[alphabet substringWithRange:<span class="hljs-type">NSMakeRange</span>(floorf(((double)arc4random()/<span class="hljs-number">0x100000000</span>)*[alphabet length]), <span class="hljs-number">1</span>)]];
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">result</span>;
+}
+</code></pre><p>And here is the test in native iOS:</p>
+<pre><code class="hljs">-(<span class="hljs-keyword">void</span>)testDifferentRandomIdsAlgorithm {
+    NSUInteger numberofids = <span class="hljs-number">1000000</span>;
+    NSMutableSet *<span class="hljs-built_in">set</span> = [NSMutableSet <span class="hljs-built_in">set</span>];
+    <span class="hljs-keyword">for</span> (NSInteger i=<span class="hljs-number">0</span>; i&lt;numberofids; i++) {
+        NSString *stringtoadd = [NSString randomStringWithLength:<span class="hljs-number">8</span>];
+        [<span class="hljs-built_in">set</span> addObject:stringtoadd];
+    }
+    STAssertEquals(numberofids, [<span class="hljs-built_in">set</span> count], @<span class="hljs-string">"Random id generated %d repeated keys among %d"</span>, numberofids-[<span class="hljs-built_in">set</span> count], numberofids);
+}
+</code></pre><p>And, guess what? The test <strong>consistently works!!!</strong></p>
+<p><img src="https:&#x2F;&#x2F;dl.dropboxusercontent.com&#x2F;u&#x2F;17255919&#x2F;Pictures&#x2F;test_result_ios.png" alt="Test results Node"></p>
+<p>So either I am doing something wrong in this experiment, or there is something terribly wrong with the way Titanium compiles&#x2F;interprets javascript. Generating random strings is a very simple task, and the performance shown by Titanium in this experiment is certainly poor. <strong>Am I doing something wrong? Is there any reasonable explanation for this?</strong></p>
+<p>cheers!!</p>
+<p>Diego.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 30th 2013, 7:37:02 am">May 30th 2013</span>
+				by <span class='authorname'>Diego Lafuente</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+						<li><span class='tagname'>native</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+						<li><span class='tagname'>random strings</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Really great post, Diego!</p>
+<p>Since I thought that this may due to JavaScriptCore, I googled a little and found that this Issue could be related to your test: <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-1554">https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-1554</a> (it&#39;s old, but was resolved as invalid).</p>
+<p>I also would be very interested in an explanation.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 30th 2013, 8:09:46 am">May 30th 2013</span>
+								by <span class='authorname'>Manuel Lehner</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Thanks for the link Manuel!! I didn&#39;t know about this bug. Generating proper random numbers is a very basic feature that is needed for many purposes. I think it&#39;s urgent that someone solves it.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 30th 2013, 8:31:30 am">May 30th 2013</span>
+								by <span class='authorname'>Diego Lafuente</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Dude, this is so nice. I like your detailed research! +1</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 31st 2013, 12:05:03 am">May 31st 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-263615">
+				
+						<section>
+							<p>Hi</p>
+<p>If you think you have a repeatable failure of the Titanium system (seems like you can reproduce it) you should create a Jira ticket for the problem as soon as possible - so the Appcelerator guys can either;</p>
+<ul>
+<li>Point out the error of your ways</li>
+<li>Thank you and fix it</li>
+<li>Thank you and tell you it is not something they can fix as it is a sub-system issue</li>
+</ul>
+<p>There are no prizes or cookies for creating the ticket - but a warm sense of righteousness that will help yo sleep better at night and probably give you better vision (maybe not the last bit).</p>
+<p>Do you platform proud at create the ticket, they will let you know the outcome.</p>
+<ul>
+<li><a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;">jira.appcelerator.org</a></li>
+</ul>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 30th 2013, 11:49:07 am">May 30th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span><br>
+								<a class="icon-bg icon-link" href="question/153040/titanium-performance-generating-random-strings#answer-263615" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Malcolm, this is not exactly a failure, but a lack of performance. Titanium does generate random strings, but the quality of them is well below node.js and at least, native iOS. I guess Titanium will perform worse than node and native in many other aspects, and these are not considered failures. Besides, this is already reported!! - <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-1554">https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-1554</a>. It was reported in April 2011, and it is labeled as &quot;Resolved&quot; but &quot;Invalid&quot;, which, to me, it&#39;s pretty close to &quot;Unresolved&quot;. I&#39;ll try to post something and reopen that bug.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 30th 2013, 12:05:53 pm">May 30th 2013</span>
+											by <span class='authorname'>Diego Lafuente</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK, random is random so if the quality is poor I would suggest not truely random - or at least the closest we can get.</p>
+<p>Sometimes the Jiras get picked up by someone who should know better but they fail to do the due diligence - create a new one and emphasise the potential issue.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 30th 2013, 12:12:23 pm">May 30th 2013</span>
+											by <span class='authorname'>Malcolm Hollingsworth</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Malcolm, I&#39;ll do!!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 30th 2013, 12:17:26 pm">May 30th 2013</span>
+											by <span class='authorname'>Diego Lafuente</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hello Diego,</p>
+<p>please open a jira ticket with this SUPER AWESOME information. I can bet that Platform will take a look into it (better to create a new one in this case). Then, mail the link to me: mpmiranda@appcelerator.com so I can speed up the upgrade of the ticket from COMMUNITY to Mobile. </p>
+<p>Best,</p>
+<p>Mauro</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 31st 2013, 12:04:16 am">May 31st 2013</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Mauro!!! I&#39;ll do it this morning.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 31st 2013, 5:00:37 am">May 31st 2013</span>
+											by <span class='authorname'>Diego Lafuente</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>[iOS] Problem downloading multiple images on the device » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>[iOS] Problem downloading multiple images on the device</h1>
+		</header>
+		<section>
+			<p>Hello to all guys, I have a problem when I try to download multiple images on my device.</p>
+<p>after several passages which I will not explain here, because that would be useless, arrival to have the array &quot;immagini&quot; the name of each image to be downloaded, which refers to the image located on a webserver.</p>
+<pre><code class="hljs">for <span class="hljs-list">(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span><span class="hljs-comment">; i &lt; immagini.length; i++) {</span>
+                var sfondo = <span class="hljs-quoted">'http</span><span class="hljs-keyword">://</span>' + localIp + ':' + localPortFile + Titanium.Filesystem.separator + <span class="hljs-string">"images"</span> + Titanium.Filesystem.separator + immagini[i]<span class="hljs-comment">;</span>
+                Ti.API.info<span class="hljs-list">(<span class="hljs-keyword">sfondo</span>)</span><span class="hljs-comment">;</span>
+
+                cached_img<span class="hljs-list">(<span class="hljs-quoted">'/test</span>', sfondo)</span><span class="hljs-comment">;</span>
+
+        }</span>
+</code></pre><p>this is the function cached_img</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">cached_img</span><span class="hljs-params">(imageDirectoryName, url)</span> </span>{
+
+        <span class="hljs-keyword">var</span> filename = url.split(<span class="hljs-string">'/'</span>);
+        filename = filename[filename.length - <span class="hljs-number">1</span>];
+
+        <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName, filename);
+
+        <span class="hljs-keyword">if</span> (!file.exists()) {
+
+            <span class="hljs-keyword">var</span> g = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName);
+            <span class="hljs-keyword">if</span> (!g.exists()) {
+
+                g.createDirectory();
+
+            };
+            <span class="hljs-keyword">var</span> ixhr = Ti.Network.createHTTPClient();
+
+            ixhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                <span class="hljs-keyword">if</span> (ixhr.status == <span class="hljs-number">200</span>) {
+                    file.write(ixhr.responseData);
+                };
+            };
+            ixhr.open(<span class="hljs-string">'GET'</span>, url);
+            ixhr.send();
+        };
+    };
+</code></pre><p>the problem is that by starting the download of images from within the for loop, some images I do not discharge completely and in this way you cut it. Should I put a callback in the download function images that tell me when an image has been discharged completely, but do not know how to do ..</p>
+<p>thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 26th 2013, 10:39:21 am">March 26th 2013</span>
+				by <span class='authorname'>nicolò monili</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>download image</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-259411">
+				
+						<section>
+							<p>I think the problem maybe in the running of multiple data calls at the same time.</p>
+<p>i.e. if you get image 1, and before it has finished then go and get image 2, and then image 3 etc … This can and will cause a problem if image 3 finishes its download before image 2. In that the xhr stack will close the connection for image 2.</p>
+<p>Well I hope that makes sense.</p>
+<p>Now the solution.</p>
+<p>This one provides for continuing to download multiple files at the same time.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ixhr = [];
+<span class="hljs-keyword">var</span> cnt = <span class="hljs-number">0</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">processImage</span><span class="hljs-params">(url, file)</span> </span>{
+            cnt++;
+
+             ixhr[cnt] = Ti.Network.createHTTPClient();
+
+            ixhr[cnt].onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+                <span class="hljs-keyword">if</span> (ixhr.status == <span class="hljs-number">200</span>) {
+                    file.write(ixhr.responseData);
+                };
+            };
+            ixhr[cnt].open(<span class="hljs-string">'GET'</span>, url);
+            ixhr[cnt].send();
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">cached_img</span><span class="hljs-params">(imageDirectoryName, url)</span> </span>{
+
+        <span class="hljs-keyword">var</span> filename = url.split(<span class="hljs-string">'/'</span>);
+        filename = filename[filename.length - <span class="hljs-number">1</span>];
+
+        <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName, filename);
+
+        <span class="hljs-keyword">if</span> (!file.exists()) {
+
+           <span class="hljs-keyword">var</span> g = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, imageDirectoryName);
+            <span class="hljs-keyword">if</span> (!g.exists()) {
+
+                g.createDirectory();
+
+            };
+            processImage(url, file) 
+        };
+    };
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 26th 2013, 11:13:36 am">March 26th 2013</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/150052/ios-problem-downloading-multiple-images-on-the-device#answer-259411" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I still keep my for loop to call the function cached_Img?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2013, 11:23:58 am">March 26th 2013</span>
+											by <span class='authorname'>nicolò monili</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yep …</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 26th 2013, 11:46:48 am">March 26th 2013</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Crash on 3.1.0 related with TIMOB-11586 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Crash on 3.1.0 related with TIMOB-11586</h1>
+		</header>
+		<section>
+			<p>I&#39;m testing on 3.1.0 and iOS (latest xcode).</p>
+<p>Our production application &quot;Facetouch&quot; started to crash when users try to save or share a picture.<br>The app takes a pic (view) and users add a lot of imageViews on top of the main view (like hats, lenses, etc).</p>
+<p>When the user decides to save the pic, the main view is saved as a blob (using toImage() method) after hiding non-relevant objects (like menus, logos, etc).</p>
+<p>For some reason (and lack of testing from us :) ) it started to crash if the users place more than 2 objects over the pic and try to share it. It works with 1 and 2 … but crashes with 3+ . </p>
+<p>I really don&#39;t know what&#39;s going on, but I managed to track this issue down to TiViewProxy.m file on line 2193 (aprox.)</p>
+<p>This function &quot;insertSubview&quot; changed from 3.0.2 to 3.1.1. There&#39;s a comment there that refers to TIMOB-11586. Well… if I rollback this change and remove the if-else, leaving only this line:</p>
+<pre><code class="hljs">[ourView insertSubview:childView atIndex:<span class="hljs-literal">result</span>];
+</code></pre><p>it works like a charm!.</p>
+<p>I checked out the latest continuous build and this function remains the same.</p>
+<p>I can&#39;t tell what&#39;s going on.. but maybe someone at Appcelerator may take a look. I will try to build a test project and try to reproduce this alone.</p>
+<pre><code class="hljs">-(<span class="hljs-type">void</span>)insertSubview:(<span class="hljs-type">UIView</span> *)childView forProxy:(<span class="hljs-type">TiViewProxy</span> *)childProxy
+{
+
+    <span class="hljs-type">int</span> <span class="hljs-literal">result</span> = <span class="hljs-number">0</span>;
+    <span class="hljs-type">int</span> childZindex = [childProxy vzIndex];
+    <span class="hljs-type">BOOL</span> earlierSibling = <span class="hljs-type">YES</span>;
+    <span class="hljs-type">UIView</span> * ourView = [self parentViewForChild:childProxy];
+
+    <span class="hljs-keyword">if</span> (![self optimizeSubviewInsertion]) {
+        <span class="hljs-keyword">for</span> (<span class="hljs-type">UIView</span>* subview <span class="hljs-keyword">in</span> [ourView subviews]) 
+        {
+            <span class="hljs-keyword">if</span> (![subview isKindOfClass:[<span class="hljs-type">TiUIView</span> class]]) {
+                <span class="hljs-literal">result</span>++;
+            }
+        }
+    }
+    pthread_rwlock_rdlock(&amp;childrenLock);
+    <span class="hljs-keyword">for</span> (<span class="hljs-type">TiViewProxy</span> * thisChildProxy <span class="hljs-keyword">in</span> children)
+    {
+        <span class="hljs-keyword">if</span>(thisChildProxy == childProxy)
+        {
+            earlierSibling = <span class="hljs-type">NO</span>;
+            <span class="hljs-keyword">continue</span>;
+        }
+
+        <span class="hljs-keyword">if</span>(![thisChildProxy viewHasSuperview:ourView])
+        {
+            <span class="hljs-keyword">continue</span>;
+        }
+
+        <span class="hljs-type">int</span> thisChildZindex = [thisChildProxy vzIndex];
+        <span class="hljs-keyword">if</span>((thisChildZindex &lt; childZindex) ||
+                (earlierSibling &amp;&amp; (thisChildZindex == childZindex)))
+        {
+            <span class="hljs-literal">result</span> ++;
+        }
+    }
+    pthread_rwlock_unlock(&amp;childrenLock);
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-literal">result</span> == <span class="hljs-number">0</span>) {
+        [ourView insertSubview:childView atIndex:<span class="hljs-literal">result</span>];
+    }
+    <span class="hljs-keyword">else</span> {
+        //<span class="hljs-type">Doing</span> a blind insert at index messes up the underlying sublayer indices
+        //<span class="hljs-keyword">if</span> there are layers which <span class="hljs-keyword">do</span> <span class="hljs-keyword">not</span> belong to subviews (backgroundGradient)
+        //<span class="hljs-type">So</span> ensure the subview layer goes at the right index
+        //<span class="hljs-type">See</span> <span class="hljs-type">TIMOB</span>-<span class="hljs-number">11586</span> <span class="hljs-keyword">for</span> fail <span class="hljs-keyword">case</span>
+        <span class="hljs-type">UIView</span> *sibling = [[ourView subviews] objectAtIndex:<span class="hljs-literal">result</span>-<span class="hljs-number">1</span>];
+        [ourView insertSubview:childView aboveSubview:sibling];
+    }
+
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 7th 2013, 2:16:40 pm">June 7th 2013</span>
+				by <span class='authorname'>Inzori DevTeam</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>tiviewproxy</span></li>
+					
+						<li><span class='tagname'>toimage</span></li>
+					
+						<li><span class='tagname'>view</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello,</p>
+<p>can you please add a <a href="http:&#x2F;&#x2F;jira.appcelerator.org">jira</a> ticket about this? Including the code and log will be really helpful.</p>
+<p>TIA!</p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 7th 2013, 5:08:26 pm">June 7th 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi! I had the same problem, I only changed the order of my functions in my Appcelerator code. Best, Lalo</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 7th 2013, 3:52:42 am">October 7th 2013</span>
+								by <span class='authorname'>Eduardo Ferrer</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Was having the same issue - thank you so much.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 30th 2013, 6:07:16 pm">October 30th 2013</span>
+								by <span class='authorname'>James Wise</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Had the same problem in my case also. With the change in TiViewProxy.m file, all goes fine.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="February 6th 2014, 5:35:35 am">February 6th 2014</span>
+								by <span class='authorname'>Sudeep Bagale</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-263975">
+				
+						<section>
+							<p>Sorry, I forgot to paste the error log, here it is:</p>
+<pre><code class="hljs"><span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  The application has crashed with an uncaught exception <span class="hljs-variable">'NSRangeException</span><span class="hljs-variable">'.</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  Reason:
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  *** -<span class="hljs-list">[<span class="hljs-keyword">__NSArrayM</span> objectAtIndex:]: index <span class="hljs-number">13</span> beyond bounds <span class="hljs-list">[<span class="hljs-keyword">0</span> .. <span class="hljs-number">12</span>]
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  Stack trace:
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">0</span>   CoreFoundation                      <span class="hljs-number">0</span>x03d43012 __exceptionPreprocess + <span class="hljs-number">178</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">1</span>   libobjc.A.dylib                     <span class="hljs-number">0</span>x0376ee7e objc_exception_throw + <span class="hljs-number">44</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">2</span>   CoreFoundation                      <span class="hljs-number">0</span>x03ce50b4 -<span class="hljs-list">[<span class="hljs-keyword">__NSArrayM</span> objectAtIndex:] + <span class="hljs-number">196</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">3</span>   Facetouch                           <span class="hljs-number">0</span>x0007cfc0 -<span class="hljs-list">[<span class="hljs-keyword">TiViewProxy</span> insertSubview:forProxy:] + <span class="hljs-number">1520</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">4</span>   Facetouch                           <span class="hljs-number">0</span>x0007c8f8 -<span class="hljs-list">[<span class="hljs-keyword">TiViewProxy</span> refreshView:] + <span class="hljs-number">2232</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">5</span>   Facetouch                           <span class="hljs-number">0</span>x0007db53 -<span class="hljs-list">[<span class="hljs-keyword">TiViewProxy</span> layoutChildrenIfNeeded] + <span class="hljs-number">259</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">6</span>   Facetouch                           <span class="hljs-number">0</span>x001f9ef7 +<span class="hljs-list">[<span class="hljs-keyword">TiLayoutQueue</span> layoutProxy:] + <span class="hljs-number">87</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">7</span>   Facetouch                           <span class="hljs-number">0</span>x001f9d72 performLayoutRefresh + <span class="hljs-number">530</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">8</span>   CoreFoundation                      <span class="hljs-number">0</span>x03d02376 __CFRUNLOOP_IS_CALLING_OUT_TO_A_TIMER_CALLBACK_FUNCTION__ + <span class="hljs-number">22</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">9</span>   CoreFoundation                      <span class="hljs-number">0</span>x03d01e06 __CFRunLoopDoTimer + <span class="hljs-number">534</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">10</span>  CoreFoundation                      <span class="hljs-number">0</span>x03ce9a82 __CFRunLoopRun + <span class="hljs-number">1810</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">11</span>  CoreFoundation                      <span class="hljs-number">0</span>x03ce8f44 CFRunLoopRunSpecific + <span class="hljs-number">276</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">12</span>  CoreFoundation                      <span class="hljs-number">0</span>x03ce8e1b CFRunLoopRunInMode + <span class="hljs-number">123</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">13</span>  GraphicsServices                    <span class="hljs-number">0</span>x054767e3 GSEventRunModal + <span class="hljs-number">88</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">14</span>  GraphicsServices                    <span class="hljs-number">0</span>x05476668 GSEventRun + <span class="hljs-number">104</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">15</span>  UIKit                               <span class="hljs-number">0</span>x01591ffc UIApplicationMain + <span class="hljs-number">1211</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">16</span>  Facetouch                           <span class="hljs-number">0</span>x00004698 main + <span class="hljs-number">456</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">17</span>  Facetouch                           <span class="hljs-number">0</span>x00002fa5 start + <span class="hljs-number">53</span>
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-number">2013</span><span class="hljs-number">-06</span><span class="hljs-number">-07</span> <span class="hljs-number">13</span>:25:14.656 Facetouch<span class="hljs-list">[<span class="hljs-keyword">55016:c07</span>] *** Terminating app due to uncaught exception <span class="hljs-variable">'NSRangeException</span>', reason: <span class="hljs-variable">'***</span> -<span class="hljs-list">[<span class="hljs-keyword">__NSArrayM</span> objectAtIndex:]: index <span class="hljs-number">13</span> beyond bounds <span class="hljs-list">[<span class="hljs-keyword">0</span> .. <span class="hljs-number">12</span>]'
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  *** First throw call stack:
+<span class="hljs-list">[<span class="hljs-keyword">ERROR</span>] :  <span class="hljs-list">(<span class="hljs-keyword">0x3d43012</span> <span class="hljs-number">0</span>x376ee7e <span class="hljs-number">0</span>x3ce50b4 <span class="hljs-number">0</span>x7cfc0 <span class="hljs-number">0</span>x7c8f8 <span class="hljs-number">0</span>x7db53 <span class="hljs-number">0</span>x1f9ef7 <span class="hljs-number">0</span>x1f9d72 <span class="hljs-number">0</span>x3d02376 <span class="hljs-number">0</span>x3d01e06 <span class="hljs-number">0</span>x3ce9a82 <span class="hljs-number">0</span>x3ce8f44 <span class="hljs-number">0</span>x3ce8e1b <span class="hljs-number">0</span>x54767e3 <span class="hljs-number">0</span>x5476668 <span class="hljs-number">0</span>x1591ffc <span class="hljs-number">0</span>x4698 <span class="hljs-number">0</span>x2fa5)</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 7th 2013, 2:26:10 pm">June 7th 2013</span>
+								by <span class='authorname'>Inzori DevTeam</span><br>
+								<a class="icon-bg icon-link" href="question/153366/crash-on-310-related-with-timob-11586#answer-263975" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Should I null objects to release memory in alloy? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Should I null objects to release memory in alloy?</h1>
+		</header>
+		<section>
+			<p>I&#39;m trying to understand how to manage memory in a titanium alloy application. I&#39;m using the Apple instruments tool to measure and monitor allocations.</p>
+<p>Imagine I have the following:</p>
+<ul>
+<li>controller index.js + index.xml (contains 5 views and 5 labels)</li>
+<li>controller details.js + details.xml (contains 10 views and 10 labels and an event handler on a label)</li>
+</ul>
+<p>When I close the details.js window, I don&#39;t want to remember any of it, so that the memory becomes available. Should I or should I not set all the objects created in the XML file (the 10 views and 10 labels) to null in my controller when I detect a close on the window? Also, should I remove all event listeners on those elements?</p>
+<p>like this:</p>
+<pre><code class="hljs">$.btnCloseWindow.on(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+</span>{
+    $.label1 = <span class="hljs-literal">null</span>;
+    $.label2 = <span class="hljs-literal">null</span>;
+   ...
+    $.label2.removeEventListener(<span class="hljs-string">"click"</span>, listener);
+}
+</code></pre><p>From what I understand, this is what is encouraged in classic Titanium apps. My guess is that it&#39;s the same when building them in Alloy?</p>
+<p>Thanks for your advice.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 5th 2013, 7:36:22 pm">May 5th 2013</span>
+				by <span class='authorname'>Joris</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>6</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-262213">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi Joris,<br>This is totally dependent on how your app functions.  For instance, if you don&#39;t need to maintain a reference of your detail page inside your index controller:</p>
+<pre><code class="hljs">$.openDetail = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> detailController = Alloy.createController(<span class="hljs-string">"detail"</span>);
+    <span class="hljs-comment">// ... etc.</span>
+    detailController.window.open();
+};
+</code></pre><p>Since detailController is a local var inside of openDetail, it goes out of scope after the function runs.  There&#39;s no outside reference.  The window and it&#39;s contents will eventually go out of memory when you&#39;re not using it (e.g. you close it) and there&#39;s no reference to it anywhere.</p>
+<p>However, if you want to maintain a reference to the detail controller inside your index controller for some reason you could do something like this:</p>
+<pre><code class="hljs">$.openDetail = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    $.detailController = Alloy.createController(<span class="hljs-string">"detail"</span>);
+    <span class="hljs-comment">// ... etc.</span>
+    $.detailController.window.open();
+    $.detailController.window.addEventListener(<span class="hljs-string">"close"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        $.detailController = <span class="hljs-literal">null</span>;
+    });
+};
+</code></pre><p>Now you&#39;re managing the reference to the detail controller and it&#39;s objects and nulling out the reference on close.  </p>
+<p>There are scenarios where you&#39;d might want to close and open the same detail controller instance so you&#39;re not rendering things over and over again.  I do this a lot.  In this case you wouldn&#39;t want to null out the detailController but maybe it&#39;s contents.  For instance:</p>
+<pre><code class="hljs">$.openDetail = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    $.detailController = Alloy.createController(<span class="hljs-string">"detail"</span>);
+    <span class="hljs-comment">// ... etc.</span>
+    $.detailController.window.open();
+};
+
+<span class="hljs-comment">// Having a reference you can talk to the detail</span>
+<span class="hljs-comment">// controller if needed.  These can also be methods that</span>
+<span class="hljs-comment">// the detail controller uses internally as well but they're</span>
+<span class="hljs-comment">// also exposed so you can manipulate from the outside</span>
+
+$.detailController.setData([<span class="hljs-comment">/** Data here **/</span>]);
+<span class="hljs-comment">// or</span>
+$.detailController.cleanUp();
+<span class="hljs-comment">// etc.</span>
+
+<span class="hljs-comment">// Detail Controller</span>
+$.setData = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{};
+$.cleanUp = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{};
+<span class="hljs-comment">// etc.</span>
+</code></pre><p>If you&#39;re unsure, nulling things out never hurts since it&#39;s explicit.  Note though that it doesn&#39;t mean memory is released immediately.  It just means you dont have a reference to it anymore.  On iOS, JavascriptCore seems to be a little more active on releasing memory when there isn&#39;t a reference.  On Android, V8 waits until it needs to release memory….which can be annoying.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 6th 2013, 11:51:40 am">May 6th 2013</span>
+								by <span class='authorname'>Rick Blalock</span><br>
+								<a class="icon-bg icon-link" href="question/151989/should-i-null-objects-to-release-memory-in-alloy#answer-262213" rel="permalink">permalink</a>
+							</div>
+
+							<h5>9 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I asked Rick specifically to come in and answer this one for you since he is our resident memory management guru. He answered far more concisely than I could have. </p>
+<p>Oh, and +1000.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 6th 2013, 11:55:10 am">May 6th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Tony and Rick. I&#39;m very happy with Titanium and it really helps if you guys hop in to help us build better apps. Thanks a bunch!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 7th 2013, 11:57:29 am">May 7th 2013</span>
+											by <span class='authorname'>Joris</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thank you for this answer, i was searching that for a long time :)</p>
+<p>In your $.cleanUp function you put all the remove of UI element of the current controller ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 15th 2013, 11:36:03 am">May 15th 2013</span>
+											by <span class='authorname'>Nidal Chabab</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey folks, sorry if this is a novice question but is <code>$.detailController</code> sort of a global variable while <code>var detailController</code> is a local var?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 11th 2013, 1:45:13 pm">June 11th 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>To solve <code>out of memory</code> issues in Android one has to create reference to controller (avoid <code>.getView()</code>). In the code above by assigning <code>$.detailController</code> (reference variable and could be anything <code>$.YourChoice</code>) then open main window in the view associated with detail controller and close main window of current view and <code>$.destroy()</code>. </p>
+<p>For example in <code>controllers&amp;#x2F;index.js</code> you can open detail view using main window id  in <code>views&amp;#x2F;detail.xml</code> ( &lt;Window id=&quot;detailwin&quot;&gt;)</p>
+<p>In example below <code>views&amp;#x2F;index.xml</code> has a &lt;Window id=&quot;indexwin&quot;&gt;</p>
+<p><code>controllers&amp;#x2F;index.js</code>:</p>
+<pre><code class="hljs"><span class="hljs-comment">//close current window using window id</span>
+$.indexwin.close(); 
+
+<span class="hljs-comment">//destroy the current view</span>
+$.destroy();
+
+<span class="hljs-comment">//open the other view by creating a reference $.detailController holding detail controller</span>
+$.detailController = Alloy.createController(<span class="hljs-string">"detail"</span>);   
+
+<span class="hljs-comment">//detail view views/detail.xml has a window with id detailwin. &lt;Window id="detailwin"&gt;</span>
+$.detailController.detailwin.open();
+</code></pre><p>It took a lot of time to test this out on an Android device. Hope it helps someone.</p>
+<p>Titanium sdk 3.1.0..tested with Alloy 1.0 and 1.2.2</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 19th 2013, 11:48:20 am">September 19th 2013</span>
+											by <span class='authorname'>Zeshan Bilal</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nice comment Zeshan.<br>Just one thing, when you <code>call $.destroy</code> you are actually destroying the controller not the view.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 13th 2014, 9:14:03 am">March 13th 2014</span>
+											by <span class='authorname'>f fabreti</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Rick, very nice explanation. Is there any way to force garbage collection on android?</p>
+<p>I am working with high res images. I am adding 10 images on a scroll view, taken from 8MP camera and each image reaches upto 2-3 MB in size. Before adding image I first compress (with 10% quality) and downsize (to 150x150 from 2500x3140) it and then set all temporary things to null but I think the memory is not released as you said:</p>
+<pre><code class="hljs"><span class="hljs-keyword">On</span> Android, V8 waits <span class="hljs-keyword">until</span> it needs <span class="hljs-keyword">to</span> <span class="hljs-keyword">release</span> memory
+</code></pre><p>I am doing this in loop so because the memory from first images is not cleared immediately the next images don&#39;t have enough memory for downsize operation and eventually the app crashes with <code>OutOfMemory</code> exception. I need to add upto 10 images but app won&#39;t allow me to add more than 3. It starts crashing on 4th image. I am struggling with this for last 4 days. Can you help me with this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 25th 2014, 5:55:32 am">March 25th 2014</span>
+											by <span class='authorname'>Alvin Charles</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>My app might open and close detail window over and over again. I chose not to keep a reference to its controller. The reason is that it might not be opened again for a while. I don&#39;t know, but I don&#39;t want to keep it in the memory. I know things will be rendered over and over again. Can someone please let me know what is really bad about it? Is it something not worth to do?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 22nd 2014, 6:49:28 pm">June 22nd 2014</span>
+											by <span class='authorname'>Shawn Lan</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks  Rick Blalock </p>
+<p> I have faced the memory issue in android app and your answer help me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 27th 2015, 11:43:59 am">January 27th 2015</span>
+											by <span class='authorname'>Mahendra Yadav</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>14</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-276447">
+				
+						<section>
+							<p>In my case, I wanted to pass thru controller every time a view were about to be opened (that was my app  need). So, instead of <strong>nullifying things</strong> I just destroy everything and reset. I ended up with code like this:</p>
+<p>in index.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> otherControllerView = Alloy.createController(<span class="hljs-string">'otherController'</span>, {parentController: $ } ).getView();  <span class="hljs-comment">// $ is current controller</span>
+$.scrollview.add(otherControllerView);  <span class="hljs-comment">// I added into index, but you could have opened it instead.</span>
+</code></pre><p>and<br>in otherController.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">args</span> = arguments[0] || {};
+<span class="hljs-comment">//recover parent controller from args;</span>
+<span class="hljs-keyword">var</span> parentController = <span class="hljs-keyword">args</span>.parentController || null;
+
+<span class="hljs-comment">//do your stuff</span>
+
+$.otherController.<span class="hljs-keyword">close</span>(); <span class="hljs-comment">//close window</span>
+parentController.getView().<span class="hljs-keyword">close</span>();  <span class="hljs-comment">//close window</span>
+parentController.destroy(); <span class="hljs-comment">//close parent controller</span>
+Alloy.createController(<span class="hljs-string">"index"</span>).getView().<span class="hljs-keyword">open</span>();    <span class="hljs-comment">//reopen index controller</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="March 13th 2014, 9:13:35 am">March 13th 2014</span>
+								by <span class='authorname'>f fabreti</span><br>
+								<a class="icon-bg icon-link" href="question/151989/should-i-null-objects-to-release-memory-in-alloy#answer-276447" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks! It is what I was  looking for.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 9th 2015, 9:06:51 am">March 9th 2015</span>
+											by <span class='authorname'>geppoz rulez</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

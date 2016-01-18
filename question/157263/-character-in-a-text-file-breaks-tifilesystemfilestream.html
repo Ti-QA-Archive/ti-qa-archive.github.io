@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>® character in a text file breaks Ti.Filesystem.FileStream » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>® character in a text file breaks Ti.Filesystem.FileStream</h1>
+		</header>
+		<section>
+			<p>I found a strange issue: when reading a text file with multiple occurrences of the ® character, a piece of the stream with this ® character breaks the Ti.Buffer.toString() method. It only returns &quot;undefined&quot; and no string. </p>
+<p>Example: create a text file &quot;test.txt&quot; in the App&#39;s temp directory with this content:</p>
+<p><code>test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test
+test®test</code></p>
+<p>Then try this code:</p>
+<p><code>var xhrData;
+var xhrBufferSize = 10; 
+var counterOK = 0;
+var counterNull = 0;
+var xhrFile = Titanium.Filesystem.getFile(Ti.Filesystem.getTempDirectory() + &amp;quot;test.txt&amp;quot;);
+var xhrBuffer = Ti.createBuffer({
+    length : xhrBufferSize
+});
+var xhrStream = xhrFile.open(Ti.Filesystem.MODE_READ);
+var xhrBytesRead = 0;
+while (xhrBytesRead &amp;gt;= 0) {
+    xhrBytesRead = xhrStream.read(xhrBuffer, 0, xhrBufferSize);
+    xhrData = xhrBuffer.toString();
+    if (!xhrData) {
+        counterNull++;
+    } else {
+        counterOK++;
+    }
+}
+Ti.API.log(&amp;quot;read test finished, ok=&amp;quot;+counterOK+&amp;quot; null=&amp;quot;+counterNull);</code></p>
+<p>In my case, I had 14 pieces of data that returned a string and 5 pieces of data that returned &quot;undefined&quot; for the xhrBuffer.toString() call. </p>
+<p>This does not happen when the file does not contain the ® char.<br>Can I open a Jira ticket for this? Can anyone confirm?<br>Thanks!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 17th 2013, 7:16:09 am">September 17th 2013</span>
+				by <span class='authorname'>Julian Buss</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>stream</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>for some reason the editor replaces &quot; with &amp;quot; and &gt;= with &amp;gt;=, sorry for that.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 17th 2013, 7:17:07 am">September 17th 2013</span>
+								by <span class='authorname'>Julian Buss</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>BTW the problem does not occur when read the content of the file with</p>
+<pre><code class="hljs">var <span class="hljs-type">text</span> = xhrFile.<span class="hljs-command">read</span>().getText();
+</code></pre><p>But that doesn&#39;t solve my problem, I need to process the file in parts since it&#39;s more than 50MB, and reading everything into one string at once causes memory problems on the device.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 17th 2013, 9:32:29 am">September 17th 2013</span>
+								by <span class='authorname'>Julian Buss</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-268662">
+				
+						<section>
+							<p>I solved it myself, and I was totally wrong. The ® character caused the problem only by accident. The reason was quite simple, and I found it as I had a look at pieces of the stream with an Hex editor: the buffer size was even, and that could cause that one unicode character (which consists out of two bytes) could be torn apart. </p>
+<p>And if that happened, the toString() method of the buffer could not translate it to a string anymore, which is quite understandable. </p>
+<p>So an odd buffer size of 11, 4097 (instead of 4096) etc. work fine with the code above. Any even buffer size can cause this problem.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 17th 2013, 11:03:12 am">September 17th 2013</span>
+								by <span class='authorname'>Julian Buss</span><br>
+								<a class="icon-bg icon-link" href="question/157263/-character-in-a-text-file-breaks-tifilesystemfilestream#answer-268662" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>good catch, glad you found it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 17th 2013, 3:06:10 pm">September 17th 2013</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In fact, the problem is quite more complicated. The text file is encoded in UTF8, which uses one byte per ASCII character, but two (or even more) bytes for non-ASCII characters.<br>Therefore it can always happen that reading a stream chunk by chunk splits two bytes of a non-ASCII character and causes trouble. </p>
+<p>At the moment the only idea I have is to encode all data so that only ASCII characters are used. This is unfortunate because encoding and decoding costs time, but perhaps it&#39;s the only reliable solution.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 17th 2013, 4:26:43 pm">September 17th 2013</span>
+											by <span class='authorname'>Julian Buss</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

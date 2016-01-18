@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Severe case of memory leaks in tableview and navigation button » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Severe case of memory leaks in tableview and navigation button</h1>
+		</header>
+		<section>
+			<p>I was wondering why Titanium fails to fixed some critical but very important bugs as this.</p>
+<p>First I want to pinpoint out that if you have a tableview and you need  some alterations be done like appending and removing the rows later on, this will ultimately generates a memory leakage in your app. To be very precise, any slight alteration you made on to the rows of the table later on (addition or deletion of some properties to it) will never release the memory again no matter what you do to get rid of it. Closing the windows, setting the created objects to null etc wont do any help.</p>
+<p>POSSIBLE SOLUTIONS : Reset the data of the table with a new value.</p>
+<p>Secondly, the navigation button methods will never release any memory once its been created. The memory that it takes will grows out continuously as you open and close the windows.</p>
+<p>POSSIBLE SOLUTIONS : None</p>
+<p>This test are thoroughly tested with XCODE instrument and confirmed!<br>If anybody knows a fix which I didn&#39;t know, please comment.</p>
+<p>SAMPLE CODE -</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">crTable</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">var</span> t=Ti.UI.createTableView({
+            height:Ti.UI.SIZE
+        });
+
+        <span class="hljs-keyword">var</span> tdata=[];
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> k=<span class="hljs-number">0</span>;k&lt;<span class="hljs-number">10</span>;k++){
+            tdata.push({title:<span class="hljs-string">'hello '</span>+k});
+        }
+        t.setData(tdata);
+        <span class="hljs-keyword">return</span> t;
+};
+
+<span class="hljs-keyword">var</span> homeWin=Ti.UI.createWindow({
+                backgroundColor:<span class="hljs-string">'#fff'</span>
+            });
+
+<span class="hljs-keyword">var</span> navWin = Ti.UI.iOS.createNavigationWindow({
+                   <span class="hljs-built_in">window</span>: homeWin
+            });
+
+<span class="hljs-keyword">var</span> openBut=Ti.UI.createButton({
+    title:<span class="hljs-string">'click here to open a new window with table'</span>
+});
+
+openBut.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+
+    <span class="hljs-keyword">var</span> win=Ti.UI.createWindow({
+        backgroundColor:<span class="hljs-string">'#fff'</span>
+    });
+
+
+    <span class="hljs-keyword">var</span> table=crTable();
+    win.add(table);
+
+    <span class="hljs-keyword">var</span> appendBut=Ti.UI.createButton({
+        title:<span class="hljs-string">'Append row'</span>
+    });
+    appendBut.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">var</span> row=Ti.UI.createTableViewRow({title:<span class="hljs-string">'Appended row'</span>});
+        table.appendRow(row); <span class="hljs-comment">//this will ultimaely cause a permanent leak no matter what you do</span>
+
+        <span class="hljs-comment">//comment the appendRow line and comment out the following code given below, the leaks seems to get fixed</span>
+        <span class="hljs-comment">//unless you set the data of the table with a new array, the leak will never get resolved</span>
+
+        <span class="hljs-comment">/*
+        var table_data=table.data[0].rows;
+        table_data.push(row);
+        table.setData(table_data);
+        */</span>
+
+
+    });
+    win.rightNavButton=appendBut; <span class="hljs-comment">//permanent leak, the live bytes and living will continually grow as you close and open the window</span>
+
+    navWin.openWindow(win);
+});
+
+homeWin.add(openBut);
+navWin.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 26th 2013, 9:08:48 am">November 26th 2013</span>
+				by <span class='authorname'>Lee Phela</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>memory leaks</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>tableviewrow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>-1</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-271795">
+				
+						<section>
+							<p>I don&#39;t believe this is a Titanium platform memory leak, but one caused by your code. You&#39;re attaching an event listener to a top-level object, which creates new objects (window, table, etc.) each time the button is clicked. Then you&#39;re not releasing those objects. </p>
+<p>Your event listener refers to global objects, which means the objects created within the listener function must remain valid in memory while the global objects continue to live. Try refactoring your code to avoid those global references.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 26th 2013, 11:59:09 am">November 26th 2013</span>
+								by <span class='authorname'>Tim Poulsen</span><br>
+								<a class="icon-bg icon-link" href="question/159854/severe-case-of-memory-leaks-in-tableview-and-navigation-button#answer-271795" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-271797">
+				
+						<section>
+							<p>I absolutely understand what i&#39;m doing and it is not the global object or event listener that are causing the leaks. Event listener are automatically destroyed when the objects they are binded to are destroyed.</p>
+<p>Or if it is with my code, can you please explain this?</p>
+<p>Remove&#x2F;comment this particular line of code</p>
+<pre><code class="hljs"><span class="hljs-tag">table</span><span class="hljs-class">.appendRow</span>(<span class="hljs-tag">row</span>);
+</code></pre><p>and comment out this block of codes</p>
+<pre><code class="hljs">        var table_data=table.data[0].rows<span class="hljs-comment">;</span>
+        table_data.push(row)<span class="hljs-comment">;</span>
+        table.setData(table_data)<span class="hljs-comment">;</span>
+</code></pre><p>The leaks are gone.</p>
+<p>With regarding to the navigation button, can you please provide a most simplified use case example that dont cause a leak? Because, I have tried with everything I could of think.<br>Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 26th 2013, 12:16:21 pm">November 26th 2013</span>
+								by <span class='authorname'>Lee Phela</span><br>
+								<a class="icon-bg icon-link" href="question/159854/severe-case-of-memory-leaks-in-tableview-and-navigation-button#answer-271797" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>New Facebook Module Log In, Android/iOS » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>New Facebook Module Log In, Android/iOS</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been integrating FB authentication into my app and I&#39;ve noticed some differences between iOS and Android versions… Mainly, after getting everything to work on iOS, some things aren&#39;t in Android.</p>
+<p>I&#39;ve build the following CommonJS</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> c7Client = <span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> fb; 
+<span class="hljs-keyword">var</span> em = require(<span class="hljs-string">"ErrorManager"</span>);
+<span class="hljs-keyword">var</span> isLoggedIn = <span class="hljs-literal">false</span>;
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">callback</span> = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{};
+
+<span class="hljs-keyword">var</span> initFB = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    fb = fb || require(<span class="hljs-string">'facebook'</span>);
+    fb.permissions = [<span class="hljs-string">'user_online_presence'</span>,<span class="hljs-string">'email'</span>,<span class="hljs-string">'publish_stream'</span>,<span class="hljs-string">'user_location'</span>,<span class="hljs-string">'user_interests'</span>,<span class="hljs-string">'user_birthday'</span>,<span class="hljs-string">'user_about_me'</span>];
+    fb.forceDialogAuth = <span class="hljs-literal">true</span>;
+    fb.addEventListener(<span class="hljs-string">'login'</span>, dologin);
+    <span class="hljs-keyword">return</span> fb;    
+}
+
+<span class="hljs-keyword">var</span> getC7HttpClient = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(_options)</span></span>{
+    _options = _options || {};
+    <span class="hljs-keyword">return</span> c7Client ||  Ti.Network.createHTTPClient({
+            timeout : _options.timeout || <span class="hljs-number">7000</span>
+        });
+}
+
+<span class="hljs-comment">/**
+ * 
+ * @param {Object} _callback
+ * 
+ * Note: this is all async, so there's no easy way to prevent
+ * the leaky abstraction of setting the callback as a global 
+ * variable... either that, or I'm just too tired ATM
+ */</span>
+<span class="hljs-keyword">var</span> login = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(_callback)</span></span>{
+    <span class="hljs-keyword">callback</span> = _callback;
+    fb = fb || initFB();
+    fb.logout(); <span class="hljs-comment">// iOS just fires this event</span>
+    fb.authorize();
+}
+
+<span class="hljs-keyword">var</span> dologin = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    alert(<span class="hljs-string">"1"</span>)
+    <span class="hljs-keyword">if</span> (e.success) {
+        c7Login(e);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (e.cancelled) {
+        alert(<span class="hljs-string">'cancelled'</span>)
+    } <span class="hljs-keyword">else</span> {
+        alert(e.error);
+    }
+}
+
+<span class="hljs-keyword">var</span> c7Login = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    alert(<span class="hljs-string">"2"</span>)
+    <span class="hljs-keyword">var</span> client = getC7HttpClient();
+    <span class="hljs-keyword">var</span> url = <span class="hljs-string">"http://"</span> + Alloy.CFG.c7URL +<span class="hljs-string">"/login/authenticate/?mobile=true"</span>;
+
+
+    <span class="hljs-comment">// This line throws and exception on Android, saying Titanium.Facebook is undefined</span>
+    url += <span class="hljs-string">'&amp;access_token='</span>+Titanium.Facebook.accessToken; 
+    url += <span class="hljs-string">'&amp;uid='</span>+e.uid
+    client.onerror = em.handleError;
+    client.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        isLoggedIn = <span class="hljs-literal">true</span>;
+        <span class="hljs-keyword">callback</span>();
+    }
+    client.open(<span class="hljs-string">'GET'</span>, url);
+    client.send();
+}
+
+
+exports.getC7HttpClient = getC7HttpClient;
+exports.login = login;
+exports.isLoggedIn = isLoggedIn;
+</code></pre><p>One thing I&#39;ve noticed is FB Authorize will always fire my login event on iOS, which suits me perfectly… Android, on the other hand, does not and you are seemingly forced to logout and re-login… Former FB API had the loggedIn property which, I am sure could have been used to force the firing of login (just by calling it).</p>
+<p>What really confuses me is the fact that it throws an exception saying Titanium.Facebook is undefined </p>
+<pre><code class="hljs"><span class="hljs-title">url</span> += <span class="hljs-string">'&amp;access_token='</span>+Titanium.Facebook.accessToken;
+</code></pre><p>I know this really all amounts to me improperly using the new FB module, but all the code samples I&#39;ve found out there are using the deprecated one</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 4th 2013, 5:30:06 pm">August 4th 2013</span>
+				by <span class='authorname'>David Glass</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>facebook</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>new module</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-266774">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Replace  <code>Titanium.Facebook.accessToken</code><br> with <code>fb.accessToken</code> as you work with the module loaded at the beginning. But load it outside of your function with  <code>var fb = require(&amp;#39;facebook&amp;#39;);</code> as it was moved to a module with 3.x<br>See http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Modules.Facebook</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 5th 2013, 4:44:59 am">August 5th 2013</span>
+								by <span class='authorname'>Christopher Koye</span><br>
+								<a class="icon-bg icon-link" href="question/155627/new-facebook-module-log-in-androidios#answer-266774" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Yeah, I figured that one out. I actually ended up using fb.getAccessToken(). I also had to update the android runtime version I was using. I&#39;ll post my CommonJS once I&#39;ve got it all wrapped. Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2013, 10:34:12 am">August 5th 2013</span>
+											by <span class='authorname'>David Glass</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

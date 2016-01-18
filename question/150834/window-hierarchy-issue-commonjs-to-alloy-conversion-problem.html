@@ -1,0 +1,318 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Window Hierarchy issue? CommonJS to Alloy Conversion Problem » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Window Hierarchy issue? CommonJS to Alloy Conversion Problem</h1>
+		</header>
+		<section>
+			<p>Ok, so I am trying to convert a non-Alloy twitter oAuth project I found online to an Alloy Tumblr project. I&#39;m really close in that I got the Tumblr part working on the non-Alloy project, now I am just trying to convert it to Alloy. As you will see in the code, a new modal window is created to authenticate the user. Well, this works on the non-Alloy project, but when I try it on the Alloy project, it doesn&#39;t work. Instead I get this (see screenshot):</p>
+<p><a href="https:&#x2F;&#x2F;dl.dropboxusercontent.com&#x2F;u&#x2F;2608892&#x2F;screenshot.png">Click Here to see screenshot</a></p>
+<p>Obviously I&#39;m doing something wrong, what is going on? Many thanks in advance for anyone who can help!</p>
+<p><strong>index.js</strong></p>
+<pre><code class="hljs">
+    <span class="hljs-keyword">var</span> accessTokenKey = Ti.App.Properties.getString(<span class="hljs-string">'tumblrAccessTokenKey'</span>),
+        accessTokenSecret = Ti.App.Properties.getString(<span class="hljs-string">'tumblrAccessTokenSecret'</span>);
+
+    <span class="hljs-keyword">var</span> Tumblr = <span class="hljs-built_in">require</span>(<span class="hljs-string">'tumblr'</span>).Tumblr;
+
+    <span class="hljs-keyword">var</span> client = Tumblr({
+      consumerKey: CONSUMER_KEY,
+      consumerSecret: CONSUMER_SECRET,
+      accessTokenKey: accessTokenKey, 
+      accessTokenSecret: accessTokenSecret
+    });
+
+    client.addEventListener(<span class="hljs-string">'login'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+      <span class="hljs-keyword">if</span> (e.success) {
+        <span class="hljs-comment">// login succeeded</span>
+
+      } <span class="hljs-keyword">else</span> {
+          alert(<span class="hljs-string">'Login Fail'</span>);
+        alert(e.error);
+      }
+    });
+
+    client.authorize();
+</code></pre><p><strong>tumblr.js</strong></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> exports = exports || this;
+exports.Tumblr = (<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(global)</span> </span>{
+  <span class="hljs-keyword">var</span> K = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{}, isAndroid = Ti.Platform.osname === <span class="hljs-string">"android"</span>, jsOAuth = <span class="hljs-keyword">require</span>(<span class="hljs-string">'jsOAuth-1.3.1'</span>);
+
+
+  <span class="hljs-keyword">var</span> Tumblr = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span>;
+
+    <span class="hljs-keyword">if</span> (this <span class="hljs-keyword">instanceof</span> Tumblr) {
+      <span class="hljs-keyword">self</span> = this;
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">self</span> = <span class="hljs-keyword">new</span> K();
+    }
+
+    <span class="hljs-keyword">if</span> (!options) { options = {}; }
+    <span class="hljs-keyword">self</span>.windowTitle = options.windowTitle || <span class="hljs-string">"Tumblr Authentication"</span>;
+    <span class="hljs-keyword">self</span>.consumerKey = options.consumerKey;
+    <span class="hljs-keyword">self</span>.consumerSecret = options.consumerSecret;
+    <span class="hljs-keyword">self</span>.authorizeUrl = <span class="hljs-string">"http://www.tumblr.com/oauth/authorize"</span>;
+    <span class="hljs-keyword">self</span>.accessTokenKey = options.accessTokenKey;
+    <span class="hljs-keyword">self</span>.accessTokenSecret = options.accessTokenSecret;
+    <span class="hljs-keyword">self</span>.authorized = <span class="hljs-keyword">false</span>;
+    <span class="hljs-keyword">self</span>.listeners = {};
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">self</span>.accessTokenKey &amp;&amp; <span class="hljs-keyword">self</span>.accessTokenSecret) {
+      <span class="hljs-keyword">self</span>.authorized = <span class="hljs-keyword">true</span>;
+    }
+
+    options.requestTokenUrl = options.requestTokenUrl || <span class="hljs-string">"http://www.tumblr.com/oauth/request_token"</span>;
+    <span class="hljs-keyword">self</span>.oauthClient = jsOAuth.OAuth(options);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+  };
+
+  K.prototype = Tumblr.prototype;
+
+
+  <span class="hljs-comment">/*
+   * Requests the user to authorize via Tumblr through a modal WebView.
+   */</span>
+  Tumblr.prototype.authorize = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = this;
+
+    <span class="hljs-keyword">if</span> (this.authorized) {
+
+      setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">self</span>.fireEvent(<span class="hljs-string">'login'</span>, {
+          success: <span class="hljs-keyword">true</span>,
+          error: <span class="hljs-keyword">false</span>,
+          accessTokenKey: <span class="hljs-keyword">self</span>.accessTokenKey,
+          accessTokenSecret: <span class="hljs-keyword">self</span>.accessTokenSecret
+        });
+      }, <span class="hljs-number">1</span>);
+    } <span class="hljs-keyword">else</span> {
+      createAuthWindow.call(this);
+
+      this.oauthClient.fetchRequestToken(
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(requestParams)</span> </span>{
+          <span class="hljs-keyword">var</span> authorizeUrl = <span class="hljs-keyword">self</span>.authorizeUrl + requestParams;
+          <span class="hljs-keyword">self</span>.webView.url = authorizeUrl;
+        },
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span> </span>{
+          <span class="hljs-keyword">self</span>.fireEvent(<span class="hljs-string">'login'</span>, {
+            success: <span class="hljs-keyword">false</span>,
+            error: <span class="hljs-string">"Failure to fetch access token, please try again."</span>,
+            result: data
+          });
+        }
+      );
+    }
+  };
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createAuthWindow</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = this,
+        oauth = this.oauthClient,
+        webViewWindow = Ti.UI.createWindow({title: this.windowTitle}),
+        webView = Ti.UI.createWebView(),
+        loadingOverlay = Ti.UI.createView({
+          backgroundColor: <span class="hljs-string">'black'</span>,
+          opacity: <span class="hljs-number">0.7</span>,
+          zIndex: <span class="hljs-number">1</span>
+        }),
+        actInd = Titanium.UI.createActivityIndicator({
+          height: <span class="hljs-number">50</span>,
+          width: <span class="hljs-number">10</span>,
+          message: <span class="hljs-string">'Loading...'</span>,
+          color: <span class="hljs-string">'white'</span>
+        });
+
+    this.webView = webView;
+
+    actInd.show();
+    loadingOverlay.add(actInd);
+    webViewWindow.add(loadingOverlay);
+    webViewWindow.open({modal: <span class="hljs-keyword">true</span>});
+
+    webViewWindow.add(webView);
+
+
+}
+
+  <span class="hljs-keyword">return</span> Tumblr;
+})(this);
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 12th 2013, 2:33:08 am">April 12th 2013</span>
+				by <span class='authorname'>Timothy Taylor</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>api</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>windows</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>By the way, this is what it looks like (and is supposed to look like) on the non-Alloy project:</p>
+<p><a href="https:&#x2F;&#x2F;dl.dropboxusercontent.com&#x2F;u&#x2F;2608892&#x2F;screenshot2.png">Click here to see screenshot</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 12th 2013, 2:37:17 am">April 12th 2013</span>
+								by <span class='authorname'>Timothy Taylor</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-260622">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>A couple things…</p>
+<ul>
+<li>I assume you have tumblr.js and jsOAuth-1.3.1.js in either the &quot;app&#x2F;lib&quot; or &quot;app&#x2F;assets&quot; folder, right?</li>
+<li>Where is &quot;MainWindow&quot; coming from in the screenshot? I think you might need to show us more of your project since this is obviously coming from something you&#39;ve added.</li>
+<li>In particular, what does the index.xml look like, do you have one?</li>
+</ul>
+<p>In short, nothing in Alloy should prevent this from working, so we need to see more since I&#39;m sure it&#39;s a small mistake made when you were porting the traditional TItanium app to Alloy.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 12th 2013, 10:49:25 am">April 12th 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/150834/window-hierarchy-issue-commonjs-to-alloy-conversion-problem#answer-260622" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>yes, tumblr.js is in &quot;app&#x2F;lib&quot; and jsOAuth-1.3.1.js is in &quot;app&#x2F;assets&quot;</p>
+<p>&quot;Main Window&quot; is coming from the index.xml</p>
+<p>my <strong>index.xml</strong> looks like this:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">NavigationGroup</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"navgroup"</span> <span class="hljs-attribute">platform</span>=<span class="hljs-value">"ios,mobileweb"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"winConversations"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"container"</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Main Window"</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"tblConversations"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">NavigationGroup</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 12th 2013, 11:01:02 am">April 12th 2013</span>
+											by <span class='authorname'>Timothy Taylor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-260627">
+				
+						<section>
+							<p>I figured out what my problem was, kinda. The one line of code I forgot to include in my original question was the last line of index.js.</p>
+<pre><code class="hljs"><span class="hljs-variable">$.</span><span class="hljs-keyword">index</span>.<span class="hljs-keyword">open</span>();
+</code></pre><p>I was calling client.authorize before index.open. Apparently that was the problem. I simply moved client.authorize after index.open and now it works perfectly. Thanks for helping me think it through more.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 12th 2013, 11:09:19 am">April 12th 2013</span>
+								by <span class='authorname'>Timothy Taylor</span><br>
+								<a class="icon-bg icon-link" href="question/150834/window-hierarchy-issue-commonjs-to-alloy-conversion-problem#answer-260627" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

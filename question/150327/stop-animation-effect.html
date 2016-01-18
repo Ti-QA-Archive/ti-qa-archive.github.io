@@ -1,0 +1,258 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Stop animation effect » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Stop animation effect</h1>
+		</header>
+		<section>
+			<p>Am making a &quot;Syncing&quot; animation effect.<br>When the user press &quot;Sync&quot; the animation begins. If the user press &quot;Cancel&quot; the animation should stop, but that doesn&#39;t happen.<br>Reading the Q&amp;A and the Doc, calling the animation method without arguments should make the the trick,something like <code>myView.animation()</code> but my animation is still rotating…</p>
+<p>This is what am doing:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> imgSincronizar = <span class="hljs-keyword">new</span> ui.ImageView(<span class="hljs-string">'iphone/images/ico_sincronizar.png'</span>, {
+    top: <span class="hljs-number">110</span>,
+    anchorPoint : {
+        x : <span class="hljs-number">0.5</span>,
+        y : <span class="hljs-number">0.5</span>
+    }
+}); 
+<span class="hljs-keyword">var</span> matrix2d = Ti.UI.create2DMatrix();
+matrix2d = matrix2d.rotate(<span class="hljs-number">179</span>);
+
+<span class="hljs-keyword">var</span> animation = Ti.UI.createAnimation({
+    transform: matrix2d,
+    duration: <span class="hljs-number">1000</span>,
+    repeat: <span class="hljs-number">10</span>
+});
+
+animation.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    matrix2d = matrix2d.rotate(<span class="hljs-number">179</span>);
+    animation.transform =  matrix2d;
+    animation.duration = <span class="hljs-number">1000</span>;
+    animation.repeat = <span class="hljs-number">10</span>;
+});
+
+<span class="hljs-comment">//Here the animation begins</span>
+btnSync.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    imgSincronizar.animate(animation);    
+})
+
+<span class="hljs-comment">//Here the animation SHOULD stop</span>
+btnCancel.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    imgSincronizar.animate();
+})
+</code></pre><p>How can I stop the animation?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 2nd 2013, 4:08:37 am">April 2nd 2013</span>
+				by <span class='authorname'>Felipe Hernandez</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>animation</span></li>
+					
+						<li><span class='tagname'>imageview</span></li>
+					
+						<li><span class='tagname'>view</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-260688">
+				
+						<section>
+							<p>You don&#39;t really stop an animation from executing, but you can introduce an interrupt to prevent it from restarting. Also, for animations that you want to interrupt, it&#39;s best not to use the <code>repeat</code> property.</p>
+<p>I&#39;ve modified your code a little to illustrate how you can get interrupt capability. Try running this code as is, then use the key concept to fix your code.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-built_in">window</span> = Ti.UI.createWindow({backgroundColor : <span class="hljs-string">'#fff'</span>});
+
+<span class="hljs-keyword">var</span> spinningImage = Ti.UI.createImageView({
+    image : <span class="hljs-string">'someImage.png'</span>,
+    top : <span class="hljs-number">100</span>, height : <span class="hljs-number">100</span>, width : <span class="hljs-number">100</span>,
+    opacity : <span class="hljs-number">0</span>,
+    anchorPoint : {x : <span class="hljs-number">0.5</span>, y : <span class="hljs-number">0.5</span>}
+});
+
+<span class="hljs-comment">// Keep track of the state of the animation.</span>
+<span class="hljs-keyword">var</span> isStopping = <span class="hljs-literal">false</span>;
+<span class="hljs-keyword">var</span> isStopped = <span class="hljs-literal">true</span>;
+
+<span class="hljs-keyword">var</span> matrix2d = Ti.UI.create2DMatrix().rotate(<span class="hljs-number">179</span>);
+<span class="hljs-keyword">var</span> animation = Ti.UI.createAnimation({
+    transform : matrix2d,
+    duration : <span class="hljs-number">1000</span>,
+    curve : Ti.UI.ANIMATION_CURVE_LINEAR
+});
+animation.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (!isStopping) {
+        <span class="hljs-comment">// No stop requested, keep on spinning!</span>
+        matrix2d = matrix2d.rotate(<span class="hljs-number">179</span>);
+        animation.transform = matrix2d;
+        spinningImage.animate(animation);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-comment">// Acknowledge the stop request.</span>
+        isStopped = <span class="hljs-literal">true</span>;
+        spinningImage.opacity = <span class="hljs-number">0</span>;
+    }
+});
+
+<span class="hljs-keyword">var</span> startButton = Ti.UI.createButton({
+    title : <span class="hljs-string">'Start'</span>,
+    height : <span class="hljs-number">50</span>, width : <span class="hljs-number">200</span>, bottom : <span class="hljs-number">150</span>
+});
+startButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">// Start the animation if it isn't already running.</span>
+    <span class="hljs-keyword">if</span> (isStopped) {
+        isStopped = <span class="hljs-literal">false</span>;
+        isStopping = <span class="hljs-literal">false</span>;
+        spinningImage.opacity = <span class="hljs-number">1</span>;
+        spinningImage.animate(animation);
+    }
+});
+
+<span class="hljs-keyword">var</span> stopButton = Ti.UI.createButton({
+    title : <span class="hljs-string">'Stop'</span>,
+    height : <span class="hljs-number">50</span>, width : <span class="hljs-number">200</span>, bottom : <span class="hljs-number">50</span>
+});
+stopButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">// Stop the animation from restarting.</span>
+    isStopping = <span class="hljs-literal">true</span>;
+});
+
+<span class="hljs-built_in">window</span>.add(spinningImage);
+<span class="hljs-built_in">window</span>.add(startButton);
+<span class="hljs-built_in">window</span>.add(stopButton);
+<span class="hljs-built_in">window</span>.open();
+</code></pre><p>Also, I highly suggest waiting for the <code>isStopped</code> flag to be <code>true</code> in the callback before attempting to transition to any other window.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 14th 2013, 3:10:24 am">April 14th 2013</span>
+								by <span class='authorname'>Patrick Seda</span><br>
+								<a class="icon-bg icon-link" href="question/150327/stop-animation-effect#answer-260688" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks to your suggestion to wait for iStopped==true, I solved all the issue with opening new window. Anyway, I still have problem when the app is paused and then resumed. The animation event is fired repeatedly (faster than the duration) but animation does not play. Exactly the problem I had while opening new window without waiting for iStopped==true</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 29th 2013, 10:58:24 am">May 29th 2013</span>
+											by <span class='authorname'>alessandro la rocca</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-259788">
+				
+						<section>
+							<p>There is no API to stop animations. Maybe you can kill it via <code>animation=null;</code>. But this is dirty.</p>
+<p>If you want to play with animations, you can use the <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;alloy&#x2F;blob&#x2F;master&#x2F;Alloy&#x2F;builtins&#x2F;animation.js">new animation lib in alloy</a>.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 2nd 2013, 4:12:25 am">April 2nd 2013</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/150327/stop-animation-effect#answer-259788" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;153002&#x2F;animation-loop-does-not-restart-after-app-is-paused-and-resumed">Look at this</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 2nd 2013, 4:17:36 pm">June 2nd 2013</span>
+											by <span class='authorname'>alessandro la rocca</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Kroll from within Service in Android Module » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Kroll from within Service in Android Module</h1>
+		</header>
+		<section>
+			<h2 id="the-question">The Question</h2>
+<p>I&#39;m working on a module to create a foreground service for android. At first I thought this would be a daunting task, but as it turns out it was fairly straight forward. I want to be <strong><em>clear</em></strong> about what my question is here, </p>
+<h4 id="so-please-note-this-">so please note this:</h4>
+<p>My service runs, the JS in my service runs, all this in the foreground, no less. My issue is that once I close the app, my JS stops running, unlike Titanium&#39;s built in background services. The service doesn&#39;t restart after app close, it just keeps going, which I like, but this is also unlike Titanium&#39;s built in background services, for what it&#39;s worth.</p>
+<h4 id="thus-my-question-is-">Thus, my question is:</h4>
+<p>  How can I prevent my JS from stopping after I close the application and allow it to perpetuate as the service does, similarly to how Titanium currently does with its background services. What steps are necessary to fulfill this?</p>
+<h2 id="the-code">The Code</h2>
+<h4 id="my-module-39-s-proxy-method-for-starting-the-service-">My Module&#39;s proxy method for starting the service:</h4>
+<pre><code class="hljs">@<span class="hljs-type">Kroll</span>.<span class="hljs-keyword">method</span>
+    public <span class="hljs-type">void</span> startForegroundService(<span class="hljs-type">String</span> jsFile)
+    {                  
+
+        <span class="hljs-type">Intent</span> serviceIntent = new <span class="hljs-type">Intent</span>();
+          serviceIntent.setClassName(<span class="hljs-type">TiApplication</span>.getInstance().getApplicationContext(), <span class="hljs-string">"com.powereddynamics.foregroundservice.ForegroundService"</span>);
+          serviceIntent.putExtra(<span class="hljs-string">"jsUrl"</span>, jsFile);
+          <span class="hljs-type">TiApplication</span>.getInstance().startService(serviceIntent); 
+    }
+</code></pre><p>The Service code which extends TiBaseService:</p>
+<pre><code class="hljs"><span class="hljs-keyword">package</span> com.powereddynamics.foregroundservice;
+
+<span class="hljs-keyword">import</span> org.appcelerator.titanium.TiApplication;
+<span class="hljs-keyword">import</span> org.appcelerator.kroll.*;
+<span class="hljs-keyword">import</span> org.appcelerator.kroll.util.*;
+<span class="hljs-keyword">import</span> org.appcelerator.titanium.TiC;
+<span class="hljs-keyword">import</span> org.appcelerator.titanium.util.*;
+<span class="hljs-keyword">import</span> org.appcelerator.titanium.proxy.ServiceProxy;
+<span class="hljs-keyword">import</span> org.appcelerator.titanium.TiBaseService;
+
+<span class="hljs-keyword">import</span> android.R;
+<span class="hljs-keyword">import</span> android.app.Notification;
+<span class="hljs-keyword">import</span> android.app.PendingIntent;
+<span class="hljs-keyword">import</span> android.content.Intent;
+<span class="hljs-keyword">import</span> android.util.Log;
+
+<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ForegroundService</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">TiBaseService</span></span>{<span class="hljs-comment">//Service {</span>
+
+  <span class="hljs-keyword">private</span> String jsFile = <span class="hljs-string">""</span>;
+  ServiceProxy proxy;
+
+  <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">ForegroundService</span><span class="hljs-params">()</span>
+  </span>{
+    <span class="hljs-keyword">super</span>();
+  }
+
+  <span class="hljs-annotation">@Override</span>
+  <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">onStartCommand</span><span class="hljs-params">(Intent intent, <span class="hljs-keyword">int</span> flags, <span class="hljs-keyword">int</span> startId)</span> </span>{
+    jsFile = intent.getStringExtra(<span class="hljs-string">"jsUrl"</span>);
+    proxy = createProxy(intent);
+    initialize();     
+
+    <span class="hljs-keyword">return</span>(START_REDELIVER_INTENT);
+  }
+
+  <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title">initialize</span><span class="hljs-params">()</span> </span>{
+
+            <span class="hljs-comment">/*KrollRuntime.getInstance().evalString(
+                        KrollAssetHelper.readAsset(getPath(jsFile)), 
+                        getPath(jsFile));*/</span>
+      KrollRuntime.getInstance().runModule(KrollAssetHelper.readAsset(getPath(jsFile)), getPath(jsFile), proxy);
+
+
+      Log.w(getClass().getName(), <span class="hljs-string">"Got to play()!"</span>);
+
+      Notification note=<span class="hljs-keyword">new</span> Notification(R.drawable.stat_notify_chat,
+                                          <span class="hljs-string">"Can you hear the music?"</span>,
+                                          System.currentTimeMillis());
+
+      Intent i = <span class="hljs-keyword">new</span> Intent(TiApplication.getInstance().getApplicationContext(),TiApplication.getInstance().getRootOrCurrentActivity().getClass());
+
+
+      i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|
+                 Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+      PendingIntent pi=PendingIntent.getActivity(<span class="hljs-keyword">this</span>, <span class="hljs-number">0</span>,
+                                                  i, <span class="hljs-number">0</span>);
+
+      note.setLatestEventInfo(<span class="hljs-keyword">this</span>, <span class="hljs-string">"Fake Player"</span>,
+                              <span class="hljs-string">"Now Playing: \"Ummmm, Nothing\""</span>,
+                                  pi);
+      note.flags|=Notification.FLAG_NO_CLEAR;
+
+      startForeground(<span class="hljs-number">1337</span>, note);
+  }
+
+  <span class="hljs-function"><span class="hljs-keyword">private</span> String <span class="hljs-title">getPath</span><span class="hljs-params">(String url)</span> </span>{
+        String fullUrl = url;
+        <span class="hljs-keyword">if</span> (!fullUrl.contains(<span class="hljs-string">"://"</span>) &amp;&amp; !fullUrl.startsWith(<span class="hljs-string">"/"</span>)) {
+        fullUrl = <span class="hljs-keyword">new</span> TiUrl(url).baseUrl + fullUrl;
+    }
+
+    <span class="hljs-keyword">if</span> (fullUrl.startsWith(TiC.URL_APP_PREFIX)) {
+        fullUrl = fullUrl.replaceAll(<span class="hljs-string">"app:/"</span>, <span class="hljs-string">"Resources"</span>);
+
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (fullUrl.startsWith(TiC.URL_ANDROID_ASSET_RESOURCES)) {
+        fullUrl = fullUrl.replaceAll(<span class="hljs-string">"file:///android_asset/"</span>, <span class="hljs-string">""</span>);
+        }
+
+        <span class="hljs-keyword">return</span> fullUrl;
+   }
+
+   <span class="hljs-annotation">@Override</span>
+   <span class="hljs-function"><span class="hljs-keyword">protected</span> ServiceProxy <span class="hljs-title">createProxy</span><span class="hljs-params">(Intent intent)</span>
+   </span>{
+        <span class="hljs-keyword">int</span> lastSlash = jsFile.lastIndexOf(<span class="hljs-string">'/'</span>);
+        String baseUrl = jsFile.substring(<span class="hljs-number">0</span>, lastSlash+<span class="hljs-number">1</span>);
+        <span class="hljs-keyword">if</span> (baseUrl.length() == <span class="hljs-number">0</span>) {
+            baseUrl = <span class="hljs-keyword">null</span>;
+        }
+        ServiceProxy proxy = <span class="hljs-keyword">new</span> ServiceProxy(<span class="hljs-keyword">this</span>, intent, proxyCounter.incrementAndGet());
+        <span class="hljs-keyword">return</span> proxy;
+   }
+
+}
+</code></pre><p>Very much of this is copy&#x2F;pasted from various sources on the internet, and there are remnants of that for the purposes of test, try not to mind those.</p>
+<p>Thanks,</p>
+<p>-John Louderback</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 8th 2013, 12:35:59 am">July 8th 2013</span>
+				by <span class='authorname'>John Louderback</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>foreground service</span></li>
+					
+						<li><span class='tagname'>kroll</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Also, for whatever it&#39;s worth, I&#39;ve tried this over again copy&#x2F;pasting the TiJSService code. The initial copy&#x2F;paste as a background service worked flawlessly (as a background service, mind you). After I added in the very little code to make it a foreground service, it works again… that is, until I close the app, then, just as before, the service persists, but the JS ceases to execute.</p>
+<p>The code that makes the difference is:</p>
+<pre><code class="hljs">Notification note=<span class="hljs-keyword">new</span> Notification(R.drawable.stat_notify_chat,
+                <span class="hljs-string">"Can you hear the music?"</span>,
+                System.currentTimeMillis());
+
+        Intent i = <span class="hljs-keyword">new</span> Intent(TiApplication.getInstance().getApplicationContext(),TiApplication.getInstance().getRootOrCurrentActivity().getClass());
+
+
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|
+        Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        PendingIntent pi=PendingIntent.getActivity(<span class="hljs-keyword">this</span>, <span class="hljs-number">0</span>,
+                                i, <span class="hljs-number">0</span>);
+
+        note.setLatestEventInfo(<span class="hljs-keyword">this</span>, <span class="hljs-string">"Fake Player"</span>,
+            <span class="hljs-string">"Now Playing: \"Ummmm, Nothing\""</span>,
+                pi);
+        note.flags|=Notification.FLAG_NO_CLEAR;
+
+        startForeground(<span class="hljs-number">1337</span>, note);
+</code></pre><p>I have no idea what to make of this =&#x2F;</p>
+<p>Still looking for some big help.</p>
+<p>Thanks.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 8th 2013, 3:37:40 am">July 8th 2013</span>
+								by <span class='authorname'>John Louderback</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-269673">
+				
+						<section>
+							<p>So, I&#39;m a titanium newb, but couldn&#39;t you just fire off the background service from some action in the foreground service? Then when your foreground service goes away, the background one persists. Maybe I&#39;m misunderstandnig what a foreground service is tho.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 6th 2013, 4:55:27 pm">October 6th 2013</span>
+								by <span class='authorname'>B T</span><br>
+								<a class="icon-bg icon-link" href="question/154566/kroll-from-within-service-in-android-module#answer-269673" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to save the Instance State in Android applications developed with Titanium? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to save the Instance State in Android applications developed with Titanium?</h1>
+		</header>
+		<section>
+			<p>I&#39;m working with Titanium 3.1 and developing for Android 3.0 and greater.</p>
+<p>My app has a view that when clicked asks you if you want to take a picture or select an image from gallery. When I choose to take a picture from the camera, the camera shows with no problem and I can take the picture, the problem is that after I take the picture and choose to use it, my app resume from the beginning, not returning to the previous state it was showing before choosing to take a picture.</p>
+<p>When I checked logcat I saw this line:</p>
+<p><code>I&amp;#x2F;TiRootActivity(24120): (main) [0,0] checkpoint, on root activity create, savedInstanceState: null</code></p>
+<p>It seems the state of my app is not being saved, but I don&#39;t know why. I&#39;ll be honest, this is my first time working on an app that goes to the camera app, takes a picture and returns to the app. Previously I&#39;ve worked with Intents in Titanium and I&#39;ve been able to return to the correct state of my app after exiting the application that was opened with the Intent using the back button.</p>
+<p>This is the code I use to open the camera:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> babyImage = Titanium.UI.createImageView({   
+    image:imagesPath + <span class="hljs-string">"kinedu_0027_ic_camara.png"</span>,
+    width:<span class="hljs-number">75</span>,   
+});
+
+<span class="hljs-keyword">var</span> photoOptionsViewFromCamera = Ti.UI.createView({
+    width:Ti.Platform.displayCaps.platformWidth,
+    height:<span class="hljs-number">44</span>, 
+    left:<span class="hljs-number">0</span>, 
+    top:<span class="hljs-number">1</span>*<span class="hljs-number">44</span>,
+    backgroundColor:<span class="hljs-string">"transparent"</span>
+});
+
+<span class="hljs-keyword">var</span> photoOptionsViewFromCameraLabel = Ti.UI.createLabel({
+    text:<span class="hljs-string">"from camera"</span>, 
+    font:{fontSize:<span class="hljs-number">14</span>, fontFamily:<span class="hljs-string">"Arial Rounded MT Bold"</span>}, 
+    color:<span class="hljs-string">"#368cd6"</span>
+});
+
+photoOptionsViewFromCamera.add(photoOptionsViewFromCameraLabel);
+
+photoOptionsViewFromCamera.addEventListener(<span class="hljs-string">"touchstart"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">var</span> animateTouchStart = Ti.UI.createAnimation({backgroundColor:<span class="hljs-string">"#AFD1DE"</span>, duration:<span class="hljs-number">150</span>});
+    photoOptionsViewFromCamera.animate(animateTouchStart);
+
+});
+
+<span class="hljs-comment">//********* this is the code that triggers the camera to take the picture</span>
+photoOptionsViewFromCamera.addEventListener(<span class="hljs-string">"touchend"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">var</span> animateTouchEnd = Ti.UI.createAnimation({backgroundColor:<span class="hljs-string">"transparent"</span>, duration:<span class="hljs-number">150</span>});
+    photoOptionsViewFromCamera.animate(animateTouchEnd);
+
+    animateTouchEnd.addEventListener(<span class="hljs-string">"complete"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        Ti.Media.showCamera({
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span> </span>{
+
+                <span class="hljs-keyword">var</span> tmp = Ti.Filesystem.getFile(Ti.Filesystem.tempDirectory, (<span class="hljs-string">'baby_temp.png'</span>));
+                    tmp.write(event.media);
+                    <span class="hljs-keyword">var</span> blob = tmp.read();
+
+                    Ti.App.fireEvent(<span class="hljs-string">"changePicture"</span>);
+
+                },
+            cancel : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(error)</span> </span>{
+                <span class="hljs-keyword">var</span> message;
+                <span class="hljs-keyword">if</span> (error.code == Ti.Media.NO_CAMERA) {
+                    message = <span class="hljs-string">'Device does not have camera capabilities'</span>;
+                } <span class="hljs-keyword">else</span> {
+                    message = <span class="hljs-string">'Unexpected error: '</span> + error.code;
+                }
+
+                Ti.UI.createAlertDialog({
+                    title : <span class="hljs-string">'Camera'</span>,
+                    message : message
+                }).show();
+            },
+            saveToPhotoGallery : <span class="hljs-literal">false</span>,
+            allowEditing : <span class="hljs-literal">true</span>,
+            mediaTypes : [Ti.Media.MEDIA_TYPE_PHOTO]
+        });     
+    });
+});
+
+
+Ti.App.addEventListener(<span class="hljs-string">"changePicture"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">var</span> tmp = Ti.Filesystem.getFile(Ti.Filesystem.tempDirectory, (<span class="hljs-string">'baby_temp.png'</span>));
+    <span class="hljs-keyword">var</span> blob = tmp.read();
+
+    <span class="hljs-keyword">var</span> animationChange = Ti.UI.createAnimation({opacity:<span class="hljs-number">0</span>, duration:<span class="hljs-number">200</span>});
+
+    babyImage.animate(animationChange);
+
+    <span class="hljs-keyword">var</span> animationChangeCompleted = Ti.UI.createAnimation({opacity:<span class="hljs-number">1</span>, duration:<span class="hljs-number">200</span>});
+
+    animationChange.addEventListener(<span class="hljs-string">"complete"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        babyImage.setWidth(<span class="hljs-number">100</span>);
+        <span class="hljs-keyword">var</span> image = blob.imageAsThumbnail(<span class="hljs-number">150</span>);                         
+        babyImage.setImage(image);              
+        babyImage.animate(animationChangeCompleted);
+    });             
+});
+</code></pre><p>I&#39;ve checked and the success callback is never made, I think it&#39;s because the application resumes from the beginning, showing the application splash screen.</p>
+<p>How can I ensure that after taking the picture, the application returns to the previous view without resuming the application from the beginning?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 25th 2013, 9:12:21 pm">July 25th 2013</span>
+				by <span class='authorname'>Nenvo Software</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>camera</span></li>
+					
+						<li><span class='tagname'>image</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Instead of var babyImage, is var globalBabyPicture.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 25th 2013, 9:17:48 pm">July 25th 2013</span>
+								by <span class='authorname'>Nenvo Software</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

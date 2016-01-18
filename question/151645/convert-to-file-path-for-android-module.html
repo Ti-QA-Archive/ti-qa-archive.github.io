@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Convert to file path for Android module » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Convert to file path for Android module</h1>
+		</header>
+		<section>
+			<p>I&#39;ve created an Android PDF module for Titanium, and I am able to display a pdf by hard coding a path in the native module:<br><code>path = &amp;#39;&amp;#x2F;sdcard&amp;#x2F;Download&amp;#x2F;pdf-test.pdf&amp;#39;;</code><br>…but when I try to pass a path from Ti to the module using f.nativePath for a pdf in my resources folder, I get an invalid path.</p>
+<pre><code class="hljs">    <span class="hljs-variable"><span class="hljs-keyword">var</span> f</span> = Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory, <span class="hljs-string">"pdf-test.pdf"</span>);
+        Ti.API.info(<span class="hljs-string">"file: "</span> + f.nativePath); <span class="hljs-comment">//returns "file:///..."</span>
+</code></pre><p>How do I get a path from Ti that refers to a pdf in my resources folder that is accessible from the native module as a file path?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 27th 2013, 2:52:41 am">April 27th 2013</span>
+				by <span class='authorname'>Ryan Eade</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-261804">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>I ran into a similar issue the other day. It seems that Resources ( ie assets ) are handled special by Titanium.</p>
+<p>To work around this issue I found it best to check if the TiFile is in the Resources folder, if so create a temp file.</p>
+<p>This is the native helper method I use within my module.</p>
+<pre><code class="hljs"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">File</span> createTempFileFromFileAtPath(String path) <span class="hljs-keyword">throws</span> IOException{    
+TiFileHelper helper = <span class="hljs-keyword">new</span> TiFileHelper(TiApplication.getInstance().getApplicationContext());
+InputStream stream = helper.openInputStream(path, <span class="hljs-keyword">true</span>);
+<span class="hljs-keyword">File</span> tempFile = helper.getTempFileFromInputStream(stream,TEMP_PREFIX,<span class="hljs-keyword">true</span>);
+stream.close();
+<span class="hljs-keyword">return</span> tempFile;
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 29th 2013, 12:33:41 pm">April 29th 2013</span>
+								by <span class='authorname'>Ben Bahrenburg</span><br>
+								<a class="icon-bg icon-link" href="question/151645/convert-to-file-path-for-android-module#answer-261804" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>You can of course do the same in JavaScript ( must easier ) but wanted to make sure you had a native sample as well.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 29th 2013, 12:34:42 pm">April 29th 2013</span>
+											by <span class='authorname'>Ben Bahrenburg</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Ben, I ended up finding this method on the native side as well, I guess both methods would end up with the same outcome.  I ended up passing this raw byte[] stream to my PDF render jar.  I got the idea to do it this way based on the moddevguide android sample. </p>
+<pre><code class="hljs">    @<span class="hljs-type">Kroll</span>.<span class="hljs-keyword">method</span>
+    public <span class="hljs-type">void</span> loadPDF(<span class="hljs-type">String</span> fileName)
+    {
+        <span class="hljs-type">Log</span>.d(<span class="hljs-type">TAG</span>, <span class="hljs-string">"loadPDF() called with fileName: "</span> + fileName);
+
+        // <span class="hljs-type">Load</span> the pdf <span class="hljs-keyword">from</span> the application assets
+        <span class="hljs-type">String</span> url = getPathToApplicationAsset(fileName);
+        <span class="hljs-type">TiBaseFile</span> file = <span class="hljs-type">TiFileFactory</span>.createTitaniumFile(new <span class="hljs-type">String</span>[] { url }, <span class="hljs-literal">false</span>);
+
+        //<span class="hljs-type">Convert</span> file to <span class="hljs-type">TiBlob</span>
+        <span class="hljs-type">TiBlob</span> blob = <span class="hljs-type">TiBlob</span>.blobFromFile(file);
+
+        //<span class="hljs-type">Convert</span> <span class="hljs-type">TiBlob</span> to raw bytes
+        byte[] <span class="hljs-type">PDF_RAW</span> = blob.getBytes();
+
+        <span class="hljs-type">Log</span>.d(<span class="hljs-type">TAG</span>, <span class="hljs-string">"size of PDF_RAW: "</span> + <span class="hljs-type">PDF_RAW</span>.length + <span class="hljs-string">"bytes"</span>);
+    }
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 29th 2013, 12:42:49 pm">April 29th 2013</span>
+											by <span class='authorname'>Ryan Eade</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-261701">
+				
+						<section>
+							<p>Hello Ryan,</p>
+<p>You can try like below way : </p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> f</span> = Ti.Filesystem.getFile(Ti.Filesystem.externalStorageDirectory, <span class="hljs-string">"pdf-test.pdf"</span>);
+Ti.API.info(<span class="hljs-string">"file: "</span> + f.nativePath);
+<span class="hljs-comment">//returns "file:///..."</span>
+</code></pre><p>Let me know if it helps</p>
+<p>Thanks<br>Jigar</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 27th 2013, 3:57:54 am">April 27th 2013</span>
+								by <span class='authorname'>Jigar Maheshwari</span><br>
+								<a class="icon-bg icon-link" href="question/151645/convert-to-file-path-for-android-module#answer-261701" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>you should first read question carefully. he wants to read and set path from <strong>resource directory not from external directory</strong></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 27th 2013, 4:07:21 am">April 27th 2013</span>
+											by <span class='authorname'>Mitul Bhalia</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That&#39;s correct, I need to be able to get the path to a pdf that resides in my apps resources.  The path gets passed to an external module.  Is this possible? Or do I need to copy the files to an external location (not preferable).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 27th 2013, 6:50:02 pm">April 27th 2013</span>
+											by <span class='authorname'>Ryan Eade</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey Ryan,</p>
+<p>Where is your file in Resource Directory.?<br>Please Provide a Path to me.<br>You can put the codition like this : </p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> f</span> = Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory, <span class="hljs-string">"pdf-test.pdf"</span>);
+<span class="hljs-keyword">if</span>(f.exists()){
+    <span class="hljs-comment">//Any Action Here</span>
+}
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 28th 2013, 12:32:03 am">April 28th 2013</span>
+											by <span class='authorname'>Jigar Maheshwari</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The issue I am having is not with the file path in Ti, it&#39;s passing that file path to a native Android Module I am developing.  Can native Android code running within a module access files within the resource directory of the app it is running in?  </p>
+<p>When the path is passed to the module, I use <code>myModule.setPath(f.nativePath);</code> and within myModule that sets a static string path.  Upon inspection the value of the static string is &quot;file:&#x2F;&#x2F;&#x2F;android_asset&#x2F;Resources&#x2F;pdf-test.pdf&quot; but attempting to open this file stream within my module returns an invalid path:</p>
+<pre><code class="hljs"><span class="hljs-comment">//[Titanium Code] In MyWindow.js</span>
+
+<span class="hljs-keyword">var</span> mymodule = <span class="hljs-built_in">require</span>(<span class="hljs-string">'com.recreativestudios.mymodule'</span>);
+
+<span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory, <span class="hljs-string">"pdf-test.pdf"</span>);
+<span class="hljs-keyword">if</span>(f.exists()){
+    mymodule.setFilePath(f.nativePath);
+}
+</code></pre><pre><code class="hljs"><span class="hljs-comment">//[Native Android Module Code] In MyModule.java</span>
+<span class="hljs-comment">// within public class MyModule (extends KrollModule)</span>
+
+<span class="hljs-comment">//Methods</span>
+@Kroll<span class="hljs-built_in">.</span>method
+<span class="hljs-keyword">public</span> <span class="hljs-literal">void</span> setFilePath(<span class="hljs-built_in">String</span> filePath) {
+    <span class="hljs-keyword">if</span>(<span class="hljs-subst">!</span><span class="hljs-literal">new</span> File(path)<span class="hljs-built_in">.</span>exists()) {
+        <span class="hljs-keyword">Log</span><span class="hljs-built_in">.</span>d(<span class="hljs-built_in">TAG</span>, <span class="hljs-string">"File does not exist:"</span> + filePath);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-comment">//save the path to private string</span>
+    }
+}
+</code></pre><p>I&#39;ve tried different idea I found on forums, such as removing the &quot;file:&#x2F;&#x2F;&quot; from the path string, but neither seems to work.  The module can never access that path.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 28th 2013, 9:39:59 am">April 28th 2013</span>
+											by <span class='authorname'>Ryan Eade</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

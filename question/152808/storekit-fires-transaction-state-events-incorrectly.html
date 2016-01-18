@@ -1,0 +1,373 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Storekit fires transaction state events incorrectly » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Storekit fires transaction state events incorrectly</h1>
+		</header>
+		<section>
+			<p>Hi.</p>
+<p>I&#39;m using ti.storekit to purchase a consumable product with In App Purchase. Sometimes, it works fine, sometimes the <code>transactionState</code>-event is not fired or is fired multiple times.</p>
+<p>As I could see from the console logs <strong>finish transaction</strong> is called correctly:</p>
+<pre><code class="hljs">[DEBUG] Calling finish <span class="hljs-keyword">transaction</span> <span class="hljs-keyword">for</span> &lt;SKPaymentTransaction: <span class="hljs-number">0x209151e0</span>&gt;
+</code></pre><p>What can cause the transactionState to not get called (or to get called multiple times with evt.state Storekit.PURCHASED) after <code>finish transaction</code> ?</p>
+<p>Thanks in advance for any help!</p>
+<p>Here is my code:</p>
+<pre><code class="hljs">        Storekit.addEventListener(<span class="hljs-string">'transactionState'</span>, function (evt) {
+            <span class="hljs-keyword">switch</span> (evt.state) {
+                <span class="hljs-keyword">case</span> Storekit.FAILED:
+                    <span class="hljs-keyword">if</span> (evt.cancelled) {
+                        Ti.API.info(<span class="hljs-string">'Purchase cancelled'</span>);
+                        _callback({
+                            success: <span class="hljs-keyword">false</span>,
+                            <span class="hljs-keyword">error</span>: <span class="hljs-keyword">error</span>.USER_CANCELLED
+                        });
+                    } <span class="hljs-keyword">else</span> {
+                        Ti.API.info(<span class="hljs-string">'Purchase failed'</span>);
+                        _callback({
+                            success: <span class="hljs-keyword">false</span>,
+                            <span class="hljs-keyword">error</span>: <span class="hljs-keyword">error</span>.PURCHASE_FAILED
+                        });    
+                    }
+                    <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">case</span> Storekit.PURCHASED:
+                    Ti.API.info('Purchase succeed');
+                    purchased(evt.productIdentifier, function(){
+                        _callback({
+                            success: <span class="hljs-keyword">true</span>,
+                            <span class="hljs-keyword">error</span>: <span class="hljs-keyword">false</span>
+                        });
+                    });
+                    <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">case</span> Storekit.PURCHASING:
+                    Ti.API.info(<span class="hljs-string">"Purchasing "</span> + evt.productIdentifier);
+                    <span class="hljs-keyword">break</span>;
+                <span class="hljs-keyword">case</span> Storekit.RESTORED:
+                    Ti.API.info(<span class="hljs-string">"Restored "</span> + evt.productIdentifier);
+                    <span class="hljs-keyword">break</span>;
+            }
+        });
+</code></pre><p>Titanium Studio: 3.1.0<br>Titanium SDK: 3.1.0 GA<br>ti.storekit: 2.0.2<br>Platform: iOS</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 24th 2013, 11:57:51 am">May 24th 2013</span>
+				by <span class='authorname'>Manuel Lehner</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iap</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>purchase</span></li>
+					
+						<li><span class='tagname'>storekit</span></li>
+					
+						<li><span class='tagname'>transaction</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>7 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello,</p>
+<p>a timeout? Is this happening every time or just randomly?</p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 24th 2013, 2:36:32 pm">May 24th 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I just discovered that it happens when I purchase an item for the second time after I have had purchased it successfully for the first time.</p>
+<p>Maybe I wrote some bad code. Basically, this is what I&#39;m doing:</p>
+<ul>
+<li>listening to click-event of <em>chargeCreditsButton</em> to call a <em>chargeCredits</em>-Function</li>
+<li>this <em>chargeCredits</em>-function gets passed a callback-function to handle errors &#x2F; success</li>
+<li>within <em>chargeCredits</em> Storekit becomes loaded</li>
+<li>requested products are shown in an optionDialog</li>
+<li>selected product is purchased by <code>Storekit.purchaseProduct(product);</code></li>
+</ul>
+<p>The Storekit eventlistener that I posted in my original question is also added within this <em>chargeCredits</em> function. I guess it&#39;s my callback routine causing this error. I will try to initialize Storekit outside of this function and to use events instead of callbacks to handle errors or success. I let you know if I can resolve it, soon.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 24th 2013, 8:19:43 pm">May 24th 2013</span>
+								by <span class='authorname'>Manuel Lehner</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>can you post that last comment as an answer to your question?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 27th 2013, 11:18:21 pm">May 27th 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>But it was not an answer. Actually it didn&#39;t help to require and set up Storekit separatly. So I took the code from the example and rewrote my purchasing procedure. I didn&#39;t really find out what&#39;s the difference but it works now as it should. Thanks anyway! :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 28th 2013, 6:05:06 am">May 28th 2013</span>
+								by <span class='authorname'>Manuel Lehner</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Manuel, I had the same issue (multiple purchases issue): I had to code a workaround with a boolean set to true after the first purchase and a conditional.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 20th 2013, 8:25:25 am">June 20th 2013</span>
+								by <span class='authorname'>Kiwi Blas</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Yes, I did it the same way after the issue has appeared again. If you want to share your solution to the community, you can do it in an answer to this Q. Then, I can mark this question as &quot;answered&quot;.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 20th 2013, 8:37:06 am">June 20th 2013</span>
+								by <span class='authorname'>Manuel Lehner</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi all, </p>
+<p>I have the same issue. Can anyone share the solution please ?</p>
+<p>Thanks :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 4th 2013, 4:49:12 pm">November 4th 2013</span>
+								by <span class='authorname'>Greg Carlin</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-287997">
+				
+						<section>
+							<p>This problem is still remain in 3.1.2. Please help for multiple alert after reopen the app.<br>My Problem is:</p>
+<p>Suppose first time open the app and I purchase the item 5 times and kill the app. and then again reopen the app and then the previous 5 alert will come continuously.</p>
+<p>Please help me any one </p>
+<p>Thank in advance</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 10th 2015, 11:38:10 am">September 10th 2015</span>
+								by <span class='authorname'>Alok Gupta</span><br>
+								<a class="icon-bg icon-link" href="question/152808/storekit-fires-transaction-state-events-incorrectly#answer-287997" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-270893">
+				
+						<section>
+							<p>This is basically what I&#39;m doing:</p>
+<ul>
+<li>I set up Storekit</li>
+<li>when purchasing the product, I set purchasing to true and it is stored it in the purchaseCache object</li>
+<li>only purchase if purchasing is false</li>
+<li>the PURCHASED event calls the verify function and removes the transactionState-EventListener</li>
+<li>I try to verify the receipt on my server as long as verified is false</li>
+<li>if the server successfully verified the receipt, I deliver the content, empty the cached product</li>
+<li>when purchasing another product,  I re-setup Storekit</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> (! Storekit){
+    Storekit = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.storekit'</span>);
+}
+Storekit.receiptVerificationSandbox = (Ti.App.deployType !== <span class="hljs-string">'production'</span>);
+Storekit.receiptVerificationSharedSecret = Alloy.CFG.IAP.SharedSecret;
+
+<span class="hljs-keyword">var</span> verifyingReceipts = <span class="hljs-literal">true</span>;
+
+<span class="hljs-keyword">var</span> purchaseCache = {
+    product: <span class="hljs-literal">null</span>,
+    verified: <span class="hljs-literal">false</span>,
+    purchasing: <span class="hljs-literal">false</span>
+};
+
+Storekit.addEventListener(<span class="hljs-string">'transactionState'</span>, onTransactionState);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onTransactionState</span>(<span class="hljs-params">evt</span>) </span>{
+
+    <span class="hljs-keyword">switch</span> (evt.state) {
+        <span class="hljs-keyword">case</span> Storekit.FAILED:
+            hideLoading();
+            <span class="hljs-keyword">if</span> (evt.cancelled) {
+                Ti.API.info(<span class="hljs-string">'Purchase cancelled'</span>);
+            } <span class="hljs-keyword">else</span> {
+                Ti.UI.createAlertDialog({
+                    title: L(<span class="hljs-string">'error_purchase_failed_title'</span>),
+                    message: L(<span class="hljs-string">'error_purchase_failed_error'</span>)
+                }).show();
+            }
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> Storekit.PURCHASED:
+            <span class="hljs-keyword">if</span> (verifyingReceipts) {
+                verifyReceipt(Ti.Utils.base64encode(evt.receipt).text);
+                Storekit.removeEventListener(<span class="hljs-string">'transactionState'</span>, onTransactionState);
+                Storekit = <span class="hljs-literal">null</span>;
+                Storekit = <span class="hljs-literal">false</span>;
+            }
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> Storekit.PURCHASING:
+            Ti.API.info(<span class="hljs-string">"Purchasing "</span> + evt.productIdentifier);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> Storekit.RESTORED:
+            <span class="hljs-comment">// The complete list of restored products is sent with the `restoredCompletedTransactions` event</span>
+            Ti.API.info(<span class="hljs-string">"Restored "</span> + evt.productIdentifier);
+            <span class="hljs-keyword">break</span>;
+    }
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 5th 2013, 10:22:30 am">November 5th 2013</span>
+								by <span class='authorname'>Manuel Lehner</span><br>
+								<a class="icon-bg icon-link" href="question/152808/storekit-fires-transaction-state-events-incorrectly#answer-270893" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This is not up-to-date since I was using this code with ti.storekit version 2.0.2.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 5th 2014, 2:17:02 pm">February 5th 2014</span>
+											by <span class='authorname'>Manuel Lehner</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-279346">
+				
+						<section>
+							<p>Hi,</p>
+<p>Even with the new version of storekit (2.1.2) the problem persists. Purchasing a product for the second time generates random [DEBUG] Calling finish transaction for &lt;SKPaymentTransaction&gt;</p>
+<p>:(</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 2nd 2014, 12:04:56 pm">June 2nd 2014</span>
+								by <span class='authorname'>Greg Carlin</span><br>
+								<a class="icon-bg icon-link" href="question/152808/storekit-fires-transaction-state-events-incorrectly#answer-279346" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>storekit 3.0.0 i meant</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 2nd 2014, 12:16:31 pm">June 2nd 2014</span>
+											by <span class='authorname'>Greg Carlin</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

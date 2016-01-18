@@ -1,0 +1,354 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>ACS push notifications » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>ACS push notifications</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>What is the problem with ACS currently ?<br>it is impossible for me to send push from ACS console even if device subscribes well (http 200) after getting the token..</p>
+<p>i see in the console that device is subscribed. when i send push notifications, it is success but never comes to device !!!</p>
+<p>here is my code to create user, login, create an object (because i need it in my app), get device and subscribe..</p>
+<pre><code class="hljs">exports.managePush = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">queryData</span>) </span>{
+    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+
+    <span class="hljs-keyword">var</span> userCreated = Ti.App.Properties.hasProperty(<span class="hljs-string">'userCreated'</span>);
+    <span class="hljs-keyword">var</span> registredForPush = Ti.App.Properties.hasProperty(<span class="hljs-string">'registredForPush'</span>);
+
+    <span class="hljs-keyword">var</span> searchIdCloud;
+    <span class="hljs-keyword">var</span> searchIdDb = queryData.searchId;
+    <span class="hljs-keyword">var</span> userName = Titanium.Platform.getId();
+
+    <span class="hljs-keyword">if</span>(!userCreated){
+        createUser();
+    }
+    <span class="hljs-keyword">else</span>{
+        loginUser();
+    }
+    <span class="hljs-comment">//user registeration on cloud</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createUser</span>(<span class="hljs-params"></span>) </span>{
+        Cloud.Users.create(
+            {
+                username: userName,
+                password: <span class="hljs-string">"pass"</span>,
+                password_confirmation: <span class="hljs-string">"pass"</span>
+            }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    Ti.App.Properties.setString(<span class="hljs-string">'userCreated'</span>, <span class="hljs-literal">true</span>);
+                    <span class="hljs-keyword">var</span> user = e.users[<span class="hljs-number">0</span>].id;
+                    queryData.userId = user;
+                    Ti.API.info(<span class="hljs-string">'Created! You are now logged in as '</span> + user);
+                    loginUser();
+                }
+                <span class="hljs-keyword">else</span> {
+                    <span class="hljs-keyword">if</span> (e.error &amp;&amp; e.message) {
+                        Ti.API.info(<span class="hljs-string">'Error :'</span> + e.message);   
+                    }
+                }
+            }
+        );
+    }
+
+    <span class="hljs-comment">//user login on cloud using default credential</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loginUser</span>(<span class="hljs-params"></span>) </span>{
+        Cloud.Users.login(
+            {
+                login : userName,
+                password : <span class="hljs-string">'pass'</span>
+            }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    <span class="hljs-keyword">var</span> user = e.users[<span class="hljs-number">0</span>].id;
+                    queryData.userId = user;
+                    Ti.API.info(<span class="hljs-string">"Loggin successfully"</span>);
+                    Cloud.Objects.create(
+                        {
+                              classname : <span class="hljs-string">'search_data'</span>,
+                              fields: {
+                                  searchType: queryData.searchType,
+                                ville: queryData.ville,
+                                region: queryData.region,
+                                keyword: queryData.keyword,
+                                fonction: queryData.fonctions,
+                                secteur: queryData.secteurs,
+                                experience: queryData.experiences,
+                                niveau: queryData.niveau,
+                                entreprise: queryData.entreprise,
+                                state: <span class="hljs-number">1</span>
+                              }
+                            }, 
+                            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                              <span class="hljs-keyword">if</span>(e.success) {
+                                Ti.API.info(<span class="hljs-string">"created"</span>);
+                                searchIdCloud = e.search_data[<span class="hljs-number">0</span>].id;
+                                <span class="hljs-built_in">require</span>(<span class="hljs-string">'BusinessLogic/updateDb'</span>).updateFavoris(searchIdDb, searchIdCloud);
+                                setTimeout(
+                                    <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                                        Ti.App.fireEvent(<span class="hljs-string">'update'</span>, {changed : <span class="hljs-literal">true</span>});            
+                                    }, 
+                                    <span class="hljs-number">900</span>
+                                );
+                              } 
+                              <span class="hljs-keyword">else</span> {
+                                Ti.API.info(<span class="hljs-string">'Create Error:'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                              }
+                        }
+                    );
+
+                    <span class="hljs-keyword">if</span>(!Ti.App.Properties.hasProperty(<span class="hljs-string">'registredForPush'</span>))
+                        getDeviceToken();
+                }
+                <span class="hljs-keyword">else</span> {
+                    Ti.API.info(<span class="hljs-string">"Error :"</span> + e.message);
+                }
+            }
+        );
+    }
+
+    <span class="hljs-comment">// getting device token</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getDeviceToken</span>(<span class="hljs-params"></span>) </span>{
+        Titanium.Network.registerForPushNotifications(
+            {
+                types : [Titanium.Network.NOTIFICATION_TYPE_SOUND, Titanium.Network.NOTIFICATION_TYPE_ALERT],
+                success : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                    Ti.API.info(<span class="hljs-string">"deviceToken = "</span> + e.deviceToken);
+                    registerForPush(e.deviceToken);
+                },
+                error : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                    Ti.API.info(<span class="hljs-string">"Error: "</span> + e.message);
+                },
+                callback : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                    alert(e.data.alert);
+                }
+            }
+        );
+    }
+
+    <span class="hljs-comment">// register for push notification on cloud server</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span>(<span class="hljs-params">deviceToken</span>) </span>{
+        alert(<span class="hljs-string">'token : '</span> + deviceToken);
+        Cloud.PushNotifications.subscribe(
+            {
+                channel : <span class="hljs-string">'my_channel'</span>,
+                device_token : deviceToken
+            }, 
+            <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    Ti.App.Properties.setString(<span class="hljs-string">'registredForPush'</span>, <span class="hljs-literal">true</span>);
+                    Ti.API.info(<span class="hljs-string">'Success :'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                }
+                <span class="hljs-keyword">else</span> {
+                    Ti.API.info(<span class="hljs-string">'Error:'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+                }
+            }
+        );
+    }
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 7th 2013, 3:33:15 pm">April 7th 2013</span>
+				by <span class='authorname'>Djamel ZAHAL</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>push notifications</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>here are logs in ACS console, as you see..it is ok.</p>
+<pre><code class="hljs">Request Method/Path    Response Status    Request Time    
+POST /v1/push_notification/subscribe.json    <span class="hljs-number">200</span>    <span class="hljs-number">2013</span>-<span class="hljs-number">04</span>-<span class="hljs-number">07</span> <span class="hljs-number">17</span>:<span class="hljs-number">26</span>:<span class="hljs-number">03</span> UTC    
+POST /v1/objects/search_data/create.json    <span class="hljs-number">200</span>    <span class="hljs-number">2013</span>-<span class="hljs-number">04</span>-<span class="hljs-number">07</span> <span class="hljs-number">17</span>:<span class="hljs-number">26</span>:<span class="hljs-number">03</span> UTC    
+POST /v1/users/login.json    <span class="hljs-number">200</span>    <span class="hljs-number">2013</span>-<span class="hljs-number">04</span>-<span class="hljs-number">07</span> <span class="hljs-number">17</span>:<span class="hljs-number">26</span>:<span class="hljs-number">02</span> UTC    
+POST /v1/users/create.json    <span class="hljs-number">200</span>    <span class="hljs-number">2013</span>-<span class="hljs-number">04</span>-<span class="hljs-number">07</span> <span class="hljs-number">17</span>:<span class="hljs-number">25</span>:<span class="hljs-number">59</span> UTC
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="April 7th 2013, 3:35:36 pm">April 7th 2013</span>
+								by <span class='authorname'>Djamel ZAHAL</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-260237">
+				
+						<section>
+							<p>Same as here http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;150594&#x2F;push-not-working-today-</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 7th 2013, 3:36:29 pm">April 7th 2013</span>
+								by <span class='authorname'>Greg Carlin</span><br>
+								<a class="icon-bg icon-link" href="question/150599/acs-push-notifications#answer-260237" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>So, do the appcelerator team can tell us how many time this problem will take ?</p>
+<p>thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 7th 2013, 3:43:38 pm">April 7th 2013</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>i have this problem since yesterday…maybe it starts before..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 7th 2013, 3:44:35 pm">April 7th 2013</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Man i&#39;m glad i&#39;m not the only one, i implemented push notifications in my app months ago, and just now came back to it to polish some things off and noticed none of the notifications were working. I&#39;ve been trying everything i could and was about to go crazy, but looks like its got to be an ACS issue at the moment. Would be nice if we had some idea of when it will be fixed.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 7th 2013, 4:43:01 pm">April 7th 2013</span>
+											by <span class='authorname'>Christopher Carranza</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I concur with this.  We have no luck on our apps working with push notifications.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 7th 2013, 5:46:04 pm">April 7th 2013</span>
+											by <span class='authorname'>Will Dent</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-260240">
+				
+						<section>
+							<p>Is this on iOS or android?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 7th 2013, 8:20:33 pm">April 7th 2013</span>
+								by <span class='authorname'>Wei Kong</span><br>
+								<a class="icon-bg icon-link" href="question/150599/acs-push-notifications#answer-260240" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Both, there is a problem on ACS servers….</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 7th 2013, 8:24:01 pm">April 7th 2013</span>
+											by <span class='authorname'>Djamel ZAHAL</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Is it working now?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 7th 2013, 8:29:22 pm">April 7th 2013</span>
+											by <span class='authorname'>Wei Kong</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

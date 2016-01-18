@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>IOS backgroundservice location tracking » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>IOS backgroundservice location tracking</h1>
+		</header>
+		<section>
+			<p>Hi, </p>
+<p>I&#39;m currently working on a app that tracks routes driven by cars. This app needs to track the position continously and keep tracking when the application is send to the background to avoid gaps in the routes. What I don&#39;t understand is what should be put into this background event? is it just the function to get the coords, or do I also need to declare the listener to the location event again? e.g. do I need to remove the original listener from app.js when the application is being paused, add it again when resumed and add a listener in the iosGpsBackgroundService.js or does the original listener listens to the event in the background to?</p>
+<p>Another problem that I&#39;m facing is that the backgroundservices seem to die after 600 seconds. I read here that this is how IOS works, and can be overcome for specific background processes like location tracking. A post came up wich stated that in tiApp.xml between the &lt;iphone&gt;&lt;&#x2F;iphone&gt; tags there should be an adding for the background process to escape the time rule. I added this, but it still stops after 10 minutes. What am i doing wrong here? it is for iPad to btw </p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">backgroundModes</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-title">mode</span>&gt;</span>location<span class="hljs-tag">&lt;/<span class="hljs-title">mode</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">backgroundModes</span>&gt;</span>
+</code></pre><p>My code atm is as followed (app.js):<br>listen with </p>
+<p><code>Titanium.Geolocation.addEventListener( &amp;#39;location&amp;#39;, getPostition);</code></p>
+<p>for location changes, the handler saves the lat, lng and time. </p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getPostition</span>(<span class="hljs-params">e</span>)</span>{
+        <span class="hljs-keyword">if</span>(e.coords != <span class="hljs-literal">undefined</span> ){
+            <span class="hljs-keyword">var</span> coords = {
+                <span class="hljs-string">"lat"</span> : e.coords.latitude ,
+                <span class="hljs-string">"lon"</span> : e.coords.longitude, 
+                <span class="hljs-string">"timeStamp"</span> : ( <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() ) 
+            };
+            <span class="hljs-comment">// push new object into array</span>
+            GPSdata.push(coords);
+            <span class="hljs-comment">// store data as String </span>
+            Ti.App.Properties.setString(<span class="hljs-string">'GPSstore'</span>, <span class="hljs-built_in">JSON</span>.stringify(GPSdata) );
+        }   
+    }
+</code></pre><p>Now, I listen for the app to go into pause or is being resumed. When this happens I start the backgroundservice for IOS. </p>
+<pre><code class="hljs">Ti.App.addEventListener(<span class="hljs-string">'pause'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">if</span>(GPSisActive == <span class="hljs-literal">true</span>){
+        service = Ti.App.iOS.registerBackgroundService({url: <span class="hljs-string">'iosGpsBackgroundService.js'</span>}); 
+    }
+});
+
+Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">if</span>(service!=<span class="hljs-literal">null</span>){
+        <span class="hljs-comment">// make sure GPSisActive is set to true</span>
+        GPSisActive = <span class="hljs-literal">true</span>;
+
+        <span class="hljs-comment">// stop service</span>
+        service.stop();
+        service.unregister();
+        service = <span class="hljs-literal">null</span>;
+
+    }
+});
+</code></pre><p>My background service  looks like this (iosGpsBackgroundService.js)</p>
+<pre><code class="hljs"><span class="hljs-comment">// get GPS data from String propertie and parse it</span>
+<span class="hljs-keyword">var</span> GPSdata =  <span class="hljs-built_in">JSON</span>.parse( Ti.App.Properties.getString(<span class="hljs-string">'GPSstore'</span>) );
+
+<span class="hljs-comment">// gets position, kan alleen opgeroepen worden door ti.geo event</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getPostition</span>(<span class="hljs-params">e</span>)</span>{
+        <span class="hljs-keyword">if</span>(e.coords != <span class="hljs-literal">undefined</span> ){
+            <span class="hljs-keyword">var</span> coords = {
+                <span class="hljs-string">"lat"</span> : e.coords.latitude ,
+                <span class="hljs-string">"lon"</span> : e.coords.longitude, 
+                <span class="hljs-string">"timeStamp"</span> : ( <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() ) 
+            };
+            <span class="hljs-comment">// push new object into array</span>
+            GPSdata.push(coords);
+            <span class="hljs-comment">// store data as String </span>
+            Ti.App.Properties.setString(<span class="hljs-string">'GPSstore'</span>, <span class="hljs-built_in">JSON</span>.stringify(GPSdata) );
+        }   
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 13th 2013, 7:50:14 am">September 13th 2013</span>
+				by <span class='authorname'>han woolderink</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>backgroundservice</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>location</span></li>
+					
+						<li><span class='tagname'>service</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-269130">
+				
+						<section>
+							<p>so i was able to find the answer after long searching. The correct way to edit tiApp.xml has changed apparently. the below settng works for me </p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">plist</span>&gt;</span>
+ <span class="hljs-tag">&lt;<span class="hljs-title">dict</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">array</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">key</span>&gt;</span>UIBackgroundModes<span class="hljs-tag">&lt;/<span class="hljs-title">key</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">array</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-title">string</span>&gt;</span>location<span class="hljs-tag">&lt;/<span class="hljs-title">string</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">array</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-title">dict</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">plist</span>&gt;</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 25th 2013, 10:48:54 am">September 25th 2013</span>
+								by <span class='authorname'>han woolderink</span><br>
+								<a class="icon-bg icon-link" href="question/157149/ios-backgroundservice-location-tracking#answer-269130" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Did you ever ship this app? Did your all day tracking work?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 14th 2015, 9:49:14 pm">March 14th 2015</span>
+											by <span class='authorname'>Michael Stearne</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-268504">
+				
+						<section>
+							<p>Hi,</p>
+<p>The background service can only run for 10 minutes. </p>
+<p>&quot;The OS limits the total amount of time a background service can run for after the application is paused, typically to no more than 10 minutes.&quot;</p>
+<p>See the <a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.App.iOS.BackgroundService">http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;api&#x2F;Titanium.App.iOS.BackgroundService</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 13th 2013, 9:58:09 am">September 13th 2013</span>
+								by <span class='authorname'>Kosso</span><br>
+								<a class="icon-bg icon-link" href="question/157149/ios-backgroundservice-location-tracking#answer-268504" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>thanks, yes the documentation does state that. However I have seen a lot of casses where people eddited the tiApp.xml so that the time rule is cancelled,  so I don&#39;t think your answer is correct</p>
+<p>The documentation from ios also states that normal services are automatically stopped after a maximum period, there are however exeptions that can be made for location, audio etc.<br><a href="https:&#x2F;&#x2F;developer.apple.com&#x2F;library&#x2F;ios&#x2F;documentation&#x2F;general&#x2F;Reference&#x2F;InfoPlistKeyReference&#x2F;Articles&#x2F;iPhoneOSKeys.html#&#x2F;&#x2F;apple_ref&#x2F;doc&#x2F;uid&#x2F;TP40009252-SW22">ios backgroundmodes</a></p>
+<p>so my question is not if it is possible, but why is it not working for me</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2013, 10:54:03 am">September 13th 2013</span>
+											by <span class='authorname'>han woolderink</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to prevent &#34;no such table&#34; error when installing app with migrations? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to prevent &#34;no such table&#34; error when installing app with migrations?</h1>
+		</header>
+		<section>
+			<p>I have an app with a migration that adds a column &quot;directions&quot; to the BusStop Model. The timestamp is in the past. The current Model definition includes the new column. </p>
+<p>If I install the old version, then this update, the migration works as expected - great!</p>
+<p>When I install the app in a reset simulator, the migration code is run up front and I get the error &quot;no such table: BusStops&quot;</p>
+<p>I temporarily rename migrations&#x2F; so I can get an install.</p>
+<p>Then, with the current version on the phone, installing runs the migration and throws the error &quot;duplicate column name: directions&quot;</p>
+<p>How can I work with migrations to avoid the error during development?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 22nd 2013, 9:47:27 pm">April 22nd 2013</span>
+				by <span class='authorname'>Joseph Beuckman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>migrations</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>this will be a lot easier to understand if you just show your migrations.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 22nd 2013, 9:55:01 pm">April 22nd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Sure thing. This is one that you said looks right so I think this is more about the order I&#39;m doing things vs. what Alloy expects.</p>
+<p>20130417200059_BusStop.js</p>
+<pre><code class="hljs">migration.up = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(migrator)</span></span> {
+    migrator.db.execute(<span class="hljs-string">'ALTER TABLE '</span> + migrator.<span class="hljs-built_in">table</span> + <span class="hljs-string">' ADD COLUMN directions TEXT;'</span>);
+    migrator.db.execute(<span class="hljs-string">'ALTER TABLE '</span> + migrator.<span class="hljs-built_in">table</span> + <span class="hljs-string">' ADD COLUMN latitude REAL;'</span>);
+    migrator.db.execute(<span class="hljs-string">'ALTER TABLE '</span> + migrator.<span class="hljs-built_in">table</span> + <span class="hljs-string">' ADD COLUMN longitude REAL;'</span>);
+};
+</code></pre><p>models&#x2F;BusStop.js</p>
+<pre><code class="hljs">
+exports.definition = {
+
+    config: {
+        <span class="hljs-string">"columns"</span>: {
+            nickname: <span class="hljs-string">'TEXT'</span>,
+            siteid: <span class="hljs-string">'INTEGER'</span>,
+            title: <span class="hljs-string">'TEXT'</span>,
+            directions: <span class="hljs-string">'TEXT'</span>,
+            latitude: <span class="hljs-string">'REAL'</span>,
+            longitude: <span class="hljs-string">'REAL'</span>
+        },
+        <span class="hljs-string">"defaults"</span>: {
+
+        },
+        <span class="hljs-string">"adapter"</span>: {
+            <span class="hljs-string">"type"</span>: <span class="hljs-string">"sql"</span>,
+            <span class="hljs-string">"collection_name"</span>: <span class="hljs-string">"BusStops"</span>
+        }
+    },
+
+
+    extendModel: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Model)</span> </span>{        
+        _.extend(Model.prototype, {
+
+            formattedDirections: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+
+                <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">this</span>.<span class="hljs-keyword">get</span>(<span class="hljs-string">'directions'</span>)) {
+                    <span class="hljs-keyword">return</span> <span class="hljs-string">"Re-save this stop to show Route info here."</span>;
+                }
+
+                <span class="hljs-keyword">var</span> routeDirs = <span class="hljs-keyword">this</span>.<span class="hljs-keyword">get</span>(<span class="hljs-string">'directions'</span>).split(<span class="hljs-string">','</span>);
+                <span class="hljs-keyword">var</span> message = <span class="hljs-string">''</span>;
+
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> d <span class="hljs-keyword">in</span> routeDirs) {
+                    <span class="hljs-keyword">var</span> parts = routeDirs[d].split(<span class="hljs-string">':'</span>);
+                    message += parts[<span class="hljs-number">0</span>] + <span class="hljs-string">' '</span>;
+                    <span class="hljs-keyword">switch</span> (parts[<span class="hljs-number">1</span>]) {
+                        <span class="hljs-keyword">case</span> <span class="hljs-string">'NB'</span>:
+                            message += <span class="hljs-string">'(North)'</span>;
+                            <span class="hljs-keyword">break</span>;
+                        <span class="hljs-keyword">case</span> <span class="hljs-string">'EB'</span>:
+                            message += <span class="hljs-string">'(East)'</span>;
+                            <span class="hljs-keyword">break</span>;
+                        <span class="hljs-keyword">case</span> <span class="hljs-string">'SB'</span>:
+                            message += <span class="hljs-string">'(South)'</span>;
+                            <span class="hljs-keyword">break</span>;
+                        <span class="hljs-keyword">case</span> <span class="hljs-string">'WB'</span>:
+                            message += <span class="hljs-string">'(West)'</span>;
+                            <span class="hljs-keyword">break</span>;
+                    }
+                    message += <span class="hljs-string">' '</span>;
+                }
+
+                <span class="hljs-keyword">return</span> message;
+            },
+
+        }); <span class="hljs-comment">// end extend</span>
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+
+
+    extendCollection: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(Collection)</span> </span>{        
+        _.extend(Collection.prototype, {
+
+        }); <span class="hljs-comment">// end extend</span>
+
+        <span class="hljs-keyword">return</span> Collection;
+    }        
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="April 22nd 2013, 10:09:53 pm">April 22nd 2013</span>
+								by <span class='authorname'>Joseph Beuckman</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>titanium 3.1.0 alloy 1.1.1</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 22nd 2013, 10:18:52 pm">April 22nd 2013</span>
+								by <span class='authorname'>Joseph Beuckman</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-261354">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>You can set the current migration in your adapter config:</p>
+<pre><code class="hljs">exports.definition = {
+
+    config: {
+        <span class="hljs-string">"columns"</span>: {
+            nickname: <span class="hljs-string">'TEXT'</span>,
+            siteid: <span class="hljs-string">'INTEGER'</span>,
+            title: <span class="hljs-string">'TEXT'</span>,
+            directions: <span class="hljs-string">'TEXT'</span>,
+            latitude: <span class="hljs-string">'REAL'</span>,
+            longitude: <span class="hljs-string">'REAL'</span>
+        },
+        <span class="hljs-string">"defaults"</span>: {
+
+        },
+        <span class="hljs-string">"adapter"</span>: {
+            <span class="hljs-string">"type"</span>: <span class="hljs-string">"sql"</span>,
+            <span class="hljs-string">"collection_name"</span>: <span class="hljs-string">"BusStops"</span>,
+            <span class="hljs-string">"migration"</span>: <span class="hljs-number">20130417200059</span>
+        }
+    },
+// ...
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 22nd 2013, 11:05:26 pm">April 22nd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/151394/how-to-prevent-no-such-table-error-when-installing-app-with-migrations#answer-261354" rel="permalink">permalink</a>
+							</div>
+
+							<h5>9 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>With that migration value in place, I cleaned the app and reset the Simulator. I do still get &quot;no such table: BusStops&quot; when installing with the same-timestamp migration. I haven&#39;t added a preloaded schema as @Jiale said yet.  iOS Simulator 6.0</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2013, 10:30:12 am">April 23rd 2013</span>
+											by <span class='authorname'>Joseph Beuckman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Well, yeah, if you already have the columns coded into your model and then you try to add them again with the migration you&#39;re going to get that error. Why do you have the migration if the columns are already defined? Setting the migration to exactly the same timestamp as the one of your last migration should not even execute migrations.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2013, 1:53:34 pm">April 23rd 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>This migration runs on install even though the adapter config specifies the same timestamp.</p>
+<p>This is my latest model. Are you saying the model definition should only ever include the columns as they were before any migrations? I assumed that the model should always reflect the structure being used in the latest version and that migrations were to manage transitions from existing schemas?</p>
+<p>In Todo test app, you have a migration that creates the table even though it would have been automatically created just by specifying the model. Is that the way to do it?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2013, 2:37:16 pm">April 23rd 2013</span>
+											by <span class='authorname'>Joseph Beuckman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>They should be there in the model as long as you also have the appropriate migration set in the adapter.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2013, 2:40:21 pm">April 23rd 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Here is a stripped down example project. The new column appears in the Model and the migration. The migration and adapter config have the same timestamp. In my thinking, the migration should not run. But the migration runs on install and thus the table not found error.</p>
+<p>https:&#x2F;&#x2F;github.com&#x2F;jbeuckm&#x2F;AlloyMigrationExample</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2013, 9:46:32 pm">April 23rd 2013</span>
+											by <span class='authorname'>Joseph Beuckman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>No, the migration will run.  <strong>migration</strong> field   </p>
+<pre><code class="hljs">Specifies the database version to <span class="hljs-operator"><span class="hljs-keyword">use</span>. The <span class="hljs-keyword">value</span> <span class="hljs-keyword">of</span> this <span class="hljs-keyword">key</span> <span class="hljs-keyword">is</span> the datatime code <span class="hljs-keyword">of</span> the <span class="hljs-keyword">migration</span> <span class="hljs-keyword">file</span>. Alloy upgrades <span class="hljs-keyword">or</span> rolls back the <span class="hljs-keyword">database</span> based <span class="hljs-keyword">on</span> this <span class="hljs-keyword">value</span>. <span class="hljs-keyword">If</span> <span class="hljs-keyword">left</span> undefined, Alloy upgrades the <span class="hljs-keyword">database</span> based <span class="hljs-keyword">on</span> the newest <span class="hljs-keyword">migration</span> <span class="hljs-keyword">file</span></span>
+</code></pre><p>This is why I suggest you pre-load the schema</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2013, 11:42:59 pm">April 23rd 2013</span>
+											by <span class='authorname'>Jiale He</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Your test case won&#39;t work because you never create the table. The only migration you have is adding a column to a table that doesn&#39;t exist. If you are going to use migrations, your first migration should create the table (<a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;alloy&#x2F;blob&#x2F;master&#x2F;test&#x2F;apps&#x2F;models&#x2F;sql_keywords&#x2F;migrations&#x2F;201209301904312_fighters.js">example</a>). Alloy only automatically creates the table for you if you use no migrations.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 24th 2013, 2:44:12 pm">April 24th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That&#39;s what I needed - thanks! Install from reset or first version working now. I was relying on Alloy to create the table, which works until one needs migrations.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 26th 2013, 4:06:16 am">April 26th 2013</span>
+											by <span class='authorname'>Joseph Beuckman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I have the same problem in mine but I&#39;m still a bit confused with this answer. This is what I have in my migration up so far:</p>
+<pre><code class="hljs">migration.up = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(migrator)</span></span> {
+    migrator.db.execute(<span class="hljs-string">'ALTER TABLE '</span> + migrator.<span class="hljs-built_in">table</span> + <span class="hljs-string">' ADD COLUMN email TEXT;'</span>);
+};
+</code></pre><p>I added a new column in version 2. Which works when installing over version 1, but not a new install with version 2, because this table does not exist yet. So I should create the table first, but that table was already created in version 1, right? Do we not have to do a check if the table exists or not before creating a new one?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 28th 2015, 3:28:36 pm">July 28th 2015</span>
+											by <span class='authorname'>Amanda Vines</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-261352">
+				
+						<section>
+							<p>I have the same issue.</p>
+<p>In this case, I suggest you pre-load the database schema before the migration happens.</p>
+<p>See the link below :</p>
+<p><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;Alloy_Models">Migrations</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 22nd 2013, 9:51:05 pm">April 22nd 2013</span>
+								by <span class='authorname'>Jiale He</span><br>
+								<a class="icon-bg icon-link" href="question/151394/how-to-prevent-no-such-table-error-when-installing-app-with-migrations#answer-261352" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><pre><code class="hljs"><span class="hljs-string">"db_file"</span>: <span class="hljs-string">"nikes.sqlite"</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 22nd 2013, 9:52:33 pm">April 22nd 2013</span>
+											by <span class='authorname'>Jiale He</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

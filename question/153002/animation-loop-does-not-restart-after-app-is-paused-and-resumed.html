@@ -1,0 +1,281 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Animation loop does not restart after app is paused and resumed » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Animation loop does not restart after app is paused and resumed</h1>
+		</header>
+		<section>
+			<p>This is the code I use to continuously animate a view. It starts and stops perfectly through the buttons. The stopAnimation function provides also a callback that is called when the animation is really stopped. This is necessary if you want to open a new window.</p>
+<p>However I was not able to properly manage this when the app is paused and then resumed. Sometimes it works, others don&#39;t. And the complete event listener of the animation is repeatedly fired, much more frequently than the animation duration.</p>
+<p>Target iOS, Titanium SDK 3.1.0</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.createWindow({fullscreen: <span class="hljs-literal">true</span>, backgroundColor: <span class="hljs-string">'#fff'</span>});
+<span class="hljs-keyword">var</span> view = Ti.UI.createView({width: <span class="hljs-number">256</span>, height: <span class="hljs-number">256</span>, backgroundColor: <span class="hljs-string">'#f00'</span>});
+<span class="hljs-keyword">var</span> startButton = Ti.UI.createButton({top: <span class="hljs-number">20</span>, title: <span class="hljs-string">'Start'</span>, width: <span class="hljs-number">100</span>});
+<span class="hljs-keyword">var</span> stopButton = Ti.UI.createButton({top: <span class="hljs-number">80</span>, title: <span class="hljs-string">'Stop'</span>, width: <span class="hljs-number">100</span>});
+
+startButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    startAnimation();
+});
+
+stopButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    stopAnimation(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        Ti.API.info(<span class="hljs-string">'do something once stopped...'</span>);
+    });
+});
+
+<span class="hljs-keyword">var</span> isStopping = <span class="hljs-literal">false</span>;
+<span class="hljs-keyword">var</span> isStopped = <span class="hljs-literal">true</span>;
+
+<span class="hljs-keyword">var</span> pulse = Ti.UI.createAnimation({
+    autoreverse: <span class="hljs-literal">true</span>, 
+    duration: <span class="hljs-number">750</span>,
+    transform: Ti.UI.create2DMatrix().scale(<span class="hljs-number">0.7</span>), 
+});
+
+pulse.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (!isStopping) {
+        Ti.API.info(<span class="hljs-string">'pulse'</span>);
+        view.animate(pulse);
+    } <span class="hljs-keyword">else</span>
+        isStopped = <span class="hljs-literal">true</span>;
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">startAnimation</span><span class="hljs-params">()</span> </span>{        
+    <span class="hljs-keyword">if</span> (isStopped) {
+        Ti.API.info(<span class="hljs-string">'start animation'</span>);
+        isStopped = <span class="hljs-literal">false</span>;
+        isStopping = <span class="hljs-literal">false</span>;
+        view.animate(pulse);
+    }    
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">stopAnimation</span><span class="hljs-params">(stoppedCallback)</span> </span>{
+    isStopping = <span class="hljs-literal">true</span>;
+
+    <span class="hljs-keyword">if</span> (isStopped) {
+        Ti.API.info(<span class="hljs-string">'stopped'</span>);
+        <span class="hljs-keyword">if</span> (stoppedCallback)
+            stoppedCallback();
+    } <span class="hljs-keyword">else</span> {
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            Ti.API.info(<span class="hljs-string">'waiting'</span>);
+            stopAnimation(stoppedCallback);
+        }, <span class="hljs-number">100</span>);
+    }
+}
+
+Ti.App.addEventListener(<span class="hljs-string">'resume'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    Ti.API.info(<span class="hljs-string">'resume'</span>);
+    startAnimation();
+});
+
+Ti.App.addEventListener(<span class="hljs-string">'paused'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    Ti.API.info(<span class="hljs-string">'pause'</span>);
+    stopAnimation(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        Ti.API.info(<span class="hljs-string">'do something...'</span>);
+    });
+});
+
+win.add(startButton);
+win.add(stopButton);
+win.add(view);
+win.open();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 29th 2013, 12:42:10 pm">May 29th 2013</span>
+				by <span class='authorname'>alessandro la rocca</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>animation</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>loop</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>resume</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello,<br>this is quite interesting, because there is no documented way to actually &quot;stop&quot; an animation. </p>
+<p>I will be asking to platform how to accomplish this. </p>
+<p>Simpler example code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.createWindow({fullscreen: <span class="hljs-literal">true</span>, backgroundColor: <span class="hljs-string">'#fff'</span>});
+<span class="hljs-keyword">var</span> view = Ti.UI.createView({width: <span class="hljs-number">256</span>, height: <span class="hljs-number">256</span>, backgroundColor: <span class="hljs-string">'#f00'</span>});
+<span class="hljs-keyword">var</span> startButton = Ti.UI.createButton({top: <span class="hljs-number">20</span>, title: <span class="hljs-string">'Animate'</span>, width: <span class="hljs-number">100</span>});
+
+startButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    startAnimation();
+});
+
+<span class="hljs-keyword">var</span> pulse = Ti.UI.createAnimation({
+    autoreverse: <span class="hljs-literal">true</span>, 
+    duration: <span class="hljs-number">750</span>,
+    repeat:<span class="hljs-number">30</span>,
+    transform: Ti.UI.create2DMatrix().scale(<span class="hljs-number">0.7</span>), 
+});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">startAnimation</span><span class="hljs-params">()</span> </span>{     
+  view.animate(pulse);
+}
+
+Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    Ti.API.info(<span class="hljs-string">'resume'</span>);
+    startAnimation();
+});
+
+Ti.App.addEventListener(<span class="hljs-string">'paused'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    Ti.API.info(<span class="hljs-string">'pause'</span>);
+    startAnimation();
+});
+
+win.add(startButton);
+win.add(view);
+win.open();
+</code></pre><p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 30th 2013, 1:51:53 am">May 30th 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I would like to know what happens to the object or the animation when the app is paused and then resumed. I was able to restart the animation with the following code. But it works only the first time… </p>
+<p>Otherwise, I have to remove&#x2F;destroy the object after a resume, create it again and animate. But the result is very unpleasant. Please help me! ;-)</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.createWindow({fullscreen: <span class="hljs-literal">true</span>, backgroundColor: <span class="hljs-string">'#fff'</span>});
+
+<span class="hljs-keyword">var</span> pulse = Ti.UI.createAnimation({
+    autoreverse: <span class="hljs-literal">true</span>, duration: <span class="hljs-number">750</span>,
+    transform: Ti.UI.create2DMatrix().scale(<span class="hljs-number">0.5</span>), 
+});
+
+pulse.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    Ti.API.info(<span class="hljs-string">'pulse'</span>);
+    view.animate(pulse);
+});
+
+<span class="hljs-keyword">var</span> view = Ti.UI.createLabel({width: <span class="hljs-number">256</span>, height: <span class="hljs-number">256</span>, backgroundColor: <span class="hljs-string">'#0f0'</span>});
+win.add(view);
+view.animate(pulse);
+
+Ti.App.addEventListener(<span class="hljs-string">'resume'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    view.animate({transform: Ti.UI.create2DMatrix().rotate(<span class="hljs-number">0</span>)});
+});
+
+win.open();
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="June 2nd 2013, 3:48:54 pm">June 2nd 2013</span>
+								by <span class='authorname'>alessandro la rocca</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>you keep using <code>resume</code> instead of <code>resumed</code>!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 3rd 2013, 5:41:59 am">June 3rd 2013</span>
+								by <span class='authorname'>Alberto Marcone</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>resume or resumed events do no change the behavior</p>
+<p>I just resolved the issue, avoiding to use the animation autoreverse. I do that manually within the complete event and now animation resumes smoothly.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.createWindow({fullscreen: <span class="hljs-literal">true</span>, backgroundColor: <span class="hljs-string">'#fff'</span>});
+<span class="hljs-keyword">var</span> view = Ti.UI.createLabel({width: <span class="hljs-number">250</span>, height: <span class="hljs-number">250</span>, backgroundColor: <span class="hljs-string">'#0f0'</span>});
+<span class="hljs-keyword">var</span> pulse = Titanium.UI.createAnimation({duration: <span class="hljs-number">1000</span>, transform: Ti.UI.create2DMatrix().scale(<span class="hljs-number">1.5</span>)});
+
+pulse.addEventListener(<span class="hljs-string">'complete'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">if</span> (pulsing) {
+    pulse.transform = Ti.UI.create2DMatrix().scale(<span class="hljs-number">1</span>);
+    pulsing = <span class="hljs-literal">false</span>;
+  } <span class="hljs-keyword">else</span> {
+    pulse.transform = Ti.UI.create2DMatrix().scale(<span class="hljs-number">1.5</span>);
+    pulsing = <span class="hljs-literal">true</span>;
+  }
+  view.animate(pulse);
+});
+
+<span class="hljs-keyword">var</span> pulsing = <span class="hljs-literal">true</span>;
+view.animate(pulse);
+
+win.add(view);
+win.open();
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="June 3rd 2013, 5:50:44 am">June 3rd 2013</span>
+								by <span class='authorname'>alessandro la rocca</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

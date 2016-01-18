@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>how to keep session of acs » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>how to keep session of acs</h1>
+		</header>
+		<section>
+			<p>os: mac os<br>platform:ios 6<br>sdk:3.0.2.GA</p>
+<p>i&#39;m using <code>httpClient</code> to handle ACS call, like login, create post and so on. when i first time log in, i can create post, create review. The problem is when i quit the app and launch app again, i can&#39;t not create anything with the error &#39;you need to sign in or sign up before continuing&#39;.<br>i guess the problem is the session is not stored correctly. but how ?</p>
+<pre><code class="hljs"><span class="hljs-comment">// after log in, i store the session id like this</span>
+Ti.<span class="hljs-keyword">App</span>.Properties.setString('sessionid', <span class="hljs-keyword">e</span>.meta.session_id);
+
+<span class="hljs-comment">//then when create http client, i set session id like this:</span>
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+    <span class="hljs-keyword">if</span>(Ti.<span class="hljs-keyword">App</span>.Properties.hasProperty('sessionid')){
+        xhr.setRequestHeader('<span class="hljs-keyword">Set</span>-Cookie',Ti.<span class="hljs-keyword">App</span>.Properties.getString('sessionid'));
+    }
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 3rd 2013, 7:05:01 am">June 3rd 2013</span>
+				by <span class='authorname'>kent hao</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>session</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-263759">
+				
+						<section>
+							<p>Please look in my current project:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+<span class="hljs-keyword">var</span> mensa_userid, mensa_aclid, user_name = <span class="hljs-string">'mu_'</span> + Ti.Platform.id;
+<span class="hljs-keyword">const</span> USER = <span class="hljs-string">'mensa_userid'</span>, PW = <span class="hljs-string">'qwertz'</span>;
+<span class="hljs-keyword">const</span> TABLE = <span class="hljs-string">'mensa'</span>;
+
+<span class="hljs-keyword">var</span> createUser = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_args, _callback</span>) </span>{
+    <span class="hljs-keyword">if</span> (!Ti.App.Properties.hasProperty(USER)) {
+        Cloud.Users.create({
+            username : user_name,
+            password : PW,
+            password_confirmation : PW,
+            first_name : <span class="hljs-string">"MensaUser"</span>,
+            last_name : <span class="hljs-string">"MensaUser"</span>
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                mensa_userid = e.users[<span class="hljs-number">0</span>].id;
+                Ti.App.Properties.setString(USER, mensa_userid);
+                _callback(mensa_userid);
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">if</span> (e.error &amp;&amp; e.message) {
+                    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Error :'</span> + e.message);
+                }
+            }
+        });
+    } <span class="hljs-keyword">else</span> {
+        mensa_userid = Ti.App.Properties.getString(USER);
+        _callback(mensa_userid);
+    }
+}
+<span class="hljs-keyword">var</span> loginUser = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_args, _callback</span>) </span>{
+    <span class="hljs-keyword">if</span> (!Cloud.sessionId) {
+        Cloud.Users.login({
+            login : user_name,
+            password : PW
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Login with '</span> + user_name + <span class="hljs-string">' successful ;-))'</span>);
+                _callback();
+            } <span class="hljs-keyword">else</span>
+                <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'ERROR: Login with '</span> + user_name + <span class="hljs-string">' unsuccessful'</span>);
+        });
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'SessionId exists'</span>);
+        _callback();
+    }
+}
+<span class="hljs-keyword">var</span> createACL = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_args, _callback</span>) </span>{
+    <span class="hljs-keyword">if</span> (!Ti.App.Properties.hasProperty(<span class="hljs-string">'acl_id'</span>)) {
+        Cloud.ACLs.create({
+            name : <span class="hljs-string">'acl_'</span> + user_name,
+            public_read : <span class="hljs-literal">true</span>
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (!e.error)
+                Ti.App.Properties.setString(<span class="hljs-string">'acl_id'</span>, e.acls[<span class="hljs-number">0</span>].id)
+        });
+    }
+}
+<span class="hljs-comment">///  START :</span>
+createUser({}, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    loginUser({}, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        createACL({}, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        })
+    })
+});
+<span class="hljs-comment">//// End of Cloud initialisation</span>
+</code></pre><p>This works fine. You have to save local the userid and the acl.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 3rd 2013, 7:32:22 am">June 3rd 2013</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/153161/how-to-keep-session-of-acs#answer-263759" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>i&#39;m not using <code>Cloud</code> module, and i don&#39;t see any session related handling in your code.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 3rd 2013, 7:42:46 am">June 3rd 2013</span>
+											by <span class='authorname'>kent hao</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If you use REST then you have the same problem. Why session?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 3rd 2013, 7:45:36 am">June 3rd 2013</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

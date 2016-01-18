@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Update a single event using by Multiple Users at same time » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Update a single event using by Multiple Users at same time</h1>
+		</header>
+		<section>
+			<p>Hi,<br>  I&#39;m creating a social networking application in which I use the Cloud.Events.update() method to update an event. Since I invite many users for a particular event,  they are updating it while accepting the invitation. I&#39;m updating the event using the following code</p>
+<pre><code class="hljs">Cloud.Events.<span class="hljs-keyword">update</span>({
+    event_id: eventID,
+      custom_fields: {
+        pendingUsers : newPendingUsers,    <span class="hljs-comment">//Array refers to the users who're not accepted the invitation yet</span>
+          acceptedUsers: newAcceptedUsers   <span class="hljs-comment">//Array refers to the users who has accepted the invitations.</span>
+        }     
+}, function (<span class="hljs-keyword">e</span>) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">e</span>.success) {
+        <span class="hljs-keyword">var</span> event = <span class="hljs-keyword">e</span>.events[0];
+        updateSuccess(event);
+    } <span class="hljs-keyword">else</span> {
+        errorFound(<span class="hljs-keyword">e</span>);
+    }
+});
+</code></pre><p><strong>It works well unless the following condition occurs</strong></p>
+<ol>
+<li><p>User A invites User B, User C and User D for an event</p>
+</li>
+<li><p>Users B, C and D opening the invitation same time and each of them accepting the invitations at a delay of 10 sec</p>
+</li>
+</ol>
+<p>When the above condition occurs, the event is not updated properly. Some times the 2 custom fields in the above code are not updating properly. After many testings we found that it is the issue with updating the event at same time since all users querying the event and updating them mutually.Is there any method to resolve my issue so that I can avoid this conflict?</p>
+<p><strong>To resolve the issue I tried  the following</strong></p>
+<ol>
+<li><p>I queried the event just before Updating the event and retrieved the latest data in the event(using Cloud.Events.Query() method)</p>
+</li>
+<li><p>Retrieved the fields pendingUsers and acceptedUsers, modified them</p>
+</li>
+<li><p>Updated the data using the above code</p>
+</li>
+</ol>
+<p>But it could not resolve my issue.. Any help will be appreciable.. Thanks in advance</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 28th 2013, 3:08:50 am">March 28th 2013</span>
+				by <span class='authorname'>Anand T</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>cloud.events</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+						<li><span class='tagname'>update</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hi Anand, </p>
+<p>trying to keep multiple updates in sync on this platform is almost impossible<br>so ill suggest a different approach that should make your life easier<br>instead of managing arrays try just using the custom fields as a dictionary of user ids, for example</p>
+<p>when user A invites users B,C,D than update the custom fields like this:<br>(where user_id_1 is an ACS cloud user id and status can be 0=new,1=accepted,2=declined)</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> update_params = {
+    event_id: eventID,
+    custom_fields:{}
+}
+update_params.custom_fields[<span class="hljs-string">'USER_B_ACS_ID'</span> + <span class="hljs-string">'_invite'</span>] = <span class="hljs-number">0</span>;  <span class="hljs-comment">// status : 0=new,1=accepted,2=declined</span>
+update_params.custom_fields[<span class="hljs-string">'USER_C_ACS_ID'</span> + <span class="hljs-string">'_invite'</span>] = <span class="hljs-number">0</span>;
+update_params.custom_fields[<span class="hljs-string">'USER_D_ACS_ID'</span> + <span class="hljs-string">'_invite'</span>] = <span class="hljs-number">0</span>;
+
+Cloud.Events.update(update_params, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.success) {
+        <span class="hljs-keyword">var</span> event = e.events[<span class="hljs-number">0</span>];
+        updateSuccess(event);
+    } <span class="hljs-keyword">else</span> {
+        errorFound(e);
+    }
+});
+</code></pre><p>now when a user opens the invite than he just needs to update his own entry:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> update_params = {
+    event_id: eventID,
+    custom_fields:{}
+}
+update_params.custom_fields[<span class="hljs-string">'CURRENT_USER_ACS_ID'</span> + <span class="hljs-string">'_invite'</span>] = <span class="hljs-number">1</span>;  <span class="hljs-comment">// status : 0=new,1=accepted,2=declined</span>
+
+Cloud.Events.update(update_params, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.success) {
+        <span class="hljs-keyword">var</span> event = e.events[<span class="hljs-number">0</span>];
+        updateSuccess(event);
+    } <span class="hljs-keyword">else</span> {
+        errorFound(e);
+    }
+});
+</code></pre><p>you can delete the user entry if you need to save on response length:</p>
+<pre><code class="hljs">update_params.custom_fields[<span class="hljs-string">'CURRENT_USER_ACS_ID'</span> + <span class="hljs-string">'_invite'</span>] = <span class="hljs-literal">null</span>;
+</code></pre><p>this way you dont need to worry about syncing, every user deals with his own update and you can get rid of the extra GET query before updating</p>
+<p>geting all the users on the client side is easy as:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> event_data = e.events[<span class="hljs-number">0</span>].custom_fields;
+<span class="hljs-keyword">var</span> users_data = {
+    pending:[],
+    accepted:[],
+    declined:[]
+}
+<span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> k <span class="hljs-keyword">in</span> event_data){
+    <span class="hljs-keyword">if</span>(event_data.hasOwnProperty(k)){
+        <span class="hljs-keyword">var</span> j = k.split(<span class="hljs-string">'_'</span>);
+        <span class="hljs-keyword">if</span> (j &amp;&amp; j.length === <span class="hljs-number">2</span> &amp;&amp; (j[<span class="hljs-number">1</span>] === <span class="hljs-string">'invite'</span>)) {
+            <span class="hljs-comment">// key ends with invite so this is a user invitation, j[0] is the ACS user id</span>
+            <span class="hljs-keyword">if</span>(event_data[k] === <span class="hljs-number">0</span>){
+                users_data.pending.push(j[<span class="hljs-number">0</span>]);
+            }
+            <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(event_data[k] === <span class="hljs-number">1</span>){
+                users_data.accepted.push(j[<span class="hljs-number">0</span>]);
+            }
+            <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(event_data[k] === <span class="hljs-number">2</span>){
+                users_data.declined.push(j[<span class="hljs-number">0</span>]);
+            }
+        } 
+    }
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="May 7th 2013, 3:27:20 pm">May 7th 2013</span>
+								by <span class='authorname'>Adam Tha</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

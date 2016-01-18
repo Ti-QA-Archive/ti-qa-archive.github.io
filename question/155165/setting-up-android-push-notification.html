@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Setting up android push notification » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Setting up android push notification</h1>
+		</header>
+		<section>
+			<p>Hey,</p>
+<p>I have the following code and am attempting to register both iOS and android phones with ACS. I have iOS working but android registration seems to fail</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">if</span> ( Titanium.Platform.name == <span class="hljs-string">"android"</span> ){ 
+    <span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">"ti.cloudpush"</span>);
+    <span class="hljs-comment">//login();</span>
+}
+
+device_token = Ti.App.Properties.getString(<span class="hljs-string">"device_token"</span>, <span class="hljs-string">"empty"</span>);
+push_list = Ti.App.Properties.getString(<span class="hljs-string">"pushlist"</span>, <span class="hljs-string">"empty"</span>); 
+
+<span class="hljs-keyword">if</span> (device_token == <span class="hljs-string">"empty"</span>){
+    myDialog(<span class="hljs-string">"Register for Notifications?"</span>,<span class="hljs-string">"Click Yes to register for push notifications"</span>);    
+    <span class="hljs-keyword">if</span>(Ti.App.Properties.getString(<span class="hljs-string">"yes2push"</span>) == <span class="hljs-string">"yes"</span>){
+        login();
+        getDeviceToken();
+        subscribeToIOSServerPush();
+
+        Ti.App.Properties.setString(<span class="hljs-string">"yes2push"</span>,<span class="hljs-string">"no"</span>);
+    }
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">login</span>(<span class="hljs-params"></span>)</span>{
+    Cloud.Users.login({
+        login: <span class="hljs-string">'bastien'</span>,
+        password: <span class="hljs-string">'sweden'</span>
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+
+            <span class="hljs-keyword">var</span> user = e.users[<span class="hljs-number">0</span>];
+            <span class="hljs-comment">//getDeviceToken();</span>
+            <span class="hljs-comment">//subscribeToIOSServerPush();</span>
+
+        } <span class="hljs-keyword">else</span> {
+            myAlert(<span class="hljs-string">'error'</span>, <span class="hljs-string">'Error:\\n'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+        }
+    });
+}
+
+
+<span class="hljs-comment">//REGISTER LOCAL PUSH NOTIFICATION HERE</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getDeviceToken</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-comment">//trace("REGISTERING LOCAL PUSH");</span>
+    <span class="hljs-keyword">var</span> user_device_token;
+    <span class="hljs-keyword">switch</span> (Ti.Platform.name){
+        <span class="hljs-keyword">case</span> <span class="hljs-string">"iPhone OS"</span>:
+
+            Titanium.Network.registerForPushNotifications({
+                types: [
+                Titanium.Network.NOTIFICATION_TYPE_BADGE,
+                Titanium.Network.NOTIFICATION_TYPE_ALERT,
+                Titanium.Network.NOTIFICATION_TYPE_SOUND
+                ],
+                success:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+                </span>{
+                    user_device_token = e.deviceToken;
+                    Ti.App.Properties.setString(<span class="hljs-string">"device_token"</span>,user_device_token);
+                },
+                error:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+                </span>{
+                    myAlert(<span class="hljs-string">'error'</span>,<span class="hljs-string">"Error during registration: "</span>+e.error);
+
+                },
+                callback:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+                </span>{
+                    <span class="hljs-comment">// called when a push notification is received.</span>
+                    myAlert(<span class="hljs-string">'notice'</span>, <span class="hljs-built_in">JSON</span>.stringify(e.data.alert));
+                    <span class="hljs-keyword">var</span> thisData = {
+                        id : Titanium.Platform.id,
+                        device_token : user_device_token,
+                        push : <span class="hljs-string">'push notice received'</span>,
+                        msg : e.data.alert
+                    }
+                    Ti.App.Properties.setString(<span class="hljs-string">"latest_buddy_alert"</span>,<span class="hljs-built_in">JSON</span>.stringify(thisData));
+                    sendToCloud(<span class="hljs-built_in">JSON</span>.stringify(thisData));
+            }});
+              <span class="hljs-keyword">break</span>;
+
+          <span class="hljs-keyword">case</span> <span class="hljs-string">"android"</span>:
+
+              CloudPush.retrieveDeviceToken({
+            success: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-comment">//myAlert('notice','Device Token: ' + e.deviceToken);</span>
+                user_device_token = e.deviceToken
+                Ti.App.Properties.setString(<span class="hljs-string">"device_token"</span>,user_device_token);
+                myAlert(<span class="hljs-string">'notice'</span>,<span class="hljs-string">'received token'</span>+user_device_token);
+                subscribeToIOSServerPush();
+            },
+            error: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+                myAlert(<span class="hljs-string">'error'</span>,<span class="hljs-string">'Failed to get token for push! '</span> + e.error);
+            }
+        });
+          <span class="hljs-keyword">break</span>;
+    }<span class="hljs-comment">//ens switch</span>
+
+}
+
+<span class="hljs-comment">//REGISTER SERVER PUSH</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">subscribeToIOSServerPush</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-comment">//trace("Registering server push");</span>
+    <span class="hljs-comment">//user_device_token = Ti.App.Properties.getString("device_token");</span>
+    <span class="hljs-comment">//myAlert('notice','attempting server push registration with uuid:' + user_device_token);</span>
+    <span class="hljs-keyword">var</span> phoneType;
+    <span class="hljs-keyword">var</span> device_token = Ti.App.Properties.getString(<span class="hljs-string">"device_token"</span>);
+
+    <span class="hljs-keyword">switch</span> (Ti.Platform.name){
+        <span class="hljs-keyword">case</span> <span class="hljs-string">"iPhone OS"</span>:
+            phoneType = <span class="hljs-string">"ios"</span>;
+              <span class="hljs-keyword">break</span>;
+          <span class="hljs-keyword">case</span> <span class="hljs-string">"android"</span>:
+              phoneType = <span class="hljs-string">"android"</span>;
+              <span class="hljs-keyword">break</span>;
+    }
+
+    Cloud.PushNotifications.subscribe({
+        channel: <span class="hljs-string">'buddy_notice'</span>,
+        type: phoneType,
+        device_token: device_token
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">if</span> (e.success) {
+
+            myAlert(<span class="hljs-string">"notice"</span>,<span class="hljs-string">"Successful server push registration:\n"</span>);  <span class="hljs-comment">//+((e.error &amp;&amp; e.message) || JSON.stringify(e)));</span>
+            <span class="hljs-comment">//var myID = Titanium.Network.remoteDeviceUUID;</span>
+            <span class="hljs-comment">//Ti.API.info('successful push registration '+ myID);</span>
+            <span class="hljs-comment">//Ti.App.Properties.setString('uuid', myID);</span>
+
+        } <span class="hljs-keyword">else</span> {
+
+            myAlert(<span class="hljs-string">"error"</span>, <span class="hljs-string">"Server push registration error:\n"</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+            Ti.API.info(<span class="hljs-string">'failed push registration '</span>+ device_token);
+        }
+
+    });
+}
+</code></pre><p>Consistently getting a &#39;device token missing error&#39;…</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 23rd 2013, 1:55:06 am">July 23rd 2013</span>
+				by <span class='authorname'>Bastien Koert</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>So this works perfectly on the emulator. I get the confirm pop up and it successfully registers the emulator. I can even get push notifications to show in the emulator. </p>
+<p>But on a real device (samsung s3 (3 different ones)) it doesn&#39;t ask for push registration at all.</p>
+<p>The app does two things when it starts up: checks to see if the deivce token is saved as a property (if yes, then do nothing and if not then ask the user to confirm registration) and get the current location via GPS. </p>
+<p>What is going on with those real devices that make it so damn difficult? I&#39;ve tried using SDK versions 3.02, 3.1.0  and 3.1.1.This is the last hurdle before I can publish the app.</p>
+<p>If I need to post any more code or logs or something else… please let me know</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 27th 2013, 2:40:11 pm">July 27th 2013</span>
+								by <span class='authorname'>Bastien Koert</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I altered the top bit somewhat to add more capabilities to the android check</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> ( Titanium.Platform.name == <span class="hljs-string">"android"</span> ){ 
+    <span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">"ti.cloudpush"</span>);
+    CloudPush.debug = <span class="hljs-literal">true</span>;
+    CloudPush.enabled = <span class="hljs-literal">true</span>;
+    CloudPush.showTrayNotificationsWhenFocused = <span class="hljs-literal">true</span>;
+    CloudPush.focusAppOnPush = <span class="hljs-literal">false</span>;
+
+    CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+        <span class="hljs-keyword">var</span> payload = <span class="hljs-built_in">JSON</span>.stringify(evt.payload);
+        myAlert(payload.title, payload.alert);
+    });
+    CloudPush.addEventListener(<span class="hljs-string">'trayClickLaunchedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'Tray Click Launched App (app was not running)'</span>);
+    });
+    CloudPush.addEventListener(<span class="hljs-string">'trayClickFocusedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">evt</span>) </span>{
+        Ti.API.info(<span class="hljs-string">'Tray Click Focused App (app was already running)'</span>);
+    });
+<span class="hljs-comment">//login();</span>
+}
+~
+</code></pre><p>It works fine on the emulator, bit never works on the android devices..currently also testing it on a samsung 7in tablet…strictly for push notifications</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 29th 2013, 12:37:05 pm">July 29th 2013</span>
+								by <span class='authorname'>Bastien Koert</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

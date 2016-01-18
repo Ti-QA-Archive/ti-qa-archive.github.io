@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>ACS Production push notifications failing » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>ACS Production push notifications failing</h1>
+		</header>
+		<section>
+			<p>Hi all, I recently submitted an iOS and Android app containing support for push notifications which worked when debugging on my devices using the development tab of the Appcelerator website. However now the apps have gone live every new iOS device ends up subscribing successfully to the development version, which is strange as it should be in the production tab. This is a minor problem however compared to that all the attempted push notifications fail with the message below:</p>
+<pre><code class="hljs">Updated at    <span class="hljs-number">2013</span>-<span class="hljs-number">08</span>-<span class="hljs-number">05</span>T16:<span class="hljs-number">28</span>:<span class="hljs-number">32</span>+<span class="hljs-number">0000</span>
+Message Id    d328f030-abb3-<span class="hljs-number">4f</span>51-ad67-<span class="hljs-number">4963e558307</span>b
+Send Status    Fail
+Message Status     Unknown
+Channel    Web Console
+Device Token    ND1SGZJB1JV2I215T61AW7B
+Device Type    Android
+Error Message    Cannot get specific MQTT Dispatcher to send message to. MsgID: d328f030-abb3-<span class="hljs-number">4f</span>51-ad67-<span class="hljs-number">4963e558307</span>bdevicetoken: ND1SGZJB1JV2I215T61AW7B, mqttHostNameToSend:null
+</code></pre><p>I have tried sending on the channel &#39;Web Console&#39; as suggested here : http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;154198&#x2F;acs-push-notification-only-work-with-channel-web-portal which didn&#39;t help</p>
+<p>This is the function being called</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerForPush</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> osName = Ti.Platform.osname;
+    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+    Cloud.debug = <span class="hljs-literal">true</span>;
+
+    <span class="hljs-keyword">var</span> deviceToken;
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getDeviceTokeniPhone</span>(<span class="hljs-params"></span>) </span>{
+        Titanium.Network.registerForPushNotifications({
+            types : [Titanium.Network.NOTIFICATION_TYPE_ALERT, Titanium.Network.NOTIFICATION_TYPE_SOUND],
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                deviceToken = e.deviceToken;
+                Ti.App.Properties.setString(<span class="hljs-string">"device_token"</span>, deviceToken);
+                defaultSubscribe();
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                Ti.API.error(<span class="hljs-string">"Error during iPhone push registration: "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+            },
+            callback : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-comment">// called when a push notification is received.</span>
+                <span class="hljs-keyword">var</span> data = e.data
+                Titanium.Media.vibrate();
+                alert(e.data.alert);
+            }
+        });
+    }
+
+    <span class="hljs-comment">// Login with testing details</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loginIphone</span>(<span class="hljs-params">e</span>) </span>{
+        Cloud.Users.login({
+            login : <span class="hljs-string">'defaultuser'</span>,
+            password : <span class="hljs-string">'defaultpassword'</span>
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                getDeviceTokeniPhone();
+            } <span class="hljs-keyword">else</span> {
+                Ti.API.error(<span class="hljs-string">'Error logging into iPhone ACS for push:\\n'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+            }
+        });
+    }
+
+    <span class="hljs-comment">// subscribe to push notifications on default channel 'alert'</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">defaultSubscribe</span>(<span class="hljs-params">platform</span>) </span>{
+        Ti.API.error(platform);
+        Cloud.PushNotifications.subscribe({
+            channel : <span class="hljs-string">'alert'</span>,
+            device_token : deviceToken,
+            type : platform
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                Ti.API.info(<span class="hljs-string">'Subscribed for '</span>+platform+<span class="hljs-string">' push notifications'</span>);
+            } <span class="hljs-keyword">else</span> {
+                Ti.API.error(<span class="hljs-string">'Error subscribing for ACS push:'</span> + ((e.error &amp;&amp; e.message) || <span class="hljs-built_in">JSON</span>.stringify(e)));
+            }
+        });
+    }
+
+    loginIphone();
+}
+</code></pre><p>As far as I know, by following tutorials and implementing it the way other have, it should work.</p>
+<p>Could it be something to do with the fact it is registering for development push notifications even though it must be signed with the production certificate from Apple as it is live in the App Store? Any help would be much appreciated thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 6th 2013, 7:22:11 am">August 6th 2013</span>
+				by <span class='authorname'>James Groot</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>appcelerator</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>packaging</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-282139">
+				
+						<section>
+							<p>I am new in titanium and i think the minor problem you mentioned is</p>
+<pre><code class="hljs">&lt;<span class="hljs-keyword">property</span> <span class="hljs-property">name</span>=<span class="hljs-string">"acs-api-key"</span> type=<span class="hljs-string">"string"</span>&gt;
+ &lt;<span class="hljs-keyword">property</span> <span class="hljs-property">name</span>=<span class="hljs-string">"acs-oauth-key"</span> type=<span class="hljs-string">"string"</span>&gt;
+ &lt;<span class="hljs-keyword">property</span> <span class="hljs-property">name</span>=<span class="hljs-string">"acs-oauth-secret"</span> type=<span class="hljs-string">"string"</span>&gt;
+</code></pre><p>the values of these tags(tiapp.xml) should be the keys from you production tab </p>
+<p>the reason why you failed to send, i think i couldn&#39;t help you :D</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 4th 2014, 4:47:14 am">September 4th 2014</span>
+								by <span class='authorname'>Chee Seong Yong</span><br>
+								<a class="icon-bg icon-link" href="question/155697/acs-production-push-notifications-failing#answer-282139" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

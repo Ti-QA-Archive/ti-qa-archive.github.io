@@ -1,0 +1,267 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>No database results after launching the app for the first time » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>No database results after launching the app for the first time</h1>
+		</header>
+		<section>
+			<p>Hello everyone,</p>
+<p>I have created an IOS app that loads data from remote (JSON) and store it locally into a the database.<br>Retrieving the data from remote only happens when the app is opened for the first time. The next time the user will open the app, the data will be retrieved from the database.</p>
+<p>The problem is that I cannot retrieve data from the database when I opened the app for the first time.<br>In other words, I cannot retrieve data from the database directly after the data is inserted into the database.</p>
+<p>When I close the app from the background process and then reopen it, everything is working fine and I get valid results from the database. The same applies when I restart the app in the simulator in Titanium Studio. It seems that on the second time the app is launched the database is reinitialized with the correct content. </p>
+<p>I have really no clue what is going on and I hope someone can help me to solve this bug.</p>
+<p>App.js</p>
+<pre><code class="hljs"><span class="hljs-comment">// Install database</span>
+<span class="hljs-keyword">var</span> db = Titanium.Database.install(<span class="hljs-string">'database.sqlite'</span>,<span class="hljs-string">'database'</span>);
+<span class="hljs-comment">/*
+ * Restore long term application settings
+
+ */</span>
+<span class="hljs-keyword">var</span> last_updated_timestamp = Titanium.App.Properties.getInt(<span class="hljs-string">'last_updated_timestamp'</span>);
+<span class="hljs-keyword">if</span> (last_updated_timestamp == <span class="hljs-literal">null</span> || last_updated_timestamp &lt; <span class="hljs-number">1291208400</span>) {
+    last_updated_timestamp = <span class="hljs-number">1291208400</span>;
+    Ti.App.Properties.setInt(<span class="hljs-string">'last_updated_timestamp'</span>, <span class="hljs-number">1291208400</span>);
+}
+</code></pre><p>This function is called when the app needs to load the data from remote and store it locally</p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span> (needsUpdating &amp;&amp; networkConnection) 
+{
+    <span class="hljs-comment">// update from remote</span>
+    busy = updateDatabaseFromRemote(nowTS);
+    setTimeout(checkBusy, <span class="hljs-number">600</span>);
+} 
+
+<span class="hljs-comment">// load the data from remote and store locally</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">updateDatabaseFromRemote</span>(<span class="hljs-params">nowTS</span>) </span>{
+    <span class="hljs-keyword">var</span> remoteURL = <span class="hljs-string">'http://app.snelafstuderen.nl/update-as-json'</span>;
+    <span class="hljs-keyword">var</span> remoteKey = <span class="hljs-string">'*******'</span>;
+
+    <span class="hljs-comment">// declare the http client object</span>
+    <span class="hljs-keyword">var</span> xhr = Titanium.Network.createHTTPClient();
+    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">var</span> apiResponse = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+            <span class="hljs-keyword">if</span> (apiResponse.data.length &gt; <span class="hljs-number">0</span>) {    
+                <span class="hljs-keyword">var</span> db = Ti.Database.open(<span class="hljs-string">'database'</span>);
+                db.execute(<span class="hljs-string">'BEGIN'</span>);
+                db.execute(<span class="hljs-string">'DELETE FROM quizzes'</span>);
+                db.execute(<span class="hljs-string">'DELETE FROM questions'</span>);
+                db.execute(<span class="hljs-string">'DELETE FROM answers'</span>);
+                db.execute(<span class="hljs-string">'DELETE FROM information_windows'</span>);
+                db.execute(<span class="hljs-string">'DELETE FROM userAnswers'</span>);
+
+                <span class="hljs-comment">// loop through strings</span>
+                <span class="hljs-keyword">var</span> strings = apiResponse.strings;
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> k <span class="hljs-keyword">in</span> strings) {
+                    <span class="hljs-keyword">if</span> (strings.hasOwnProperty(k)) {
+                        <span class="hljs-keyword">if</span> (strings[k][<span class="hljs-string">'v'</span>]) Ti.App.Properties.setString(k, strings[k][<span class="hljs-string">'v'</span>]);
+                        <span class="hljs-keyword">if</span> (strings[k][<span class="hljs-string">'s'</span>]) Ti.App.Properties.setString(k+<span class="hljs-string">'_scope'</span>, strings[k][<span class="hljs-string">'s'</span>]);
+                    }
+                }
+                <span class="hljs-comment">// loop through data</span>
+                <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;apiResponse.data.length; i++) {
+
+                    <span class="hljs-keyword">var</span> data = apiResponse.data[i];
+                    Ti.API.info(<span class="hljs-string">'INSERT INTO quizzes (id, name, precedence) VALUES (?,?,?)'</span>, data.id, data.name, i);
+                    db.execute(<span class="hljs-string">'INSERT INTO quizzes (id, name, precedence) VALUES (?,?,?)'</span>, data.id, data.name, i);
+                    <span class="hljs-comment">// loop through questions and answers</span>
+                    <span class="hljs-keyword">if</span> (data.questions.length &gt; <span class="hljs-number">0</span>) {
+                        <span class="hljs-keyword">var</span> questions = data.questions;
+                        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> q=<span class="hljs-number">0</span>; q&lt;questions.length; q++) {
+                            <span class="hljs-keyword">var</span> question_id = questions[q][<span class="hljs-string">'id'</span>];
+                            <span class="hljs-comment">// Ti.API.info('question id '+question_id);</span>
+                            <span class="hljs-comment">// Ti.API.info('question '+questions[q]['question']);</span>
+                            <span class="hljs-comment">// Ti.API.info('precedence '+q);</span>
+                            db.execute(<span class="hljs-string">'INSERT INTO questions (id, question, quiz_id, precedence) VALUES (?,?,?,?)'</span>, question_id, questions[q][<span class="hljs-string">'question'</span>], data.id, q+<span class="hljs-number">1</span>);
+                            db.execute(<span class="hljs-string">'INSERT INTO answers (id, answer, question_id, explanation) VALUES (?,?,?,?)'</span>, questions[q][<span class="hljs-string">'answer_id'</span>], questions[q][<span class="hljs-string">'answer'</span>], question_id, questions[q][<span class="hljs-string">'answer_explanation'</span>]);
+                        }
+                    }
+                    <span class="hljs-comment">// store info windows</span>
+                    <span class="hljs-keyword">var</span> info = data.info_windows[<span class="hljs-number">0</span>];
+                    db.execute(<span class="hljs-string">'INSERT INTO information_windows (id, title, content, quiz_id) VALUES (?,?,?,?)'</span>, info.id, info.title, info.content, data.id);
+                }
+
+                db.execute(<span class="hljs-string">'COMMIT'</span>);
+                db.close();
+                Ti.API.info(<span class="hljs-string">"Updating database from remote is done."</span>);
+
+                Titanium.App.Properties.setInt(<span class="hljs-string">'lastUpdatedTS'</span>, nowTS);
+                Ti.API.info(<span class="hljs-string">"Set lastUpdatedTS to "</span> + nowTS);
+            }
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+
+        } <span class="hljs-keyword">catch</span>(e) {
+            Ti.API.error(<span class="hljs-string">'Caught: '</span> + e);
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+    };
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        Ti.API.debug(<span class="hljs-string">'STATUS: '</span> + <span class="hljs-keyword">this</span>.status);
+        Ti.API.debug(<span class="hljs-string">'TEXT: '</span> + <span class="hljs-keyword">this</span>.responseText);
+        Ti.API.debug(<span class="hljs-string">'ERROR: '</span> + e.error);
+        alert(<span class="hljs-string">'Er is een fout opgetreden bij het ophalen van de gegevens. Probeer het opnieuw.'</span>);
+    };
+    xhr.setTimeout(<span class="hljs-number">30000</span>);
+
+    remoteURL += <span class="hljs-string">'?auth='</span>+remoteKey;
+    Ti.API.info(<span class="hljs-string">'Open: '</span> + remoteURL);
+    xhr.open(<span class="hljs-string">'GET'</span>, remoteURL);
+    xhr.setRequestHeader(<span class="hljs-string">'User-Agent'</span>,<span class="hljs-string">'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ (KHTML, like Gecko) Version/3.0 Mobile/1A537a Safari/419.3'</span>);
+    xhr.send(); 
+};
+</code></pre><p>After the remote update is done, I try to retrieve data from the database by calling this function.</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getAllQuizzes</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> db = Ti.Database.open(<span class="hljs-string">'database'</span>);
+    <span class="hljs-keyword">var</span> sql = <span class="hljs-string">'SELECT quizzes.id, quizzes.name'</span>;
+        sql += <span class="hljs-string">' FROM quizzes'</span>;
+        sql += <span class="hljs-string">' ORDER BY quizzes.precedence ASC'</span>;
+    <span class="hljs-keyword">var</span> rows = db.execute(sql);
+    <span class="hljs-keyword">var</span> data = [];
+    <span class="hljs-keyword">while</span> (rows.isValidRow()) {
+        Ti.API.info(<span class="hljs-string">'id'</span>+rows.fieldByName(<span class="hljs-string">'id'</span>));
+        data.push({
+            id: rows.fieldByName(<span class="hljs-string">'id'</span>),
+            title: rows.fieldByName(<span class="hljs-string">'name'</span>)
+        });
+        rows.next();
+    }
+    rows.close();
+    db.close();
+    <span class="hljs-keyword">return</span> data;
+}
+</code></pre><p>Application type: mobile<br>Titanium SDK: 3.1.3.GA<br>Platform: iOS<br>Device: iOS simulator</p>
+<p>Thanks in advance,<br>Jeroen</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 7th 2013, 4:07:30 pm">October 7th 2013</span>
+				by <span class='authorname'>Jeroen van Schie</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>remote</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-269718">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>:P</p>
+<p><img src="http:&#x2F;&#x2F;www.masti-xpress.com&#x2F;images&#x2F;Story-of-Every-Programmer.jpg" alt="no_idea"></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 7th 2013, 5:34:30 pm">October 7th 2013</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/158154/no-database-results-after-launching-the-app-for-the-first-time#answer-269718" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-269717">
+				
+						<section>
+							<p>Ok found the solution which is really strange.<br>I moved the code in updateDatabaseFromRemote outside the function and now it works.<br>I really have no clue why this solved my problem but i am happy :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 7th 2013, 4:41:19 pm">October 7th 2013</span>
+								by <span class='authorname'>Jeroen van Schie</span><br>
+								<a class="icon-bg icon-link" href="question/158154/no-database-results-after-launching-the-app-for-the-first-time#answer-269717" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

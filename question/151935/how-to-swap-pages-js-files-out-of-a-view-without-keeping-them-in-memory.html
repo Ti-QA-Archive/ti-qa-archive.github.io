@@ -1,0 +1,234 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to swap pages (js files) out of a view without keeping them in memory » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to swap pages (js files) out of a view without keeping them in memory</h1>
+		</header>
+		<section>
+			<p>First, some background:</p>
+<p>This is my first week in titanium and I&#39;m having trouble forming a mental model for how to structure content.</p>
+<p>I have a nice table-view menu that I want to use to control all the navigation in my app. It&#39;s a sliding menu that comes out on the left via a tab at the top-left.</p>
+<p>To get an idea of what I mean here is what my app.js looks like this:</p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> <span class="hljs-collection">{
+    Ti.UI.setBackgroundColor<span class="hljs-list">(<span class="hljs-keyword">'#000'</span>)</span><span class="hljs-comment">;</span>
+    Ti.UI.backgroundColor = '#000';
+
+    var MainMenu = require<span class="hljs-list">(<span class="hljs-keyword">'/ui/MainMenu'</span>)</span><span class="hljs-comment">;</span>
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>my MainMenu.js file looks like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//---------------------------------------------main window</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+    top:<span class="hljs-number">0</span>,
+    left:<span class="hljs-number">0</span>,
+    width:Titanium.Platform.displayCaps.platformWidth,
+    backgroundColor: <span class="hljs-string">'transparent'</span>,
+    axis:<span class="hljs-number">0</span>,
+    moving:<span class="hljs-keyword">false</span>
+});
+
+<span class="hljs-comment">//---------------------------------------------menu</span>
+menuView = Ti.UI.createView({
+    zIndex: <span class="hljs-number">15</span>,
+    top: <span class="hljs-number">0</span>,
+    left: -(Titanium.Platform.displayCaps.platformWidth-<span class="hljs-number">40</span>),
+    width: Titanium.Platform.displayCaps.platformWidth,
+});
+menuView.addEventListener(<span class="hljs-string">'swipe'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(e.direction)
+       <span class="hljs-keyword">if</span>(menuState &amp;&amp; e.direction == <span class="hljs-string">"left"</span>){
+           menuView.animate(closeMenu);
+           menuState = <span class="hljs-keyword">false</span>;
+       }
+       <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(!menuState &amp;&amp; e.direction == <span class="hljs-string">"right"</span>){
+           menuView.animate(openMenu);
+           menuState = <span class="hljs-keyword">true</span>;
+       }
+});
+
+<span class="hljs-comment">//---------------------------------------------menu</span>
+    <span class="hljs-comment">//adding stuff to the menu like buttons etc</span>
+
+
+<span class="hljs-comment">//---------------------------------------------page view</span>
+    <span class="hljs-comment">//this is where all the pages will go</span>
+<span class="hljs-keyword">var</span> viewer =  Ti.UI.createView();
+
+
+<span class="hljs-comment">//---------------------------------------------feed page (default first page)</span>
+    <span class="hljs-comment">//add feed under all the menu stuff</span>
+<span class="hljs-keyword">var</span> Feed = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/Feed'</span>);
+viewer.add(Feed.scrollView);
+
+<span class="hljs-comment">//now add viewer so it is under everything else</span>
+<span class="hljs-keyword">self</span>.add(viewer);
+
+<span class="hljs-comment">//add some buttons and logo stuff</span>
+<span class="hljs-keyword">self</span>.add(contextMenuButton);
+<span class="hljs-keyword">self</span>.add(logo);
+<span class="hljs-keyword">self</span>.add(rmyButton);
+
+<span class="hljs-comment">//now add menu so it's on top of everything else</span>
+<span class="hljs-keyword">self</span>.add(menuView);
+
+<span class="hljs-comment">//open main window</span>
+<span class="hljs-keyword">self</span>.open();
+</code></pre><h2 id="question-1">Question 1</h2>
+<p>Is it OK from a performance (and also best practices) standpoint to develop my app in this manner with the main window always on the top view and swapping out pages in the bottom view (viewer)?</p>
+<p>###Next bit which is directly related to the above question:</p>
+<p>All my pages are contained in js files so I&#39;ve just been using the require() function to add them to the viewer view. Example code from the mainMenu.js file is below. In this example I am <strong>returning back</strong> to the scrollView in the Feed.js file. </p>
+<p>The issue I am finding is that the scrollView retains the exact state as when I left it when it was first removed. For example, if I had scrolled to the middle of the Feed.js scroll view, then removed the scroll view and added a new page, and then returned back to the Feed.js scroll view, it will show up in the middle of the scrollview. This makes me think that I haven&#39;t completely removed the contents of the js files from memory when I swap them from views. How come it didn&#39;t load the Feed.js scrollview from a blank slate?</p>
+<pre><code class="hljs"><span class="hljs-comment">//clean out all childern from viewer (even though there is only one child in viewer at a time)</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">cleanViewer</span><span class="hljs-params">()</span><span class="hljs-comment">{
+    var viewCount = viewer.children.length;
+    for (i = 0; i &lt; viewCount; i++) {
+        viewer.remove(viewer.children[((viewCount - 1) -i)]);
+    }</span>
+}   
+//<span class="hljs-title">run</span> <span class="hljs-title">cleaner</span>
+<span class="hljs-title">cleanViewer</span><span class="hljs-params">()</span>;</span>
+
+<span class="hljs-comment">//I've already required the Feed.js file when mainMenu.js file </span>
+<span class="hljs-comment">//was loaded so I don't have to do it again</span>
+viewer.<span class="hljs-keyword">add</span>(Feed.scrollView);
+
+<span class="hljs-comment">//slide menu closed</span>
+menuView.animate(closeMenu);
+   menuState = <span class="hljs-keyword">false</span>;
+</code></pre><h2 id="question-2">Question 2</h2>
+<p>When I include all these js files in the menu window does that mean that they remain in memory forever? What is the correct way to manage what remains in memory and what are best practices for swapping content out from a view?</p>
+<p>If you got to the bottom of this post, thanks for reading and I appreciate any help.</p>
+<p>Application type: mobile<br>Titanium SDK: 3.x<br>Platform &amp; version: iOS for now but soon Android<br>Device: iOS simulator and iPhone 5 physical device<br>Host Operating System: OSX 10.8.3<br>Titanium Studio: 3.1</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="May 3rd 2013, 12:29:40 pm">May 3rd 2013</span>
+				by <span class='authorname'>David Sharek</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>menu</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+						<li><span class='tagname'>require</span></li>
+					
+						<li><span class='tagname'>view</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-262108">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Second Attempt</p>
+<p>Hi David</p>
+<p>I had written a reply earlier, but for some reason has gone. I wonder if I reply again both will appear.</p>
+<p>Application architecture is always a bit of a nightmare to get right, especially in a technology new to you. It appears you are going down the commonJS route and really your next step is to understand how this works and hangs together.</p>
+<p>Enabling you to create your views and manage the memory issues.</p>
+<p>I could write a massive answer here but instead will provide two options. (Not really self promo)</p>
+<p>Option 1. Introduction to commonJS article <a href="http:&#x2F;&#x2F;www.thewarpedcoder.net&#x2F;2012&#x2F;10&#x2F;titanium-commonjs-introduction&#x2F;">HERE</a></p>
+<p>Option 2. Patterns &amp; Best Practices book <a href="http:&#x2F;&#x2F;www.packtpub.com&#x2F;appcelerator-titanium-patterns-and-best-practices&#x2F;book">HERE</a></p>
+<p>Hope this helps</p>
+<p>T.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="May 3rd 2013, 2:15:36 pm">May 3rd 2013</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/151935/how-to-swap-pages-js-files-out-of-a-view-without-keeping-them-in-memory#answer-262108" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Weird, my comment disappeared as well. </p>
+<p>Thanks for the reply, I will certainly read through those documents you linked to.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="May 5th 2013, 1:09:01 pm">May 5th 2013</span>
+											by <span class='authorname'>David Sharek</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

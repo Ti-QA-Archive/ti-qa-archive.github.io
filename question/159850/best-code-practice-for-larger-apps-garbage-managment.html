@@ -1,0 +1,222 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Best Code Practice for larger apps garbage managment » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Best Code Practice for larger apps garbage managment</h1>
+		</header>
+		<section>
+			<p>Hi All</p>
+<p>This question may have been asked quite a few times but i havent managed to find anything that works for me.</p>
+<p>First i have been using titanium for a while and love it, but as my apps are getting larger they are becoming really hard to manage and buggy keep crashing at random point and i really dont want to have to revert to objective c.</p>
+<p>So i have been reading step by step through the titanium docs which granted i should have fully read through at the start instead of skimming through mainly http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;3.0&#x2F;#!&#x2F;guide&#x2F;CommonJS_Modules_in_Titanium.</p>
+<p>So now i have fully changed my structure to suit a commonjs module layout, but like with most javascript large applications this can be done in so many different ways i never now what is correct.</p>
+<p>Also i want to implement garage collection on all my windows and code and wanted to have feedback on my project whether it is correct, my app currently goes up to about 50mb max on memory in xcode but doesnt seems to crash at that but i see about 12mb is a better size in the docs.</p>
+<p>so first here is how i start all my projects in my app.js</p>
+<pre><code class="hljs">(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-comment">//run database function here and add options to modules like sharekit.</span>
+        <span class="hljs-keyword">var</span> ApplicationTabGroup = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/ApplicationTabGroup'</span>);
+        <span class="hljs-keyword">var</span> theTabGroup = <span class="hljs-keyword">new</span> ApplicationTabGroup();
+        theTabGroup.open();   
+})();
+</code></pre><p>So i then load my tab group pretty basic so far following the kitchensink</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ApplicationTabGroup</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">// create tab group</span>
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Titanium.UI.createTabGroup();
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// create base UI tab and root window</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-keyword">var</span> win1 = Titanium.UI.createWindow({
+        title: <span class="hljs-string">'Tab 1'</span>,
+        backgroundColor: <span class="hljs-string">'#fff'</span>,
+                url: <span class="hljs-string">'ui/win1.js'</span>
+    });
+    <span class="hljs-keyword">var</span> tab1 = Titanium.UI.createTab({
+        icon: <span class="hljs-string">'KS_nav_views.png'</span>,
+        title: <span class="hljs-string">'Tab 1'</span>,
+        window: win1
+    });
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// create controls tab and root window</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-keyword">var</span> win2 = Titanium.UI.createWindow({
+        title: <span class="hljs-string">'Tab 2'</span>,
+        backgroundColor: <span class="hljs-string">'#fff'</span>,
+                url: <span class="hljs-string">'ui/win2.js'</span>
+    });
+    <span class="hljs-keyword">var</span> tab2 = Titanium.UI.createTab({
+        icon: <span class="hljs-string">'KS_nav_ui.png'</span>,
+        title: <span class="hljs-string">'Tab 2'</span>,
+        window: win2
+    });
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">//  add tabs</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-keyword">self</span>.addTab(tab1);
+    <span class="hljs-keyword">self</span>.addTab(tab2);
+    <span class="hljs-keyword">self</span>.setActiveTab(<span class="hljs-number">1</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+module.exports = ApplicationTabGroup;
+</code></pre><p>Ok so this is where i would like some advice within my windows i usually have a navigation window say here is the code for win1.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.currentWindow;
+
+<span class="hljs-keyword">var</span> navGroup = Titanium.UI.iOS.createNavigationWindow({
+   window: <span class="hljs-keyword">self</span>
+});
+
+<span class="hljs-keyword">var</span> button = Titanium.UI.createButton({
+    title: <span class="hljs-string">'Open Blue Window'</span>
+});
+button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+     <span class="hljs-keyword">var</span> getWin3 = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/win3'</span>);
+
+     <span class="hljs-comment">// OK I PASS THRU THE NAV TO USE ON THE OTHER PAGE IS THIS BEST PRACTICE ITS SO I CAN OPEN THE NEXT WINDOW IN THE NAVGROUP???</span>
+     <span class="hljs-keyword">var</span> win3= <span class="hljs-keyword">new</span> getWin3 ( navGroup );
+     navGroup .openWindow(win3, {animated:<span class="hljs-keyword">true</span>});
+});
+
+<span class="hljs-keyword">self</span>.add(button);
+
+<span class="hljs-comment">// for garbage collect NOT SURE IF THIS IS RIGHT</span>
+        <span class="hljs-keyword">self</span>.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+
+             <span class="hljs-keyword">self</span>.remove(navGroup );  <span class="hljs-comment">// view &amp; button still exist</span>
+             navGroup  = <span class="hljs-keyword">null</span>;
+             button = <span class="hljs-keyword">null</span>;
+
+
+        });
+</code></pre><p>Then i will have the button open a new window in the group win3.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">win3</span><span class="hljs-params">(model)</span> </span>{
+
+       <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Titanium.UI.createWindow({
+        title: <span class="hljs-string">'Tab 2'</span>,
+        backgroundColor: <span class="hljs-string">'#fff'</span>
+    });
+
+        <span class="hljs-keyword">var</span> button = Ti.UI.createButton({
+       <span class="hljs-comment">// parameters go here...</span>
+        });
+
+        button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">var</span> getWin4 = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/win4'</span>);
+
+     <span class="hljs-comment">// OK I PASS THRU THE NAV TO USE ON THE OTHER PAGE IS THIS BEST PRACTICE ITS SO I CAN OPEN THE NEXT WINDOW IN THE NAVGROUP???</span>
+     <span class="hljs-keyword">var</span> win4= <span class="hljs-keyword">new</span> getWin4 ( model );
+     model.openWindow(win4, {animated:<span class="hljs-keyword">true</span>});
+
+        });
+
+        <span class="hljs-keyword">var</span> view = Ti.UI.createView({
+        <span class="hljs-comment">// some parameters here...</span>
+        });
+        view.add(button);
+
+        <span class="hljs-keyword">self</span>.add(view);
+
+        <span class="hljs-comment">// for garbage collect NOT SURE IF THIS IS RIGHT</span>
+        <span class="hljs-keyword">self</span>.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+
+             <span class="hljs-keyword">self</span>.remove(view);  <span class="hljs-comment">// view &amp; button still exist</span>
+             view = <span class="hljs-keyword">null</span>;
+             button = <span class="hljs-keyword">null</span>;
+
+
+        });
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+module.exports = win3;
+</code></pre><p>I would really like some feedback from the main devs at titanium after using the structure above my apps are working so much better, but i will still get the odd crash every now and again and my memory seems to creep up slowly over long periods, some i have fixed by adding a setTimeout on data transfer from json feeds but that&#39;s for another post.</p>
+<p>Any advice would be really helpful ;) thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 26th 2013, 8:32:56 am">November 26th 2013</span>
+				by <span class='authorname'>Samuel East</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>best practice</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>garbage</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>anyone?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 27th 2013, 9:54:25 am">November 27th 2013</span>
+								by <span class='authorname'>Samuel East</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

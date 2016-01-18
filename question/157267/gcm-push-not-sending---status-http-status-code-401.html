@@ -1,0 +1,369 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>GCM push not sending - status: HTTP Status Code: 401 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>GCM push not sending - status: HTTP Status Code: 401</h1>
+		</header>
+		<section>
+			<p>I have the following push setup:</p>
+<pre><code class="hljs">exports.createPush = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">opt</span>) </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Push(opt);
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Push</span>(<span class="hljs-params">opt</span>) </span>{
+    <span class="hljs-keyword">var</span> tryCount = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">var</span> Cloud = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloud'</span>);
+    <span class="hljs-keyword">if</span> (Ti.Platform.osname == <span class="hljs-string">'android'</span>) {
+        <span class="hljs-keyword">var</span> CloudPush = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.cloudpush'</span>);
+        CloudPush.debug = <span class="hljs-literal">true</span>;
+
+        CloudPush.addEventListener(<span class="hljs-string">'trayClickLaunchedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+            pushReceived();
+        });
+        CloudPush.addEventListener(<span class="hljs-string">'trayClickFocusedApp'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+            pushReceived();
+        });
+        CloudPush.addEventListener(<span class="hljs-string">'callback'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"cloud - push callback"</span>);
+            pushReceived();
+        });
+    }
+
+    registerPush();
+
+    Cloud.debug = <span class="hljs-literal">false</span>;
+
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onGetUserError</span>(<span class="hljs-params">e</span>) </span>{}
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerPush</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.info(<span class="hljs-string">"cloud: "</span> + Ti.App.Properties.getBool(<span class="hljs-string">"hasCloud"</span>));
+        <span class="hljs-keyword">if</span> (!Ti.App.Properties.getBool(<span class="hljs-string">"hasCloud"</span>)) {
+            Ti.API.info(<span class="hljs-string">"cloud - create"</span>);
+            Cloud.Users.create({
+                username : userID, password : password, password_confirmation : password
+            }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (e.success) {
+                    Ti.API.info(<span class="hljs-string">"cloud - create done"</span>);
+                    <span class="hljs-keyword">if</span> (Ti.Platform.osname == <span class="hljs-string">'android'</span>) {
+                        CloudPush.enabled = <span class="hljs-literal">true</span>;
+                        CloudPush.showTrayNotificationsWhenFocused = <span class="hljs-literal">true</span>;
+                        CloudPush.focusAppOnPush = <span class="hljs-literal">false</span>;
+                    }
+                    cloudLogin();
+                } <span class="hljs-keyword">else</span> {
+                    Ti.API.info(<span class="hljs-string">"cloud - create error"</span>);
+                    cloudLogin();
+                }
+            });
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.info(<span class="hljs-string">"cloud - already registered -&gt; login"</span>);
+            <span class="hljs-keyword">if</span> (Ti.Platform.osname == <span class="hljs-string">'android'</span>) {
+                CloudPush.enabled = <span class="hljs-literal">true</span>;
+                CloudPush.showTrayNotificationsWhenFocused = <span class="hljs-literal">true</span>;
+                CloudPush.focusAppOnPush = <span class="hljs-literal">false</span>;
+            }
+            cloudLogin();
+        }
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">cloudLogin</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.info(<span class="hljs-string">"cloud - login "</span> + userID);
+        Cloud.Users.login({
+            login : userID, password : password
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                Ti.API.info(<span class="hljs-string">"cloud - login done"</span>);
+                <span class="hljs-keyword">if</span> (Ti.Platform.osname == <span class="hljs-string">'android'</span>) {
+                    Ti.API.info(<span class="hljs-string">"cloud - android register"</span>);
+                    CloudPush.retrieveDeviceToken({
+                        success : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenSuccess</span>(<span class="hljs-params">e</span>) </span>{
+                            Ti.API.info(<span class="hljs-string">'Device Token: '</span> + e.deviceToken);
+                            deviceToken = e.deviceToken;
+                            subscribe();
+                        }, error : <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deviceTokenError</span>(<span class="hljs-params">e</span>) </span>{
+                            Ti.API.info(<span class="hljs-string">"PUSH ERROR"</span>);
+                        }
+                    });
+                }
+            } <span class="hljs-keyword">else</span> {
+                Ti.API.info(<span class="hljs-string">"cloud - don't try again to register"</span>);
+            }
+        });
+    }
+
+    <span class="hljs-keyword">if</span> (Ti.Platform.osname != <span class="hljs-string">'android'</span>) {
+        Ti.API.info(<span class="hljs-string">"cloud - register ios"</span>);
+        Titanium.Network.registerForPushNotifications({
+            types : [Titanium.Network.NOTIFICATION_TYPE_BADGE, Titanium.Network.NOTIFICATION_TYPE_ALERT, Titanium.Network.NOTIFICATION_TYPE_SOUND], success : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                Ti.API.info(<span class="hljs-string">"cloud - register ios done"</span>);
+                deviceToken = e.deviceToken;
+                subscribe();
+            }, error : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                Ti.API.info(<span class="hljs-string">"cloud - register error "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+            }, callback : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+
+                pushReceived();
+            }
+        });
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pushReceived</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.info(<span class="hljs-string">"cloud - received"</span>);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">subscribe</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.info(<span class="hljs-string">"cloud - subscribe"</span>);
+        <span class="hljs-keyword">var</span> t = (Ti.Platform.osname == <span class="hljs-string">"android"</span>) ? <span class="hljs-string">"gcm"</span> : <span class="hljs-string">"ios"</span>;
+        Cloud.PushNotifications.subscribe({
+            channel : <span class="hljs-string">'channel'</span>, device_token : deviceToken, type : t
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">if</span> (e.success) {
+                Ti.API.info(<span class="hljs-string">"cloud - subscribed"</span>);
+            } <span class="hljs-keyword">else</span> {
+                Ti.API.info(<span class="hljs-string">"cloud - not subscribed "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+            }
+        });
+    }
+
+}
+</code></pre><p>and my output is:<br>09-17 11:35:29.852: I&#x2F;TiAPI(26800):  cloud - login done<br>09-17 11:35:29.852: I&#x2F;TiAPI(26800):  cloud - android register<br>09-17 11:35:29.862: I&#x2F;TiAPI(26800):  Device Token: xxx<br>09-17 11:35:29.862: I&#x2F;TiAPI(26800):  cloud - subscribe<br>09-17 11:35:29.862: I&#x2F;TiAPI(26800):  cloud - subscribed</p>
+<p>I&#39;ve set up the GCM key and put it in the ACS setup page (mqtt, too).    </p>
+<p>But when I send out a push notification from the ACS cloud page the push log says:</p>
+<pre><code class="hljs">Send <span class="hljs-keyword">Status</span>     Fail
+Message <span class="hljs-keyword">Status</span>     Unknown
+Device <span class="hljs-keyword">Type</span>     Android
+Error Message     HTTP <span class="hljs-keyword">Status</span> Code: <span class="hljs-number">401</span>
+</code></pre><p>and I&#39;m not receiving a push on my phone.</p>
+<p>Titanium 3.1.2, Android 4.3 (Device)</p>
+<p>(did the &quot;One quick workaround is to go inside one of the modules and delete the jar to prevent duplication during compile time. I.e: remove &#x2F;modules&#x2F;ti.cloudpush&#x2F;[version]&#x2F;lib&#x2F;google-play-services.jar from your app&#39;s directory.&quot; workaround)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 17th 2013, 8:00:32 am">September 17th 2013</span>
+				by <span class='authorname'>Stick in</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>acs</span></li>
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>push</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>6 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>401 indicates authorization required.Please make sure you are using correct username and password at the time of login.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 17th 2013, 9:49:12 am">September 17th 2013</span>
+								by <span class='authorname'>meenakshi pathak</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>The 401 is in the &quot;Show Push Logs&quot; in the &quot;Push notification&quot; panel at the ACS webpage where I send out my push. So I&#39;m logged in and my device you be ready to accept push too (it subscribes to a channel)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 17th 2013, 10:20:10 am">September 17th 2013</span>
+								by <span class='authorname'>Stick in</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I too have same issue ,  </p>
+<p>This is message i&#39;m getting,</p>
+<pre><code class="hljs">
+Updated at    2013-11-09T20:33:36+0000
+Message Id    <span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span>
+Send Status    Fail
+Message Status     Unknown
+Channel    alert
+Device Token <span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span><span class="hljs-keyword">*</span>
+Device Type    Android
+Error Message    HTTP Status Code: 401
+</code></pre><p>I used correct user name which is working for ACS photo upload &#x2F;post &#x2F;login etc.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 9th 2013, 6:43:41 pm">November 9th 2013</span>
+								by <span class='authorname'>Saamy</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Same situation for me: iOS works fine and is receiving push notifications, ACS activities are working fine on Android (i.e. Login, Friends etc.). Only push is giving the 401.</p>
+<p>Anyone resolved this ? Or is this a bug in ACS Push for Android ?</p>
+<p>Regards, Ditmar</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 12th 2013, 7:15:14 am">November 12th 2013</span>
+								by <span class='authorname'>Ditmar Behn</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I have the same situation since switching from mqtt to gcm, the registration and subscription work without issue, yet I get HTTP Status Code: 401 fails when trying to send a push message.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 4th 2013, 9:17:15 am">December 4th 2013</span>
+								by <span class='authorname'>Axxess DSL</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I have the same situation  but i use only GCM, my error is : Error Message   InvalidRegistration .<br>So i have follow this solution post but no change: https:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;157164&#x2F;acs-saying-invalidregistration-on-test-pushes-to-android-devices</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 4th 2013, 10:28:32 am">December 4th 2013</span>
+								by <span class='authorname'>Omicra Software</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-272165">
+				
+						<section>
+							<p>I managed to sort this out by changing the GCM key from &quot;Accessing APIs directly from Android&quot; to &quot;Accessing APIs via a web server&quot; and then updating the key on ACS. Hope this helps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 5th 2013, 8:18:37 am">December 5th 2013</span>
+								by <span class='authorname'>Axxess DSL</span><br>
+								<a class="icon-bg icon-link" href="question/157267/gcm-push-not-sending---status-http-status-code-401#answer-272165" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hell @Axxess, Could you please explain it a bit detail. I&#39;m not getting. How and where I should change - &quot;Accessing APIs directly from Android&quot; to &quot;Accessing APIs via a web server&quot;</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 12th 2014, 5:38:49 pm">April 12th 2014</span>
+											by <span class='authorname'>Manoj Kumar M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I got it.I put the server key instead of android application key. Now works fine. I&#39;m receving notifications.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 12th 2014, 5:42:20 pm">April 12th 2014</span>
+											by <span class='authorname'>Manoj Kumar M</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi manoj Could you Please Post code here for you changes…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 18th 2015, 8:08:35 am">March 18th 2015</span>
+											by <span class='authorname'>Dilip Ingole</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-271198">
+				
+						<section>
+							<p>I have the same problem</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 12th 2013, 11:59:07 am">November 12th 2013</span>
+								by <span class='authorname'>Omicra Software</span><br>
+								<a class="icon-bg icon-link" href="question/157267/gcm-push-not-sending---status-http-status-code-401#answer-271198" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

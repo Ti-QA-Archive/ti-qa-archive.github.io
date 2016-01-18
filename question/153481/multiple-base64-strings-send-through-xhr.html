@@ -1,0 +1,264 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Multiple Base64 strings send through xhr » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Multiple Base64 strings send through xhr</h1>
+		</header>
+		<section>
+			<p>Hi there!<br>I&#39;m building a cross-platform application (iOS and Android mainly) which need to send at least one photo, with a max of 3 photos. They have to be stored in a remote DB. Now the problem is: which is the best method to do that? I don&#39;t want to resize my images or create a classic file uploader.</p>
+<p>What I&#39;m tried:<br>I&#39;ve tried to convert - with success - the image to Base64 String. Time requested to send that strings is too long (by Ajax request)! So I searched for an algorithm of String compression, like LZW. It works ( I think ) like a charm: in fact, Base64 encoded string length is about 450000 against the 110000 of LZW. But if I try to send compressed string, it takes more time compared to the Base64 encoded. Can someone help me or give me an idea about that? Thank you, guys! </p>
+<p>This is the LZW Algorithm I take from official page:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-type">LZW</span> = {
+    compress: function (uncompressed) {
+        <span class="hljs-string">"use strict"</span>;
+        // <span class="hljs-type">Build</span> the dictionary.
+        <span class="hljs-keyword">var</span> i,
+            dictionary = {},
+            c,
+            wc,
+            w = <span class="hljs-string">""</span>,
+            <span class="hljs-literal">result</span> = [],
+            dictSize = <span class="hljs-number">256</span>;
+        <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">256</span>; i += <span class="hljs-number">1</span>) {
+            dictionary[<span class="hljs-type">String</span>.fromCharCode(i)] = i;
+        }
+
+        <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; uncompressed.length; i += <span class="hljs-number">1</span>) {
+            c = uncompressed.charAt(i);
+            wc = w + c;
+            //<span class="hljs-type">Do</span> <span class="hljs-keyword">not</span> use dictionary[wc] because javascript arrays 
+            //will <span class="hljs-keyword">return</span> values <span class="hljs-keyword">for</span> <span class="hljs-type">array</span>['pop'], <span class="hljs-type">array</span>['push'] etc
+           // <span class="hljs-keyword">if</span> (dictionary[wc]) {
+            <span class="hljs-keyword">if</span> (dictionary.hasOwnProperty(wc)) {
+                w = wc;
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-literal">result</span>.push(dictionary[w]);
+                // <span class="hljs-type">Add</span> wc to the dictionary.
+                dictionary[wc] = dictSize++;
+                w = <span class="hljs-type">String</span>(c);
+            }
+        }
+
+        // <span class="hljs-type">Output</span> the code <span class="hljs-keyword">for</span> w.
+        <span class="hljs-keyword">if</span> (w !== <span class="hljs-string">""</span>) {
+            <span class="hljs-literal">result</span>.push(dictionary[w]);
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">result</span>;
+    },
+
+
+    decompress: function (compressed) {
+        <span class="hljs-string">"use strict"</span>;
+        // <span class="hljs-type">Build</span> the dictionary.
+        <span class="hljs-keyword">var</span> i,
+            dictionary = [],
+            w,
+            <span class="hljs-literal">result</span>,
+            k,
+            entry = <span class="hljs-string">""</span>,
+            dictSize = <span class="hljs-number">256</span>;
+        <span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">256</span>; i += <span class="hljs-number">1</span>) {
+            dictionary[i] = <span class="hljs-type">String</span>.fromCharCode(i);
+        }
+
+        w = <span class="hljs-type">String</span>.fromCharCode(compressed[<span class="hljs-number">0</span>]);
+        <span class="hljs-literal">result</span> = w;
+        <span class="hljs-keyword">for</span> (i = <span class="hljs-number">1</span>; i &lt; compressed.length; i += <span class="hljs-number">1</span>) {
+            k = compressed[i];
+            <span class="hljs-keyword">if</span> (dictionary[k]) {
+                entry = dictionary[k];
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">if</span> (k === dictSize) {
+                    entry = w + w.charAt(<span class="hljs-number">0</span>);
+                } <span class="hljs-keyword">else</span> {
+                    <span class="hljs-keyword">return</span> null;
+                }
+            }
+
+            <span class="hljs-literal">result</span> += entry;
+
+            // <span class="hljs-type">Add</span> w+entry[<span class="hljs-number">0</span>] to the dictionary.
+            dictionary[dictSize++] = w + entry.charAt(<span class="hljs-number">0</span>);
+
+            w = entry;
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">result</span>;
+    }
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 11th 2013, 5:39:21 am">June 11th 2013</span>
+				by <span class='authorname'>Nello Saulino</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>base64</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>string compression</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-264106">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>I think you are approaching this in the wrong way for more reasons:</p>
+<ul>
+<li>Doing the compression javascript side will melt your cpu :) (form here the slowness)</li>
+<li>Base64 encoded files have a huge overhead compared with the binary version of the same file and even compressed will be bigger</li>
+<li>On the server side you need to do the work again and convert from base64 back to binary</li>
+<li>If you want to save the base64 string in db, don&#39;t, it&#39;s the worst performance hit you can give to a db system, instead save the path of the file</li>
+</ul>
+<p>Why don&#39;t you simply upload the image as it is or use a native module to compress the multiple images in one zip file (search for one in the marketplace)?<br>Titanium is able to handle multiple requests at once so you can upload 3 images in the same time without any problem. For example the httpClient lib in iOs has a limit of 4 concurrent requests, so you even have one spare for other data.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 11th 2013, 8:10:27 am">June 11th 2013</span>
+								by <span class='authorname'>Dan Tamas</span><br>
+								<a class="icon-bg icon-link" href="question/153481/multiple-base64-strings-send-through-xhr#answer-264106" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>First of all, thanks for reply, indeed! The approach I followed was focusing on try to make the images transfer faster. Anyway, I downloaded and loaded compression module from Titanium Module Master. I will give a try!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 11th 2013, 8:39:13 am">June 11th 2013</span>
+											by <span class='authorname'>Nello Saulino</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The only way to make it upload faster is to minimize the data you are sending over, and base64 won&#39;t help you at all :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 11th 2013, 8:45:56 am">June 11th 2013</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-264185">
+				
+						<section>
+							<p>Ok, here my results! On &quot;success&quot; event of Titanium.Media.openPhotoGallery, I created a &quot;compressed&quot; version of selected image using ImageFactory plugin provided by Titanium ( imageFactory.compress( blob, 0.25) ). From 305kb of the original image, I got 50kb of compressed image with negligible quality lost ( I don&#39;t really care about this ). When the three images are ready, in my send function I created a .zip that contains the three images zipped. Result: 1 zipped file of 150kb. It&#39;s a great result! Thank you Dan!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 12th 2013, 12:38:57 pm">June 12th 2013</span>
+								by <span class='authorname'>Nello Saulino</span><br>
+								<a class="icon-bg icon-link" href="question/153481/multiple-base64-strings-send-through-xhr#answer-264185" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Great stuff ;)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 12th 2013, 12:57:53 pm">June 12th 2013</span>
+											by <span class='authorname'>Dan Tamas</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

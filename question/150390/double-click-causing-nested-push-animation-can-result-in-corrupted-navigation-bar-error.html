@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Double click causing &#34;nested push animation can result in corrupted navigation bar&#34; error » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Double click causing &#34;nested push animation can result in corrupted navigation bar&#34; error</h1>
+		</header>
+		<section>
+			<p>Hi</p>
+<p>I came across this error by accident and I&#39;m wondering anyone else has seen it. (Using Titanium 3.0.2, iOS 6, Mac OSX Mountain Lion, Titanium Alloy).</p>
+<p>I have the following code: </p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addMeals</span>(<span class="hljs-params">meal, food, target, index</span>) </span>{
+
+     <span class="hljs-keyword">var</span> foodRow = Titanium.UI.createTableViewRow({
+        id: food.id,
+        type: food.type,
+        foodTitle: food.title,
+        className: <span class="hljs-string">'foodRow'</span>,
+        height: <span class="hljs-number">58</span>,
+        backgroundColor: <span class="hljs-string">'#fff'</span>,
+        selectionStyle: <span class="hljs-string">'NONE'</span>,
+        editable: <span class="hljs-literal">true</span>
+    });
+
+    <span class="hljs-keyword">var</span> servingInfo = Ti.UI.createView({
+        width: <span class="hljs-number">110</span>,
+        left: <span class="hljs-number">200</span>,
+        parentRow: foodRow
+    });
+
+    servingInfo.add(Ti.UI.createLabel({
+        text: food.kCal + <span class="hljs-string">' cals'</span>,
+        font: {
+            fontSize: <span class="hljs-number">17</span>
+        },
+        left: <span class="hljs-number">12</span>,
+        top: <span class="hljs-number">7</span>,
+        color: <span class="hljs-string">'#67563f'</span>,
+        parentRow: foodRow
+    }));
+
+    servingInfo.addEventListener(<span class="hljs-string">'click'</span>, showEditScreen);
+    foodRow.add(servingInfo);
+    target.push(foodRow);    
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showEditScreen</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> row = e.source.parentRow;
+    Ti.API.info(<span class="hljs-string">'row: '</span> + e.source);
+    <span class="hljs-keyword">var</span> params = {
+        editing: <span class="hljs-literal">true</span>,
+        title: row.foodTitle,
+    };
+    <span class="hljs-keyword">var</span> addPage = Alloy.createController(<span class="hljs-string">'addToDiary'</span>, params).getView();
+    $.foodDiaryGroup.open(addPage, {animated: <span class="hljs-literal">true</span>});  <span class="hljs-comment">// foodDiaryGroup is a NavigationGroup...</span>
+}
+</code></pre><p>This works fine but if you accidentally click <code>servingInfo</code> a few times before the next page is open, the following warnings appear in the console: </p>
+<pre><code class="hljs">[INFO] :   <span class="hljs-number">2013</span>-<span class="hljs-number">04</span>-<span class="hljs-number">03</span> <span class="hljs-number">11</span>:<span class="hljs-number">10</span>:<span class="hljs-number">11.195</span> App Name[<span class="hljs-number">11759</span>:c07] nested push animation can result in corrupted navigation bar
+[INFO] :   <span class="hljs-number">2013</span>-<span class="hljs-number">04</span>-<span class="hljs-number">03</span> <span class="hljs-number">11</span>:<span class="hljs-number">10</span>:<span class="hljs-number">11.540</span> App Name[<span class="hljs-number">11759</span>:c07] Unbalanced calls to begin/end appearance transitions <span class="hljs-keyword">for</span> &lt;TiViewController: <span class="hljs-number">0xa6e1630</span>&gt;.
+[INFO] :   <span class="hljs-number">2013</span>-<span class="hljs-number">04</span>-<span class="hljs-number">03</span> <span class="hljs-number">11</span>:<span class="hljs-number">10</span>:<span class="hljs-number">11.559</span> App Name[<span class="hljs-number">11759</span>:c07] Finishing up a navigation transition in an unexpected state. Navigation Bar subview tree might get corrupted.
+</code></pre><p>and the next page appears but it&#39;s missing the &quot;back&quot; button in the NavBar. I&#39;ve seen this issue using Obj-C on StackOverflow and this was the solution:<br>&quot;Calling <code>pushViewController</code> before <code>viewDidAppear</code> is unsafe&quot;.<br>Is there an equivalent solution in Titanium at all?<br>Sorry for the long post,<br>Thanks,<br>James</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 3rd 2013, 8:33:04 am">April 3rd 2013</span>
+				by <span class='authorname'>James Draper</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>error</span></li>
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+						<li><span class='tagname'>navigation</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-259938">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Actually, you are pressing many times the serving info and you are messing up the app&#39;s tree (structure).</p>
+<p>The app has a tree (structure) so that it keeps track to where you are and adds the BACK button. When you are pressing the servingInfo once, it tries to create a window and push it inside the stack (tree - structure). While it is making a connection to create this tree, you are pressing the servingInfo again and it is running the code again and you are actually messing with its way of creating this structure so it gets corrupted.</p>
+<p>If you want to avoid people having this issue you could set the button unclickable for a few seconds after it is clicked once.</p>
+<p>I hope this helps.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 3rd 2013, 11:00:01 am">April 3rd 2013</span>
+								by <span class='authorname'>Michael Massalas</span><br>
+								<a class="icon-bg icon-link" href="question/150390/double-click-causing-nested-push-animation-can-result-in-corrupted-navigation-bar-error#answer-259938" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Michael, I&#39;ve changed the <code>showEditScreen</code> to the following and that&#39;s done the trick:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> isLoading = <span class="hljs-literal">false</span>;
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//  more code...</span>
+<span class="hljs-comment">//</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showEditScreen</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> ( !isLoading) {
+        isLoading = <span class="hljs-literal">true</span>;
+
+        <span class="hljs-keyword">var</span> row = e.source.parentRow,
+            params = {
+                editing: <span class="hljs-literal">true</span>,
+                title: row.foodTitle,
+                cals: row.cals,
+                servings: row.servings,
+                mealTime: row.parentMealName
+        };
+
+        <span class="hljs-keyword">var</span> addPage = Alloy.createController(<span class="hljs-string">'addToDiary'</span>, params).getView();
+        $.foodDiaryGroup.open(addPage, {animated: <span class="hljs-literal">true</span>});
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            isLoading = <span class="hljs-literal">false</span>;
+        }, <span class="hljs-number">2000</span>);
+    }
+}
+</code></pre><p>Thanks again for your help,<br>James</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 3rd 2013, 11:15:51 am">April 3rd 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>You are welcome. I am really glad I helped.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 4th 2013, 4:27:32 pm">April 4th 2013</span>
+											by <span class='authorname'>Michael Massalas</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

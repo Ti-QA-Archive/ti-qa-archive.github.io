@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Coffeescript with Alloy views doesn&#39;t work? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Coffeescript with Alloy views doesn&#39;t work?</h1>
+		</header>
+		<section>
+			<p>This isn&#39;t a problem in bare Titanium, but it doesn&#39;t seem like Alloy supports exporting the entire controlle to be used in views?</p>
+<p>controllers&#x2F;home.coffee</p>
+<pre><code class="hljs">
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Foo</span></span>
+    <span class="hljs-property">@button</span>: <span class="hljs-function">-&gt;</span> ...
+
+exports.Foo = Foo
+</code></pre><p>views&#x2F;home.xml</p>
+<pre><code class="hljs">    &lt;Button id=<span class="hljs-string">"buttonName"</span> title=<span class="hljs-string">"logout"</span> <span class="hljs-variable">width</span>=<span class="hljs-string">"100"</span> <span class="hljs-variable">height</span>=<span class="hljs-string">"44"</span> onClick=<span class="hljs-string">"Foo.button"</span> /&gt;
+</code></pre><p>Will always yield some equivalent of &quot;Foo.button is undefined&quot;, etc. I&#39;ve also tried</p>
+<pre><code class="hljs">exports<span class="hljs-built_in">.</span>button = <span class="hljs-subst">-&gt; </span><span class="hljs-attribute">...</span>
+</code></pre><p>to no avail.</p>
+<p>Is there any way to get this to work without compiling Coffee with bare: true? I would rather not have to attach behaviors in the controller.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 23rd 2013, 3:08:42 pm">April 23rd 2013</span>
+				by <span class='authorname'>Braco S</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>coffee</span></li>
+					
+						<li><span class='tagname'>coffeescript</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-261415">
+				
+						<section>
+							<p>Alloy doesn&#39;t directly support coffeescript. I know there&#39;s pre-compile plugins for it, but it is not part of our testing so help might be limited. I&#39;m not even sure what the generated code for this would look like.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 23rd 2013, 3:50:00 pm">April 23rd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/151438/coffeescript-with-alloy-views-doesnt-work#answer-261415" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>There are a few problems, most of which are due to the namespacing being poorly handled.</p>
+<p>It looks like export gets merged into $, but this comes after any button __defers are generated from the XML:</p>
+<pre><code class="hljs">  <span class="hljs-constant">__defers[</span><span class="hljs-string">"$.__views.logoutButton!click!$.controller.logout"</span>] &amp;&amp; <span class="hljs-variable">$.</span><span class="hljs-constant">__views.</span>logoutButton.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-variable">$.</span>controller.logout);
+ <span class="hljs-constant">_.</span>extend(<span class="hljs-variable">$,</span> exports);
+</code></pre><p>Additionally, any deep objects:</p>
+<pre><code class="hljs"><span class="hljs-setting">onClick=<span class="hljs-value"><span class="hljs-string">"this.thing.was.exported"</span> /&gt;</span></span>
+</code></pre><p>will cause errors due to this generated code, which is placed above the controller code itself:</p>
+<pre><code class="hljs"><span class="hljs-tag">this</span><span class="hljs-class">.thing</span><span class="hljs-class">.was</span><span class="hljs-class">.generated</span> ? .... : ....;
+</code></pre><p>fundamentally, exports should be parsed and available to views.</p>
+<p>Controller:</p>
+<pre><code class="hljs">exports.<span class="hljs-keyword">action</span> = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ ... }
+</code></pre><p>View:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">...</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"action"</span>&gt;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="April 23rd 2013, 5:38:44 pm">April 23rd 2013</span>
+											by <span class='authorname'>Braco S</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>As noted in the associated ticket <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;ALOY-645">ALOY-645</a> using deep namespacing for event handler definitions works just fine. It appears to be a problem specific to coffeescript which is not supported, and won&#39;t be at the expense of the current stability of pure JS code.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2014, 5:34:51 pm">January 21st 2014</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-261470">
+				
+						<section>
+							<p>Another problem is that controllers in Alloy expect you to use dynamically scoped variables to be available in views</p>
+<p>Controller:</p>
+<pre><code class="hljs">foo = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ ... }
+</code></pre><p>View:</p>
+<pre><code class="hljs"><span class="hljs-setting">onClick=<span class="hljs-value"><span class="hljs-string">"foo"</span></span></span>
+</code></pre><p>works, but what if you want to use encapsulation, object inheritance, lexical scopes, etc? You&#39;re a little screwed, unless you bind your methods to $ </p>
+<pre><code class="hljs">_.<span class="hljs-function"><span class="hljs-title">merge</span><span class="hljs-params">($, object.containing.methods)</span></span>
+</code></pre><p>view:</p>
+<pre><code class="hljs"><span class="hljs-setting">onClick=<span class="hljs-value"><span class="hljs-string">"$.method"</span></span></span>
+</code></pre><p>And methods can&#39;t be nested for the reasons listed above. This would throw an error:</p>
+<pre><code class="hljs"><span class="hljs-setting">onClick=<span class="hljs-value"><span class="hljs-string">"$.nested.method"</span></span></span>
+</code></pre><p>Ay yay yay.</p>
+<p>Can you guys start supporting better scoping so more modern inheritance can be used?</p>
+<p>Even something like this would help:</p>
+<p>Inside your generated controllers:</p>
+<pre><code class="hljs">// controller <span class="hljs-keyword">object</span> defined before user's controller code
+<span class="hljs-keyword">var</span> controller = {}
+
+// user's controller code here
+
+// <span class="hljs-type">Get</span> controller[<span class="hljs-keyword">method</span>] <span class="hljs-keyword">or</span> 
+<span class="hljs-keyword">var</span> methodForView = _.get(<span class="hljs-string">"controller."</span>+<span class="hljs-keyword">method</span>) || <span class="hljs-keyword">method</span>
+</code></pre><p>then you could attach to a controller object. Inside user&#39;s controller:</p>
+<pre><code class="hljs">controller.thing.<span class="hljs-keyword">method</span> = ...
+</code></pre><p>now, inside your view:</p>
+<pre><code class="hljs"><span class="hljs-setting">onClick=<span class="hljs-value"><span class="hljs-string">"thing.method"</span></span></span>
+</code></pre><p>See this for _.get: https:&#x2F;&#x2F;npmjs.org&#x2F;package&#x2F;underscore.nested</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 24th 2013, 11:38:18 am">April 24th 2013</span>
+								by <span class='authorname'>Braco S</span><br>
+								<a class="icon-bg icon-link" href="question/151438/coffeescript-with-alloy-views-doesnt-work#answer-261470" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Submit a <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC">Titanium Community Jira Project</a> ticket. Be sure to give it the &quot;alloy&quot; label. Then I can see where this can possibly fit in the schedule.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 24th 2013, 2:34:43 pm">April 24th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Tony, I added #56 and #57, but I don&#39;t see how to label them with Alloy.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 27th 2013, 10:34:53 pm">April 27th 2013</span>
+											by <span class='authorname'>Braco S</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Oops, it seems you guys have two bugtrackers. I used lighthouseapp, adding to Jira now.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 27th 2013, 10:39:13 pm">April 27th 2013</span>
+											by <span class='authorname'>Braco S</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>FYI <code>onClick=&amp;#39;exports.method&amp;#39;</code> works just fine</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 21st 2014, 5:38:14 pm">January 21st 2014</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

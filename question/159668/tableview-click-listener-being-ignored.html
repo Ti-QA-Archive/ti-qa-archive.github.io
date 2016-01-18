@@ -1,0 +1,408 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>TableView &#39;click&#39; listener being ignored » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>TableView &#39;click&#39; listener being ignored</h1>
+		</header>
+		<section>
+			<p>I am dynamically building a TableView in my controller, which works fine: The initial table displays the initial collections data as expected.</p>
+<p>The problem is that the TableView&#39;s &#39;click&#39; event listener is ignored when I click on the table rows.  I am testing in the browser, and I never even see the console event file (see comments in controller file).  All relevant code snippets below:</p>
+<p>In my <code>alloy.js</code> I setup a backbone collection:</p>
+<pre><code class="hljs"><span class="hljs-keyword">function</span> defaultTodo(name) { <span class="hljs-built_in">return</span> {name: name, <span class="hljs-keyword">done</span>: <span class="hljs-literal">false</span>}; }
+<span class="hljs-keyword">function</span> <span class="hljs-keyword">done</span>Todo(name) { <span class="hljs-built_in">return</span> {name: name, <span class="hljs-keyword">done</span>: <span class="hljs-literal">true</span>}; }
+Alloy.Collections.todos = new Backbone.Collection();
+Alloy.Collections.todos.reset([
+        defaultTodo(<span class="hljs-string">'Apples'</span>), // create not yet <span class="hljs-keyword">done</span> todo
+        defaultTodo(<span class="hljs-string">'Banana'</span>),
+        defaultTodo(<span class="hljs-string">'Paper Towels'</span>),
+        defaultTodo(<span class="hljs-string">'Broccoli'</span>),
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Beans'</span>),    // create already <span class="hljs-keyword">done</span> todo
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Water'</span>),
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Blueberries'</span>),
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Stir Fry'</span>)
+])
+</code></pre><p>Here is my <code>index.js</code> controller:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> todos = Alloy.Collections.todos;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">redrawTable</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-comment">// clear all the old data</span>
+    <span class="hljs-comment">// See http://developer.appcelerator.com/question/49241/delete-all-rows-in-a-tableview-with-a-single-click</span>
+    $.table.setData([]);
+
+    <span class="hljs-comment">// Create and add the TableViewSections</span>
+    <span class="hljs-keyword">var</span> alreadyDone = Ti.UI.createTableViewSection({ headerTitle: <span class="hljs-string">"Already Done"</span> });
+    <span class="hljs-keyword">var</span> needsDoing = Ti.UI.createTableViewSection({ headerTitle: <span class="hljs-string">"Needs Doing"</span> });
+    $.table.appendSection(needsDoing);
+    $.table.appendSection(alreadyDone);
+
+    <span class="hljs-comment">// Add the todo to the appropriate sections</span>
+    todos.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">todo</span>) </span>{
+        <span class="hljs-keyword">var</span> section = todo.get(<span class="hljs-string">'done'</span>) ? alreadyDone : needsDoing;
+        addEntry(todo, section);
+    });
+
+    <span class="hljs-comment">// Add the click listener</span>
+    <span class="hljs-comment">// THIS LISTENER IS IGNORED ********************************</span>
+    $.table.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-built_in">console</span>.log(e);
+        todos.at(e.index).set(<span class="hljs-string">'done'</span>, <span class="hljs-literal">true</span>);
+        todos.trigger(<span class="hljs-string">'change'</span>);
+    }); 
+
+    <span class="hljs-comment">// Helper function to add a row to a section</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addEntry</span>(<span class="hljs-params">todo, section</span>) </span>{
+        <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+            title: todo.get(<span class="hljs-string">'name'</span>),
+            className: <span class="hljs-string">"row"</span>
+        });
+        section.add(row);
+    }
+}
+
+<span class="hljs-comment">// Redraw our table each time our todos collection changes</span>
+todos.on(<span class="hljs-string">'change'</span>, redrawTable);
+
+<span class="hljs-comment">// Trigger a change event to draw the initial table</span>
+todos.trigger(<span class="hljs-string">'change'</span>);
+
+$.index.open();
+</code></pre><p> And here is <code>index.xml</code> view file:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"container"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"test"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"header"</span>&gt;</span>My Grocery List<span class="hljs-tag">&lt;/<span class="hljs-title">Label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TextField</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"newItem"</span>/&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"table"</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 20th 2013, 7:49:20 am">November 20th 2013</span>
+				by <span class='authorname'>Jonah G</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>appcelerator</span></li>
+					
+						<li><span class='tagname'>click</span></li>
+					
+						<li><span class='tagname'>eventlistener</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Thanks for the code but without the code syntax is a little hard to read.</p>
+<p>Quick tip; When you add code snippets or logs always add 3 <strong>~</strong> on a blank line above your code and another 3 <strong>~</strong> below you code on another blank line - you will see the difference when you preview the comment. (you are not being told off)</p>
+<p>Inserted code should look like;</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">something</span><span class="hljs-params">(obj)</span> </span>{
+    <span class="hljs-comment">// do something</span>
+}
+alert(<span class="hljs-string">'Hello'</span>);
+</code></pre><p>For further details click the captions on the mark-down bar for examples.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 20th 2013, 7:53:08 am">November 20th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>For next time - it would have looked like this;</p>
+<pre><code class="hljs"><span class="hljs-keyword">function</span> defaultTodo(name) { <span class="hljs-built_in">return</span> {name: name, <span class="hljs-keyword">done</span>: <span class="hljs-literal">false</span>}; }
+<span class="hljs-keyword">function</span> <span class="hljs-keyword">done</span>Todo(name) { <span class="hljs-built_in">return</span> {name: name, <span class="hljs-keyword">done</span>: <span class="hljs-literal">true</span>}; }
+Alloy.Collections.todos = new Backbone.Collection();
+Alloy.Collections.todos.reset([
+        defaultTodo(<span class="hljs-string">'Apples'</span>), // create not yet <span class="hljs-keyword">done</span> todo
+        defaultTodo(<span class="hljs-string">'Banana'</span>),
+        defaultTodo(<span class="hljs-string">'Paper Towels'</span>),
+        defaultTodo(<span class="hljs-string">'Broccoli'</span>),
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Beans'</span>),    // create already <span class="hljs-keyword">done</span> todo
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Water'</span>),
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Blueberries'</span>),
+        <span class="hljs-keyword">done</span>Todo(<span class="hljs-string">'Stir Fry'</span>)
+])
+</code></pre><p>Here is my index.js controller:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> todos = Alloy.Collections.todos;
+
+function redrawTable() {
+
+    <span class="hljs-comment">// clear all the old data</span>
+    <span class="hljs-comment">// See http://developer.appcelerator.com/question/49241/delete-all-rows-in-a-tableview-with-a-single-click</span>
+    $.<span class="hljs-keyword">table</span>.setData([]);
+
+    <span class="hljs-comment">// Create and add the TableViewSections</span>
+    <span class="hljs-keyword">var</span> alreadyDone = Ti.UI.createTableViewSection({ headerTitle: <span class="hljs-string">"Already Done"</span> });
+    <span class="hljs-keyword">var</span> needsDoing = Ti.UI.createTableViewSection({ headerTitle: <span class="hljs-string">"Needs Doing"</span> });
+    $.<span class="hljs-keyword">table</span>.appendSection(needsDoing);
+    $.<span class="hljs-keyword">table</span>.appendSection(alreadyDone);
+
+    <span class="hljs-comment">// Add the todo to the appropriate sections</span>
+    todos.<span class="hljs-keyword">forEach</span>(function(todo) {
+        <span class="hljs-keyword">var</span> section = todo.<span class="hljs-literal">get</span>('done') ? alreadyDone : needsDoing;
+        addEntry(todo, section);
+    });
+
+    <span class="hljs-comment">// Add the click listener</span>
+    <span class="hljs-comment">// THIS LISTENER IS IGNORED ********************************</span>
+    $.<span class="hljs-keyword">table</span>.addEventListener('click', function(<span class="hljs-keyword">e</span>) {
+        console.<span class="hljs-literal">log</span>(<span class="hljs-keyword">e</span>);
+        todos.at(<span class="hljs-keyword">e</span>.index).<span class="hljs-keyword">set</span>('done', true);
+        todos.trigger('change');
+    }); 
+
+    <span class="hljs-comment">// Helper function to add a row to a section</span>
+    function addEntry(todo, section) {
+        <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+            title: todo.<span class="hljs-literal">get</span>('name'),
+            className: <span class="hljs-string">"row"</span>
+        });
+        section.add(row);
+    }
+}
+
+<span class="hljs-comment">// Redraw our table each time our todos collection changes</span>
+todos.<span class="hljs-keyword">on</span>('change', redrawTable);
+
+<span class="hljs-comment">// Trigger a change event to draw the initial table</span>
+todos.trigger('change');
+
+$.index.<span class="hljs-keyword">open</span>();
+And here is index.xml <span class="hljs-keyword">view</span> <span class="hljs-keyword">file</span>:
+&lt;Alloy&gt;
+    &lt;<span class="hljs-keyword">Window</span> <span class="hljs-keyword">class</span>=<span class="hljs-string">"container"</span>&gt;
+        &lt;<span class="hljs-keyword">Label</span> id=<span class="hljs-string">"test"</span> <span class="hljs-keyword">class</span>=<span class="hljs-string">"header"</span>&gt;My Grocery <span class="hljs-keyword">List</span>&lt;/<span class="hljs-keyword">Label</span>&gt;
+        &lt;TextField id=<span class="hljs-string">"newItem"</span>/&gt;
+        &lt;TableView id=<span class="hljs-string">"table"</span>&gt;
+        &lt;/TableView&gt;
+    &lt;/<span class="hljs-keyword">Window</span>&gt;
+&lt;/Alloy&gt;
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="November 20th 2013, 7:55:29 am">November 20th 2013</span>
+								by <span class='authorname'>Malcolm Hollingsworth</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Malcolm, thanks for the tip.  I would edit my post and make the suggested changes, but unfortuneatly I don&#39;t see any way to make edits now that the post is live.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 20th 2013, 7:55:44 am">November 20th 2013</span>
+								by <span class='authorname'>Jonah G</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-271540">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>In your XML use the following:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"table"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"handleTableClick"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+</code></pre><p>In the JS file, remove the $.table.addEventListener code and define handleTableClick outside the redrawTable function:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">handleTableClick</span><span class="hljs-params">(e)</span> </span>{
+        console.log(e);
+        todos.at(e.index).<span class="hljs-keyword">set</span>(<span class="hljs-string">'done'</span>, <span class="hljs-literal">true</span>);
+        todos.trigger(<span class="hljs-string">'change'</span>);
+};
+</code></pre><p>and see if that makes a difference?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 20th 2013, 8:06:37 am">November 20th 2013</span>
+								by <span class='authorname'>Larrie Wilson</span><br>
+								<a class="icon-bg icon-link" href="question/159668/tableview-click-listener-being-ignored#answer-271540" rel="permalink">permalink</a>
+							</div>
+
+							<h5>8 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Larrie, thanks for the reply.  I should have mentioned in the OP that I had tried that already and does not work either.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 8:11:37 am">November 20th 2013</span>
+											by <span class='authorname'>Jonah G</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Is this on iOS, Android or web?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 8:20:43 am">November 20th 2013</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m testing on web</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 8:30:15 am">November 20th 2013</span>
+											by <span class='authorname'>Jonah G</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The documentation states the following:</p>
+<pre><code class="hljs"><span class="hljs-keyword">On</span> Mobile Web, click events fail <span class="hljs-keyword">to</span> fire after calling the updateSection <span class="hljs-function"><span class="hljs-keyword">method</span>.</span>
+</code></pre><p>Maybe this applies to the appendSection method as well?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 8:40:46 am">November 20th 2013</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Can I suggest you try the following:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">redrawTable</span><span class="hljs-params">()</span> </span>{
+
+    <span class="hljs-comment">// clear all the old data</span>
+    <span class="hljs-comment">// See http://developer.appcelerator.com/question/49241/delete-all-rows-in-a-tableview-with-a-single-click</span>
+    $.table.setData([]);
+    <span class="hljs-keyword">var</span> rows = []; 
+    <span class="hljs-keyword">var</span> done = [];
+    <span class="hljs-keyword">var</span> doing = [];
+
+    <span class="hljs-comment">// Add the todo to the appropriate sections</span>
+    todos.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(todo)</span> </span>{
+        <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+            title: todo.<span class="hljs-keyword">get</span>(<span class="hljs-string">'name'</span>),
+            className: <span class="hljs-string">"row"</span>
+        });
+
+        todo.<span class="hljs-keyword">get</span>(<span class="hljs-string">'done'</span>) ? done.push(row) : doing.push(row);
+
+    });
+
+    <span class="hljs-comment">// Create and add the TableViewSections</span>
+    rows.push(Ti.UI.createTableViewSection({ headerTitle: <span class="hljs-string">"Already Done"</span> }));
+    rows = rows.concat(done);
+    rows.push(Ti.UI.createTableViewSection({ headerTitle: <span class="hljs-string">"Needs Doing"</span> }));
+    rows = rows.concat(doing);    
+
+    $.table.setData(rows);
+
+};
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 8:50:45 am">November 20th 2013</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Larrie,<br>Thanks!  That appears to work.  Do you know why that&#39;s working and the original code is not?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 8:59:26 am">November 20th 2013</span>
+											by <span class='authorname'>Jonah G</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I think it was because you were adding the rows to the TableViewSection not the table, so the table wasnt recognising them as rows just views within a section and a section does not fire the click event on the table.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 9:01:47 am">November 20th 2013</span>
+											by <span class='authorname'>Larrie Wilson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Awesome.  Thanks again, Larry.  One final question: I was originally trying to create the section in the xml file, using &quot;dataCollection&quot; and &quot;dataFilter&quot;, as this seemed the more &quot;alloy&quot; way to do things.  The problem is that the dataCollection attribute was only working on the TableView, not on TableViewSections, as I require in this example – hence I went the js script route.  So I&#39;d like to know if the js route is the only way to accomplish this, or if I was missing something and there actually is a way to accomplish this in a more alloy spirit?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 20th 2013, 9:13:15 am">November 20th 2013</span>
+											by <span class='authorname'>Jonah G</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

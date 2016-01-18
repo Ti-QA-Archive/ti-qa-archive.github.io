@@ -1,0 +1,361 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>callback function... help!!! » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>callback function... help!!!</h1>
+		</header>
+		<section>
+			<p>hi i need help to solve this:</p>
+<p>i&#39;ve a config.js with this:</p>
+<p>&#x2F;&#x2F; array with elements content one url (json data)<br>jsonData[&#39;programas&#39;] = &#39;https:&#x2F;&#x2F;eurekalab.com.mx&#x2F;apps&#x2F;radiocongreso&#x2F;index.php?option=com_obrss&amp;task=feed&amp;id=2&#39;;</p>
+<p>and jsonLoad.js, jsonLoad function read the json and save in one file, for each elements in jsonData, but the problem is titanium not wait for the result of json and not save the file.<br>function dataLoad read the file and return the json data.</p>
+<p>how to implement a callback function in jsonLoad ????</p>
+<p>jsonLoad.js:</p>
+<p>exports.jsonLoad = function(jsonData, force) {<br>    var dataDirectory;<br>    var osname = Ti.Platform.osname;<br>    &#x2F;&#x2F; En  iPhone y android la ruta de la carpeta escribible son distintas<br>    &#x2F;&#x2F; necesitamos determinar la carpeta correcta en cada plataforma</p>
+<pre><code class="hljs"><span class="hljs-comment">// detectamos la plataforma</span>
+<span class="hljs-keyword">if</span>( osname == <span class="hljs-string">'android'</span> )
+    dataDirectory = Ti.Filesystem.applicationDataDirectory;
+<span class="hljs-keyword">else</span> 
+    dataDirectory = Ti.Filesystem.applicationSupportDirectory;
+
+<span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> filename <span class="hljs-keyword">in</span> jsonData) {
+    <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(dataDirectory,filename+<span class="hljs-string">'.json'</span>);
+
+    <span class="hljs-comment">// se encuentra el archivo</span>
+    <span class="hljs-keyword">if</span> ( file.exists() )
+       {
+           <span class="hljs-comment">// obtenemos la fecha de ultima modificacion del archivo</span>
+        fileDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(file.modificationTimestamp());
+        fileDate.setHours(<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);
+        <span class="hljs-comment">// obtenemos la fecha actual</span>
+        <span class="hljs-keyword">var</span> currentDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+        <span class="hljs-keyword">if</span>(!force) currentDate.setHours(<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);
+        <span class="hljs-comment">// la fecha del archivo es menor que la actual... desactualizado!</span>
+        <span class="hljs-keyword">if</span>(fileDate &lt; currentDate) {
+            <span class="hljs-comment">// comprobamos la conexion a internet</span>
+            <span class="hljs-keyword">if</span>(Titanium.Network.online) {
+                <span class="hljs-keyword">var</span> json;
+                <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+                xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-comment">//  guardamos el json descargado</span>
+                    file.write(<span class="hljs-keyword">this</span>.responseText)
+                };
+
+                xhr.open(<span class="hljs-string">'GET'</span>, jsonData[filename]);
+                xhr.send();           
+            }
+        }
+       } 
+       <span class="hljs-comment">// no se encuentra el archivo</span>
+       <span class="hljs-keyword">else</span> {
+        <span class="hljs-comment">// comprobamos la coneccion a internet</span>
+        <span class="hljs-keyword">if</span>(Titanium.Network.online) {
+            <span class="hljs-keyword">var</span> json;
+            <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+            xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                <span class="hljs-comment">// guardamos el json original en el archivo nuevo</span>
+                file.write(<span class="hljs-keyword">this</span>.responseText);
+            };
+
+            xhr.open(<span class="hljs-string">'GET'</span>, jsonData[filename]);
+            xhr.send();           
+        }
+        <span class="hljs-comment">// no hay internet</span>
+        <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">// copiamos el archivo original de /data a la carpeta escribible de la plataforma</span>
+            <span class="hljs-keyword">var</span> fileSource = Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory+<span class="hljs-string">'data/'</span>,filename+<span class="hljs-string">'.json'</span>);
+            file.write( fileSource.read() );
+        }
+    }
+
+} <span class="hljs-comment">// fin del for</span>
+</code></pre><p>};</p>
+<p>exports.dataLoad = function(filename) {<br>    var dataDirectory;<br>    var osname = Ti.Platform.osname;<br>    &#x2F;&#x2F; En  iPhone y android la ruta de la carpeta escribible son distintas<br>    &#x2F;&#x2F; necesitamos determinar la carpeta correcta en cada plataforma</p>
+<pre><code class="hljs"><span class="hljs-comment">// detectamos la plataforma</span>
+<span class="hljs-keyword">if</span>( osname == 'android' )
+    dataDirectory = Ti.Filesystem.applicationDataDirectory;
+<span class="hljs-keyword">else</span> 
+    dataDirectory = Ti.Filesystem.applicationSupportDirectory;
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">file</span> = Ti.Filesystem.getFile(dataDirectory,filename+'.json');
+<span class="hljs-keyword">if</span> ( <span class="hljs-keyword">file</span>.exists() )
+{
+    <span class="hljs-keyword">var</span> data = <span class="hljs-keyword">file</span>.<span class="hljs-keyword">read</span>().text;
+    <span class="hljs-keyword">var</span> json = JSON.<span class="hljs-keyword">parse</span>(data);
+    <span class="hljs-keyword">var</span> items = json.value;
+}
+
+<span class="hljs-keyword">return</span> items;
+</code></pre><p>}</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 25th 2013, 12:44:51 pm">April 25th 2013</span>
+				by <span class='authorname'>Daniel Muñoz</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>callback</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>-2</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-261597">
+				
+						<section>
+							<p>You must include your callback function as the last parameter in your call, so it would be something like:</p>
+<pre><code class="hljs">exports<span class="hljs-class">.jsonLoad</span> = <span class="hljs-function"><span class="hljs-title">function</span><span class="hljs-params">(jsonData, force, callbackfunction)</span></span>
+</code></pre><p>Then after you have confirmed your load, you would return from the function using:</p>
+<pre><code class="hljs">callbackfunction()<span class="hljs-comment">;</span>
+</code></pre><p>You can see an example in a question I posted the other day <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;151450&#x2F;query-custom-acs-user-field-returning-blank-but-only-in-production">here</a></p>
+<p>Ray</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 25th 2013, 1:13:22 pm">April 25th 2013</span>
+								by <span class='authorname'>Ray Belisle</span><br>
+								<a class="icon-bg icon-link" href="question/151570/callback-function-help#answer-261597" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-261599">
+				
+						<section>
+							<p>thanks ray, i do… but when i use a function to read the file create with jsonLoad the first time i get error, only the first time, i need a pause or wait the read of json and write file… how to wait app to read and write json, then execute more functions related with this files created… ???</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 25th 2013, 1:59:05 pm">April 25th 2013</span>
+								by <span class='authorname'>Daniel Muñoz</span><br>
+								<a class="icon-bg icon-link" href="question/151570/callback-function-help#answer-261599" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Sorry Daniel… I don&#39;t see where you are including a callback in your code so I&#39;m a little lost on how to help you.</p>
+<p>Ray</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 25th 2013, 2:02:18 pm">April 25th 2013</span>
+											by <span class='authorname'>Ray Belisle</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>What about adding an event after xhr write the file?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 25th 2013, 3:08:48 pm">April 25th 2013</span>
+											by <span class='authorname'>Mauro Parra</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-261611">
+				
+						<section>
+							<p>Hi Mauro and Ray, confuses me a little implement a callback function in my code, you can help me???</p>
+<p>The idea of this is to generate a code that I read several json stored in an array and that each json is downloaded and saved on the device … and be checking if they are accurate, for that I check the file creation date to the current date, but this way only those files will be updated once a day …</p>
+<p>I was thinking to update these files by comparing the number of elements of both json (online vs. downloaded), but there will only update when adding or removing a json …</p>
+<p>I can compare these json by its size in bytes??? and to make this update as soon as there is a difference in the size …</p>
+<pre><code class="hljs">exports.jsonLoad = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">force</span>) </span>{
+    <span class="hljs-keyword">var</span> dataDirectory;
+    <span class="hljs-keyword">var</span> osname = Ti.Platform.osname;
+    <span class="hljs-comment">// En  iPhone y android la ruta de la carpeta escribible son distintas</span>
+    <span class="hljs-comment">// necesitamos determinar la carpeta correcta en cada plataforma</span>
+
+    <span class="hljs-comment">// detectamos la plataforma</span>
+    <span class="hljs-keyword">if</span>( osname == <span class="hljs-string">'android'</span> )
+        dataDirectory = Ti.Filesystem.applicationDataDirectory;
+    <span class="hljs-keyword">else</span> 
+        dataDirectory = Ti.Filesystem.applicationSupportDirectory;
+
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> filename <span class="hljs-keyword">in</span> jsonData) {
+        <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(dataDirectory,filename+<span class="hljs-string">'.json'</span>);
+
+        <span class="hljs-comment">// se encuentra el archivo</span>
+        <span class="hljs-keyword">if</span> ( file.exists() )
+           {
+               <span class="hljs-comment">// obtenemos la fecha de ultima modificacion del archivo</span>
+            fileDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(file.modificationTimestamp());
+            fileDate.setHours(<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);
+            <span class="hljs-comment">// obtenemos la fecha actual</span>
+            <span class="hljs-keyword">var</span> currentDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+            <span class="hljs-keyword">if</span>(!force) currentDate.setHours(<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);
+            <span class="hljs-comment">// la fecha del archivo es menor que la actual... desactualizado!</span>
+            <span class="hljs-keyword">if</span>(fileDate &lt; currentDate) {
+                <span class="hljs-comment">// comprobamos la conexion a internet</span>
+                <span class="hljs-keyword">if</span>(Titanium.Network.online) {
+                    <span class="hljs-keyword">var</span> json;
+                    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+                    xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                        <span class="hljs-comment">//  guardamos el json descargado</span>
+                        file.write(<span class="hljs-keyword">this</span>.responseText)
+                    };
+
+                    xhr.open(<span class="hljs-string">'GET'</span>, jsonData[filename]);
+                    xhr.send();           
+                }
+            }
+           } 
+           <span class="hljs-comment">// no se encuentra el archivo</span>
+           <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">// copiamos el archivo original de /data a la carpeta escribible de la plataforma</span>
+            <span class="hljs-keyword">var</span> fileSource = Ti.Filesystem.getFile(Ti.Filesystem.resourcesDirectory+<span class="hljs-string">'data/'</span>,filename+<span class="hljs-string">'.json'</span>);
+            file.write( fileSource.read() );
+            <span class="hljs-comment">// comprobamos la coneccion a internet y actualizamos el archivo</span>
+            <span class="hljs-keyword">if</span>(Titanium.Network.online) {
+                <span class="hljs-keyword">var</span> json;
+                <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+                xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-comment">// guardamos el json original en el archivo nuevo</span>
+                    file.write(<span class="hljs-keyword">this</span>.responseText);
+                };
+
+                xhr.open(<span class="hljs-string">'GET'</span>, jsonData[filename]);
+                xhr.send();           
+            }
+        }
+
+    } <span class="hljs-comment">// fin del for</span>
+};
+
+exports.dataLoad = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">filename</span>) </span>{
+    <span class="hljs-keyword">var</span> dataDirectory;
+    <span class="hljs-keyword">var</span> osname = Ti.Platform.osname;
+    <span class="hljs-comment">// En  iPhone y android la ruta de la carpeta escribible son distintas</span>
+    <span class="hljs-comment">// necesitamos determinar la carpeta correcta en cada plataforma</span>
+
+    <span class="hljs-comment">// detectamos la plataforma</span>
+    <span class="hljs-keyword">if</span>( osname == <span class="hljs-string">'android'</span> )
+        dataDirectory = Ti.Filesystem.applicationDataDirectory;
+    <span class="hljs-keyword">else</span> 
+        dataDirectory = Ti.Filesystem.applicationSupportDirectory;
+
+    <span class="hljs-keyword">var</span> file = Ti.Filesystem.getFile(dataDirectory,filename+<span class="hljs-string">'.json'</span>);
+    <span class="hljs-keyword">if</span> ( file.exists() )
+    {
+        <span class="hljs-keyword">var</span> data = file.read().text;
+        <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(data);
+        <span class="hljs-keyword">var</span> items = json.value;
+    }
+
+    <span class="hljs-keyword">return</span> items;
+}
+</code></pre><p>the problem occurs when I call the function dataLoad because he does not expect to finish jsonLoad (the gener<br>ated files).</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/common/jsonLoad'</span>);
+    json.jsonLoad(<span class="hljs-literal">false</span>);
+    <span class="hljs-keyword">var</span> programas = json.dataLoad(<span class="hljs-string">'programas'</span>);
+</code></pre><p>What I did was attach these json files in a folder in my application and copy the first run on the device, and then update … to avoid the error that throws me titanium due to asynchronous behavior of httpclient. But the detail is in the first execution the application will see the data is not updated until after a second execution … so I thought that using a callback would solve my problem …</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 25th 2013, 4:11:52 pm">April 25th 2013</span>
+								by <span class='authorname'>Daniel Muñoz</span><br>
+								<a class="icon-bg icon-link" href="question/151570/callback-function-help#answer-261611" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

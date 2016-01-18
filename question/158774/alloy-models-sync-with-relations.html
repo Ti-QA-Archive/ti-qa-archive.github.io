@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy models, SYNC with relations » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy models, SYNC with relations</h1>
+		</header>
+		<section>
+			<p>Hello,</p>
+<p>I am trying to fetch a JSON response from a server API, which includes updates to the app data for various pieces of information (different alloy&#x2F;backbone models)</p>
+<p>so after processing it manually or using the <a href="https:&#x2F;&#x2F;github.com&#x2F;viezel&#x2F;napp.alloy.adapter.restsql">restsql sync adapter</a> I call album.fetch and .sync gets triggered.</p>
+<p>imagine the response is something like</p>
+<pre><code class="hljs">[album]
+   <span class="hljs-property">id</span>:<span class="hljs-number">1</span>
+   title:'album title'
+   <span class="hljs-property">length</span>:<span class="hljs-number">20</span>
+   [songs]
+       [song]
+          album_id:<span class="hljs-number">1</span>
+          <span class="hljs-property">id</span>:<span class="hljs-number">1</span>
+          title:'song <span class="hljs-property">name</span>'
+          <span class="hljs-property">length</span>:<span class="hljs-number">3</span>
+       [song]
+          album_id:<span class="hljs-number">1</span>
+          <span class="hljs-property">id</span>:<span class="hljs-number">2</span>
+          title:'<span class="hljs-keyword">second</span> song'
+          <span class="hljs-property">length</span>:<span class="hljs-number">5</span>
+</code></pre><p>.sync will traverse albums from the response data, but when it will find the [songs] collection, it will get confused, this is for lack of support of model relationships in alloy and in fact in backbone.</p>
+<p>there are some solutions online like</p>
+<p><a href="http:&#x2F;&#x2F;pathable.github.io&#x2F;supermodel&#x2F;">SuperModel.js</a></p>
+<p><a href="https:&#x2F;&#x2F;gist.github.com&#x2F;aaronksaunders&#x2F;aae1962d3b4076763ab2">or even this example by Aaron Saunders which was posted in this forum</a></p>
+<p>but I can&#39;t figure how to get the existing sync adapter to recognise the sub-collection and model in the server response and act on it to sync the &quot;songs&quot; collection and models with relation to the parent collection.</p>
+<p>anyone has any experience with that kind of a problem?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 25th 2013, 5:10:09 am">October 25th 2013</span>
+				by <span class='authorname'>Moshe Marciano</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>adapter</span></li>
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>models</span></li>
+					
+						<li><span class='tagname'>relations</span></li>
+					
+						<li><span class='tagname'>relationships</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>It&#39;s unlikely you&#39;ll get much help on this one aside from the resources you already cited without showing what you&#39;ve done so far and demonstrating how it falls short. Keep the code as small as possible though, as this seems like an example that could easily become overwhelming if you don&#39;t keep it minimal.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 25th 2013, 11:38:12 am">October 25th 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Tony, thanks for commenting.</p>
+<p>I am experimenting so I am not sure I have something ready to share, so I thought of asking if anyone had past experience with this subject.</p>
+<p>the way I see it, I have two sub-tasks here</p>
+<p>1) use SuperModel instead of models to allow my models to be queried with relations ()</p>
+<p>2) &quot;teach&quot; the sync adapter to recognise parts of the incoming data as sub-collections and activate the sync process of that specific JSON sub tree with that sub-collection configured sync adapter.</p>
+<p>I have made some progress with number one, not sure it is completely working yet..</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> Supermodel = <span class="hljs-built_in">require</span>(<span class="hljs-string">'supermodel'</span>);
+<span class="hljs-keyword">var</span> supermodel = Supermodel.Model.extend();
+
+exports.definition = {
+    config : {
+        columns: {
+            <span class="hljs-string">"id"</span>:<span class="hljs-string">"INTEGER PRIMARY KEY"</span>,
+            <span class="hljs-string">"title"</span>:<span class="hljs-string">"text"</span>,
+        },
+        <span class="hljs-string">"adapter"</span> : {
+            <span class="hljs-string">"type"</span> : <span class="hljs-string">"sql"</span>,
+            <span class="hljs-string">"collection_name"</span> : <span class="hljs-string">"business_types"</span>,
+            <span class="hljs-string">"idAttribute"</span> : <span class="hljs-string">"id"</span><span class="hljs-comment">//,</span>
+        },        
+    },
+    extendModel : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">Model</span>) </span>{
+       _.extend(Model.prototype, supermodel);
+       _.extend(Model.prototype, {
+               test:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                   alert(<span class="hljs-string">"test"</span>);
+               }
+       });
+
+        <span class="hljs-keyword">return</span> Model;
+    },
+    extendCollection : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">Collection</span>) </span>{         
+        _.extend(Collection.prototype, {
+                model: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">attrs, options</span>) </span>{
+                    <span class="hljs-keyword">return</span> supermodel.create(attrs, options); <span class="hljs-comment">// gets called by fetch.success</span>
+              }
+        });
+
+        <span class="hljs-keyword">return</span> Collection;
+    }
+};
+</code></pre><p>my current problem with this first part, is that when the collection model method is called, this function returns a basic supermodel and not my extended supermodel (with the test function for example)</p>
+<p>so I need to find a way to get this line return the specific configured and extended model type</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">return</span> supermodel.<span class="hljs-title">create</span><span class="hljs-params">(attrs, options)</span></span>;
+</code></pre><p>and then move to the second part.</p>
+<p>any thoughts?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 25th 2013, 1:47:27 pm">October 25th 2013</span>
+								by <span class='authorname'>Moshe Marciano</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-270728">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi Tony,</p>
+<p>I did not use supermodel after all because it meant using all these data in-memory and it was not a good idea for me.</p>
+<p>instead I created a relationship system of my own, on top of the restsql sync adapter, I am still testing it but so far so good.</p>
+<p>it will also automatically add new methods to your models to fetch sub collections…</p>
+<p>you can view the code and the explanation in the readme.md on my <a href="https:&#x2F;&#x2F;github.com&#x2F;moshemarciano&#x2F;napp.alloy.adapter.restsql">github repo</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 1st 2013, 7:22:00 am">November 1st 2013</span>
+								by <span class='authorname'>Moshe Marciano</span><br>
+								<a class="icon-bg icon-link" href="question/158774/alloy-models-sync-with-relations#answer-270728" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Moshe,</p>
+<p>Have you tried binding the collections (with relationships) to a table view for dynamic data update?<br>Would love to see an usage example if you have it.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 1st 2014, 12:25:41 am">February 1st 2014</span>
+											by <span class='authorname'>Abhishek Tiwari</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Bring window to front on iOS? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Bring window to front on iOS?</h1>
+		</header>
+		<section>
+			<p>How do I bring a certain window to front on iOS (preferably also on Android) after another window is opened? zIndex doesn&#39;t seem to work for windows. show() doesn&#39;t seem to change anything. animate({ zIndex: 1}) also doesn&#39;t work for me.</p>
+<p>The problem is as follows. I open a window with an activity indicator in it while the user-requested window is loading. As soon as it is shown, it covers the indicator (which I close on postlayout). However, I may need the indicator to show for longer (as the window may be loading some data from web). For this, I added reference counting on the indicator, so that it would only close when the reference becomes zero. However, because the window with the indicator is now covered by the newly opened window, it is not visible and the only thing I can do is open a new one (which is visible to the user and which I would like to avoid).</p>
+<p>Is there a way around this?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="March 28th 2013, 9:00:08 am">March 28th 2013</span>
+				by <span class='authorname'>Andrey Chirikba</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>bring</span></li>
+					
+						<li><span class='tagname'>foreground</span></li>
+					
+						<li><span class='tagname'>front</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hi Andrey,</p>
+<p>Can you please provide some code snipet, so we can help you.</p>
+<p>Thanks</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 28th 2013, 9:05:01 am">March 28th 2013</span>
+								by <span class='authorname'>Sunny Patel</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Below is some code.</p>
+<p>alloy.js (global utilitiy functions)</p>
+<pre><code class="hljs">var busyIndicator = Alloy.createController(<span class="hljs-string">"busyindicator"</span>).getView();
+var busyIndicatorOpenCount = <span class="hljs-number">0</span>;
+
+Alloy.Globals.showBusyIndicator = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span> {
+    Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">"show: busyIndicatorOpenCount = "</span> + busyIndicatorOpenCount);
+    <span class="hljs-keyword">if</span> (busyIndicatorOpenCount++ == <span class="hljs-number">0</span>) {
+        Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">"Showing busy indicator"</span>);
+        busyIndicator.open();
+    }
+}
+
+Alloy.Globals.hideBusyIndicator = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span> {
+    Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">"hide: busyIndicatorOpenCount = "</span> + busyIndicatorOpenCount);
+    <span class="hljs-keyword">if</span> (<span class="hljs-comment">--busyIndicatorOpenCount == 0) {</span>
+        Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">"Hiding busy indicator"</span>);
+        busyIndicator.close();
+    }
+}
+
+Alloy.Globals.openController = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(controllerName, parameters)</span></span>
+{
+    Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">"Opening window"</span>);
+    Alloy.Globals.showBusyIndicator();
+
+    var controller = Alloy.createController(controllerName, parameters);
+    var view = controller.getView();
+
+     var listener = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span> {
+         view.removeEventListener(<span class="hljs-string">"postlayout"</span>, listener);
+        Ti.API.<span class="hljs-built_in">debug</span>(<span class="hljs-string">"Done opening window"</span>);
+         Alloy.Globals.hideBusyIndicator();
+     }
+    view.addEventListener(<span class="hljs-string">"postlayout"</span>, listener);
+    <span class="hljs-keyword">if</span> (controllerName != <span class="hljs-string">"index"</span>) {
+        view.open();
+    }
+}
+</code></pre><p>index.js</p>
+<pre><code class="hljs"><span class="hljs-comment">// Update the database from remote datasource</span>
+<span class="hljs-keyword">if</span> (Alloy.Globals.lastDatabaseUpdate == <span class="hljs-literal">undefined</span>) {
+    Ti.API.debug(<span class="hljs-string">"Starting DB update"</span>);
+    Alloy.Globals.showBusyIndicator();
+    busyIndicatorOn = <span class="hljs-literal">true</span>;
+    Ti.App.addEventListener(<span class="hljs-string">"updateEnded:check"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (Alloy.Globals.updatesRunning &lt;= <span class="hljs-number">0</span> &amp;&amp; busyIndicatorOn) {
+            Alloy.Globals.hideBusyIndicator();
+            Ti.API.debug(<span class="hljs-string">"DB update done"</span>);
+            busyIndicatorOn = <span class="hljs-literal">false</span>;
+        }
+    });
+    updateDatabase();
+    Alloy.Globals.lastDatabaseUpdate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>();
+}
+</code></pre><p>Every screen is opened through Alloy.Globals.openController(), which also opens the activity indicator window and sets a listener to close it upon window draw. When user navigates to index screen (from another screen), the openController() function shows the activity indicator. In the index initialization code, it starts DB update process, also showing the activity indicator. However, when the index screen is opened, it covers the window that shows the activity indicator, and I am looking for the means to bring it to foreground.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 28th 2013, 11:00:04 am">March 28th 2013</span>
+								by <span class='authorname'>Andrey Chirikba</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

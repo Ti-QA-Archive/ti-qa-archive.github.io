@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Calling MobileWeb&#39;s destroy method on Windows to prevent memory leaks. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Calling MobileWeb&#39;s destroy method on Windows to prevent memory leaks.</h1>
+		</header>
+		<section>
+			<p>Hi all,</p>
+<p>my mobile web application is leaking pretty much. I did a search and found the &quot;undocumented&quot; method <code>destroy</code> for instance here: <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;144555&#x2F;memory-leak---mobile-web">http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;144555&#x2F;memory-leak—mobile-web</a>.</p>
+<p>So far, so good. I was wondering how to handle the <code>destroy</code> method on windows. I&#39;ve registered a <code>close</code> event on the window to prevent memory leaks. Meaning calling Alloy&#39;s <code>$.destroy</code> method and the windows <code>destroy</code> method. The problem is, that it ends up in an endless loop because the windows <code>destroy</code> method is also calling the <code>close</code> method, see here: <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;blob&#x2F;master&#x2F;mobileweb&#x2F;titanium&#x2F;Ti&#x2F;_&#x2F;UI&#x2F;SuperView.js#L8">https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium<em>mobile&#x2F;blob&#x2F;master&#x2F;mobileweb&#x2F;titanium&#x2F;Ti&#x2F;</em>&#x2F;UI&#x2F;SuperView.js#L8</a></p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-built_in">window</span> = Ti.UI.createWindow();
+<span class="hljs-built_in">window</span>.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-built_in">window</span>.destroy(); <span class="hljs-comment">// results in an endless loop</span>
+});
+<span class="hljs-built_in">window</span>.close();
+</code></pre><p>A solution would be to call only the <code>destroy</code> method of the window instead of <code>close</code>. But the problem is, my window gets closed by the NavigationGroup which is calling the <code>close</code> method.</p>
+<p>What I am doing as a workaround is calling the destroy method on each child view. Is there a better solution?</p>
+<p>Best solution for me would be that Alloy destroys all child views automatically if the platform is mobileweb in <code>$.destroy</code> method but I know it is only intended to cleanup data binding events.</p>
+<p>Thanks!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 7th 2013, 5:04:53 pm">June 7th 2013</span>
+				by <span class='authorname'>Jicks Steen</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>mobileweb</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>My current workaround is do overwrite the NavigationGroup on MobileWeb and calling the window&#39;s <code>destroy</code> method in the <code>close</code> method of the NavigationGroup. That frees a lot of memory.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="June 11th 2013, 5:33:27 pm">June 11th 2013</span>
+								by <span class='authorname'>Jicks Steen</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-264418">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Couldn&#39;t you just remove the event listener on the first call?</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-built_in">window</span> = Ti.UI.createWindow();
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doDestroy</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-built_in">window</span>.removeEventListener(<span class="hljs-string">'close'</span>);
+    <span class="hljs-built_in">window</span>.destroy();
+}
+<span class="hljs-built_in">window</span>.addEventListener(<span class="hljs-string">'close'</span>, doDestroy);
+<span class="hljs-built_in">window</span>.close();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 17th 2013, 7:42:26 pm">June 17th 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/153372/calling-mobilewebs-destroy-method-on-windows-to-prevent-memory-leaks#answer-264418" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>True! I only need to make sure there are no other <code>close</code> event listeners (or they are already executed before removing them). Should work for me</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 19th 2013, 6:54:12 am">June 19th 2013</span>
+											by <span class='authorname'>Jicks Steen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

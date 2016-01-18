@@ -1,0 +1,411 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>TableView slow - How can I optimize this code » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>TableView slow - How can I optimize this code</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>I have main application window with a grouped TableView.<br>These view contains a search, sections and at least 800 rows.</p>
+<p>The creation is pretty slow </p>
+<p>Test-Environment 1:<br>    iPhone 4S &#x2F;<br>    Ti SDK 3.1.1.GA &#x2F;<br>    iOS 6.1.3 &#x2F;<br>    creation time: 4-5 seconds</p>
+<p>Test-Environment 2:<br>    iPhone 3GS &#x2F;<br>    Ti SDK 3.1.1.GA &#x2F;<br>    iOS 6.0.1 &#x2F;<br>    creation time: 10-11 seconds</p>
+<p>Maybe someone can give me some recommendation for this performance problem?</p>
+<pre><code class="hljs">var startDate = <span class="hljs-keyword">new</span> Date();
+
+var appWin = Ti.UI.createWindow({
+    backgroundColor:<span class="hljs-string">'#ffffff'</span>,
+    barColor: <span class="hljs-string">'#000'</span>, 
+    backgroundColor: <span class="hljs-string">'#9CC4FF'</span>
+});
+
+var tableView = Ti.UI.createTableView({     
+        style:Titanium.UI.iPhone.TableViewStyle.GROUPED,
+        <span class="hljs-variable">width</span>: <span class="hljs-string">'100%'</span>,
+        backgroundColor: <span class="hljs-string">'transparent'</span>,
+        backgroundImage: <span class="hljs-string">'none'</span>
+});
+
+tableView.setFooterView(Ti.UI.createView({<span class="hljs-variable">height</span> : <span class="hljs-number">1</span>}));
+tableView.setSearch(Titanium.UI.createSearchBar({
+    barColor : <span class="hljs-string">'000'</span>,
+    hintText : <span class="hljs-string">'searchRow'</span>
+}));
+
+var data = [];
+<span class="hljs-keyword">for</span> (var i = <span class="hljs-number">1</span>, datacount = -<span class="hljs-number">1</span>; i &lt;= <span class="hljs-number">2</span>; i++) {
+    data[++datacount] = createSectionHeader(<span class="hljs-string">'Section '</span> + i);
+    data[++datacount] = createSection();
+
+    <span class="hljs-keyword">for</span> (var j=<span class="hljs-number">1</span>; j &lt;= <span class="hljs-number">10</span>; j++) {
+        data[datacount].<span class="hljs-built_in">add</span>(createHeaderRow(<span class="hljs-string">'Row-Header '</span> + j));
+         <span class="hljs-keyword">for</span> (var k=<span class="hljs-number">1</span>; k &lt;= <span class="hljs-number">40</span>; k++) {
+            data[datacount].<span class="hljs-built_in">add</span>(createRow(<span class="hljs-string">'Row '</span> + k, <span class="hljs-string">'Sub-Content \n with multiline \n informations'</span>));
+        }
+    }
+}
+
+tableView.setData(data);
+
+
+appWin.<span class="hljs-built_in">add</span>(tableView);
+appWin.<span class="hljs-built_in">open</span>();
+
+
+<span class="hljs-comment">//******* RESULT ********</span>
+var endDate = <span class="hljs-keyword">new</span> Date();
+var dateDiff = endDate - startDate;
+var total = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">for</span>(var i = <span class="hljs-number">0</span>; i &lt; tableView.data.length; i++){
+    total += tableView.data[i].rowCount;
+}
+alert(<span class="hljs-string">'Create rows: '</span> + total + <span class="hljs-string">" in "</span> + dateDiff + <span class="hljs-string">' ms'</span>);
+<span class="hljs-comment">//******* RESULT ********</span>
+
+
+function createSectionHeader(headerText) {
+    var headerRow, sectionLbl, section;
+
+    section = createSection();
+
+    sectionLbl = Ti.UI.createLabel({
+        <span class="hljs-built_in">color</span>: <span class="hljs-string">'fff'</span>,
+        <span class="hljs-built_in">textAlign</span>: Ti.UI.TEXT_ALIGNMENT_CENTER,
+        <span class="hljs-variable">width</span>: (Ti.Platform.displayCaps.platformWidth - <span class="hljs-number">25</span>),
+        <span class="hljs-variable">height</span>: Titanium.UI.SIZE
+    });
+    sectionLbl.<span class="hljs-built_in">text</span> = headerText;
+
+    headerRow = Titanium.UI.createTableViewRow({
+         backgroundImage: <span class="hljs-string">'none'</span>,
+         selectionStyle:Titanium.UI.iPhone.TableViewCellSelectionStyle.NONE,
+         <span class="hljs-variable">width</span>: Ti.Platform.displayCaps.platformWidth
+    });
+    headerRow.<span class="hljs-built_in">add</span>(sectionLbl);
+
+    section.<span class="hljs-built_in">add</span>(headerRow);
+
+    <span class="hljs-keyword">return</span> section;
+}
+
+
+function createSection() {
+    var section = Titanium.UI.createTableViewSection();
+
+    <span class="hljs-comment">//control the spacer on the section top and button</span>
+    section.headerView = Ti.UI.createView({<span class="hljs-variable">height</span> : <span class="hljs-number">1</span>});<span class="hljs-comment">// height cannot be 0</span>
+
+    section.footerView = Ti.UI.createView({<span class="hljs-variable">height</span> : <span class="hljs-number">1</span>});<span class="hljs-comment">// height cannot be 0</span>
+    <span class="hljs-keyword">return</span> section;
+}
+
+function createHeaderRow(title){
+    var headerRow = Titanium.UI.createTableViewRow({
+         <span class="hljs-built_in">color</span>: <span class="hljs-string">'fff'</span>,
+         backgroundColor: <span class="hljs-string">'000'</span>,
+         selectionStyle:Titanium.UI.iPhone.TableViewCellSelectionStyle.NONE,
+         touchEnabled:<span class="hljs-keyword">false</span>,
+         <span class="hljs-variable">width</span>: Ti.Platform.displayCaps.platformWidth,
+         layout: <span class="hljs-string">'vertical'</span>,
+         title: title
+    });
+    <span class="hljs-keyword">return</span> headerRow;   
+}
+
+
+function createRow(title,subTitle) {               
+       var row = Titanium.UI.createTableViewRow({
+         <span class="hljs-variable">height</span> : Titanium.UI.SIZE,
+         <span class="hljs-variable">width</span>: Ti.Platform.displayCaps.platformWidth,
+         backgroundColor:<span class="hljs-string">'fff'</span>,
+         <span class="hljs-built_in">color</span>: <span class="hljs-string">'transparent'</span>,
+         selectedColor: <span class="hljs-string">'transparent'</span>,
+         layout: <span class="hljs-string">'vertical'</span>,
+         rightImage: <span class="hljs-string">'/img/right.png'</span>,
+         title: title
+        });
+
+        row.editable = <span class="hljs-keyword">true</span>;<span class="hljs-comment">//for swipe-to-delete</span>
+
+        var lbl = Ti.UI.createLabel({
+            <span class="hljs-built_in">color</span>: <span class="hljs-string">'000'</span>,
+            <span class="hljs-variable">height</span>: Titanium.UI.SIZE,
+            <span class="hljs-variable">width</span>: Ti.Platform.displayCaps.platformWidth - <span class="hljs-number">70</span>,
+            <span class="hljs-built_in">text</span>: title
+        });
+
+        row.<span class="hljs-built_in">add</span>(lbl);
+
+        lbl = <span class="hljs-keyword">null</span>;
+
+        lbl = Ti.UI.createLabel( {
+            font:{fontSize:<span class="hljs-number">12</span>, fontWeight:<span class="hljs-string">'normal'</span>},
+            <span class="hljs-built_in">color</span>:<span class="hljs-string">'#696A6E'</span>,
+            <span class="hljs-variable">height</span>:Titanium.UI.SIZE,
+            <span class="hljs-variable">width</span>: Ti.Platform.displayCaps.platformWidth - <span class="hljs-number">70</span>,
+            <span class="hljs-built_in">text</span>: subTitle
+        });
+
+        row.<span class="hljs-built_in">add</span>(lbl);
+
+        <span class="hljs-keyword">return</span> row;
+}
+</code></pre><p>I can not remove the images or the two lables from the rows, because I need the informations at this place</p>
+<p>Thank you for your help ;-)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 26th 2013, 11:23:52 am">June 26th 2013</span>
+				by <span class='authorname'>Markus Eschenbach</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>slow</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>tableviewrow speed</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-264949">
+				
+						<section>
+							<p>800 rows in a tableview !  That is never going to perform. You need to split up the data into smaller groups and use some form of paging (either next&#x2F;previous buttons or an infinite scroll) to accommodate that amount of data.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 26th 2013, 1:07:44 pm">June 26th 2013</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/154140/tableview-slow---how-can-i-optimize-this-code#answer-264949" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>All forms of paging (what I know) needs more time in the end until the data loaded completely…<br>So, for me it is not the solution</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 27th 2013, 4:49:54 am">June 27th 2013</span>
+											by <span class='authorname'>Markus Eschenbach</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-264942">
+				
+						<section>
+							<p>I&#39;d rewrite the entire code in Alloy using XML and tss…it&#39;s too complicated…You can get a performance boot assigning className property on each TableViewRow (but you could do this in the .tss using a style sheet for all TableViewRows like so: </p>
+<pre><code class="hljs">"TableViewRow":{
+<span class="hljs-code">    className: "standardRows",</span>
+}
+
+Also here's a better way to create tableview rows (found @ the following link: 
+
+[<span class="hljs-link_label">TableView Rows</span>](<span class="hljs-link_url">http://docs.appcelerator.com/titanium/latest/#!/guide/Alloy_Controllers</span>)
+</code></pre><p>var data[];<br>for (var i=0; i&lt;source.length; i++) {<br>    var arg = {<br>        title: source[i].postTitle,<br>        url: source[i].postLink<br>    };<br>    var row = Alloy.createController(&#39;row&#39;, arg).getView();<br>    data.push(row);<br>}<br>$.tableView.setData(data);</p>
+<p>~~~</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 26th 2013, 12:05:24 pm">June 26th 2013</span>
+								by <span class='authorname'>Benjamin Frazier</span><br>
+								<a class="icon-bg icon-link" href="question/154140/tableview-slow---how-can-i-optimize-this-code#answer-264942" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>@Benjamin My app was build a couple of month ago. At this time there was no Alloy or other NEW frameworks available in Titanium</p>
+<p>The className property do not give a performance boost, because it is only available for Android<br><a href="http:&#x2F;&#x2F;docs.appcelerator.com&#x2F;titanium&#x2F;latest&#x2F;#!&#x2F;api&#x2F;Titanium.UI.TableViewRow-property-className">ableViewRow-property-classNamet</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 12:15:34 pm">June 26th 2013</span>
+											by <span class='authorname'>Markus Eschenbach</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>classname works fine for iOS as well.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 12:24:55 pm">June 26th 2013</span>
+											by <span class='authorname'>Josh Lewis</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Josh: Ok, I added the className property, but there is no performance boost :-(</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 12:33:32 pm">June 26th 2013</span>
+											by <span class='authorname'>Markus Eschenbach</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Well, you can take what you have and rewrite it though…I promise it will be worth it in the end…Titanium and Alloy code are interchangeable….</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 2:04:03 pm">June 26th 2013</span>
+											by <span class='authorname'>Benjamin Frazier</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Benjamin:<br>Thanks but that is not possible for me at the moment..<br>I think I have to think about if I use Titanium anymore because rewrite the code is not profitable for me</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 27th 2013, 4:52:53 am">June 27th 2013</span>
+											by <span class='authorname'>Markus Eschenbach</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-264935">
+				
+						<section>
+							<p>Hi, your friend is the new listview.  With this GUI element you can realize very big lists.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 26th 2013, 11:43:55 am">June 26th 2013</span>
+								by <span class='authorname'>Rainer Schleevoigt</span><br>
+								<a class="icon-bg icon-link" href="question/154140/tableview-slow---how-can-i-optimize-this-code#answer-264935" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>@Rainer: I know! But I have an existing app with a lot of these tableviews and logic code. So it is not possible to rewrite the whole app (at the moment)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 11:46:59 am">June 26th 2013</span>
+											by <span class='authorname'>Markus Eschenbach</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>In this case I dont see an other solution. Phonegap?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 11:56:36 am">June 26th 2013</span>
+											by <span class='authorname'>Rainer Schleevoigt</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Also, a 3GS running iOS 6 is just asking for trouble.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 26th 2013, 12:24:39 pm">June 26th 2013</span>
+											by <span class='authorname'>Josh Lewis</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

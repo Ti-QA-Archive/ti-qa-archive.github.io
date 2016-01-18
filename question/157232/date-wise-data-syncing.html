@@ -1,0 +1,222 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Date wise data syncing » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Date wise data syncing</h1>
+		</header>
+		<section>
+			<p>Working Enviroment-Titanium 3.1.0, iOS-6.0;</p>
+<p>I have created two databases in remote mysql and same table in local sqlite db in ipad app.<br>I like to update local and server database record according to latest date, means if date of remote db is greater than local then update local database and if date of local db is greater then update remote database row.</p>
+<p>my code is as:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> db2</span> = Ti.Database.<span class="hljs-keyword">open</span>('scorm-db');
+            db2.execute('CREATE TABLE IF NOT EXISTS scormreport1(ur_datetime TEXT,ur_id INTEGER, user_id NUMERIC, module_id NUMERIC, pack_id NUMERIC, ur_score TEXT, ur_status TEXT, ur_bookmark TEXT, ur_location TEXT);');
+            <span class="hljs-variable"><span class="hljs-keyword">var</span> bk_sync</span>= db2.execute(<span class="hljs-string">"select * from scormreport1 where user_id = '"</span>+useru_id+<span class="hljs-string">"'"</span>);
+            <span class="hljs-keyword">while</span>(bk_sync.isValidRow())
+            {
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_uid</span> = bk_sync.fieldByName('user_id');
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_cid</span> = bk_sync.fieldByName('pack_id'); 
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_mid</span> = bk_sync.fieldByName('module_id');
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_mtp</span> = 'scorm_module';
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_date</span> = bk_sync.fieldByName('ur_datetime');
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_sts</span> = bk_sync.fieldByName('ur_status'); 
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_bmrk</span> = bk_sync.fieldByName('ur_bookmark');
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> forsync_loc</span> = bk_sync.fieldByName('ur_location'); 
+
+                 <span class="hljs-variable"><span class="hljs-keyword">var</span> dmd</span>='/images/App_synced_icon.png';
+                 db2.execute(<span class="hljs-string">"update assign_courses set left_image=? where user_id="</span>+forsync_uid+<span class="hljs-string">" AND course_id="</span>+forsync_cid+<span class="hljs-string">" AND module_id="</span>+forsync_mid,dmd);  
+
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> send_sync</span> = Ti.Network.createHTTPClient();  
+             send_sync.<span class="hljs-keyword">open</span>(<span class="hljs-string">"POST"</span>, <span class="hljs-string">"http:/pranam/iphoneapp/data_synch.php"</span>); 
+
+             <span class="hljs-variable"><span class="hljs-keyword">var</span> params_sync</span> = {  
+                                uid: forsync_uid,       
+                                course_id: forsync_cid, 
+                                module_id: forsync_mid,
+                                mod_name: forsync_mtp,       
+                                last_access_date: forsync_date, 
+                                ur_status: forsync_sts,
+                                ur_bookmark: forsync_bmrk,
+                                ur_location: forsync_loc,       
+                                };  
+              send_sync.send(params_sync);
+
+              send_sync.onload = function(){ 
+
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> json_sync</span> = JSON.parse(this.responseText);
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> json_sync2</span> = json_sync.SynData; 
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> res_con</span>=json_sync2[<span class="hljs-number">0</span>].response_status;
+                                              <span class="hljs-keyword">if</span>(res_con=='needtoupdate')
+                                                {
+                                                <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_uid</span>=json_sync2[<span class="hljs-number">0</span>].user_id;
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_cid</span>=json_sync2[<span class="hljs-number">0</span>].course_id;
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_mid</span>=json_sync2[<span class="hljs-number">0</span>].module_id;
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_mtp</span>=json_sync2[<span class="hljs-number">0</span>].mod_name;             
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_sts</span>=json_sync2[<span class="hljs-number">0</span>].ur_status;
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_bk</span>=json_sync2[<span class="hljs-number">0</span>].ur_bookmark;
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_lk</span>=json_sync2[<span class="hljs-number">0</span>].ur_location;                
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_dt</span>=json_sync2[<span class="hljs-number">0</span>].ur_last_access;
+                                              <span class="hljs-variable"><span class="hljs-keyword">var</span> syc_scr</span>=json_sync2[<span class="hljs-number">0</span>].ur_score;
+                                             <span class="hljs-comment">// alert(json_sync2);</span>
+                                                  <span class="hljs-variable"><span class="hljs-keyword">var</span> db2</span> = Ti.Database.<span class="hljs-keyword">open</span>('scorm-db');
+                                               db2.execute('CREATE TABLE IF NOT EXISTS scormreport1(ur_datetime TEXT, ur_id INTEGER, user_id NUMERIC, module_id NUMERIC, pack_id NUMERIC, ur_score TEXT, ur_status TEXT, ur_bookmark TEXT, ur_location TEXT);');
+                                            <span class="hljs-comment">//  alert("update scormreport1 set ur_score="+syc_scr+",ur_status="+syc_sts+",ur_bookmark="+syc_bk+",ur_location="+syc_lk+",ur_datetime="+syc_dt+" where user_id="+syc_uid+" and pack_id="+syc_cid+" and module_id="+syc_mid );</span>
+                                               db2.execute(<span class="hljs-string">"BEGIN"</span>);
+                                               db2.execute(<span class="hljs-string">"update scormreport1 set ur_datetime=?,ur_score=?,ur_status=?,ur_bookmark=?,ur_location=? where user_id="</span>+syc_uid+<span class="hljs-string">" and module_id="</span>+syc_mid+<span class="hljs-string">" and pack_id="</span>+syc_cid,syc_dt,syc_scr,syc_sts,syc_bk,syc_lk);
+                                               db2.execute(<span class="hljs-string">"COMMIT"</span>)
+
+                                               }
+
+                                             }; 
+            bk_sync.next(); 
+            } 
+            db2.close(); 
+
+             }  
+
+         });
+</code></pre><p>And my PHP web service is as:data_synch.php</p>
+<pre><code class="hljs">&lt;?php
+<span class="hljs-variable">$con</span>=mysql_connect(<span class="hljs-string">"lmsdb.cunjilxhtyii.ap-southeast-1.rds.amazonaws.com"</span>,<span class="hljs-string">"lmsuser"</span>,<span class="hljs-string">"lmspassword"</span>);
+<span class="hljs-keyword">if</span> (!<span class="hljs-variable">$con</span>) {
+    printf(<span class="hljs-string">"Can't connect to SQL Server. Error Code %s\n"</span>, mysqli_connect_error(<span class="hljs-variable">$mysql</span>));  
+    exit;  
+}  
+mysql_select_db(<span class="hljs-string">'lmsapp'</span>);
+<span class="hljs-variable">$response</span>   = <span class="hljs-keyword">array</span>();  
+
+<span class="hljs-variable">$userid</span>      = $_POST[<span class="hljs-string">'uid'</span>];
+<span class="hljs-variable">$courseid</span>     = $_POST[<span class="hljs-string">'course_id'</span>];
+<span class="hljs-variable">$moduleid</span>     = $_POST[<span class="hljs-string">'module_id'</span>];
+<span class="hljs-variable">$mod</span>_name = $_POST[<span class="hljs-string">'mod_name'</span>];
+<span class="hljs-variable">$date</span>     = $_POST[<span class="hljs-string">'last_access_date'</span>];
+<span class="hljs-variable">$ur</span>_status     = $_POST[<span class="hljs-string">'ur_status'</span>];
+<span class="hljs-variable">$ur</span>_bookmark = $_POST[<span class="hljs-string">'ur_bookmark'</span>];
+<span class="hljs-variable">$ur</span>_location = $_POST[<span class="hljs-string">'ur_location'</span>];
+
+
+
+<span class="hljs-variable">$reportQuery</span>=mysql_query(<span class="hljs-string">"select * from user_report where user_id='"</span>.<span class="hljs-variable">$userid</span>.<span class="hljs-string">"' and pack_id='$courseid' and module_id='$moduleid' and mod_name='$mod_name'"</span>);
+<span class="hljs-keyword">if</span>(<span class="hljs-variable">$reportQuery</span>)
+{
+    while(<span class="hljs-variable">$rowReport</span>=mysql_fetch_array(<span class="hljs-variable">$reportQuery</span>))
+    {
+        if(strtotime(<span class="hljs-variable">$rowReport</span>[<span class="hljs-string">'ur_last_access'</span>])&gt;strtotime(<span class="hljs-variable">$date</span>))
+        {
+            <span class="hljs-variable">$response</span>[] = array(  
+                <span class="hljs-string">'user_id'</span>           =&gt; $_POST[<span class="hljs-string">'uid'</span>],
+                <span class="hljs-string">'course_id'</span>          =&gt; $_POST[<span class="hljs-string">'course_id'</span>],
+                <span class="hljs-string">'module_id'</span>          =&gt; $_POST[<span class="hljs-string">'module_id'</span>],
+                <span class="hljs-string">'mod_name'</span>          =&gt; $_POST[<span class="hljs-string">'mod_name'</span>],             
+                <span class="hljs-string">'ur_status'</span>         =&gt; <span class="hljs-variable">$rowReport</span>[<span class="hljs-string">'ur_status'</span>],
+                <span class="hljs-string">'ur_bookmark'</span>     =&gt; <span class="hljs-variable">$rowReport</span>[<span class="hljs-string">'ur_bookmark'</span>],
+                <span class="hljs-string">'ur_location'</span>     =&gt; <span class="hljs-variable">$rowReport</span>[<span class="hljs-string">'ur_location'</span>],                
+                <span class="hljs-string">'ur_last_access'</span> =&gt; <span class="hljs-variable">$rowReport</span>[<span class="hljs-string">'ur_last_access'</span>],
+                <span class="hljs-string">'response_status'</span>=&gt; <span class="hljs-string">'needtoupdate'</span>
+            );  
+
+        }else
+        {
+            mysql_query(<span class="hljs-string">"update user_report set ur_last_access = '"</span>.<span class="hljs-variable">$date</span>.<span class="hljs-string">"', ur_status='"</span>.<span class="hljs-variable">$ur</span>_status.<span class="hljs-string">"', ur_bookmark='"</span>.<span class="hljs-variable">$ur</span>_bookmark.<span class="hljs-string">"',ur_location='"</span>.<span class="hljs-variable">$ur</span>_location.<span class="hljs-string">"' where user_id='"</span>.<span class="hljs-variable">$userid</span>.<span class="hljs-string">"' and pack_id='"</span>.<span class="hljs-variable">$courseid</span>.<span class="hljs-string">"' and module_id='"</span>.<span class="hljs-variable">$moduleid</span>.<span class="hljs-string">"' and mod_name='"</span>.<span class="hljs-variable">$mod</span>_name.<span class="hljs-string">"'"</span>);
+            <span class="hljs-variable">$response</span>[] = array(
+                <span class="hljs-string">'response_status'</span> =&gt;<span class="hljs-string">'updated'</span>
+            );
+        }        
+        echo json_encode(array( <span class="hljs-string">'SynData'</span>  =&gt;   <span class="hljs-variable">$response</span>)); 
+    }
+}
+?&gt;
+</code></pre><p>But it is not working properly,means not updated all rows from data please suggest solution for it. I hope someone help me….</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 16th 2013, 10:17:35 am">September 16th 2013</span>
+				by <span class='authorname'>Pradip Bhosale</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>this is way too complex to debug, couldn&#39;t you break down the problem and see where it stops to do what it should?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 16th 2013, 11:36:48 am">September 16th 2013</span>
+								by <span class='authorname'>Alberto Marcone</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#39;m with Alberto on this one.<br>If you really want people to help you out, you need to <strong>isolate</strong> the problem to a simple expression in order to make it comprehensible and easy to reproduce.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 17th 2013, 5:08:10 pm">September 17th 2013</span>
+								by <span class='authorname'>Christian Brousseau</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

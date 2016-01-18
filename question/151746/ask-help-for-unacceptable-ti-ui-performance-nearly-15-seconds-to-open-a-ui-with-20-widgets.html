@@ -1,0 +1,1594 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ask help for unacceptable Ti UI performance: nearly 1.5 seconds to open a UI with 20 widgets » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ask help for unacceptable Ti UI performance: nearly 1.5 seconds to open a UI with 20 widgets</h1>
+		</header>
+		<section>
+			<p>I though Ti would have the quick response in UI nearly as the native API before I decided to choose it. </p>
+<p>However the real world is always realistic. I encountered some performance issues which made my app not work well as I expected. One of the issues is that the window opens slowly with just a few widgets, hardly acceptable.</p>
+<p>Here is one window of my application, which requires nearly 1.5 seconds to show. 1.5 seconds not a big value, but enough to cause many users uninstall the app after the first try.</p>
+<p>You are appreciated to be patient to read the long source codes and be kind to advise.</p>
+<p>FIRST<br>I created the window when the application launched. The following codes did not run each time when the window open.</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> InputWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/ConsumptionInputWindow'</span>);
+    <span class="hljs-keyword">var</span> inputWindow = <span class="hljs-keyword">new</span> InputWindow();
+</code></pre><p>Second<br>I open the window in the event listener of a button.</p>
+<pre><code class="hljs">    inputButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span> {
+        countTime(<span class="hljs-string">'opening input window'</span>);
+        <span class="hljs-keyword">if</span> (inputWindow.<span class="hljs-built_in">error</span> == <span class="hljs-number">0</span>) {
+            inputWindow.open({modalTransitionStyle: Ti.UI.iPhone.MODAL_TRANSITION_STYLE_CROSS_DISSOLVE});
+        }
+        countTime(<span class="hljs-string">'opening input window done'</span>);
+    });
+</code></pre><p>The source codes of my ConsumptionInputWindow</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ROW_HEIGHT = <span class="hljs-number">60</span>;
+<span class="hljs-keyword">var</span> ROW_LABEL_PADDING = <span class="hljs-number">20</span>;
+<span class="hljs-keyword">var</span> ROW_FIELD_PADDING = <span class="hljs-number">15</span>;
+<span class="hljs-keyword">var</span> ROW_SWITCH_PADDING = <span class="hljs-number">10</span>;
+
+<span class="hljs-keyword">var</span> INPUT_FONT = {fontSize:<span class="hljs-number">14</span>,fontWeight:<span class="hljs-string">'bold'</span>, fontFamily:<span class="hljs-string">'Arial'</span>};
+<span class="hljs-keyword">var</span> INPUT_COLOR = <span class="hljs-string">'#576996'</span>;
+
+<span class="hljs-keyword">var</span> ROW_FONT = {
+    fontFamily : <span class="hljs-string">'Arial'</span>,
+    fontSize : <span class="hljs-number">14</span>,
+    fontWeight : <span class="hljs-string">'bold'</span>
+};
+
+<span class="hljs-keyword">var</span> Logger = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/common/Logger'</span>);
+<span class="hljs-keyword">var</span> logger = <span class="hljs-keyword">new</span> Logger(<span class="hljs-string">'ConsumptionInputWindow'</span>);
+
+<span class="hljs-keyword">var</span> tools = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/common/tools'</span>);
+
+<span class="hljs-keyword">var</span> theme = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/theme'</span>);
+<span class="hljs-keyword">var</span> ui = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/components'</span>);
+
+<span class="hljs-keyword">var</span> constants = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/common/Constants'</span>);
+
+<span class="hljs-keyword">var</span> DatePicker = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/DatePicker'</span>);
+
+<span class="hljs-keyword">var</span> TimePicker = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/TimePicker'</span>);
+
+<span class="hljs-keyword">var</span> SimplePicker = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/common/iOSSimplePicker'</span>);
+
+<span class="hljs-keyword">var</span> RecordDAO = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/model/RecordDAO'</span>);
+
+    <span class="hljs-keyword">var</span> timer = {
+        used: <span class="hljs-number">0</span>,
+        lastTime: (<span class="hljs-keyword">new</span> Date()).getTime()
+    };
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">countTime</span><span class="hljs-params">(tag)</span> </span>{
+        <span class="hljs-keyword">var</span> nowTime = (<span class="hljs-keyword">new</span> Date()).getTime();
+        timer.used = nowTime - timer.lastTime;
+        timer.lastTime = nowTime;
+        logger.warn(<span class="hljs-string">'TIME USED: '</span> + tag + <span class="hljs-string">":"</span> + timer.used);
+    };
+
+<span class="hljs-comment">/*
+ * main window
+ * 
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ConsumptionInputWindow</span><span class="hljs-params">(recordId)</span> </span>{
+
+    countTime(<span class="hljs-string">'begin'</span>);
+
+    <span class="hljs-keyword">var</span> Record = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/model/Record'</span>);
+    <span class="hljs-keyword">var</span> RecordDAO = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/model/RecordDAO'</span>);
+    <span class="hljs-keyword">var</span> Car = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/model/Car'</span>);
+    <span class="hljs-keyword">var</span> CarDAO = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/model/CarDAO'</span>);
+    <span class="hljs-keyword">var</span> OilType = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/model/OilType'</span>);
+
+    countTime(<span class="hljs-string">'require'</span>);
+
+    <span class="hljs-keyword">var</span> winTitle = L(<span class="hljs-string">'consumption_input'</span>);
+    <span class="hljs-keyword">if</span> (!tools.isNull(recordId)) {
+        winTitle = L(<span class="hljs-string">'consumption_edit'</span>);
+    }
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = <span class="hljs-keyword">new</span> ui.Window({
+        title : winTitle,
+        layout: <span class="hljs-string">'vertical'</span>,
+        navBarHidden : Ti.Platform.osname !== <span class="hljs-string">'iphone'</span>,
+        barColor : theme.appcLightGray,
+        backgroundImage : theme.windowBackground
+    });
+    <span class="hljs-keyword">self</span>.error = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">self</span>.errMsg = <span class="hljs-string">''</span>;
+
+    <span class="hljs-keyword">var</span> saveButton = Ti.UI.createButton({
+        title : L(<span class="hljs-string">'save'</span>),
+        style : Ti.UI.iPhone.SystemButtonStyle.BORDERED
+    });
+
+    <span class="hljs-comment">// left button: cancel</span>
+    <span class="hljs-keyword">var</span> cancelButton = Ti.UI.createButton({
+        title : L(<span class="hljs-string">'cancel'</span>),
+        style : Ti.UI.iPhone.SystemButtonStyle.BORDERED
+    });
+
+    cancelButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">self</span>.close();
+    });
+
+    <span class="hljs-keyword">var</span> label = Ti.UI.createButton({
+        title : winTitle,
+        style : Titanium.UI.iPhone.SystemButtonStyle.PLAIN, 
+    });
+    <span class="hljs-keyword">var</span> flexSpace = Titanium.UI.createButton({
+        systemButton:Titanium.UI.iPhone.SystemButton.FLEXIBLE_SPACE
+    });
+
+    <span class="hljs-comment">// create and add toolbar</span>
+    <span class="hljs-keyword">var</span> toolbar = Titanium.UI.iOS.createToolbar({
+        items:[cancelButton, flexSpace,label, flexSpace,saveButton],
+        top:<span class="hljs-number">0</span>,
+        barColor:theme.appcLightGray,
+        borderTop:<span class="hljs-keyword">false</span>,
+        borderBottom:<span class="hljs-keyword">true</span>
+    });
+    <span class="hljs-keyword">self</span>.add(toolbar);
+
+    countTime(<span class="hljs-string">'window initialized'</span>);
+
+     <span class="hljs-keyword">var</span> tableView = Ti.UI.createTableView({
+     });
+
+     <span class="hljs-keyword">self</span>.add(tableView);
+
+
+    <span class="hljs-comment">// default values    </span>
+    <span class="hljs-keyword">var</span> currentTime = <span class="hljs-keyword">new</span> Date();
+    <span class="hljs-keyword">var</span> odometerValue = <span class="hljs-keyword">null</span>;
+    <span class="hljs-keyword">var</span> priceValue = <span class="hljs-keyword">null</span>;
+    <span class="hljs-keyword">var</span> yuanValue = <span class="hljs-keyword">null</span>;
+    <span class="hljs-keyword">var</span> cubageValue = <span class="hljs-keyword">null</span>;
+    <span class="hljs-keyword">var</span> gassup = <span class="hljs-keyword">false</span>;
+    <span class="hljs-keyword">var</span> lightOn = <span class="hljs-keyword">false</span>; <span class="hljs-comment">// 1: on, others: off</span>
+    <span class="hljs-keyword">var</span> forgetLastTime = <span class="hljs-keyword">false</span>;
+    <span class="hljs-keyword">var</span> oilTypeValue = <span class="hljs-string">'q93'</span>;
+    <span class="hljs-keyword">var</span> stationValue = <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">var</span> remarkValue = <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">var</span> carId = -<span class="hljs-number">1</span>;
+
+    <span class="hljs-keyword">var</span> lastModified = <span class="hljs-string">''</span>; <span class="hljs-comment">// yuan or cubage, used to auto calculate yuan or cubage</span>
+    <span class="hljs-keyword">var</span> lastLastModified = <span class="hljs-string">''</span>;<span class="hljs-comment">//used to change the same field again;</span>
+    <span class="hljs-keyword">var</span> record = <span class="hljs-keyword">null</span>;
+
+    <span class="hljs-keyword">var</span> car = CarDAO.getSelected();
+    <span class="hljs-keyword">if</span> (car == <span class="hljs-keyword">null</span>) {
+        showAlertDialog(L(<span class="hljs-string">'hint_use_carmgt_to_define_car'</span>));
+        <span class="hljs-keyword">self</span>.error = <span class="hljs-number">1</span>;
+        <span class="hljs-keyword">self</span>.errMsg = L(<span class="hljs-string">'hint_use_carmgt_to_define_car'</span>);
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+    }
+    carId = car.getId();
+
+
+    <span class="hljs-keyword">if</span> (recordId) {
+        record = RecordDAO.get(recordId);
+        currentTime = record.getWhen();
+        odometerValue = record.getOdometer();
+        priceValue = record.getPrice();
+        yuanValue = record.getYuan();
+        cubageValue = (yuanValue / priceValue).toFixed(<span class="hljs-number">2</span>);
+        gassup = record.getGassUp() &gt; <span class="hljs-number">0</span> ? <span class="hljs-keyword">true</span> : <span class="hljs-keyword">false</span>;
+        lightOn = record.getLightOn() &gt; <span class="hljs-number">0</span> ? <span class="hljs-keyword">true</span> : <span class="hljs-keyword">false</span>;
+        forgetLastTime = record.getForgetLastTime() &gt; <span class="hljs-number">0</span> ? <span class="hljs-keyword">true</span> : <span class="hljs-keyword">false</span>;
+        stationValue = record.getStation();
+        oilTypeValue = record.getType();
+        remarkValue = record.getRemark();
+        carId = record.getCarId();
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">var</span> lastRec = RecordDAO.getLatestOfCar(carId);
+        <span class="hljs-keyword">if</span>(lastRec){
+            oilTypeValue = lastRec.getType();
+        }
+        <span class="hljs-comment">// get last price for new record</span>
+        priceValue = getLastPrice4Car(carId);
+        <span class="hljs-keyword">if</span> (priceValue &lt;= <span class="hljs-number">0</span>) {
+            priceValue = <span class="hljs-keyword">null</span>;
+        } <span class="hljs-keyword">else</span> {
+            lastModified = <span class="hljs-string">'price'</span>;
+        }
+    }
+
+    <span class="hljs-comment">// date input field</span>
+    <span class="hljs-keyword">var</span> dateField = ui.TextField(tools.dateDisplayString(currentTime), {
+        left: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">145</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> timeField = ui.TextField(tools.timeDisplayString(currentTime), {
+        left: <span class="hljs-number">210</span>,
+        width: <span class="hljs-number">100</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> datepicker = <span class="hljs-keyword">new</span> DatePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+            logger.info(<span class="hljs-string">"Date selected: "</span> + selected);
+            <span class="hljs-keyword">if</span> (tools.isDate(selected)) {
+                dateField.value = tools.dateDisplayString(selected);
+                currentTime.setDate(selected.getDate());
+                currentTime.setMonth(selected.getMonth());
+                currentTime.setFullYear(selected.getFullYear());
+            }
+        },
+        <span class="hljs-keyword">new</span> Date(<span class="hljs-number">2000</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>),
+        <span class="hljs-keyword">new</span> Date(<span class="hljs-number">2030</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>),
+        currentTime
+    );
+
+    <span class="hljs-keyword">var</span> timepicker = <span class="hljs-keyword">new</span> TimePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+            logger.info(<span class="hljs-string">"Time selected: "</span> + selected);
+            <span class="hljs-keyword">if</span> (tools.isDate(selected)) {
+                timeField.value = tools.timeDisplayString(selected);
+                currentTime.setHours(selected.getHours());
+                currentTime.setMinutes(selected.getMinutes());
+            }
+        },
+        currentTime
+    );
+
+    dateField.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        dateField.blur();
+        datepicker.show();
+        logger.info(<span class="hljs-string">"datepicker show"</span>);
+
+    });
+
+    timeField.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        timeField.blur();
+        logger.info(<span class="hljs-string">"timeField width: "</span> + timeField.rect.x);
+        timepicker.show();
+
+    });
+
+    <span class="hljs-comment">// row of date and time    </span>
+    <span class="hljs-keyword">var</span> dateTimeRow = createRow();
+    dateTimeRow.add(dateField);
+    dateTimeRow.add(timeField);
+    tableView.appendRow(dateTimeRow);
+
+    <span class="hljs-keyword">var</span> odometerLabel = ui.Label(<span class="hljs-string">'input_prompt_odometer'</span>, {
+        left: <span class="hljs-number">165</span>,
+        width: <span class="hljs-number">45</span>,
+        top: ROW_LABEL_PADDING,
+    });
+    <span class="hljs-keyword">var</span> odometerField = ui.TextField(<span class="hljs-string">''</span>, {
+        value: odometerValue ? odometerValue : <span class="hljs-string">''</span>,
+        hintText: L(<span class="hljs-string">'input_hint_odometer'</span>),
+        keyboardType: Ti.UI.KEYBOARD_NUMBER_PAD,
+        left: <span class="hljs-number">210</span>,
+        width: <span class="hljs-number">100</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> priceLabel = ui.Label(<span class="hljs-string">'input_prompt_price'</span>, {
+        left: <span class="hljs-number">165</span>,
+        width: <span class="hljs-number">45</span>,
+        top: ROW_LABEL_PADDING,
+    });
+    <span class="hljs-keyword">var</span> priceField = ui.TextField(<span class="hljs-string">''</span>, {
+        value: priceValue ? priceValue.toFixed(<span class="hljs-number">2</span>) : <span class="hljs-string">''</span>,
+        hintText: L(<span class="hljs-string">'input_hint_price'</span>),
+        keyboardType: Ti.UI.KEYBOARD_DECIMAL_PAD,
+        left: <span class="hljs-number">210</span>,
+        width: <span class="hljs-number">100</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> yuanLabel = ui.Label(<span class="hljs-string">'input_prompt_yuan'</span>, {
+        left: <span class="hljs-number">165</span>,
+        width: <span class="hljs-number">45</span>,
+        top: ROW_LABEL_PADDING,
+    });
+    yuanField = ui.TextField(<span class="hljs-string">''</span>, {
+        value: yuanValue ? yuanValue.toFixed(<span class="hljs-number">2</span>) : <span class="hljs-string">''</span>,
+        keyboardType: Ti.UI.KEYBOARD_DECIMAL_PAD,
+        left: <span class="hljs-number">210</span>,
+        width: <span class="hljs-number">100</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> cubageLabel = ui.Label(<span class="hljs-string">'input_prompt_cubage'</span>, {
+        left: <span class="hljs-number">165</span>,
+        width: <span class="hljs-number">45</span>,
+        top: ROW_LABEL_PADDING,
+    });
+    cubageField = ui.TextField(<span class="hljs-string">''</span>, {
+        value: cubageValue ? cubageValue.toFixed(<span class="hljs-number">2</span>) : <span class="hljs-string">''</span>,
+        keyboardType: Ti.UI.KEYBOARD_DECIMAL_PAD,
+        left: <span class="hljs-number">210</span>,
+        width: <span class="hljs-number">100</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> ImageSwitchButton = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/ImageSwitchButton'</span>);
+
+    <span class="hljs-keyword">var</span> gassupSwitch = <span class="hljs-keyword">new</span> ImageSwitchButton(
+            gassup,
+            <span class="hljs-string">'/images/switch_button_gass_up_on.png'</span>, 
+            <span class="hljs-string">'/images/switch_button_gass_up_off.png'</span>,
+            <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(on)</span> </span>{
+                gassup = on;
+                logger.info(<span class="hljs-string">'gassup value: '</span> + gassup);
+                remarkField.blur();
+                odometerField.blur();
+                priceField.blur();
+                yuanField.blur();
+                cubageField.blur();
+                stationField.blur();
+            });
+    gassupSwitch.left = <span class="hljs-number">10</span>;
+    gassupSwitch.top = ROW_SWITCH_PADDING;
+    gassupSwitch.bottom = ROW_SWITCH_PADDING;
+
+    <span class="hljs-keyword">var</span> lightSwitch = <span class="hljs-keyword">new</span> ImageSwitchButton(
+            lightOn,
+            <span class="hljs-string">'/images/switch_button_light_on.png'</span>, 
+            <span class="hljs-string">'/images/switch_button_light_off.png'</span>,
+            <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(on)</span> </span>{
+                lightOn = on;
+                logger.info(<span class="hljs-string">'lightSwitch value: '</span> + lightOn);
+                 remarkField.blur();
+                odometerField.blur();
+                priceField.blur();
+                yuanField.blur();
+                cubageField.blur();
+                stationField.blur();
+            });
+    lightSwitch.left = <span class="hljs-number">10</span>;
+    lightSwitch.top = ROW_SWITCH_PADDING;
+    lightSwitch.bottom = ROW_SWITCH_PADDING;
+
+    <span class="hljs-keyword">var</span> forgetSwitch = <span class="hljs-keyword">new</span> ImageSwitchButton(
+            forgetLastTime,
+            <span class="hljs-string">'/images/switch_button_forget_last_time_yes.png'</span>, 
+            <span class="hljs-string">'/images/switch_button_forget_last_time_no.png'</span>,
+            <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(on)</span> </span>{
+                forgetLastTime = on;
+                logger.info(<span class="hljs-string">'forgetLastTime value: '</span> + forgetLastTime);
+                remarkField.blur();
+                odometerField.blur();
+                priceField.blur();
+                yuanField.blur();
+                cubageField.blur();
+                stationField.blur();
+            });
+    forgetSwitch.left = <span class="hljs-number">10</span>;
+    forgetSwitch.top = ROW_SWITCH_PADDING;
+    forgetSwitch.bottom = ROW_SWITCH_PADDING;
+
+    <span class="hljs-keyword">var</span> row2 = createRow();
+    row2.add(gassupSwitch);
+    row2.add(odometerLabel);
+    row2.add(odometerField);
+    tableView.appendRow(row2);
+
+    <span class="hljs-keyword">var</span> row3 = createRow();
+    row3.add(lightSwitch);
+    row3.add(priceLabel);
+    row3.add(priceField);
+    tableView.appendRow(row3);
+
+    <span class="hljs-keyword">var</span> row4 = createRow();
+    row4.add(forgetSwitch);
+    row4.add(yuanLabel);
+    row4.add(yuanField);
+    tableView.appendRow(row4);
+
+    countTime(<span class="hljs-string">'row4 created'</span>);
+
+    <span class="hljs-keyword">var</span> oilTypeField = ui.TextField(L(oilTypeValue), {
+        left: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">145</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> oilTypeTitles = [L(<span class="hljs-string">'q90'</span>), L(<span class="hljs-string">'q92'</span>), L(<span class="hljs-string">'q93'</span>),
+        L(<span class="hljs-string">'q95'</span>), L(<span class="hljs-string">'q97'</span>), L(<span class="hljs-string">'q98'</span>), L(<span class="hljs-string">'y93'</span>), L(<span class="hljs-string">'y95'</span>), 
+        L(<span class="hljs-string">'y97'</span>), L(<span class="hljs-string">'c0'</span>), L(<span class="hljs-string">'c10'</span>), L(<span class="hljs-string">'c20'</span>), L(<span class="hljs-string">'c35'</span>)];
+    <span class="hljs-keyword">var</span> oilTypeValues = [<span class="hljs-string">'q90'</span>, <span class="hljs-string">'q92'</span>, <span class="hljs-string">'q93'</span>, <span class="hljs-string">'q95'</span>, <span class="hljs-string">'q97'</span>, <span class="hljs-string">'q98'</span>, 
+        <span class="hljs-string">'y93'</span>, <span class="hljs-string">'y95'</span>, <span class="hljs-string">'y97'</span>, <span class="hljs-string">'c0'</span>, <span class="hljs-string">'c10'</span>, <span class="hljs-string">'c20'</span>, <span class="hljs-string">'c35'</span>];
+
+
+    <span class="hljs-keyword">var</span> typepicker = <span class="hljs-keyword">new</span> SimplePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+            <span class="hljs-comment">// logger.info("Item selected: " + selected.title + "/" + selected.value);</span>
+            oilTypeField.value = selected.title;
+            oilTypeValue = selected.value;
+        },
+        oilTypeTitles,
+        oilTypeValues,
+        oilTypeValue
+    );
+
+    oilTypeField.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        oilTypeField.blur();
+        logger.warn(<span class="hljs-string">'show oil type picker'</span>);
+        typepicker.show();
+    });
+
+    <span class="hljs-keyword">var</span> row5 = createRow();
+    row5.add(oilTypeField);
+    row5.add(cubageLabel);
+    row5.add(cubageField);
+    tableView.appendRow(row5);
+
+    <span class="hljs-comment">// station</span>
+    <span class="hljs-keyword">var</span> stationId = -<span class="hljs-number">1456168797</span>;
+    <span class="hljs-keyword">var</span> stationUserCreated = <span class="hljs-keyword">true</span>;
+    <span class="hljs-keyword">var</span> stationObj = {
+        id: -<span class="hljs-number">1</span>,
+        userCreated: <span class="hljs-keyword">true</span>,
+        name: L(<span class="hljs-string">'no_station_specified'</span>),
+        city: <span class="hljs-string">''</span>,    <span class="hljs-comment">// the following fields ensure the record is accepted by Android version</span>
+        address: <span class="hljs-string">''</span>,
+        ePoiType: <span class="hljs-number">0</span>,
+        phoneNum: <span class="hljs-string">''</span>,
+        postCode: <span class="hljs-string">''</span>,
+        latitudeE6: <span class="hljs-number">0</span>,
+        longitudeE6: <span class="hljs-number">0</span>,
+        timeStamp: (<span class="hljs-keyword">new</span> Date()).getTime()
+    };
+    <span class="hljs-keyword">try</span> {
+        stationObj = JSON.parse(stationValue);
+    } <span class="hljs-keyword">catch</span>(e) {
+        <span class="hljs-comment">// be silent</span>
+    }
+
+    <span class="hljs-keyword">var</span> stationField = ui.TextField(stationObj.name, {
+        left: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">300</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        hintText: L(<span class="hljs-string">'input_hint_station'</span>),
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+     <span class="hljs-keyword">var</span> historicalStations = RecordDAO.getAllStations();
+
+    <span class="hljs-keyword">var</span> row6 = createRow();
+    <span class="hljs-keyword">if</span> (historicalStations.length &gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">var</span> historicalStationBtn = ui.Button({
+            top: ROW_FIELD_PADDING,
+            bottom: ROW_FIELD_PADDING,
+            left: <span class="hljs-number">10</span>,
+            height: <span class="hljs-number">30</span>,
+            width: <span class="hljs-number">60</span>
+        });
+        <span class="hljs-keyword">var</span> historicalStationImageView = Ti.UI.createImageView({
+            image: <span class="hljs-string">'images/more.png'</span>,
+            left: <span class="hljs-number">15</span>,
+        });
+        historicalStationBtn.add(historicalStationImageView);
+        row6.add(historicalStationBtn);
+
+        stationField.width = <span class="hljs-number">230</span>;
+        stationField.left = <span class="hljs-number">80</span>;
+
+        <span class="hljs-keyword">var</span> stationPicker = <span class="hljs-keyword">new</span> SimplePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+                <span class="hljs-comment">// logger.info("Item selected: " + selected.title + "/" + selected.value);</span>
+                stationField.value = selected.title;
+            },
+            historicalStations,
+            historicalStations,
+            historicalStations[<span class="hljs-number">0</span>]
+        );
+
+        historicalStationBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            stationPicker.show();
+        });
+
+    }
+    row6.add(stationField);
+    tableView.appendRow(row6);
+
+    countTime(<span class="hljs-string">'row6 created'</span>);
+
+    <span class="hljs-comment">// <span class="hljs-doctag">TODO:</span> use TextArea instead</span>
+    <span class="hljs-keyword">var</span> remarkField = ui.TextField(remarkValue, {
+        left: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">300</span>,
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        hintText: L(<span class="hljs-string">'input_hint_remark'</span>),
+        font: INPUT_FONT,
+        color: INPUT_COLOR,
+    });
+
+    <span class="hljs-keyword">var</span> row7 = createRow();
+    row7.add(remarkField);
+    tableView.appendRow(row7);
+
+    tableView.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        remarkField.blur();
+        odometerField.blur();
+        priceField.blur();
+        yuanField.blur();
+        cubageField.blur();
+        stationField.blur();
+    });
+
+     priceField.addEventListener(<span class="hljs-string">'blur'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">if</span>(lastModified != <span class="hljs-string">'price'</span>){
+            lastLastModified = lastModified;
+            lastModified = <span class="hljs-string">'price'</span>;
+        }
+        logger.info(<span class="hljs-string">'priceField value: '</span> + priceField.getValue() + <span class="hljs-string">':'</span>+ lastModified + <span class="hljs-string">':'</span> + lastLastModified);
+
+        <span class="hljs-keyword">if</span> (tools.isNumber(priceField.getValue())) {
+            <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'cubage'</span> &amp;&amp; tools.isNumber(cubageField.getValue())){
+                yuanField.setValue((cubageField.getValue()*priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+            }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'yuan'</span> &amp;&amp; tools.isNumber(yuanField.getValue())){
+                cubageField.setValue((yuanField.getValue()/priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+            }
+        }       
+    });    
+
+     cubageField.addEventListener(<span class="hljs-string">'blur'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-keyword">if</span>(lastModified != <span class="hljs-string">'cubage'</span>){
+            lastLastModified = lastModified;
+            lastModified = <span class="hljs-string">'cubage'</span>;
+        }
+        logger.info(<span class="hljs-string">'cubageField value: '</span> + cubageField.getValue() + <span class="hljs-string">':'</span>+ lastModified + <span class="hljs-string">':'</span> + lastLastModified);
+
+        <span class="hljs-keyword">if</span> (tools.isNumber(cubageField.getValue())) {
+            <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'price'</span> &amp;&amp; tools.isNumber(priceField.getValue())){
+                yuanField.setValue((cubageField.getValue()*priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+            }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'yuan'</span> &amp;&amp; tools.isNumber(yuanField.getValue())){
+                priceField.setValue((yuanField.getValue()/cubageField.getValue()).toFixed(<span class="hljs-number">2</span>));
+            }
+        }    
+    });    
+
+     yuanField.addEventListener(<span class="hljs-string">'blur'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{        
+        <span class="hljs-keyword">if</span>(lastModified != <span class="hljs-string">'yuan'</span>){
+            lastLastModified = lastModified;
+            lastModified = <span class="hljs-string">'yuan'</span>;
+        }
+        logger.info(<span class="hljs-string">'yuanField value: '</span> + yuanField.getValue() + <span class="hljs-string">':'</span>+ lastModified + <span class="hljs-string">':'</span> + lastLastModified);
+
+        <span class="hljs-keyword">if</span> (tools.isNumber(yuanField.getValue())) {
+            <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'price'</span> &amp;&amp; tools.isNumber(priceField.getValue())){
+                cubageField.setValue((yuanField.getValue()/priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+            }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'cubage'</span> &amp;&amp; tools.isNumber(cubageField.getValue())){
+                priceField.setValue((yuanField.getValue()/cubageField.getValue()).toFixed(<span class="hljs-number">2</span>));
+            }
+        }
+    });    
+
+     saveButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+         <span class="hljs-keyword">var</span> hasError = <span class="hljs-keyword">false</span>;
+         <span class="hljs-keyword">if</span> (!tools.isNumber(odometerField.getValue())) {
+             logger.error(<span class="hljs-string">'odometerField is not number:'</span> + odometerField.getValue());
+             odometerField.borderColor = <span class="hljs-string">'red'</span>;
+             odometerField.focus();
+             hasError = <span class="hljs-keyword">true</span>;
+             showAlertDialog(L(<span class="hljs-string">'error_input_odometer_not_number'</span>));
+             <span class="hljs-keyword">return</span>;
+         }
+
+        <span class="hljs-keyword">var</span> records = RecordDAO.selectAllOfCar(carId);
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;records.length; i++) {
+
+            <span class="hljs-keyword">var</span> inputMili = currentTime.getTime();
+            <span class="hljs-keyword">var</span> inputOdometer = odometerField.getValue();
+            <span class="hljs-keyword">var</span> aRecordId = records[i].id;
+            <span class="hljs-keyword">var</span> aMili = records[i].when.getTime();
+            <span class="hljs-keyword">var</span> anOdometer = records[i].odometer;
+
+             <span class="hljs-keyword">if</span> ((recordId) &amp;&amp; (recordId == aRecordId)){
+                <span class="hljs-keyword">continue</span>; <span class="hljs-comment">// this is the record to update</span>
+            }
+
+            <span class="hljs-keyword">if</span> ( ((inputMili &lt;= aMili) &amp;&amp; (inputOdometer &gt;= anOdometer)) ||
+                 ((inputMili &gt;= aMili) &amp;&amp; (inputOdometer &lt;= anOdometer)) ) {
+                 odometerField.borderColor = <span class="hljs-string">'red'</span>;
+                 odometerField.focus();
+                 hasError = <span class="hljs-keyword">true</span>;
+                showAlertDialog(tools.formatString(
+                    L(<span class="hljs-string">'error_input_odometer_conflict_with_existing'</span>), 
+                    [
+                        tools.dateDisplayString(currentTime),
+                        inputOdometer,
+                        tools.dateDisplayString(records[i].when),
+                        anOdometer
+                    ]));
+
+                <span class="hljs-keyword">return</span>;
+            }
+        }
+
+         <span class="hljs-keyword">if</span> (!tools.isNumber(priceField.getValue())) {
+             priceField.borderColor = <span class="hljs-string">'red'</span>;
+             <span class="hljs-keyword">if</span> (!hasError) {
+                 priceField.focus();
+                 hasError = <span class="hljs-keyword">true</span>;
+                 showAlertDialog(L(<span class="hljs-string">'error_input_price_not_number'</span>));
+                 <span class="hljs-keyword">return</span>;
+             }
+         }
+
+         <span class="hljs-keyword">if</span> (!tools.isNumber(yuanField.getValue())) {
+             yuanField.borderColor = <span class="hljs-string">'red'</span>;
+             <span class="hljs-keyword">if</span> (!hasError) {
+                 yuanField.focus();
+                 hasError = <span class="hljs-keyword">true</span>;
+                 showAlertDialog(L(<span class="hljs-string">'error_input_yuan_not_number'</span>));
+                 <span class="hljs-keyword">return</span>;
+             }
+         }
+
+         <span class="hljs-keyword">if</span> (!hasError) {
+              <span class="hljs-keyword">var</span> record = <span class="hljs-keyword">new</span> Record();
+             record.setForgetLastTime(forgetLastTime ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>);
+             record.setGassUp(gassup ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>);
+             record.setLightOn(lightOn ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>);
+             record.setOdometer(odometerField.getValue());
+             record.setPrice(priceField.getValue());
+             record.setRemark(remarkField.getValue());
+             record.setType(oilTypeValue);
+             record.setWhen(currentTime);
+             record.setYuan(yuanField.getValue());
+             stationObj.name = stationField.getValue();
+             <span class="hljs-keyword">var</span> stationJsonStr = JSON.stringify(stationObj);
+             <span class="hljs-comment">// logger.warn('station: ' + stationJsonStr);</span>
+             record.setStation(stationJsonStr);
+             record.setCarId(carId); <span class="hljs-comment">// carid ?</span>
+             <span class="hljs-comment">// logger.info("Record contents: " + record.toString());</span>
+             <span class="hljs-keyword">if</span> (recordId) {
+                 record.setId(recordId);
+                 RecordDAO.update(record);
+             } <span class="hljs-keyword">else</span> {
+                 RecordDAO.create(record);
+                 setLastPrice4Car(carId, priceField.getValue());
+                 Ti.App.fireEvent(<span class="hljs-string">'app:auto_backup'</span>);
+             }
+             <span class="hljs-comment">// alert(L('message_save_success'));</span>
+             Ti.App.fireEvent(<span class="hljs-string">'app:data_updated'</span>);
+            <span class="hljs-keyword">self</span>.close();
+         }
+
+    });
+
+    countTime(<span class="hljs-string">'done'</span>);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createRow</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+        className: <span class="hljs-string">'forumEvent'</span>,
+        height: <span class="hljs-string">'auto'</span>,
+        <span class="hljs-comment">// height: ROW_HEIGHT,</span>
+        <span class="hljs-comment">// layout: 'horizontal',</span>
+        selectedBackgroundColor: <span class="hljs-string">'#385292'</span>,
+    });
+    <span class="hljs-keyword">return</span> row;
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getLastPrice4Car</span><span class="hljs-params">(carId)</span> </span>{
+    <span class="hljs-keyword">return</span> Ti.App.Properties.getDouble(constants.propertyName.last_fuel_price + carId, -<span class="hljs-number">1</span>);
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setLastPrice4Car</span><span class="hljs-params">(carId, price)</span> </span>{
+    Ti.App.Properties.setDouble(constants.propertyName.last_fuel_price + carId, price);
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showAlertDialog</span><span class="hljs-params">(msg, callback)</span> </span>{
+    <span class="hljs-keyword">var</span> alertDlg = Ti.UI.createAlertDialog({
+        message: msg
+    });
+    alertDlg.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">if</span> (callback <span class="hljs-keyword">instanceof</span> <span class="hljs-function"><span class="hljs-keyword">Function</span>) </span>{
+            callback();
+        }
+    });
+    alertDlg.show();
+};
+
+<span class="hljs-comment">/**********************************************
+ *
+ * export
+ *
+ *********************************************/</span>
+module.exports = ConsumptionInputWindow;
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 29th 2013, 10:21:13 pm">April 29th 2013</span>
+				by <span class='authorname'>Xiong Zhang</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>performance</span></li>
+					
+						<li><span class='tagname'>responsive</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>6 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Source code is below, in the first answer post.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 29th 2013, 10:28:52 pm">April 29th 2013</span>
+								by <span class='authorname'>Xiong Zhang</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>While you are on the right track with the level of detail you are giving and the code you are providing. I strongly recommend you use a service such as <a href="http:&#x2F;&#x2F;pastie.org&#x2F;">pastie.org</a> when you need to submit large portions of code.</p>
+<p>This will make the whole post easier to read and increase your chances of getting help.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 29th 2013, 10:29:28 pm">April 29th 2013</span>
+								by <span class='authorname'>Christian Brousseau</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Thanks a lot</p>
+<p>Here&#39;s the code <a href="http:&#x2F;&#x2F;pastie.org&#x2F;7740608">the full sorce code of ConsumptionInputWindow</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 29th 2013, 11:25:27 pm">April 29th 2013</span>
+								by <span class='authorname'>Xiong Zhang</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hello,</p>
+<p>Some comments:</p>
+<ul>
+<li>Just construct or show whatever you are going to see in the first screen. If you are generating stuff that will be shown in other pages, use lazy evaluation in terms of calculate it only if needed.</li>
+<li>The user is used to wait 15-30 seconds for something to happen, if you show an activity indicator.</li>
+<li>If you are downloading content from the web, it could take longer than 1.5 seconds, depending on the speed of your connection (i.e., you still need to show an activity indicator).</li>
+</ul>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 30th 2013, 1:34:59 am">April 30th 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>The 1.5 seconds I mentioned was not the time of constructing the window (i.e. new window()),  but the time from when I called &#39;open&#39; to when the call returned. It was the time of just showing a window which had been created and ready for showing.</p>
+<p>In other words, in what I demonstrated, Ti took up 1.5 seconds to draw 20 graphic widgets.</p>
+<p>Please be kindly help to check my code to see if any room for performance optimization.</p>
+<p>thanks</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 30th 2013, 2:44:38 am">April 30th 2013</span>
+								by <span class='authorname'>Xiong Zhang</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I managed to find out why the window open slowly: there were 4 picker created in the window constructor. </p>
+<p>But I can hardly understand why the code in the constructor would impact the open function. Was the constructor NOT called in new operator, but in open function? </p>
+<p>I open a new question here <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;151937&#x2F;window-not-initialized-until-it-is-open">Window NOT initialized until it is open?</a>. lock this one.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="May 3rd 2013, 1:22:09 pm">May 3rd 2013</span>
+								by <span class='authorname'>Xiong Zhang</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-261851">
+				
+						<section>
+							<p>Sorry, The source code is here</p>
+<p>&#x2F;<em>*
+ </em></p>
+<ul>
+<li>Consumption Input Window<br><em>
+</em>&#x2F;</li>
+</ul>
+<p>&#x2F;&#x2F; module constant variables<br>var ROW_HEIGHT = 60;<br>var ROW_LABEL_PADDING = 20;<br>var ROW_FIELD_PADDING = 15;<br>var ROW_SWITCH_PADDING = 10;</p>
+<p>var INPUT_FONT = {fontSize:14,fontWeight:&#39;bold&#39;, fontFamily:&#39;Arial&#39;};<br>var INPUT_COLOR = &#39;#576996&#39;;</p>
+<p>var ROW_FONT = {<br>    fontFamily : &#39;Arial&#39;,<br>    fontSize : 14,<br>    fontWeight : &#39;bold&#39;<br>};</p>
+<p>var Logger = require(&#39;&#x2F;common&#x2F;Logger&#39;);<br>var logger = new Logger(&#39;ConsumptionInputWindow&#39;);</p>
+<p>var tools = require(&#39;&#x2F;common&#x2F;tools&#39;);</p>
+<p>var theme = require(&#39;&#x2F;ui&#x2F;theme&#39;);<br>var ui = require(&#39;&#x2F;ui&#x2F;components&#39;);</p>
+<p>var constants = require(&#39;&#x2F;common&#x2F;Constants&#39;);</p>
+<p>var DatePicker = require(&#39;&#x2F;ui&#x2F;DatePicker&#39;);</p>
+<p>var TimePicker = require(&#39;&#x2F;ui&#x2F;TimePicker&#39;);</p>
+<p>var SimplePicker = require(&#39;&#x2F;common&#x2F;iOSSimplePicker&#39;);</p>
+<p>var RecordDAO = require(&#39;&#x2F;model&#x2F;RecordDAO&#39;);</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> timer = {
+    used: <span class="hljs-number">0</span>,
+    lastTime: (<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>()).getTime()
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">countTime</span>(<span class="hljs-params">tag</span>) </span>{
+    <span class="hljs-keyword">var</span> nowTime = (<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>()).getTime();
+    timer.used = nowTime - timer.lastTime;
+    timer.lastTime = nowTime;
+    logger.warn(<span class="hljs-string">'TIME USED: '</span> + tag + <span class="hljs-string">":"</span> + timer.used);
+};
+</code></pre><p>&#x2F;*</p>
+<ul>
+<li>main window</li>
+<li><p>*&#x2F;<br>function ConsumptionInputWindow(recordId) {</p>
+<p> countTime(&#39;begin&#39;);</p>
+<p> var Record = require(&#39;&#x2F;model&#x2F;Record&#39;);<br> var RecordDAO = require(&#39;&#x2F;model&#x2F;RecordDAO&#39;);<br> var Car = require(&#39;&#x2F;model&#x2F;Car&#39;);<br> var CarDAO = require(&#39;&#x2F;model&#x2F;CarDAO&#39;);<br> var OilType = require(&#39;&#x2F;model&#x2F;OilType&#39;);</p>
+<p> countTime(&#39;require&#39;);</p>
+<p> var winTitle = L(&#39;consumption_input&#39;);<br> if (!tools.isNull(recordId)) {</p>
+<pre><code class="hljs"> winTitle = L<span class="hljs-list">(<span class="hljs-quoted">'consumption_edit</span>')</span><span class="hljs-comment">;</span>
+</code></pre><p> }</p>
+<p> var self = new ui.Window({</p>
+<pre><code class="hljs"> title : winTitle,
+ layout: <span class="hljs-string">'vertical'</span>,
+ navBarHidden : Ti<span class="hljs-class">.Platform</span><span class="hljs-class">.osname</span> !== <span class="hljs-string">'iphone'</span>,
+ barColor : theme<span class="hljs-class">.appcLightGray</span>,
+ backgroundImage : theme.windowBackground
+</code></pre><p> });<br> self.error = 0;<br> self.errMsg = &#39;&#39;;</p>
+<p> var saveButton = Ti.UI.createButton({</p>
+<pre><code class="hljs"> title : <span class="hljs-function"><span class="hljs-title">L</span><span class="hljs-params">(<span class="hljs-string">'save'</span>)</span></span>,
+ style : Ti<span class="hljs-class">.UI</span><span class="hljs-class">.iPhone</span><span class="hljs-class">.SystemButtonStyle</span><span class="hljs-class">.BORDERED</span>
+</code></pre><p> });</p>
+<p> &#x2F;&#x2F; left button: cancel<br> var cancelButton = Ti.UI.createButton({</p>
+<pre><code class="hljs"> title : <span class="hljs-function"><span class="hljs-title">L</span><span class="hljs-params">(<span class="hljs-string">'cancel'</span>)</span></span>,
+ style : Ti<span class="hljs-class">.UI</span><span class="hljs-class">.iPhone</span><span class="hljs-class">.SystemButtonStyle</span><span class="hljs-class">.BORDERED</span>
+</code></pre><p> });</p>
+<p> cancelButton.addEventListener(&#39;click&#39;, function() {</p>
+<pre><code class="hljs"> <span class="hljs-keyword">self</span>.close();
+</code></pre><p> });</p>
+<p> var label = Ti.UI.createButton({</p>
+<pre><code class="hljs"> title : winTitle,
+ style : Titanium<span class="hljs-class">.UI</span><span class="hljs-class">.iPhone</span><span class="hljs-class">.SystemButtonStyle</span><span class="hljs-class">.PLAIN</span>, 
+</code></pre><p> });<br> var flexSpace = Titanium.UI.createButton({</p>
+<pre><code class="hljs"> <span class="hljs-tag">systemButton</span><span class="hljs-pseudo">:Titanium</span><span class="hljs-class">.UI</span><span class="hljs-class">.iPhone</span><span class="hljs-class">.SystemButton</span><span class="hljs-class">.FLEXIBLE_SPACE</span>
+</code></pre><p> });</p>
+<p> &#x2F;&#x2F; create and add toolbar<br> var toolbar = Titanium.UI.iOS.createToolbar({</p>
+<pre><code class="hljs"> <span class="hljs-tag">items</span>:<span class="hljs-attr_selector">[cancelButton, flexSpace,label, flexSpace,saveButton]</span>,
+ <span class="hljs-tag">top</span><span class="hljs-pseudo">:0</span>,
+ <span class="hljs-tag">barColor</span><span class="hljs-pseudo">:theme</span><span class="hljs-class">.appcLightGray</span>,
+ <span class="hljs-tag">borderTop</span><span class="hljs-pseudo">:false</span>,
+ <span class="hljs-tag">borderBottom</span><span class="hljs-pseudo">:true</span>
+</code></pre><p> });<br> self.add(toolbar);</p>
+<p> countTime(&#39;window initialized&#39;);</p>
+<p>  var tableView = Ti.UI.createTableView({<br>  });</p>
+<p>  self.add(tableView);</p>
+</li>
+</ul>
+<pre><code class="hljs"><span class="hljs-comment">// default values    </span>
+<span class="hljs-keyword">var</span> currentTime = <span class="hljs-keyword">new</span> Date();
+<span class="hljs-keyword">var</span> odometerValue = <span class="hljs-keyword">null</span>;
+<span class="hljs-keyword">var</span> priceValue = <span class="hljs-keyword">null</span>;
+<span class="hljs-keyword">var</span> yuanValue = <span class="hljs-keyword">null</span>;
+<span class="hljs-keyword">var</span> cubageValue = <span class="hljs-keyword">null</span>;
+<span class="hljs-keyword">var</span> gassup = <span class="hljs-keyword">false</span>;
+<span class="hljs-keyword">var</span> lightOn = <span class="hljs-keyword">false</span>; <span class="hljs-comment">// 1: on, others: off</span>
+<span class="hljs-keyword">var</span> forgetLastTime = <span class="hljs-keyword">false</span>;
+<span class="hljs-keyword">var</span> oilTypeValue = <span class="hljs-string">'q93'</span>;
+<span class="hljs-keyword">var</span> stationValue = <span class="hljs-string">''</span>;
+<span class="hljs-keyword">var</span> remarkValue = <span class="hljs-string">''</span>;
+<span class="hljs-keyword">var</span> carId = -<span class="hljs-number">1</span>;
+
+<span class="hljs-keyword">var</span> lastModified = <span class="hljs-string">''</span>; <span class="hljs-comment">// yuan or cubage, used to auto calculate yuan or cubage</span>
+<span class="hljs-keyword">var</span> lastLastModified = <span class="hljs-string">''</span>;<span class="hljs-comment">//used to change the same field again;</span>
+<span class="hljs-keyword">var</span> record = <span class="hljs-keyword">null</span>;
+
+<span class="hljs-keyword">var</span> car = CarDAO.getSelected();
+<span class="hljs-keyword">if</span> (car == <span class="hljs-keyword">null</span>) {
+    showAlertDialog(L(<span class="hljs-string">'hint_use_carmgt_to_define_car'</span>));
+    <span class="hljs-keyword">self</span>.error = <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">self</span>.errMsg = L(<span class="hljs-string">'hint_use_carmgt_to_define_car'</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+}
+carId = car.getId();
+
+
+<span class="hljs-keyword">if</span> (recordId) {
+    record = RecordDAO.get(recordId);
+    currentTime = record.getWhen();
+    odometerValue = record.getOdometer();
+    priceValue = record.getPrice();
+    yuanValue = record.getYuan();
+    cubageValue = (yuanValue / priceValue).toFixed(<span class="hljs-number">2</span>);
+    gassup = record.getGassUp() &gt; <span class="hljs-number">0</span> ? <span class="hljs-keyword">true</span> : <span class="hljs-keyword">false</span>;
+    lightOn = record.getLightOn() &gt; <span class="hljs-number">0</span> ? <span class="hljs-keyword">true</span> : <span class="hljs-keyword">false</span>;
+    forgetLastTime = record.getForgetLastTime() &gt; <span class="hljs-number">0</span> ? <span class="hljs-keyword">true</span> : <span class="hljs-keyword">false</span>;
+    stationValue = record.getStation();
+    oilTypeValue = record.getType();
+    remarkValue = record.getRemark();
+    carId = record.getCarId();
+} <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">var</span> lastRec = RecordDAO.getLatestOfCar(carId);
+    <span class="hljs-keyword">if</span>(lastRec){
+        oilTypeValue = lastRec.getType();
+    }
+    <span class="hljs-comment">// get last price for new record</span>
+    priceValue = getLastPrice4Car(carId);
+    <span class="hljs-keyword">if</span> (priceValue &lt;= <span class="hljs-number">0</span>) {
+        priceValue = <span class="hljs-keyword">null</span>;
+    } <span class="hljs-keyword">else</span> {
+        lastModified = <span class="hljs-string">'price'</span>;
+    }
+}
+
+<span class="hljs-comment">// date input field</span>
+<span class="hljs-keyword">var</span> dateField = ui.TextField(tools.dateDisplayString(currentTime), {
+    left: <span class="hljs-number">10</span>,
+    width: <span class="hljs-number">145</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> timeField = ui.TextField(tools.timeDisplayString(currentTime), {
+    left: <span class="hljs-number">210</span>,
+    width: <span class="hljs-number">100</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> datepicker = <span class="hljs-keyword">new</span> DatePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+        logger.info(<span class="hljs-string">"Date selected: "</span> + selected);
+        <span class="hljs-keyword">if</span> (tools.isDate(selected)) {
+            dateField.value = tools.dateDisplayString(selected);
+            currentTime.setDate(selected.getDate());
+            currentTime.setMonth(selected.getMonth());
+            currentTime.setFullYear(selected.getFullYear());
+        }
+    },
+    <span class="hljs-keyword">new</span> Date(<span class="hljs-number">2000</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>),
+    <span class="hljs-keyword">new</span> Date(<span class="hljs-number">2030</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>),
+    currentTime
+);
+
+<span class="hljs-keyword">var</span> timepicker = <span class="hljs-keyword">new</span> TimePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+        logger.info(<span class="hljs-string">"Time selected: "</span> + selected);
+        <span class="hljs-keyword">if</span> (tools.isDate(selected)) {
+            timeField.value = tools.timeDisplayString(selected);
+            currentTime.setHours(selected.getHours());
+            currentTime.setMinutes(selected.getMinutes());
+        }
+    },
+    currentTime
+);
+
+dateField.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    dateField.blur();
+    datepicker.show();
+    logger.info(<span class="hljs-string">"datepicker show"</span>);
+
+});
+
+timeField.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    timeField.blur();
+    logger.info(<span class="hljs-string">"timeField width: "</span> + timeField.rect.x);
+    timepicker.show();
+
+});
+
+<span class="hljs-comment">// row of date and time    </span>
+<span class="hljs-keyword">var</span> dateTimeRow = createRow();
+dateTimeRow.add(dateField);
+dateTimeRow.add(timeField);
+tableView.appendRow(dateTimeRow);
+
+<span class="hljs-keyword">var</span> odometerLabel = ui.Label(<span class="hljs-string">'input_prompt_odometer'</span>, {
+    left: <span class="hljs-number">165</span>,
+    width: <span class="hljs-number">45</span>,
+    top: ROW_LABEL_PADDING,
+});
+<span class="hljs-keyword">var</span> odometerField = ui.TextField(<span class="hljs-string">''</span>, {
+    value: odometerValue ? odometerValue : <span class="hljs-string">''</span>,
+    hintText: L(<span class="hljs-string">'input_hint_odometer'</span>),
+    keyboardType: Ti.UI.KEYBOARD_NUMBER_PAD,
+    left: <span class="hljs-number">210</span>,
+    width: <span class="hljs-number">100</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> priceLabel = ui.Label(<span class="hljs-string">'input_prompt_price'</span>, {
+    left: <span class="hljs-number">165</span>,
+    width: <span class="hljs-number">45</span>,
+    top: ROW_LABEL_PADDING,
+});
+<span class="hljs-keyword">var</span> priceField = ui.TextField(<span class="hljs-string">''</span>, {
+    value: priceValue ? priceValue.toFixed(<span class="hljs-number">2</span>) : <span class="hljs-string">''</span>,
+    hintText: L(<span class="hljs-string">'input_hint_price'</span>),
+    keyboardType: Ti.UI.KEYBOARD_DECIMAL_PAD,
+    left: <span class="hljs-number">210</span>,
+    width: <span class="hljs-number">100</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> yuanLabel = ui.Label(<span class="hljs-string">'input_prompt_yuan'</span>, {
+    left: <span class="hljs-number">165</span>,
+    width: <span class="hljs-number">45</span>,
+    top: ROW_LABEL_PADDING,
+});
+yuanField = ui.TextField(<span class="hljs-string">''</span>, {
+    value: yuanValue ? yuanValue.toFixed(<span class="hljs-number">2</span>) : <span class="hljs-string">''</span>,
+    keyboardType: Ti.UI.KEYBOARD_DECIMAL_PAD,
+    left: <span class="hljs-number">210</span>,
+    width: <span class="hljs-number">100</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> cubageLabel = ui.Label(<span class="hljs-string">'input_prompt_cubage'</span>, {
+    left: <span class="hljs-number">165</span>,
+    width: <span class="hljs-number">45</span>,
+    top: ROW_LABEL_PADDING,
+});
+cubageField = ui.TextField(<span class="hljs-string">''</span>, {
+    value: cubageValue ? cubageValue.toFixed(<span class="hljs-number">2</span>) : <span class="hljs-string">''</span>,
+    keyboardType: Ti.UI.KEYBOARD_DECIMAL_PAD,
+    left: <span class="hljs-number">210</span>,
+    width: <span class="hljs-number">100</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> ImageSwitchButton = <span class="hljs-keyword">require</span>(<span class="hljs-string">'/ui/ImageSwitchButton'</span>);
+
+<span class="hljs-keyword">var</span> gassupSwitch = <span class="hljs-keyword">new</span> ImageSwitchButton(
+        gassup,
+        <span class="hljs-string">'/images/switch_button_gass_up_on.png'</span>, 
+        <span class="hljs-string">'/images/switch_button_gass_up_off.png'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(on)</span> </span>{
+            gassup = on;
+            logger.info(<span class="hljs-string">'gassup value: '</span> + gassup);
+            remarkField.blur();
+            odometerField.blur();
+            priceField.blur();
+            yuanField.blur();
+            cubageField.blur();
+            stationField.blur();
+        });
+gassupSwitch.left = <span class="hljs-number">10</span>;
+gassupSwitch.top = ROW_SWITCH_PADDING;
+gassupSwitch.bottom = ROW_SWITCH_PADDING;
+
+<span class="hljs-keyword">var</span> lightSwitch = <span class="hljs-keyword">new</span> ImageSwitchButton(
+        lightOn,
+        <span class="hljs-string">'/images/switch_button_light_on.png'</span>, 
+        <span class="hljs-string">'/images/switch_button_light_off.png'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(on)</span> </span>{
+            lightOn = on;
+            logger.info(<span class="hljs-string">'lightSwitch value: '</span> + lightOn);
+             remarkField.blur();
+            odometerField.blur();
+            priceField.blur();
+            yuanField.blur();
+            cubageField.blur();
+            stationField.blur();
+        });
+lightSwitch.left = <span class="hljs-number">10</span>;
+lightSwitch.top = ROW_SWITCH_PADDING;
+lightSwitch.bottom = ROW_SWITCH_PADDING;
+
+<span class="hljs-keyword">var</span> forgetSwitch = <span class="hljs-keyword">new</span> ImageSwitchButton(
+        forgetLastTime,
+        <span class="hljs-string">'/images/switch_button_forget_last_time_yes.png'</span>, 
+        <span class="hljs-string">'/images/switch_button_forget_last_time_no.png'</span>,
+        <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(on)</span> </span>{
+            forgetLastTime = on;
+            logger.info(<span class="hljs-string">'forgetLastTime value: '</span> + forgetLastTime);
+            remarkField.blur();
+            odometerField.blur();
+            priceField.blur();
+            yuanField.blur();
+            cubageField.blur();
+            stationField.blur();
+        });
+forgetSwitch.left = <span class="hljs-number">10</span>;
+forgetSwitch.top = ROW_SWITCH_PADDING;
+forgetSwitch.bottom = ROW_SWITCH_PADDING;
+
+<span class="hljs-keyword">var</span> row2 = createRow();
+row2.add(gassupSwitch);
+row2.add(odometerLabel);
+row2.add(odometerField);
+tableView.appendRow(row2);
+
+<span class="hljs-keyword">var</span> row3 = createRow();
+row3.add(lightSwitch);
+row3.add(priceLabel);
+row3.add(priceField);
+tableView.appendRow(row3);
+
+<span class="hljs-keyword">var</span> row4 = createRow();
+row4.add(forgetSwitch);
+row4.add(yuanLabel);
+row4.add(yuanField);
+tableView.appendRow(row4);
+
+countTime(<span class="hljs-string">'row4 created'</span>);
+
+<span class="hljs-keyword">var</span> oilTypeField = ui.TextField(L(oilTypeValue), {
+    left: <span class="hljs-number">10</span>,
+    width: <span class="hljs-number">145</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> oilTypeTitles = [L(<span class="hljs-string">'q90'</span>), L(<span class="hljs-string">'q92'</span>), L(<span class="hljs-string">'q93'</span>),
+    L(<span class="hljs-string">'q95'</span>), L(<span class="hljs-string">'q97'</span>), L(<span class="hljs-string">'q98'</span>), L(<span class="hljs-string">'y93'</span>), L(<span class="hljs-string">'y95'</span>), 
+    L(<span class="hljs-string">'y97'</span>), L(<span class="hljs-string">'c0'</span>), L(<span class="hljs-string">'c10'</span>), L(<span class="hljs-string">'c20'</span>), L(<span class="hljs-string">'c35'</span>)];
+<span class="hljs-keyword">var</span> oilTypeValues = [<span class="hljs-string">'q90'</span>, <span class="hljs-string">'q92'</span>, <span class="hljs-string">'q93'</span>, <span class="hljs-string">'q95'</span>, <span class="hljs-string">'q97'</span>, <span class="hljs-string">'q98'</span>, 
+    <span class="hljs-string">'y93'</span>, <span class="hljs-string">'y95'</span>, <span class="hljs-string">'y97'</span>, <span class="hljs-string">'c0'</span>, <span class="hljs-string">'c10'</span>, <span class="hljs-string">'c20'</span>, <span class="hljs-string">'c35'</span>];
+
+
+<span class="hljs-keyword">var</span> typepicker = <span class="hljs-keyword">new</span> SimplePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+        <span class="hljs-comment">// logger.info("Item selected: " + selected.title + "/" + selected.value);</span>
+        oilTypeField.value = selected.title;
+        oilTypeValue = selected.value;
+    },
+    oilTypeTitles,
+    oilTypeValues,
+    oilTypeValue
+);
+
+oilTypeField.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    oilTypeField.blur();
+    logger.warn(<span class="hljs-string">'show oil type picker'</span>);
+    typepicker.show();
+});
+
+<span class="hljs-keyword">var</span> row5 = createRow();
+row5.add(oilTypeField);
+row5.add(cubageLabel);
+row5.add(cubageField);
+tableView.appendRow(row5);
+
+<span class="hljs-comment">// station</span>
+<span class="hljs-keyword">var</span> stationId = -<span class="hljs-number">1456168797</span>;
+<span class="hljs-keyword">var</span> stationUserCreated = <span class="hljs-keyword">true</span>;
+<span class="hljs-keyword">var</span> stationObj = {
+    id: -<span class="hljs-number">1</span>,
+    userCreated: <span class="hljs-keyword">true</span>,
+    name: L(<span class="hljs-string">'no_station_specified'</span>),
+    city: <span class="hljs-string">''</span>,    <span class="hljs-comment">// the following fields ensure the record is accepted by Android version</span>
+    address: <span class="hljs-string">''</span>,
+    ePoiType: <span class="hljs-number">0</span>,
+    phoneNum: <span class="hljs-string">''</span>,
+    postCode: <span class="hljs-string">''</span>,
+    latitudeE6: <span class="hljs-number">0</span>,
+    longitudeE6: <span class="hljs-number">0</span>,
+    timeStamp: (<span class="hljs-keyword">new</span> Date()).getTime()
+};
+<span class="hljs-keyword">try</span> {
+    stationObj = JSON.parse(stationValue);
+} <span class="hljs-keyword">catch</span>(e) {
+    <span class="hljs-comment">// be silent</span>
+}
+
+<span class="hljs-keyword">var</span> stationField = ui.TextField(stationObj.name, {
+    left: <span class="hljs-number">10</span>,
+    width: <span class="hljs-number">300</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    hintText: L(<span class="hljs-string">'input_hint_station'</span>),
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+ <span class="hljs-keyword">var</span> historicalStations = RecordDAO.getAllStations();
+
+<span class="hljs-keyword">var</span> row6 = createRow();
+<span class="hljs-keyword">if</span> (historicalStations.length &gt; <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">var</span> historicalStationBtn = ui.Button({
+        top: ROW_FIELD_PADDING,
+        bottom: ROW_FIELD_PADDING,
+        left: <span class="hljs-number">10</span>,
+        height: <span class="hljs-number">30</span>,
+        width: <span class="hljs-number">60</span>
+    });
+    <span class="hljs-keyword">var</span> historicalStationImageView = Ti.UI.createImageView({
+        image: <span class="hljs-string">'images/more.png'</span>,
+        left: <span class="hljs-number">15</span>,
+    });
+    historicalStationBtn.add(historicalStationImageView);
+    row6.add(historicalStationBtn);
+
+    stationField.width = <span class="hljs-number">230</span>;
+    stationField.left = <span class="hljs-number">80</span>;
+
+    <span class="hljs-keyword">var</span> stationPicker = <span class="hljs-keyword">new</span> SimplePicker(<span class="hljs-keyword">self</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(selected)</span> </span>{
+            <span class="hljs-comment">// logger.info("Item selected: " + selected.title + "/" + selected.value);</span>
+            stationField.value = selected.title;
+        },
+        historicalStations,
+        historicalStations,
+        historicalStations[<span class="hljs-number">0</span>]
+    );
+
+    historicalStationBtn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        stationPicker.show();
+    });
+
+}
+row6.add(stationField);
+tableView.appendRow(row6);
+
+countTime(<span class="hljs-string">'row6 created'</span>);
+
+<span class="hljs-comment">// <span class="hljs-doctag">TODO:</span> use TextArea instead</span>
+<span class="hljs-keyword">var</span> remarkField = ui.TextField(remarkValue, {
+    left: <span class="hljs-number">10</span>,
+    width: <span class="hljs-number">300</span>,
+    top: ROW_FIELD_PADDING,
+    bottom: ROW_FIELD_PADDING,
+    hintText: L(<span class="hljs-string">'input_hint_remark'</span>),
+    font: INPUT_FONT,
+    color: INPUT_COLOR,
+});
+
+<span class="hljs-keyword">var</span> row7 = createRow();
+row7.add(remarkField);
+tableView.appendRow(row7);
+
+tableView.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    remarkField.blur();
+    odometerField.blur();
+    priceField.blur();
+    yuanField.blur();
+    cubageField.blur();
+    stationField.blur();
+});
+
+ priceField.addEventListener(<span class="hljs-string">'blur'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">if</span>(lastModified != <span class="hljs-string">'price'</span>){
+        lastLastModified = lastModified;
+        lastModified = <span class="hljs-string">'price'</span>;
+    }
+    logger.info(<span class="hljs-string">'priceField value: '</span> + priceField.getValue() + <span class="hljs-string">':'</span>+ lastModified + <span class="hljs-string">':'</span> + lastLastModified);
+
+    <span class="hljs-keyword">if</span> (tools.isNumber(priceField.getValue())) {
+        <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'cubage'</span> &amp;&amp; tools.isNumber(cubageField.getValue())){
+            yuanField.setValue((cubageField.getValue()*priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+        }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'yuan'</span> &amp;&amp; tools.isNumber(yuanField.getValue())){
+            cubageField.setValue((yuanField.getValue()/priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+        }
+    }       
+});    
+
+ cubageField.addEventListener(<span class="hljs-string">'blur'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-keyword">if</span>(lastModified != <span class="hljs-string">'cubage'</span>){
+        lastLastModified = lastModified;
+        lastModified = <span class="hljs-string">'cubage'</span>;
+    }
+    logger.info(<span class="hljs-string">'cubageField value: '</span> + cubageField.getValue() + <span class="hljs-string">':'</span>+ lastModified + <span class="hljs-string">':'</span> + lastLastModified);
+
+    <span class="hljs-keyword">if</span> (tools.isNumber(cubageField.getValue())) {
+        <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'price'</span> &amp;&amp; tools.isNumber(priceField.getValue())){
+            yuanField.setValue((cubageField.getValue()*priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+        }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'yuan'</span> &amp;&amp; tools.isNumber(yuanField.getValue())){
+            priceField.setValue((yuanField.getValue()/cubageField.getValue()).toFixed(<span class="hljs-number">2</span>));
+        }
+    }    
+});    
+
+ yuanField.addEventListener(<span class="hljs-string">'blur'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{        
+    <span class="hljs-keyword">if</span>(lastModified != <span class="hljs-string">'yuan'</span>){
+        lastLastModified = lastModified;
+        lastModified = <span class="hljs-string">'yuan'</span>;
+    }
+    logger.info(<span class="hljs-string">'yuanField value: '</span> + yuanField.getValue() + <span class="hljs-string">':'</span>+ lastModified + <span class="hljs-string">':'</span> + lastLastModified);
+
+    <span class="hljs-keyword">if</span> (tools.isNumber(yuanField.getValue())) {
+        <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'price'</span> &amp;&amp; tools.isNumber(priceField.getValue())){
+            cubageField.setValue((yuanField.getValue()/priceField.getValue()).toFixed(<span class="hljs-number">2</span>));
+        }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(lastLastModified == <span class="hljs-string">'cubage'</span> &amp;&amp; tools.isNumber(cubageField.getValue())){
+            priceField.setValue((yuanField.getValue()/cubageField.getValue()).toFixed(<span class="hljs-number">2</span>));
+        }
+    }
+});    
+
+ saveButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+     <span class="hljs-keyword">var</span> hasError = <span class="hljs-keyword">false</span>;
+     <span class="hljs-keyword">if</span> (!tools.isNumber(odometerField.getValue())) {
+         logger.error(<span class="hljs-string">'odometerField is not number:'</span> + odometerField.getValue());
+         odometerField.borderColor = <span class="hljs-string">'red'</span>;
+         odometerField.focus();
+         hasError = <span class="hljs-keyword">true</span>;
+         showAlertDialog(L(<span class="hljs-string">'error_input_odometer_not_number'</span>));
+         <span class="hljs-keyword">return</span>;
+     }
+
+    <span class="hljs-keyword">var</span> records = RecordDAO.selectAllOfCar(carId);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;records.length; i++) {
+
+        <span class="hljs-keyword">var</span> inputMili = currentTime.getTime();
+        <span class="hljs-keyword">var</span> inputOdometer = odometerField.getValue();
+        <span class="hljs-keyword">var</span> aRecordId = records[i].id;
+        <span class="hljs-keyword">var</span> aMili = records[i].when.getTime();
+        <span class="hljs-keyword">var</span> anOdometer = records[i].odometer;
+
+         <span class="hljs-keyword">if</span> ((recordId) &amp;&amp; (recordId == aRecordId)){
+            <span class="hljs-keyword">continue</span>; <span class="hljs-comment">// this is the record to update</span>
+        }
+
+        <span class="hljs-keyword">if</span> ( ((inputMili &lt;= aMili) &amp;&amp; (inputOdometer &gt;= anOdometer)) ||
+             ((inputMili &gt;= aMili) &amp;&amp; (inputOdometer &lt;= anOdometer)) ) {
+             odometerField.borderColor = <span class="hljs-string">'red'</span>;
+             odometerField.focus();
+             hasError = <span class="hljs-keyword">true</span>;
+            showAlertDialog(tools.formatString(
+                L(<span class="hljs-string">'error_input_odometer_conflict_with_existing'</span>), 
+                [
+                    tools.dateDisplayString(currentTime),
+                    inputOdometer,
+                    tools.dateDisplayString(records[i].when),
+                    anOdometer
+                ]));
+
+            <span class="hljs-keyword">return</span>;
+        }
+    }
+
+     <span class="hljs-keyword">if</span> (!tools.isNumber(priceField.getValue())) {
+         priceField.borderColor = <span class="hljs-string">'red'</span>;
+         <span class="hljs-keyword">if</span> (!hasError) {
+             priceField.focus();
+             hasError = <span class="hljs-keyword">true</span>;
+             showAlertDialog(L(<span class="hljs-string">'error_input_price_not_number'</span>));
+             <span class="hljs-keyword">return</span>;
+         }
+     }
+
+     <span class="hljs-keyword">if</span> (!tools.isNumber(yuanField.getValue())) {
+         yuanField.borderColor = <span class="hljs-string">'red'</span>;
+         <span class="hljs-keyword">if</span> (!hasError) {
+             yuanField.focus();
+             hasError = <span class="hljs-keyword">true</span>;
+             showAlertDialog(L(<span class="hljs-string">'error_input_yuan_not_number'</span>));
+             <span class="hljs-keyword">return</span>;
+         }
+     }
+
+     <span class="hljs-keyword">if</span> (!hasError) {
+          <span class="hljs-keyword">var</span> record = <span class="hljs-keyword">new</span> Record();
+         record.setForgetLastTime(forgetLastTime ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>);
+         record.setGassUp(gassup ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>);
+         record.setLightOn(lightOn ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>);
+         record.setOdometer(odometerField.getValue());
+         record.setPrice(priceField.getValue());
+         record.setRemark(remarkField.getValue());
+         record.setType(oilTypeValue);
+         record.setWhen(currentTime);
+         record.setYuan(yuanField.getValue());
+         stationObj.name = stationField.getValue();
+         <span class="hljs-keyword">var</span> stationJsonStr = JSON.stringify(stationObj);
+         <span class="hljs-comment">// logger.warn('station: ' + stationJsonStr);</span>
+         record.setStation(stationJsonStr);
+         record.setCarId(carId); <span class="hljs-comment">// carid ?</span>
+         <span class="hljs-comment">// logger.info("Record contents: " + record.toString());</span>
+         <span class="hljs-keyword">if</span> (recordId) {
+             record.setId(recordId);
+             RecordDAO.update(record);
+         } <span class="hljs-keyword">else</span> {
+             RecordDAO.create(record);
+             setLastPrice4Car(carId, priceField.getValue());
+             Ti.App.fireEvent(<span class="hljs-string">'app:auto_backup'</span>);
+         }
+         <span class="hljs-comment">// alert(L('message_save_success'));</span>
+         Ti.App.fireEvent(<span class="hljs-string">'app:data_updated'</span>);
+        <span class="hljs-keyword">self</span>.close();
+     }
+
+});
+
+countTime(<span class="hljs-string">'done'</span>);
+
+<span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+</code></pre><p>}</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createRow</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+        className: <span class="hljs-string">'forumEvent'</span>,
+        height: <span class="hljs-string">'auto'</span>,
+        <span class="hljs-comment">// height: ROW_HEIGHT,</span>
+        <span class="hljs-comment">// layout: 'horizontal',</span>
+        selectedBackgroundColor: <span class="hljs-string">'#385292'</span>,
+    });
+
+    <span class="hljs-keyword">return</span> row;
+
+};
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getLastPrice4Car</span>(<span class="hljs-params">carId</span>) </span>{
+    <span class="hljs-keyword">return</span> Ti.App.Properties.getDouble(constants.propertyName.last_fuel_price + carId, -<span class="hljs-number">1</span>);
+};
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setLastPrice4Car</span>(<span class="hljs-params">carId, price</span>) </span>{
+
+    Ti.App.Properties.setDouble(constants.propertyName.last_fuel_price + carId, price);
+
+};
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showAlertDialog</span>(<span class="hljs-params">msg, callback</span>) </span>{
+
+    <span class="hljs-keyword">var</span> alertDlg = Ti.UI.createAlertDialog({
+        message: msg
+    });
+
+    alertDlg.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">if</span> (callback <span class="hljs-keyword">instanceof</span> <span class="hljs-built_in">Function</span>) {
+            callback();
+        }
+    });
+
+    alertDlg.show();
+
+};
+
+
+
+<span class="hljs-comment">/**
+    * exports
+   */</span>
+
+<span class="hljs-built_in">module</span>.exports = ConsumptionInputWindow;
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 29th 2013, 10:27:45 pm">April 29th 2013</span>
+								by <span class='authorname'>Xiong Zhang</span><br>
+								<a class="icon-bg icon-link" href="question/151746/ask-help-for-unacceptable-ti-ui-performance-nearly-15-seconds-to-open-a-ui-with-20-widgets#answer-261851" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Don&#39;t want to be rude or anything like that, but I can&#39;t read this from top to bottom.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 29th 2013, 10:30:53 pm">April 29th 2013</span>
+											by <span class='authorname'>Christian Brousseau</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>use pastebin.com for a code dump like this…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 29th 2013, 11:13:49 pm">April 29th 2013</span>
+											by <span class='authorname'>Mark Henderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Here&#39;s the code <a href="http:&#x2F;&#x2F;pastie.org&#x2F;7740608">the full sorce code of ConsumptionInputWindow</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 29th 2013, 11:25:52 pm">April 29th 2013</span>
+											by <span class='authorname'>Xiong Zhang</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

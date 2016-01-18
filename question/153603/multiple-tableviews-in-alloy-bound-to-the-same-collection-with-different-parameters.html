@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Multiple TableViews in Alloy bound to the same Collection, with different parameters » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Multiple TableViews in Alloy bound to the same Collection, with different parameters</h1>
+		</header>
+		<section>
+			<p>Hi! I&#39;ve built a few custom sync providers for my Alloy app. In one instance I have an asset sync provider, and I pass different URL parameters to my JSON API by using the <code>data</code> option in the <code>fetch()</code> function of my asset collection… hope that makes sense.</p>
+<p>The problem is that I have two views: view A asks for data filtered using method 1, view B uses the same collection but filters it using data from method 2. But because both views are bound to the same collection, they both repopulate with data when the collection has finished fetching.</p>
+<p>How can I isolate my views so that they only react to changes in the collection that concerns them? Should I being using separate sync providers, or is there a better way of passing instructions to Backbone to filter the data?</p>
+<p>Here&#39;s an example of my sync provider (it&#39;s not comprehensive, just to keep things as brief as possible):</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> http = <span class="hljs-built_in">require</span>(<span class="hljs-string">'http'</span>);
+<span class="hljs-built_in">module</span>.exports.sync = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">method, model, options</span>) </span>{
+    <span class="hljs-keyword">var</span> payload = model.toJSON();
+    <span class="hljs-keyword">var</span> error, qs;
+
+    <span class="hljs-comment">/* Filtering stuff */</span>
+    qs = <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">typeof</span> options.data == <span class="hljs-string">'object'</span>) {
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> k <span class="hljs-keyword">in</span> options.data) {
+            qs += <span class="hljs-string">'&amp;'</span> + k + <span class="hljs-string">'='</span> + Ti.Network.encodeURIComponent(options.data[k]);
+        }
+    }
+    <span class="hljs-comment">/* End of filtering stuff */</span>
+
+    <span class="hljs-keyword">switch</span>(method) {
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'read'</span>:
+            <span class="hljs-keyword">if</span> (payload[model.idAttribute]) {
+                http.request(<span class="hljs-string">'GET'</span>,
+                    <span class="hljs-built_in">String</span>.format(<span class="hljs-string">'%s/%d.json?%s'</span>,
+                        <span class="hljs-built_in">module</span>._baseURL, payload[model.idAttribute], qs
+                    ),
+                    <span class="hljs-literal">null</span>, callback
+                );
+            } <span class="hljs-keyword">else</span> {
+                http.request(<span class="hljs-string">'GET'</span>,
+                    <span class="hljs-built_in">String</span>.format(<span class="hljs-string">'%s.json?%s'</span>,
+                        <span class="hljs-built_in">module</span>._baseURL, qs
+                    ),
+                    <span class="hljs-literal">null</span>, callback
+                );
+            }    
+
+            <span class="hljs-keyword">break</span>;
+    };
+};
+</code></pre><p>My controllers then fetch data in the following way:</p>
+<pre><code class="hljs">assets.fetch(
+    {
+        data: {
+            favourited: <span class="hljs-string">'true'</span>
+        },
+        success: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+            ...
+        }
+    }
+);
+</code></pre><p>… or in another instance…</p>
+<pre><code class="hljs"><span class="hljs-tag">assets</span><span class="hljs-class">.fetch</span>(
+    {
+        <span class="hljs-tag">data</span>: {
+            <span class="hljs-attribute">rpp</span>: <span class="hljs-number">5</span>,
+            <span class="hljs-attribute">order</span>: <span class="hljs-string">'?'</span>
+        }
+    }
+);
+</code></pre><p>the <code>data</code> option then gets turned into <code>options.data</code> in my sync provider, which then turns it into a querystring that it passes to my JSON API. So my problem again is that two views which are asking for different data from the same collection (ie: a collection defined in each view XML file) are both updating when either data set changes.</p>
+<p>Just how wrong have I got this? How should I define or use collections in my views - or elsewhere - to stop this happening? Can I give each collection an ID so that each view is bound only to that specific instance, or do I need a different collection for each query?</p>
+<p>Thanks!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 13th 2013, 1:31:53 pm">June 13th 2013</span>
+				by <span class='authorname'>Mark Steadman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>datacollection</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-264292">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>If you bind multiple views to a single instance of a collection, this is going to be unavoidable. Since you don&#39;t actually want them to be holding the same data, could you not just use a separate instance of the collection for each view that uses its own distinct query? </p>
+<p>You could possibly do this with a single collection if you had all the data present in the collection and were filtering client-side, but this doesn&#39;t sound like what you are doing, or like something that would suit your app. It seems a separate collection for each makes th emost sense here.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 14th 2013, 11:09:22 am">June 14th 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/153603/multiple-tableviews-in-alloy-bound-to-the-same-collection-with-different-parameters#answer-264292" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Tony. I&#39;ve been defining my collections in the view XML, which I&#39;d assumed was creating a new instance of the collection per controller, which doesn&#39;t seem to be the case. If I created instantiated the collection in my controller JavaScript, I wouldn&#39;t be able to bind that to my view XML file, because it needs a corresponding <code>collection</code> tag, I think.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 14th 2013, 11:36:46 am">June 14th 2013</span>
+											by <span class='authorname'>Mark Steadman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The &lt;collection&gt; element is just shorthand for creating a collection. You haven&#39;t shown the XML so I&#39;m not entirely sure how you are using it. You can just as easily create the collections programmatically and use them. Would help to see more of how you are actually using them.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 14th 2013, 11:43:58 am">June 14th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK, thanks. I wonder whether my problem is that I&#39;m using <code>Alloy.Collections.asset</code> which is taken from a global list, rather than using <code>Alloy.createCollection</code> in code.</p>
+<p>So if I were to remove the &lt;collection&gt; tag and do it programmatically, how would I refer to that collection within my XML (via the <code>dataCollection</code> property?) Would it be the name of the variable that I create?</p>
+<p>Thanks. Sorry, I imagine some of this is quite rudimentary, but I couldn&#39;t find answers in the docs (I know they&#39;re a bit sparse as this is still a young project, so I&#39;m not complaining!)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 14th 2013, 11:53:25 am">June 14th 2013</span>
+											by <span class='authorname'>Mark Steadman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If you create 2 global collections, like in your &quot;app&#x2F;alloy.js&quot; file for example, you can reference them simply by name. Here&#39;s a basic example:</p>
+<h3 id="app-x2f-alloy-js">app&#x2F;alloy.js</h3>
+<pre><code class="hljs"><span class="hljs-comment">// globally accessible</span>
+Alloy.Collections.asset = Alloy.createCollection(<span class="hljs-string">'asset'</span>);
+Alloy.Collections.asset2 = Alloy.createCollection(<span class="hljs-string">'asset'</span>);
+</code></pre><h3 id="somecontroller-xml">someController.xml</h3>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-comment">&lt;!-- this would reference Alloy.Collections.asset --&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">dataCollection</span>=<span class="hljs-value">"asset"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span>/&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="June 14th 2013, 12:24:20 pm">June 14th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That makes sense thanks, but what happens if I need to display items in a window that are filtered by a value a user enters? I&#39;ll give you a bit of context.</p>
+<p>I&#39;ve got an app that lists objects by category. You tap a category, and see the objects inside it. The objects come from a collection called <code>asset</code>. When you tap a category, you see the list of objects filtered by that collection ID.</p>
+<p>There&#39;s also a tab in my app called Favourites, which lists the user&#39;s favourite objects. This comes from the same <code>asset</code> collection, but is filtered with the querystring parameter <code>favourited=true</code>.</p>
+<p>Maybe it&#39;d be simpler to just have two collections, as you&#39;ve mentioned; one with the full list of assets, the other with the assets where <code>favourited</code> is <code>true</code>.</p>
+<p>That sounds like what you&#39;re suggesting, but please let me know if I&#39;ve got the wrong end of the stick!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 14th 2013, 12:28:31 pm">June 14th 2013</span>
+											by <span class='authorname'>Mark Steadman</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK, I think understand better now. Take a look at the <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;alloy&#x2F;tree&#x2F;master&#x2F;test&#x2F;apps&#x2F;models&#x2F;todo">todo test app from the github repo</a>. This app shows you how you can use the <code>dataTrasnform</code> property to represent a data bound collection differently depending on user interaction. It sounds like what you are trying to do.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 14th 2013, 12:51:35 pm">June 14th 2013</span>
+											by <span class='authorname'>Tony Lukasavage</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Great, thanks Tony.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 14th 2013, 1:06:01 pm">June 14th 2013</span>
+											by <span class='authorname'>Mark Steadman</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

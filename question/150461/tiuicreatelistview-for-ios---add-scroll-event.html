@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ti.UI.createListView for iOS - add &#34;scroll&#34; event » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ti.UI.createListView for iOS - add &#34;scroll&#34; event</h1>
+		</header>
+		<section>
+			<p>Dear ListView developers. </p>
+<p>Thank you for your great work, but could you also add UIScrollViewDelegate to ListView? </p>
+<p>We really need scroll event</p>
+<p>I can even help with implementation:</p>
+<p>TiUIListView.h</p>
+<pre><code class="hljs"><span class="hljs-annotation">@interface</span> <span class="hljs-string">TiUIListView :</span> TiUIView &lt;UITableViewDelegate, UIScrollViewDelegate,  UITableViewDataSource, UIGestureRecognizerDelegate, TiScrolling &gt;
+</code></pre><p>and TiUIListView.m </p>
+<pre><code class="hljs"><span class="hljs-preprocessor">#pragma Scroll View Delegate</span>
+
+- (<span class="hljs-built_in">NSDictionary</span> *) eventObjectForScrollView: (<span class="hljs-built_in">UIScrollView</span> *) scrollView
+{
+    <span class="hljs-keyword">return</span> [<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:
+            [TiUtils pointToDictionary:scrollView<span class="hljs-variable">.contentOffset</span>],<span class="hljs-string">@"contentOffset"</span>,
+            [TiUtils sizeToDictionary:scrollView<span class="hljs-variable">.contentSize</span>], <span class="hljs-string">@"contentSize"</span>,
+            [TiUtils sizeToDictionary:_tableView<span class="hljs-variable">.bounds</span><span class="hljs-variable">.size</span>], <span class="hljs-string">@"size"</span>,
+            <span class="hljs-literal">nil</span>];
+}
+
+- (<span class="hljs-keyword">void</span>)fireScrollEvent:(<span class="hljs-built_in">UIScrollView</span> *)scrollView {
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> _hasListeners:<span class="hljs-string">@"scroll"</span>])
+    {
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> fireEvent:<span class="hljs-string">@"scroll"</span> withObject:[<span class="hljs-keyword">self</span> eventObjectForScrollView:scrollView]];
+    }
+}
+
+- (<span class="hljs-keyword">void</span>)scrollViewDidScroll:(<span class="hljs-built_in">UIScrollView</span> *)scrollView
+{
+    <span class="hljs-keyword">if</span> (scrollView<span class="hljs-variable">.isDragging</span> || scrollView<span class="hljs-variable">.isDecelerating</span>)
+    {
+        [<span class="hljs-keyword">self</span> fireScrollEvent:scrollView];
+    }
+}
+
+- (<span class="hljs-keyword">void</span>)scrollViewDidScrollToTop:(<span class="hljs-built_in">UIScrollView</span> *)scrollView
+{
+    [<span class="hljs-keyword">self</span> fireScrollEvent:scrollView];
+
+}
+
+- (<span class="hljs-keyword">void</span>)scrollViewWillBeginDragging:(<span class="hljs-built_in">UIScrollView</span> *)scrollView
+{
+    <span class="hljs-keyword">if</span>([<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> _hasListeners:<span class="hljs-string">@"dragstart"</span>])
+    {
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> fireEvent:<span class="hljs-string">@"dragstart"</span> withObject:<span class="hljs-literal">nil</span>];
+    }
+}
+
+- (<span class="hljs-keyword">void</span>)scrollViewDidEndDragging:(<span class="hljs-built_in">UIScrollView</span> *)scrollView willDecelerate:(<span class="hljs-built_in">BOOL</span>)decelerate
+{
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> _hasListeners:<span class="hljs-string">@"dragend"</span>])
+    {
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> fireEvent:<span class="hljs-string">@"dragend"</span> withObject:[<span class="hljs-built_in">NSDictionary</span> dictionaryWithObjectsAndKeys:[<span class="hljs-built_in">NSNumber</span> numberWithBool:decelerate],<span class="hljs-string">@"decelerate"</span>,<span class="hljs-literal">nil</span>]]    ;
+    }
+}
+
+
+- (<span class="hljs-keyword">void</span>)scrollViewDidEndDecelerating:(<span class="hljs-built_in">UIScrollView</span> *)scrollView
+{
+    <span class="hljs-keyword">if</span> ([<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> _hasListeners:<span class="hljs-string">@"scrollend"</span>])
+    {
+        [<span class="hljs-keyword">self</span><span class="hljs-variable">.proxy</span> fireEvent:<span class="hljs-string">@"scrollend"</span> withObject:[<span class="hljs-keyword">self</span> eventObjectForScrollView:scrollView]];
+    }
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="April 4th 2013, 9:04:18 am">April 4th 2013</span>
+				by <span class='authorname'>Sergey Nosenko</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>listview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>You know, Titanium is open source, right?  I believe you can fork it and send a pull request once you&#39;ve done your stuff.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 4th 2013, 2:11:06 pm">April 4th 2013</span>
+								by <span class='authorname'>Paul Nelson</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Perfect, exactly what I was looking for. Now HeaderPullView and I am more than happy ;)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 4th 2013, 5:32:34 pm">April 4th 2013</span>
+								by <span class='authorname'>Danny Pham</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>with scroll event you can add pull to refresh very easy…</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> pull = <span class="hljs-keyword">new</span> PullToRefreshViewWrittenByYou({visible:<span class="hljs-literal">false</span>, top:-<span class="hljs-number">60</span>});
+listView.add(pull); <span class="hljs-comment">//listView is Ti.UI.View descendant so you can add views to it</span>
+listView.addEventListener(<span class="hljs-string">"scroll"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.contentOffset.y &lt; -<span class="hljs-number">5</span>) {
+        pull.show();
+        pull.top = <span class="hljs-number">60</span> - e.contentOffset.y;
+    }
+    <span class="hljs-comment">//... and so on...</span>
+}
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="April 4th 2013, 8:06:01 pm">April 4th 2013</span>
+								by <span class='authorname'>Sergey Nosenko</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>added pull request:<br>https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;titanium_mobile&#x2F;pull&#x2F;4086</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="April 5th 2013, 4:14:27 am">April 5th 2013</span>
+								by <span class='authorname'>Sergey Nosenko</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>4</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-260036">
+				
+						<section>
+							<p>Also we are looking for pullDownHeader… :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 4th 2013, 9:05:32 am">April 4th 2013</span>
+								by <span class='authorname'>Sergey Nosenko</span><br>
+								<a class="icon-bg icon-link" href="question/150461/tiuicreatelistview-for-ios---add-scroll-event#answer-260036" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-270057">
+				
+						<section>
+							<p>Thanks, i really need this functionality for an app. But if i copied your code to this 2 files ill get an error on building my application (Atfer Projekt Clean).</p>
+<p>The Error ist:</p>
+<p>Objects-normal&#x2F;i386&#x2F;TiUIListView.o Classes&#x2F;TiUIListView.m normal i386 objective-c com.apple.compilers.llvm.clang.1_0.compiler</p>
+<p>Not more Information. Can u help me please?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 16th 2013, 10:40:49 am">October 16th 2013</span>
+								by <span class='authorname'>Dieter Schäfer</span><br>
+								<a class="icon-bg icon-link" href="question/150461/tiuicreatelistview-for-ios---add-scroll-event#answer-270057" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Did you find a solution to this?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 14th 2014, 6:55:20 pm">January 14th 2014</span>
+											by <span class='authorname'>Tobias Høegh</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Removing</p>
+<pre><code class="hljs">[TiUtils sizeToDictionary:_tableView<span class="hljs-class">.bounds</span><span class="hljs-class">.size</span>], @<span class="hljs-string">"size"</span>,
+</code></pre><p>solves the problem. As a consequence, the <code>scroll</code> event won&#39;t have the <code>size</code> property, but you might not need this anyway.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 28th 2014, 12:16:53 pm">February 28th 2014</span>
+											by <span class='authorname'>Thomas Wiesen</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

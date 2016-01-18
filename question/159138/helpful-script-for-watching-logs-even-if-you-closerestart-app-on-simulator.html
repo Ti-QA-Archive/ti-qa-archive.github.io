@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Helpful script for watching logs even if you close/restart app on Simulator. » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Helpful script for watching logs even if you close/restart app on Simulator.</h1>
+		</header>
+		<section>
+			<p>I think this will be helpful to others. </p>
+<h3 id="intro">Intro</h3>
+<ul>
+<li>Building from <code>ti build</code> or Titanium Studio starts the logs..</li>
+<li>I will often close the app on the simulator make an js file change then reopen the app on the simulator (which will usually pick up the new change). </li>
+</ul>
+<h3 id="problem">Problem</h3>
+<p>Closing &amp; reopening the app on the simulator breaks the stdn link for the build in logger.py. </p>
+<h3 id="solution">Solution</h3>
+<p>This script will separate the log tailing from the app execution. You can close the app &amp; restart it and the <code>tail -f *.log</code> will just pick off where it was last</p>
+<h3 id="log-php-">log (php)</h3>
+<pre><code class="hljs"><span class="hljs-comment">#!/usr/bin/env php</span>
+
+<span class="hljs-preprocessor">&lt;?php</span>
+<span class="hljs-variable">$path</span> = <span class="hljs-string">'~/Library/Application\ Support/iPhone\ Simulator'</span>;
+<span class="hljs-variable">$sdk</span> = <span class="hljs-variable">$argv</span>[<span class="hljs-number">1</span>] ?: <span class="hljs-string">'7.0.3'</span>;
+<span class="hljs-variable">$ti</span> = <span class="hljs-keyword">new</span> SimpleXMLElement(file_get_contents(<span class="hljs-string">'tiapp.xml'</span>));
+<span class="hljs-variable">$ti</span>-&gt;registerXPathNamespace(<span class="hljs-string">'ti'</span>, <span class="hljs-string">'http://ti.appcelerator.org'</span>);
+
+<span class="hljs-variable">$ti</span> = <span class="hljs-variable">$ti</span>-&gt;xpath(<span class="hljs-string">'//ti:app'</span>);
+<span class="hljs-variable">$app_name</span> = (string)<span class="hljs-variable">$ti</span>[<span class="hljs-number">0</span>]-&gt;name;
+
+<span class="hljs-variable">$path</span> = <span class="hljs-string">"$path/$sdk/Applications"</span>;
+
+<span class="hljs-variable">$path</span> = str_replace(<span class="hljs-string">' '</span>, <span class="hljs-string">'\ '</span>, 
+    dirname(`find <span class="hljs-variable">$path</span> -name <span class="hljs-variable">$app_name</span>.app`)
+);
+
+<span class="hljs-variable">$path</span> = <span class="hljs-string">"$path/Documents/*.log"</span>;
+
+passthru(<span class="hljs-string">"tail -f $path | ./logger"</span>);
+</code></pre><h4 id="logger-php-">logger (php)</h4>
+<pre><code class="hljs"><span class="hljs-comment">#!/usr/bin/env php</span>
+
+<span class="hljs-preprocessor">&lt;?php</span>
+
+<span class="hljs-comment">//maps the different flag levels to a colors</span>
+<span class="hljs-comment">//TODO make $flags a constant</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">map</span><span class="hljs-params">(<span class="hljs-variable">$flag</span>)</span></span>{
+
+    <span class="hljs-variable">$flags</span> = <span class="hljs-keyword">array</span>(
+     <span class="hljs-string">'ERROR'</span> =&gt; <span class="hljs-string">"31;01m"</span>, <span class="hljs-comment">//red</span>
+     <span class="hljs-string">'INFO'</span> =&gt; <span class="hljs-string">"32;01m"</span>, <span class="hljs-comment">//green</span>
+     <span class="hljs-string">'WARNING'</span> =&gt; <span class="hljs-string">"33;01m"</span>, <span class="hljs-comment">//yellow</span>
+     <span class="hljs-string">'DEBUG'</span> =&gt; <span class="hljs-string">"34;01m"</span>, <span class="hljs-comment">//blue</span>
+    );
+
+    <span class="hljs-keyword">return</span> <span class="hljs-variable">$flags</span>[<span class="hljs-variable">$flag</span>];
+}
+
+<span class="hljs-comment">// $COL_MAGENTA=$ESC_SEQ"35;01m"</span>
+<span class="hljs-comment">// $COL_CYAN=$ESC_SEQ"36;01m"</span>
+
+<span class="hljs-comment">//format the colored text</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">color</span><span class="hljs-params">(<span class="hljs-variable">$flag</span>, <span class="hljs-variable">$txt</span>)</span></span>{
+    <span class="hljs-variable">$col</span> = map(<span class="hljs-variable">$flag</span>);
+    <span class="hljs-variable">$esc</span> = <span class="hljs-string">"\x1b["</span>;
+    <span class="hljs-variable">$reset</span> = <span class="hljs-variable">$esc</span>.<span class="hljs-string">"39;49;00m"</span>;
+     <span class="hljs-keyword">print</span>(<span class="hljs-variable">$esc</span>.<span class="hljs-variable">$col</span>.<span class="hljs-variable">$flag</span>.<span class="hljs-variable">$reset</span>.<span class="hljs-variable">$txt</span>);
+
+}
+
+<span class="hljs-comment">//check for flag</span>
+<span class="hljs-variable">$rgx</span> = <span class="hljs-string">'/\[(\w+)\](.+)$/'</span>;
+<span class="hljs-variable">$formatter</span> = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(<span class="hljs-variable">$m</span>)</span></span>{
+    <span class="hljs-variable">$flag</span> = <span class="hljs-variable">$m</span>[<span class="hljs-number">1</span>];
+    <span class="hljs-variable">$text</span> = <span class="hljs-variable">$m</span>[<span class="hljs-number">2</span>];
+    color( <span class="hljs-variable">$flag</span>, <span class="hljs-string">"\n$text\n\n"</span> );
+};
+
+<span class="hljs-comment">//stay open while stdin is going..</span>
+<span class="hljs-keyword">while</span>(<span class="hljs-variable">$f</span> = fgets(STDIN)){
+   preg_replace_callback(<span class="hljs-variable">$rgx</span>, <span class="hljs-variable">$formatter</span>, <span class="hljs-variable">$f</span>);
+}
+</code></pre><h3 id="result">Result</h3>
+<p><img src="http:&#x2F;&#x2F;note.io&#x2F;186sCct" alt="Detached iOS Simulator Output"></p>
+<h3 id="side-note">Side Note</h3>
+<p>It wouldn&#39;t be too hard to add a node command to titanium like <code>watch</code> to hit logger.py</p>
+<p>I&#39;m not a python developer so I made these two scripts<br>(really quickly. Feal free to give me improvements).</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 5th 2013, 7:46:13 pm">November 5th 2013</span>
+				by <span class='authorname'>Stephen Rhyne</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>logging</span></li>
+					
+						<li><span class='tagname'>restarting</span></li>
+					
+						<li><span class='tagname'>[debug]</span></li>
+					
+						<li><span class='tagname'>[info]</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>*a js file</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 5th 2013, 7:46:45 pm">November 5th 2013</span>
+								by <span class='authorname'>Stephen Rhyne</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><ul>
+<li>Put both files in your root project directory</li>
+<li>change the permissions to executables</li>
+<li><code>.&amp;#x2F;log</code></li>
+</ul>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 5th 2013, 7:48:50 pm">November 5th 2013</span>
+								by <span class='authorname'>Stephen Rhyne</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

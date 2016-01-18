@@ -1,0 +1,1003 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Ti.Network.Socket.createTCP File Download » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Ti.Network.Socket.createTCP File Download</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>Does anyone have a working code example demonstrating the ability to log into an ftp site and download a file.  I have found bits and pieces but no working end to end example.  Below is a code snippet of what I have been able to accomplish so far but I am unable to figure out how to code for the actual download…</p>
+<pre><code class="hljs">var socket = Ti.Network.Socket.createTCP({
+    host : <span class="hljs-string">'ftp.example.com'</span>,
+    port : <span class="hljs-number">21</span>,
+    user : <span class="hljs-string">'ftp_user'</span>,
+    pass : <span class="hljs-string">'ftp_pass'</span>,
+    connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+        Ti.API.info(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; connected to host &lt;"</span> + e.socket.host + <span class="hljs-string">"&gt;"</span>);
+
+        onConnected(e);
+    },
+    <span class="hljs-built_in">error</span> : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+        Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; encountered error when connecting"</span>);
+        Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">" error code &lt;"</span> + e.errorCode + <span class="hljs-string">"&gt;"</span>);
+        Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">" error description &lt;"</span> + e.<span class="hljs-built_in">error</span> + <span class="hljs-string">"&gt;"</span>);
+    }
+});
+
+socket.connect();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">writeCallback</span><span class="hljs-params">(e)</span></span> {
+    Ti.API.info(<span class="hljs-string">'Successfully wrote to socket. '</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">readCallback</span><span class="hljs-params">(e)</span></span> {
+    <span class="hljs-keyword">if</span> (e.bytesProcessed == -<span class="hljs-number">1</span>) {
+        // Error / EOF on socket. Do any cleanup here.
+        socket.close();
+        Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">'EOF on socket.'</span>);
+    }
+    try {
+        <span class="hljs-keyword">if</span> (e.buffer) {
+            var received = e.buffer.toString();
+            Ti.API.info(<span class="hljs-string">'Received: '</span> + received);
+
+            <span class="hljs-keyword">if</span> (received.length &gt; <span class="hljs-number">3</span> &amp;&amp; received.substring(<span class="hljs-number">0</span>, <span class="hljs-number">3</span>) == <span class="hljs-string">'227'</span>) {
+                port = getPort(received);
+                doDownload(port);
+            }
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">'Error: read callback called with no buffer!'</span>);
+        }
+    } catch (ex) {
+        Ti.API.<span class="hljs-built_in">error</span>(ex);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getPort</span><span class="hljs-params">(value)</span></span> {
+    var len = value.length;
+    var start = value.indexOf(<span class="hljs-string">'('</span>);
+    var <span class="hljs-keyword">end</span> = value.indexOf(<span class="hljs-string">')'</span>);
+    var newlen = <span class="hljs-keyword">end</span> - start;
+    var port = value.substr(start + <span class="hljs-number">1</span>, newlen - <span class="hljs-number">1</span>);
+    Ti.API.info(<span class="hljs-string">'Port: '</span> + port);
+
+    <span class="hljs-keyword">return</span> port;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onConnected</span><span class="hljs-params">(e)</span></span> {
+    Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-keyword">true</span>);
+
+    Ti.Stream.write(e.socket, Ti.createBuffer({
+        value : <span class="hljs-string">'USER '</span> + e.socket.user + <span class="hljs-string">'\r\n'</span> + <span class="hljs-string">'PASS '</span> + e.socket.pass + <span class="hljs-string">'\r\n'</span> + <span class="hljs-string">'PASV\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doDownload</span><span class="hljs-params">(port)</span></span> {
+    var newSocket = Ti.Network.Socket.createTCP({
+        host : <span class="hljs-string">'ftp.example.com'</span>,
+        port : <span class="hljs-number">21</span>,
+        user : <span class="hljs-string">'ftp_user'</span>,
+        pass : <span class="hljs-string">'ftp_pass'</span>,
+        connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+            Ti.API.info(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; connected to host &lt;"</span> + e.socket.host + <span class="hljs-string">"&gt;"</span>);
+
+            Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-keyword">true</span>);
+
+            Ti.Stream.write(e.socket, Ti.createBuffer({
+                value : <span class="hljs-string">'USER '</span> + socket.user + <span class="hljs-string">'\r\n'</span> + <span class="hljs-string">'PASS '</span> + socket.pass + <span class="hljs-string">'\r\n'</span> 
+                + <span class="hljs-string">'CWD Main/data\r\n'</span> 
+                + <span class="hljs-string">'PORT '</span> + port + <span class="hljs-string">'\n'</span> 
+                + <span class="hljs-string">'RETR temp.txt\r\n'</span>
+            }), writeCallback);
+        },
+        <span class="hljs-built_in">error</span> : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+            Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; encountered error when connecting"</span>);
+            Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">" error code &lt;"</span> + e.errorCode + <span class="hljs-string">"&gt;"</span>);
+            Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">" error description &lt;"</span> + e.<span class="hljs-built_in">error</span> + <span class="hljs-string">"&gt;"</span>);
+        }
+    });
+
+    newSocket.connect();
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 2nd 2013, 8:43:25 pm">October 2nd 2013</span>
+				by <span class='authorname'>Michael Crandall</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>appcelerator</span></li>
+					
+						<li><span class='tagname'>download</span></li>
+					
+						<li><span class='tagname'>socket</span></li>
+					
+						<li><span class='tagname'>tcp</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-270950">
+				
+						<section>
+							<p>Sorry this is not encapsulated with &#39;code&#39; markdown but the site doesn&#39;t appear to be working properly today:</p>
+<p>var ftphost = &#39;&lt;YOUR FTP SITE&gt;&#39;;<br>var portNum = 21;<br>var user = &#39;&lt;USERNAME&gt;&#39;;<br>var pw = &#39;&lt;PASSWORD&gt;&#39;;<br>var path = &#39;&#39;;<br>var uploadRootPath = &#39;&#x2F;yourpath&#x2F;uploads&#x2F;&#39;;<br>var downloadFile = &#39;yourfile.txt&#39;;<br>var isUpload = true;<br>var uploadData = &#39;&#39;;</p>
+<p>function writeCallback(e) {<br>    Ti.API.info(&#39;Successfully wrote to socket.&#39;);<br>}</p>
+<p>function readCallback(e) {<br>    if (e.bytesProcessed == -1) {<br>        &#x2F;&#x2F; Error &#x2F; EOF on socket. Do any cleanup here.<br>        try {<br>            e.source.close();<br>        } catch(ex) {<br>            &#x2F;&#x2F; suppess exception<br>        }<br>    }<br>    try {<br>        if (e.buffer) {<br>            var received = e.buffer.toString();<br>            Ti.API.info(&#39;Received: &#39; + received);</p>
+<pre><code class="hljs">        handleReceived(received, <span class="hljs-keyword">e</span>.source);
+    } <span class="hljs-keyword">else</span> {
+        Ti.API.<span class="hljs-keyword">error</span>('<span class="hljs-keyword">Error</span>: <span class="hljs-keyword">read</span> callback called with <span class="hljs-keyword">no</span> buffer!');
+        try {
+            <span class="hljs-keyword">e</span>.source.<span class="hljs-keyword">close</span>();
+        } catch(<span class="hljs-keyword">ex</span>) {
+            <span class="hljs-comment">// suppress exception</span>
+        }
+    }
+} catch (<span class="hljs-keyword">ex</span>) {
+    Ti.API.<span class="hljs-keyword">error</span>(['readCallback']);
+    Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-keyword">ex</span>);
+}
+</code></pre><p>}</p>
+<p>function readCallback2(e) {<br>    if (e.bytesProcessed == -1) {<br>        &#x2F;&#x2F; Error &#x2F; EOF on socket. Do any cleanup here.<br>        try {<br>            e.source.close();<br>        } catch(ex) {<br>            &#x2F;&#x2F; suppess exception<br>        }<br>    }<br>    try {<br>        if (e.buffer) {<br>            var received = e.buffer.toString();<br>            &#x2F;&#x2F;Ti.API.info(&#39;Received 2: &#39; + received);<br>            if (!isUpload) {<br>                var target = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, downloadFile);<br>                var append = received.substring(0, 1) != &#39;[&#39;;<br>                target.write(received, append);<br>            } else {<br>                Ti.API.info(&#39;Received 2: &#39; + received);<br>            }<br>        } else {<br>            &#x2F;&#x2F;Ti.API.error(&#39;Error: read callback called with no buffer!&#39;);<br>            try {<br>                e.source.close();<br>            } catch(ex) {<br>                &#x2F;&#x2F; suppress exception<br>            }<br>        }<br>    } catch (ex) {<br>        Ti.API.error([&#39;readCallback2&#39;]);<br>        Ti.API.error(ex);<br>    }<br>}</p>
+<p>function handleReceived(received, socket) {<br>    var code = received.substring(0, 3);</p>
+<pre><code class="hljs"><span class="hljs-keyword">switch</span> (code) {
+    <span class="hljs-keyword">case</span> <span class="hljs-string">'220'</span>:
+        sendLogin(socket);
+        <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> <span class="hljs-string">'331'</span>:
+        <span class="hljs-comment">// password required</span>
+        sendPass(socket);
+        <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> <span class="hljs-string">'230'</span>:
+        <span class="hljs-comment">// logged in</span>
+        sendPassive(socket);
+        <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> <span class="hljs-string">'227'</span>:
+        <span class="hljs-comment">// entered passive mode</span>
+        port = getPort(received);
+        Ti.API.info(<span class="hljs-string">'isUpload: '</span> + isUpload);
+
+        <span class="hljs-keyword">if</span> (isUpload) {
+            sendStor(socket);
+        } <span class="hljs-keyword">else</span> {
+            sendRetr(socket);
+        }
+
+        createNewSocket(port);
+        <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> <span class="hljs-string">'150'</span>:
+        Ti.API.info(<span class="hljs-string">'Retr command worked!'</span>);
+        <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> <span class="hljs-string">'226'</span>:
+        <span class="hljs-comment">// transfer complete</span>
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">source</span>.close();
+        } <span class="hljs-keyword">catch</span>(ex) {
+            <span class="hljs-comment">// suppress exception</span>
+        }
+        <span class="hljs-keyword">break</span>;
+}
+</code></pre><p>}</p>
+<p>function sendLogin(socket) {<br>    Ti.Stream.write(socket, Ti.createBuffer({<br>        value : &#39;USER &#39; + user + &#39;\r\n&#39;<br>    }), writeCallback);<br>}</p>
+<p>function sendPass(socket) {<br>    Ti.Stream.write(socket, Ti.createBuffer({<br>        value : &#39;PASS &#39; + pw + &#39;\r\n&#39;<br>    }), writeCallback);<br>}</p>
+<p>function sendPassive(socket) {<br>    Ti.Stream.write(socket, Ti.createBuffer({<br>        value : &#39;PASV\r\n&#39;<br>    }), writeCallback);<br>}</p>
+<p>function sendRetr(socket) {<br>    Ti.API.info(&#39;Sending retr request…&#39;);</p>
+<pre><code class="hljs"><span class="hljs-tag">Ti</span><span class="hljs-class">.Stream</span><span class="hljs-class">.write</span>(<span class="hljs-tag">socket</span>, <span class="hljs-tag">Ti</span><span class="hljs-class">.createBuffer</span>(<span class="hljs-rules">{
+    <span class="hljs-rule"><span class="hljs-attribute">value </span>:<span class="hljs-value"> <span class="hljs-string">'RETR '</span> + path + <span class="hljs-string">'\r\n'</span>
+</span></span></span>}), <span class="hljs-tag">writeCallback</span>);
+</code></pre><p>}</p>
+<p>function sendStor(socket) {<br>    Ti.API.info(&#39;Sending stor request…&#39;);</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> uuid = Ti.Platform.createUUID();
+<span class="hljs-keyword">var</span> uploadFileName = uuid + <span class="hljs-string">'.txt'</span>;
+
+Ti.Stream.write(socket, Ti.createBuffer({
+    <span class="hljs-keyword">value</span> : <span class="hljs-string">'STOR '</span> + uploadRootPath + uploadFileName + <span class="hljs-string">'\r\n'</span>
+}), writeCallback);
+</code></pre><p>}</p>
+<p>function getPort(value) {<br>    var len = value.length;<br>    var start = value.indexOf(&#39;(&#39;);<br>    var end = value.indexOf(&#39;)&#39;);<br>    var newlen = end - start;<br>    var port = value.substr(start + 1, newlen - 1);<br>    Ti.API.info(&#39;IP &amp; Port: &#39; + port);</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> arInfo = port.split(<span class="hljs-string">','</span>);
+<span class="hljs-keyword">var</span> portNum = arInfo[<span class="hljs-number">4</span>] * <span class="hljs-number">256</span> + <span class="hljs-built_in">parseInt</span>(arInfo[<span class="hljs-number">5</span>]);
+Ti.API.info(<span class="hljs-string">'port info: '</span> + portNum);
+
+<span class="hljs-keyword">return</span> portNum;
+</code></pre><p>}</p>
+<p>function createNewSocket(newPort) {<br>    newsocket = Ti.Network.Socket.createTCP({<br>        host : ftphost,<br>        port : newPort,<br>        connected : function(e) {<br>            Ti.API.info(&quot;Socket &lt;&quot; + e.socket + &quot;&gt; connected to host &lt;&quot; + e.socket.host + &quot;&gt;&quot;);</p>
+<pre><code class="hljs">        Ti.Stream.pump(<span class="hljs-keyword">e</span>.socket, readCallback2, 1024, true);
+
+        <span class="hljs-keyword">if</span> (isUpload) {
+            Ti.Stream.write(<span class="hljs-keyword">e</span>.socket, Ti.createBuffer({
+                value : uploadData
+            }), writeCallback);
+        }
+    },
+    <span class="hljs-keyword">error</span> : function(<span class="hljs-keyword">e</span>) {
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">"Socket &lt;"</span> + <span class="hljs-keyword">e</span>.socket + <span class="hljs-string">"&gt; encountered error when connecting"</span>);
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">" error code &lt;"</span> + <span class="hljs-keyword">e</span>.errorCode + <span class="hljs-string">"&gt;"</span>);
+        Ti.API.<span class="hljs-keyword">error</span>(<span class="hljs-string">" error description &lt;"</span> + <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span> + <span class="hljs-string">"&gt;"</span>);
+    }
+});
+
+newsocket.connect();
+</code></pre><p>}</p>
+<p>exports.FetchFileFtp = function(filePath) {<br>    path = filePath;<br>    isUpload = false;</p>
+<pre><code class="hljs">var socket = Ti.Network.Socket.createTCP({
+    host : ftphost,
+    port : portNum,
+    connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+        Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+        Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-keyword">true</span>);
+    },
+    <span class="hljs-built_in">error</span> : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span> {
+        Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.<span class="hljs-built_in">error</span>);
+    },
+});
+socket.connect();
+</code></pre><p>};</p>
+<p>exports.UploadFileFtp = function(dataToUpload, callback) {<br>    isUpload = true;<br>    uploadData = dataToUpload;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> socket = Ti.Network.Socket.createTCP({
+    host : ftphost,
+    port : portNum,
+    connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+        Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+    },
+    error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.error);
+    },
+});
+socket.connect();
+
+<span class="hljs-keyword">return</span> <span class="hljs-keyword">callback</span>(<span class="hljs-literal">null</span>);
+</code></pre><p>};</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 6th 2013, 2:04:03 pm">November 6th 2013</span>
+								by <span class='authorname'>Michael Crandall</span><br>
+								<a class="icon-bg icon-link" href="question/157964/tinetworksocketcreatetcp-file-download#answer-270950" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Code is working..!! Thank you, Michael..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 13th 2013, 7:33:54 am">November 13th 2013</span>
+											by <span class='authorname'>Nilesh Tripathi</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>for file uploading one problem is there i m calling function like this </p>
+<p>UploadFileFtp(uploadRootPath,readCallback);</p>
+<p>function UploadFileFtp(dataToUpload, callback){<br>    isUpload = true;<br>    uploadData = dataToUpload;</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> socket = Ti.Network.Socket.createTCP({
+    host : ftphost,
+    port : portNum,
+    connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+        Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+    },
+    error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.error);
+    }
+});
+socket.connect();
+
+<span class="hljs-keyword">callback</span>();
+</code></pre><p>}</p>
+<p>but file is not uploading properly in to the file server. please tell me how to call this one i m beginner in ftp kind of technology in titanium appcelerator</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 21st 2014, 9:39:10 am">February 21st 2014</span>
+											by <span class='authorname'>Mukesh Kumar</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>and sorry for my English</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 21st 2014, 9:39:16 am">February 21st 2014</span>
+											by <span class='authorname'>Mukesh Kumar</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>what would be the 1st and 2nd parameter here in UploadFileFtp(dataToUpload, callback); function</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 21st 2014, 9:52:16 am">February 21st 2014</span>
+											by <span class='authorname'>Mukesh Kumar</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>i did thanks allot</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 24th 2014, 8:07:29 am">February 24th 2014</span>
+											by <span class='authorname'>Mukesh Kumar</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>how to upload image type, video? give me some idea..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 24th 2014, 8:08:55 am">February 24th 2014</span>
+											by <span class='authorname'>Mukesh Kumar</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-269726">
+				
+						<section>
+							<p>SOLVED!!!</p>
+<p>Below is a prototype, notice the newsocket is where the data from the file actually comes in on.  I intentionally put a second readCallback function in to demonstrate this.  The key for me was figuring out that I actually send the RETR command on the first socket after the PASV command and not on the second socket.</p>
+<p>I hope this helps others.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ftphost = <span class="hljs-string">'ftp.example.com'</span>;
+<span class="hljs-keyword">var</span> portNum = <span class="hljs-number">21</span>;
+<span class="hljs-keyword">var</span> user = <span class="hljs-string">'ftp_user'</span>;
+<span class="hljs-keyword">var</span> pw = <span class="hljs-string">'ftp_pass'</span>;
+<span class="hljs-keyword">var</span> path = <span class="hljs-string">'/Main/data/mydata.txt'</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">writeCallback</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'Successfully wrote to socket.'</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">readCallback</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (e.bytesProcessed == -<span class="hljs-number">1</span>) {
+        <span class="hljs-comment">// Error / EOF on socket. Do any cleanup here.</span>
+        e.source.close();
+    }
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">if</span> (e.buffer) {
+            <span class="hljs-keyword">var</span> received = e.buffer.toString();
+            Ti.API.info(<span class="hljs-string">'Received: '</span> + received);
+
+            handleReceived(received, e.source);
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.error(<span class="hljs-string">'Error: read callback called with no buffer!'</span>);
+        }
+    } <span class="hljs-keyword">catch</span> (ex) {
+        Ti.API.error(ex);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">readCallback2</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">if</span> (e.bytesProcessed == -<span class="hljs-number">1</span>) {
+        <span class="hljs-comment">// Error / EOF on socket. Do any cleanup here.</span>
+        e.source.close();
+    }
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">if</span> (e.buffer) {
+            <span class="hljs-keyword">var</span> received = e.buffer.toString();
+            Ti.API.info(<span class="hljs-string">'Received 2: '</span> + received);
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.error(<span class="hljs-string">'Error: read callback called with no buffer!'</span>);
+        }
+    } <span class="hljs-keyword">catch</span> (ex) {
+        Ti.API.error(ex);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">handleReceived</span>(<span class="hljs-params">received, socket</span>) </span>{
+    <span class="hljs-keyword">var</span> code = received.substring(<span class="hljs-number">0</span>, <span class="hljs-number">3</span>);
+
+    <span class="hljs-keyword">switch</span> (code) {
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'220'</span>:
+            sendLogin(socket);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'331'</span>:
+            <span class="hljs-comment">// password required</span>
+            sendPass(socket);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'230'</span>:
+            <span class="hljs-comment">// logged in</span>
+            sendPassive(socket);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'227'</span>:
+            <span class="hljs-comment">// entered passive mode</span>
+            port = getPort(received);
+            sendRetr(socket);
+            createNewSocket(port);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'150'</span>:
+            Ti.API.info(<span class="hljs-string">'Retr command worked!'</span>);
+            <span class="hljs-keyword">break</span>;
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendLogin</span>(<span class="hljs-params">socket</span>) </span>{
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'USER '</span> + user + <span class="hljs-string">'\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendPass</span>(<span class="hljs-params">socket</span>) </span>{
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'PASS '</span> + pw + <span class="hljs-string">'\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendPassive</span>(<span class="hljs-params">socket</span>) </span>{
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'PASV\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendRetr</span>(<span class="hljs-params">socket</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'Sending retr request...'</span>);
+
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'RETR '</span> + path + <span class="hljs-string">'\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getPort</span>(<span class="hljs-params">value</span>) </span>{
+    <span class="hljs-keyword">var</span> len = value.length;
+    <span class="hljs-keyword">var</span> start = value.indexOf(<span class="hljs-string">'('</span>);
+    <span class="hljs-keyword">var</span> end = value.indexOf(<span class="hljs-string">')'</span>);
+    <span class="hljs-keyword">var</span> newlen = end - start;
+    <span class="hljs-keyword">var</span> port = value.substr(start + <span class="hljs-number">1</span>, newlen - <span class="hljs-number">1</span>);
+    Ti.API.info(<span class="hljs-string">'IP &amp; Port: '</span> + port);
+
+    <span class="hljs-keyword">var</span> arInfo = port.split(<span class="hljs-string">','</span>);
+    <span class="hljs-keyword">var</span> portNum = arInfo[<span class="hljs-number">4</span>] * <span class="hljs-number">256</span> + <span class="hljs-built_in">parseInt</span>(arInfo[<span class="hljs-number">5</span>]);
+    Ti.API.info(<span class="hljs-string">'port info: '</span> + portNum);
+
+    <span class="hljs-keyword">return</span> portNum;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createNewSocket</span>(<span class="hljs-params">newPort</span>) </span>{
+    newsocket = Ti.Network.Socket.createTCP({
+        host : ftphost,
+        port : newPort,
+        connected : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; connected to host &lt;"</span> + e.socket.host + <span class="hljs-string">"&gt;"</span>);
+
+            Ti.Stream.pump(e.socket, readCallback2, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+        },
+        error : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.error(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; encountered error when connecting"</span>);
+            Ti.API.error(<span class="hljs-string">" error code &lt;"</span> + e.errorCode + <span class="hljs-string">"&gt;"</span>);
+            Ti.API.error(<span class="hljs-string">" error description &lt;"</span> + e.error + <span class="hljs-string">"&gt;"</span>);
+        }
+    });
+
+    newsocket.connect();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onFetchFtpFile</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-keyword">var</span> socket = Ti.Network.Socket.createTCP({
+        host : ftphost,
+        port : portNum,
+        connected : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+            Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+        },
+        error : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.error);
+        },
+    });
+    socket.connect();
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 7th 2013, 9:27:13 pm">October 7th 2013</span>
+								by <span class='authorname'>Michael Crandall</span><br>
+								<a class="icon-bg icon-link" href="question/157964/tinetworksocketcreatetcp-file-download#answer-269726" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Michael,</p>
+<p>Thank you for this code snippet.<br>But Can you suggest a code to upload a file to server through ftp. I am new bee to titanium.</p>
+<p>Thank you so much in advance.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 8th 2013, 5:17:06 am">October 8th 2013</span>
+											by <span class='authorname'>Nilesh Tripathi</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I want to upload  VIdeo, Audio file to server. But I am bit confused how to deal with this. Please help me with your idea and experience.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 8th 2013, 5:18:12 am">October 8th 2013</span>
+											by <span class='authorname'>Nilesh Tripathi</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;m working on the upload piece next.  It should be similar to the download code except you will be using the STOR command.  I will post my code when I have it working.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 8th 2013, 2:37:08 pm">October 8th 2013</span>
+											by <span class='authorname'>Michael Crandall</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for your support Michael, I did it with the STOR command also but I didn&#39;t get proper results.<br>Actually when I try to upload it says successfully uploaded but there is no file on server side.<br>I am waiting for your response.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 6th 2013, 7:35:00 am">November 6th 2013</span>
+											by <span class='authorname'>Nilesh Tripathi</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Can you please tell me the path where the downloaded file will be stored ?<br>Thanks in advance.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2013, 5:41:36 am">December 5th 2013</span>
+											by <span class='authorname'>Amasidda Wadeyar</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-270948">
+				
+						<section>
+							<p>Nilesh, I apologize for not getting back sooner.  Below is the full source code for uploading and downloading that worked for me.  Keep in mind that this works for text files and you may have to make some modifications to handle other media types.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> ftphost = <span class="hljs-string">'&lt;YOUR FTP SITE&gt;'</span>;
+<span class="hljs-keyword">var</span> portNum = <span class="hljs-number">21</span>;
+<span class="hljs-keyword">var</span> user = <span class="hljs-string">'&lt;USER NAME&gt;'</span>;
+<span class="hljs-keyword">var</span> pw = <span class="hljs-string">'&lt;PASSWORD&gt;'</span>;
+<span class="hljs-keyword">var</span> path = <span class="hljs-string">''</span>;
+<span class="hljs-keyword">var</span> uploadRootPath = <span class="hljs-string">'/mypath/uploads/'</span>;
+<span class="hljs-keyword">var</span> downloadFile = <span class="hljs-string">'myfile.txt'</span>;
+<span class="hljs-keyword">var</span> isUpload = <span class="hljs-literal">true</span>;
+<span class="hljs-keyword">var</span> uploadData = <span class="hljs-string">''</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">writeCallback</span><span class="hljs-params">(e)</span> </span>{
+    Ti.API.info(<span class="hljs-string">'Successfully wrote to socket.'</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">readCallback</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.bytesProcessed == -<span class="hljs-number">1</span>) {
+        <span class="hljs-comment">// Error / EOF on socket. Do any cleanup here.</span>
+        <span class="hljs-keyword">try</span> {
+            e.source.close();
+        } <span class="hljs-keyword">catch</span>(ex) {
+            <span class="hljs-comment">// suppress exception</span>
+        }
+    }
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">if</span> (e.buffer) {
+            <span class="hljs-keyword">var</span> received = e.buffer.toString();
+            Ti.API.info(<span class="hljs-string">'Received: '</span> + received);
+
+            handleReceived(received, e.source);
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.error(<span class="hljs-string">'Error: read callback called with no buffer!'</span>);
+            <span class="hljs-keyword">try</span> {
+                e.source.close();
+            } <span class="hljs-keyword">catch</span>(ex) {
+                <span class="hljs-comment">// suppress exception</span>
+            }
+        }
+    } <span class="hljs-keyword">catch</span> (ex) {
+        Ti.API.error([<span class="hljs-string">'readCallback'</span>]);
+        Ti.API.error(ex);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">readCallback2</span><span class="hljs-params">(e)</span> </span>{
+    <span class="hljs-keyword">if</span> (e.bytesProcessed == -<span class="hljs-number">1</span>) {
+        <span class="hljs-comment">// Error / EOF on socket. Do any cleanup here.</span>
+        <span class="hljs-keyword">try</span> {
+            e.source.close();
+        } <span class="hljs-keyword">catch</span>(ex) {
+            <span class="hljs-comment">// suppress exception</span>
+        }
+    }
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">if</span> (e.buffer) {
+            <span class="hljs-keyword">var</span> received = e.buffer.toString();
+            <span class="hljs-comment">//Ti.API.info('Received 2: ' + received);</span>
+            <span class="hljs-keyword">if</span> (!isUpload) {
+                <span class="hljs-keyword">var</span> target = Ti.Filesystem.getFile(Ti.Filesystem.applicationDataDirectory, downloadFile);
+                <span class="hljs-keyword">var</span> append = received.substring(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>) != <span class="hljs-string">'['</span>;
+                target.write(received, append);
+            } <span class="hljs-keyword">else</span> {
+                Ti.API.info(<span class="hljs-string">'Received 2: '</span> + received);
+            }
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//Ti.API.error('Error: read callback called with no buffer!');</span>
+            <span class="hljs-keyword">try</span> {
+                e.source.close();
+            } <span class="hljs-keyword">catch</span>(ex) {
+                <span class="hljs-comment">// suppress exception</span>
+            }
+        }
+    } <span class="hljs-keyword">catch</span> (ex) {
+        Ti.API.error([<span class="hljs-string">'readCallback2'</span>]);
+        Ti.API.error(ex);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">handleReceived</span><span class="hljs-params">(received, socket)</span> </span>{
+    <span class="hljs-keyword">var</span> code = received.substring(<span class="hljs-number">0</span>, <span class="hljs-number">3</span>);
+
+    <span class="hljs-keyword">switch</span> (code) {
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'220'</span>:
+            sendLogin(socket);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'331'</span>:
+            <span class="hljs-comment">// password required</span>
+            sendPass(socket);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'230'</span>:
+            <span class="hljs-comment">// logged in</span>
+            sendPassive(socket);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'227'</span>:
+            <span class="hljs-comment">// entered passive mode</span>
+            port = getPort(received);
+            Ti.API.info(<span class="hljs-string">'isUpload: '</span> + isUpload);
+
+            <span class="hljs-keyword">if</span> (isUpload) {
+                sendStor(socket);
+            } <span class="hljs-keyword">else</span> {
+                sendRetr(socket);
+            }
+
+            createNewSocket(port);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'150'</span>:
+            Ti.API.info(<span class="hljs-string">'Retr command worked!'</span>);
+            <span class="hljs-keyword">break</span>;
+        <span class="hljs-keyword">case</span> <span class="hljs-string">'226'</span>:
+            <span class="hljs-comment">// transfer complete</span>
+            <span class="hljs-keyword">try</span> {
+                source.close();
+            } <span class="hljs-keyword">catch</span>(ex) {
+                <span class="hljs-comment">// suppress exception</span>
+            }
+            <span class="hljs-keyword">break</span>;
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendLogin</span><span class="hljs-params">(socket)</span> </span>{
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'USER '</span> + user + <span class="hljs-string">'\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendPass</span><span class="hljs-params">(socket)</span> </span>{
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'PASS '</span> + pw + <span class="hljs-string">'\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendPassive</span><span class="hljs-params">(socket)</span> </span>{
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'PASV\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendRetr</span><span class="hljs-params">(socket)</span> </span>{
+    Ti.API.info(<span class="hljs-string">'Sending retr request...'</span>);
+
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'RETR '</span> + path + <span class="hljs-string">'\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sendStor</span><span class="hljs-params">(socket)</span> </span>{
+    Ti.API.info(<span class="hljs-string">'Sending stor request...'</span>);
+
+    <span class="hljs-keyword">var</span> uuid = Ti.Platform.createUUID();
+    <span class="hljs-keyword">var</span> uploadFileName = uuid + <span class="hljs-string">'.txt'</span>;
+
+    Ti.Stream.write(socket, Ti.createBuffer({
+        value : <span class="hljs-string">'STOR '</span> + uploadRootPath + uploadFileName + <span class="hljs-string">'\r\n'</span>
+    }), writeCallback);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getPort</span><span class="hljs-params">(value)</span> </span>{
+    <span class="hljs-keyword">var</span> len = value.length;
+    <span class="hljs-keyword">var</span> start = value.indexOf(<span class="hljs-string">'('</span>);
+    <span class="hljs-keyword">var</span> end = value.indexOf(<span class="hljs-string">')'</span>);
+    <span class="hljs-keyword">var</span> newlen = end - start;
+    <span class="hljs-keyword">var</span> port = value.substr(start + <span class="hljs-number">1</span>, newlen - <span class="hljs-number">1</span>);
+    Ti.API.info(<span class="hljs-string">'IP &amp; Port: '</span> + port);
+
+    <span class="hljs-keyword">var</span> arInfo = port.split(<span class="hljs-string">','</span>);
+    <span class="hljs-keyword">var</span> portNum = arInfo[<span class="hljs-number">4</span>] * <span class="hljs-number">256</span> + parseInt(arInfo[<span class="hljs-number">5</span>]);
+    Ti.API.info(<span class="hljs-string">'port info: '</span> + portNum);
+
+    <span class="hljs-keyword">return</span> portNum;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createNewSocket</span><span class="hljs-params">(newPort)</span> </span>{
+    newsocket = Ti.Network.Socket.createTCP({
+        host : ftphost,
+        port : newPort,
+        connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; connected to host &lt;"</span> + e.socket.host + <span class="hljs-string">"&gt;"</span>);
+
+            Ti.Stream.pump(e.socket, readCallback2, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+
+            <span class="hljs-keyword">if</span> (isUpload) {
+                Ti.Stream.write(e.socket, Ti.createBuffer({
+                    value : uploadData
+                }), writeCallback);
+            }
+        },
+        error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.error(<span class="hljs-string">"Socket &lt;"</span> + e.socket + <span class="hljs-string">"&gt; encountered error when connecting"</span>);
+            Ti.API.error(<span class="hljs-string">" error code &lt;"</span> + e.errorCode + <span class="hljs-string">"&gt;"</span>);
+            Ti.API.error(<span class="hljs-string">" error description &lt;"</span> + e.error + <span class="hljs-string">"&gt;"</span>);
+        }
+    });
+
+    newsocket.connect();
+}
+
+exports.FetchFileFtp = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(filePath)</span> </span>{
+    path = filePath;
+    isUpload = <span class="hljs-literal">false</span>;
+
+    <span class="hljs-keyword">var</span> socket = Ti.Network.Socket.createTCP({
+        host : ftphost,
+        port : portNum,
+        connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+            Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+        },
+        error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.error);
+        },
+    });
+    socket.connect();
+};
+
+exports.UploadFileFtp = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(dataToUpload, callback)</span> </span>{
+    isUpload = <span class="hljs-literal">true</span>;
+    uploadData = dataToUpload;
+
+    <span class="hljs-keyword">var</span> socket = Ti.Network.Socket.createTCP({
+        host : ftphost,
+        port : portNum,
+        connected : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">'Socket opened!'</span>);
+            Ti.Stream.pump(e.socket, readCallback, <span class="hljs-number">1024</span>, <span class="hljs-literal">true</span>);
+        },
+        error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+            Ti.API.info(<span class="hljs-string">'Error ('</span> + e.errorCode + <span class="hljs-string">'): '</span> + e.error);
+        },
+    });
+    socket.connect();
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">callback</span>(<span class="hljs-literal">null</span>);
+};
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 6th 2013, 1:57:41 pm">November 6th 2013</span>
+								by <span class='authorname'>Michael Crandall</span><br>
+								<a class="icon-bg icon-link" href="question/157964/tinetworksocketcreatetcp-file-download#answer-270948" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thank you so much… I will try it and let you know the feedback. I hope it will work properly with media files too. Again I want to appreciate you for your dedication and sincerity towards work.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 7th 2013, 9:14:53 am">November 7th 2013</span>
+											by <span class='authorname'>Nilesh Tripathi</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-270991">
+				
+						<section>
+							<p>Thank you so much… I will try it and let you know the feedback. I hope it will work properly with media files too. Again I want to appreciate you for your dedication and sincerity towards work.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 7th 2013, 9:14:54 am">November 7th 2013</span>
+								by <span class='authorname'>Nilesh Tripathi</span><br>
+								<a class="icon-bg icon-link" href="question/157964/tinetworksocketcreatetcp-file-download#answer-270991" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-271191">
+				
+						<section>
+							<p>Code is working !!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 12th 2013, 9:42:18 am">November 12th 2013</span>
+								by <span class='authorname'>Sagar Bhavsar</span><br>
+								<a class="icon-bg icon-link" href="question/157964/tinetworksocketcreatetcp-file-download#answer-271191" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Excellent!  Perhaps someone in the community can take this forward and create a full blown module.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 12th 2013, 2:37:12 pm">November 12th 2013</span>
+											by <span class='authorname'>Michael Crandall</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-284121">
+				
+						<section>
+							<p>Don&#39;t work.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 28th 2014, 2:18:40 pm">November 28th 2014</span>
+								by <span class='authorname'>Alexey Mizonov</span><br>
+								<a class="icon-bg icon-link" href="question/157964/tinetworksocketcreatetcp-file-download#answer-284121" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hmm…Don&#39;t work if a file has ANSI and non-English characters</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 29th 2014, 5:58:35 pm">November 29th 2014</span>
+											by <span class='authorname'>Alexey Mizonov</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

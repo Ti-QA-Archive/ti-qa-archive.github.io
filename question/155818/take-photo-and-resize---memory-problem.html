@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Take photo and resize - memory problem » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Take photo and resize - memory problem</h1>
+		</header>
+		<section>
+			<p>App-type: mobile<br>Titanium SDK version: 3.1.1 (06&#x2F;15&#x2F;13 16:09 f7592c1)<br>Platform Android<br>Device: Android physical device (samsung S2)<br>OS: Windows<br>Titanium Studio: build: 3.1.0.201304151600</p>
+<p>I have a tableView with 5 to 15 rows. Every row shows a default image (about 1-10kb). When the user click the row, a popup window opens, where he can decide to abbort or to take a photo. he can choose between take a new photo, or take a photo from galery. If he decides to take a photo, the camera opens. On Success, i take the event.media and write 2 files. First image should be very small, to show it in the tableview and the second should be medium size, to send them via e-mail in the next steps. my problem is, that the &quot;imageAsResized&quot; method sometimes throw a memory error or before that step, the app restarts after taking the photo an click save&#x2F;accept.</p>
+<pre><code class="hljs">Titanium.Media.showCamera({
+            <span class="hljs-comment">//we got something</span>
+            success : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span> </span>{
+                Ti.API.info(<span class="hljs-string">'#### Camera Success'</span>);
+                <span class="hljs-comment">//checking if it is photo</span>
+                <span class="hljs-keyword">if</span> (event.mediaType == Ti.Media.MEDIA_TYPE_PHOTO) {
+                    <span class="hljs-keyword">self</span>.dataArr[<span class="hljs-string">'data'</span>][targetRow.id][<span class="hljs-string">'saved_image'</span>] = <span class="hljs-keyword">null</span>;
+                    <span class="hljs-keyword">self</span>.dataArr[<span class="hljs-string">'data'</span>][targetRow.id][<span class="hljs-string">'saved_image_small'</span>] = <span class="hljs-keyword">null</span>;
+
+                    <span class="hljs-keyword">self</span>.dataArr[<span class="hljs-string">'data'</span>][targetRow.id][<span class="hljs-string">'saved_image'</span>] = <span class="hljs-string">"pic"</span> + targetRow.index + <span class="hljs-string">".jpg"</span>;
+                    <span class="hljs-keyword">self</span>.dataArr[<span class="hljs-string">'data'</span>][targetRow.id][<span class="hljs-string">'saved_image_small'</span>] = <span class="hljs-string">"pic"</span> + targetRow.index + <span class="hljs-string">"_small.jpg"</span>;
+
+                    filePath_big = Titanium.Filesystem.applicationDataDirectory + Ti.Filesystem.separator + <span class="hljs-keyword">self</span>.dataArr[<span class="hljs-string">'data'</span>][targetRow.id][<span class="hljs-string">'saved_image'</span>];
+                    Ti.API.log(<span class="hljs-string">"filePath_big: "</span> + filePath_big)
+                    filePath_small = Titanium.Filesystem.applicationDataDirectory + Ti.Filesystem.separator + <span class="hljs-keyword">self</span>.dataArr[<span class="hljs-string">'data'</span>][targetRow.id][<span class="hljs-string">'saved_image_small'</span>];
+                    Ti.API.log(<span class="hljs-string">"filePath_small: "</span> + filePath_small)
+
+                    smallImage = resizeImage(event.media, <span class="hljs-number">100</span>);
+                    smallFile = Titanium.Filesystem.getFile(filePath_small);
+                    <span class="hljs-keyword">if</span> (smallFile.exists())
+                        smallFile.deleteFile();
+
+                    smallFile.write(smallImage);
+                    Ti.API.log(<span class="hljs-string">"smallFile-SIZE: "</span> + Number(smallFile.getSize()) / <span class="hljs-number">1024</span> + <span class="hljs-string">"kb"</span>);
+
+                    targetImageCon.remove(targetImageCon.children[<span class="hljs-number">0</span>]);
+
+                    targetImageCon.add(Ti.UI.createImageView({
+                        image : smallFile,
+                        defaultImage : smallFile,
+                        touchEnabled : <span class="hljs-keyword">false</span>,
+                        top : <span class="hljs-string">'2dp'</span>,
+                        bottom : <span class="hljs-string">'2dp'</span>,
+                        left : <span class="hljs-string">'2dp'</span>,
+                        right : <span class="hljs-string">'2dp'</span>,
+                    }));
+
+                    bigImage = resizeImage(event.media, <span class="hljs-number">800</span>);
+                    bigFile = Titanium.Filesystem.getFile(filePath_big);
+                    <span class="hljs-keyword">if</span> (bigFile.exists())
+                        bigFile.deleteFile();
+
+                    bigFile.write(bigImage);
+                    Ti.API.log(<span class="hljs-string">"bigFile-SIZE: "</span> + Number(bigFile.getSize()) / <span class="hljs-number">1024</span> + <span class="hljs-string">"kb"</span>);
+
+                    bigImage = <span class="hljs-keyword">null</span>;
+                    bigFile = <span class="hljs-keyword">null</span>;
+                    filePath_big = <span class="hljs-keyword">null</span>;
+
+                    targetRow.rightImage = preamble + <span class="hljs-string">"row_check.png"</span>;
+
+                    Ti.API.log(<span class="hljs-string">"Ti.platform.availablememory: "</span> + Ti.Platform.availableMemory);
+                }
+            },
+            cancle : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span> </span>{
+                <span class="hljs-comment">//user cancelled the action fron within the camera</span>
+                Ti.API.info(<span class="hljs-string">'#### Camera Cancel'</span>);
+            },
+            error : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span> </span>{
+                <span class="hljs-comment">// create alert</span>
+                Ti.API.info(<span class="hljs-string">'#### Camera Error'</span>);
+                <span class="hljs-keyword">var</span> a = Titanium.UI.createAlertDialog({
+                    title : <span class="hljs-string">'Camera'</span>
+                });
+
+                <span class="hljs-comment">// set message</span>
+                <span class="hljs-keyword">if</span> (error.code == Titanium.Media.NO_CAMERA) {
+                    a.setMessage(<span class="hljs-string">'Device does not have video recording capabilities'</span>);
+                } <span class="hljs-keyword">else</span> {
+                    a.setMessage(<span class="hljs-string">'Unexpected error: '</span> + error.code);
+                }
+
+                a.show();
+            },
+            saveToPhotoGallery : <span class="hljs-keyword">false</span>,
+        });
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 9th 2013, 6:00:19 am">August 9th 2013</span>
+				by <span class='authorname'>Jörg Etzkorn</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>camera</span></li>
+					
+						<li><span class='tagname'>image</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>resize image</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Forgot the resizeImage-function</p>
+<pre><code class="hljs">function resizeImage(<span class="hljs-built_in">image</span>, <span class="hljs-built_in">size</span>) {
+    <span class="hljs-keyword">try</span> {
+        i = <span class="hljs-keyword">null</span>;
+
+        var <span class="hljs-built_in">size</span> = Number(<span class="hljs-built_in">size</span>)
+
+        Ti.API.<span class="hljs-built_in">log</span>(<span class="hljs-built_in">image</span>.<span class="hljs-variable">width</span>);
+        Ti.API.<span class="hljs-built_in">log</span>(<span class="hljs-built_in">image</span>.<span class="hljs-variable">height</span>);
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">image</span>.<span class="hljs-variable">width</span> &gt; <span class="hljs-built_in">image</span>.<span class="hljs-variable">height</span>) {
+            res = <span class="hljs-built_in">image</span>.<span class="hljs-variable">width</span> / <span class="hljs-built_in">image</span>.<span class="hljs-variable">height</span>;
+
+            newWidth = <span class="hljs-built_in">size</span>;
+            newHeight = newWidth / res;
+
+        } <span class="hljs-keyword">else</span> {
+            res = <span class="hljs-built_in">image</span>.<span class="hljs-variable">height</span> / <span class="hljs-built_in">image</span>.<span class="hljs-variable">width</span>;
+
+            newHeight = <span class="hljs-built_in">size</span>;
+            newWidth = newHeight / res;
+        }
+
+        Ti.API.<span class="hljs-built_in">log</span>(<span class="hljs-string">"newWidth: "</span> + newWidth);
+        Ti.API.<span class="hljs-built_in">log</span>(<span class="hljs-string">"newHeight: "</span> + newHeight);
+
+        i = <span class="hljs-built_in">image</span>.imageAsResized(newWidth, newHeight);
+
+        <span class="hljs-keyword">return</span> i;
+    } <span class="hljs-keyword">catch</span>(e) {
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">image</span>;
+    }
+
+};
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="August 9th 2013, 6:38:22 am">August 9th 2013</span>
+								by <span class='authorname'>Jörg Etzkorn</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

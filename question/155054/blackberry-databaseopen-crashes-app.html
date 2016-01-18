@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Blackberry database.Open crashes app » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Blackberry database.Open crashes app</h1>
+		</header>
+		<section>
+			<p>Using the latest titanium and BB NDK i have been getting to grips with mobile development accross iOS, Android and Blackberry.<br>I have been going through the Ti bounty hunter labs after the video tutorials and have got stuck after working with local data.<br>The issue is, i have implemented the database as shown below, this works fine in iOS and Andoroid but crashes the app on the Blackberry Simulator, I can&#39;t run on a device as I get a syntax error in the token…</p>
+<p>database.js</p>
+<pre><code class="hljs">
+var db = Ti.Database.open('BountyHunter');
+db.execute('<span class="hljs-operator"><span class="hljs-keyword">Create</span> <span class="hljs-keyword">TABLE</span> <span class="hljs-keyword">IF</span> <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">EXISTS</span> fugitives(<span class="hljs-keyword">id</span> <span class="hljs-built_in">INTEGER</span> PRIMARY <span class="hljs-keyword">KEY</span>, <span class="hljs-keyword">name</span> <span class="hljs-built_in">TEXT</span>, captured <span class="hljs-built_in">INTEGER</span>)<span class="hljs-string">');
+db.close ();
+
+function List(captured){
+    var data = [];
+     var db = Ti.Database.open('</span>BountyHunter<span class="hljs-string">');
+     var bountyData = db.execute('</span><span class="hljs-keyword">Select</span> * <span class="hljs-keyword">from</span> fugitives <span class="hljs-keyword">where</span> captured = ? <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> <span class="hljs-keyword">NAME</span> <span class="hljs-keyword">ASC</span><span class="hljs-string">',captured);
+    while (bountyData.isValidRow())
+    {
+        data.push({ID: bountyData.fieldByName('</span><span class="hljs-keyword">id</span><span class="hljs-string">'),
+        Name: bountyData.fieldByName('</span><span class="hljs-keyword">name</span><span class="hljs-string">'),
+            hasChild:true,
+            color: '</span>#fff<span class="hljs-string">',
+            captured: (Number(bountyData.fieldByName('</span>captured<span class="hljs-string">')) == 1),
+            title:bountyData.fieldByName('</span><span class="hljs-keyword">name</span><span class="hljs-string">')
+         });
+        bountyData.next();
+    }
+    bountyData.close();
+     db.close();
+    return data;
+}
+exports.list = List;
+
+function Add(name,captured){
+    var db = Ti.Database.open('</span>BountyHunter<span class="hljs-string">');
+        db.execute('</span><span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> fugitives(<span class="hljs-keyword">name</span>,captured) <span class="hljs-keyword">values</span> (?,?)<span class="hljs-string">',name,captured);
+        db.close();
+        Ti.App.fireEvent('</span>fugitivesUpdated<span class="hljs-string">');
+}
+exports.Add = Add;
+
+function Delete(ID){
+    var db = Ti.Database.open('</span>BountyHunter<span class="hljs-string">');
+        db.execute('</span><span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">from</span> fugitives <span class="hljs-keyword">where</span> <span class="hljs-keyword">id</span> = ?<span class="hljs-string">',ID);  
+        db.close();
+  Ti.App.fireEvent('</span>fugitivesUpdated<span class="hljs-string">');
+}
+exports.Delete = Delete;
+
+function Bust(ID){
+    var db = Ti.Database.open('</span>BountyHunter<span class="hljs-string">');
+        db.execute('</span><span class="hljs-keyword">Update</span> fugitives <span class="hljs-keyword">set</span> captured = <span class="hljs-number">1</span> <span class="hljs-keyword">where</span> <span class="hljs-keyword">id</span> = ?<span class="hljs-string">',ID);  
+        db.close();
+          Ti.App.fireEvent('</span>fugitivesUpdated<span class="hljs-string">');
+}
+
+exports.Bust = Bust;</span></span>
+</code></pre><p>fugitives.js (loads on start up) called form tab group</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">FugitiveWindow</span><span class="hljs-params">()</span> </span>{
+
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createWindow({
+        title:<span class="hljs-string">'fugitives'</span>,
+        backgroundColor:<span class="hljs-string">'#6d0a0c'</span>
+    });
+
+    <span class="hljs-keyword">var</span> BountyTable = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/common/BountyTable'</span>);
+    <span class="hljs-keyword">var</span> bountyTable = <span class="hljs-keyword">new</span> BountyTable(<span class="hljs-number">0</span>);
+<span class="hljs-keyword">self</span>.enableDatabase(<span class="hljs-keyword">true</span>);
+
+    bountyTable.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(_e)</span> </span>{
+        <span class="hljs-keyword">var</span> DetailWindow = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/common/DetailWindow'</span>);
+        <span class="hljs-keyword">self</span>.containingTab.open(<span class="hljs-keyword">new</span> DetailWindow(_e.rowData, <span class="hljs-keyword">self</span>.containingTab));
+    });
+
+    <span class="hljs-keyword">self</span>.add(bountyTable);
+
+    <span class="hljs-keyword">if</span>(Ti.Platform.osname ==<span class="hljs-string">'iphone'</span> || Ti.Platform.osname ==<span class="hljs-string">'blackberry'</span>)
+        {
+        <span class="hljs-keyword">var</span> button = Ti.UI.createButton({title:L(<span class="hljs-string">'Add'</span>)});
+        button.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+        </span>{
+         <span class="hljs-keyword">var</span> addwindow = <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/common/AddFugitive'</span>);
+         <span class="hljs-keyword">self</span>.containingTab.open(<span class="hljs-keyword">new</span> addwindow());   
+        });
+
+        <span class="hljs-keyword">self</span>.setRightNavButton(button);
+
+        }
+
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;
+};
+
+module.exports = FugitiveWindow;
+</code></pre><p>bountytable.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> BountytableView =  <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">captured</span>)</span>{
+    <span class="hljs-comment">// Create a TableView.</span>
+    <span class="hljs-keyword">var</span> aTableView = Ti.UI.createTableView({
+    backgroundColor:<span class="hljs-string">'transparent'</span>
+    });
+
+    <span class="hljs-comment">// Populate the TableView data.</span>
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">populatedata</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-keyword">var</span> database = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lib/database'</span>);
+    <span class="hljs-keyword">var</span> data = database.list(captured);
+
+    aTableView.setData(data);
+    }
+    populatedata();
+    <span class="hljs-comment">// Add to the parent view.</span>
+
+    Ti.App.addEventListener(<span class="hljs-string">'fugitivesUpdated'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+    </span>{
+     populatedata();           
+    });
+
+    <span class="hljs-keyword">return</span> aTableView;
+
+};
+
+<span class="hljs-built_in">module</span>.exports = BountytableView;
+</code></pre><p>in database.js if I comment out the database code as below it runs</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">List</span><span class="hljs-params">(captured)</span></span>{
+    <span class="hljs-keyword">var</span> data = [];
+    <span class="hljs-comment">// var db = Ti.Database.open('BountyHunter');</span>
+   <span class="hljs-comment">//  var bountyData = db.execute('Select * from fugitives where captured = ? ORDER BY NAME ASC',captured);</span>
+   <span class="hljs-comment">// while (bountyData.isValidRow())</span>
+   <span class="hljs-comment">// {</span>
+   <span class="hljs-comment">//     data.push({ID: bountyData.fieldByName('id'),</span>
+    <span class="hljs-comment">//    Name: bountyData.fieldByName('name'),</span>
+    <span class="hljs-comment">//        hasChild:true,</span>
+    <span class="hljs-comment">//        color: '#fff',</span>
+    <span class="hljs-comment">//        captured: (Number(bountyData.fieldByName('captured')) == 1),</span>
+    <span class="hljs-comment">//        title:bountyData.fieldByName('name')</span>
+     <span class="hljs-comment">//    });</span>
+    <span class="hljs-comment">//    bountyData.next();</span>
+   <span class="hljs-comment">// }</span>
+  <span class="hljs-comment">//  bountyData.close();</span>
+    <span class="hljs-comment">// db.close();</span>
+    <span class="hljs-keyword">return</span> data;
+}
+exports.<span class="hljs-keyword">list</span> = <span class="hljs-keyword">List</span>;
+</code></pre><p>but if i just un comment this line <code>var db = Ti.Database.open(&amp;#39;BountyHunter&amp;#39;);</code><br>It crashes on BB again.<br>Any help appreciated</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 19th 2013, 11:53:39 am">July 19th 2013</span>
+				by <span class='authorname'>Martin Williamson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>api</span></li>
+					
+						<li><span class='tagname'>blackberry</span></li>
+					
+						<li><span class='tagname'>bountyhunter</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Please post this question to the Titanium blackberry google group <a href="https:&#x2F;&#x2F;groups.google.com&#x2F;forum&#x2F;#!forum&#x2F;appc-ti-mobile-blackberry">here</a>. </p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 22nd 2013, 8:41:23 pm">July 22nd 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

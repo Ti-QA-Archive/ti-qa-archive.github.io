@@ -1,0 +1,308 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Alloy Memory Leak with TableRowViews » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Alloy Memory Leak with TableRowViews</h1>
+		</header>
+		<section>
+			<p>Hi </p>
+<p>I seem to have a memory leak when dynamically creating TableRowViews in Alloy. I&#39;ve played around with iOS Instruments but can&#39;t seem to pinpoint the problem. My code is as follows:</p>
+<p>search.xml</p>
+<pre><code class="hljs">&lt;TableView <span class="hljs-property">id</span>=<span class="hljs-string">"recentTable"</span> <span class="hljs-type">class</span>=<span class="hljs-string">"resultTable"</span> &gt;
+    &lt;TableViewRow <span class="hljs-property">id</span>=<span class="hljs-string">"loaderRow"</span> <span class="hljs-type">class</span>=<span class="hljs-string">"loaderRow"</span>&gt;
+        &lt;ActivityIndicator <span class="hljs-property">id</span>=<span class="hljs-string">"loaderIndicator1"</span> <span class="hljs-type">class</span>=<span class="hljs-string">"loaderIndicator"</span> message=<span class="hljs-string">"One moment please..."</span>/&gt;
+    &lt;/TableViewRow&gt;
+&lt;/TableView&gt;
+</code></pre><p>search.js</p>
+<pre><code class="hljs"><span class="hljs-comment">// These arrays contain search result rows for different categories</span>
+<span class="hljs-keyword">var</span> rowData = {
+    searchRows: [],
+    recentRows: [],
+    suggestedRows: [],
+    favsRows: []
+};
+
+<span class="hljs-comment">// this function pulls in the results from the API and is called on page load</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getRecentFoods</span>(<span class="hljs-params"></span>) </span>{
+
+    $.loaderIndicator1.show();
+
+    <span class="hljs-comment">// this XHR library is required at top of file</span>
+    <span class="hljs-keyword">var</span> xhr = <span class="hljs-keyword">new</span> XHR();
+
+    xhr.post( Alloy.CFG.API + <span class="hljs-string">'/latestFood'</span>, { <span class="hljs-string">"foodtype"</span>: <span class="hljs-string">"all"</span> }, getRecentFoods_success, getRecentFoods_error );
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getRecentFoods_success</span>(<span class="hljs-params">e</span>) </span>{
+
+    <span class="hljs-comment">// populate table...</span>
+    <span class="hljs-keyword">var</span> recentResults = <span class="hljs-built_in">JSON</span>.parse(e.data);
+    <span class="hljs-keyword">var</span> recents = <span class="hljs-keyword">new</span> ResultsView(recentResults, <span class="hljs-string">'recentRows'</span>, $.recentTable);
+    recents.populate();    
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getRecentFoods_error</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">'error: '</span> + e.code + <span class="hljs-string">': '</span> + e.text);
+}
+
+<span class="hljs-comment">// this function populates the table with results from getRecentFoods()</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ResultsView</span>(<span class="hljs-params">results, rows, table, update</span>) </span>{
+    <span class="hljs-keyword">this</span>.items = results.docs;
+    <span class="hljs-keyword">this</span>.populate = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+        <span class="hljs-keyword">if</span> ( update ) {    
+            rowData.rows.pop(); <span class="hljs-comment">// remove the last table row with the loading msg</span>
+        } <span class="hljs-keyword">else</span> {
+            rowData.rows = []; <span class="hljs-comment">// clear previous results if this is a new search</span>
+            table.setData([]); <span class="hljs-comment">// empty the table</span>
+        }
+
+        <span class="hljs-keyword">if</span> ( <span class="hljs-keyword">typeof</span> <span class="hljs-keyword">this</span>.items != <span class="hljs-string">'undefined'</span> &amp;&amp; <span class="hljs-keyword">this</span>.items.length &gt; <span class="hljs-number">0</span> ) {
+
+            <span class="hljs-comment">// if there are matching search results...</span>
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;<span class="hljs-keyword">this</span>.items.length; i++ ) {
+                <span class="hljs-keyword">var</span> params = {
+                    title: <span class="hljs-keyword">this</span>.items[i].title,
+                    date: args.date,
+                    type: <span class="hljs-keyword">this</span>.items[i].type,
+                    mealCode: <span class="hljs-keyword">this</span>.items[i].code,
+                    cals: <span class="hljs-keyword">this</span>.items[i].kCal,
+                    servings: <span class="hljs-keyword">this</span>.items[i].servings
+                };
+
+                <span class="hljs-keyword">if</span> ( rows === <span class="hljs-string">'recentRows'</span> ) {
+                    params.searchType = <span class="hljs-string">'planner'</span>,
+                    params.mealID = <span class="hljs-keyword">this</span>.items[i].id
+                } 
+
+                <span class="hljs-keyword">var</span> row = Alloy.createController(<span class="hljs-string">'food/foodSearchRow'</span>, params).getView();
+
+                rowData.rows.push(row);    
+
+            }
+
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">// if there are no matching search results...</span>
+            <span class="hljs-keyword">var</span> emptyRow = Ti.UI.createTableViewRow({
+                title: <span class="hljs-string">'Sorry, no items matched your search...'</span>,
+                height: <span class="hljs-number">58</span>,
+                color: <span class="hljs-string">'#333'</span>,
+                font: {
+                    fontSize: <span class="hljs-number">14</span>
+                }
+            });
+            rowData.rows.push(emptyRow);
+        }
+
+        table.data = rowData.rows;
+
+    }
+}
+</code></pre><p>foodSearchRow.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-title">TableViewRow</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"row"</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"foodRow"</span> &gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"mealName"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">Label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">View</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"servingInfo"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"cals"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">Label</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Label</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"servings"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">Label</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">View</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;/<span class="hljs-title">TableViewRow</span>&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>foodSearchRow.js</p>
+<pre><code class="hljs"><span class="hljs-comment">// Controller vars...</span>
+var args = arguments[<span class="hljs-number">0</span>] || {};
+
+<span class="hljs-comment">// initialize view..</span>
+<span class="hljs-variable">$.</span>mealName.<span class="hljs-keyword">text</span> = args.title || <span class="hljs-string">''</span>;
+<span class="hljs-variable">$.</span>cals.<span class="hljs-keyword">text</span> = args.cals + <span class="hljs-string">' cals'</span> || <span class="hljs-string">''</span>;
+<span class="hljs-variable">$.</span>row.type = args.type;
+<span class="hljs-variable">$.</span>row.mealCode = args.mealCode || <span class="hljs-string">''</span>;
+<span class="hljs-variable">$.</span>servings.<span class="hljs-keyword">text</span> = <span class="hljs-string">'Servings: '</span> + args.servings;
+
+<span class="hljs-variable">$.</span>servingInfo.addEventListener(<span class="hljs-string">'click'</span>, anotherFunction);
+</code></pre><p>Sorry for the huge code dump but I can&#39;t figure out why all of the TableViewRows and the Views within them are not getting garbage collected when the search.xml closes. And since there isn&#39;t a Window object inside each foodSearchRow I can&#39;t even listen for a close event on them to null everything out. Am I doing something terribly wrong here without realising it!?</p>
+<p>Thanks a million in advance for any help, this is driving me crazy at this stage, especially since a large number of search results will surely make the app crash at some stage.</p>
+<p>Cheers,</p>
+<p>James</p>
+<p>(Ti Studio 3.1.1, Mac OSX Mountain Lion, iOS 6)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 23rd 2013, 8:56:22 am">July 23rd 2013</span>
+				by <span class='authorname'>James Draper</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>alloy</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-266273">
+				
+						<section>
+							<p>As you already stated, this is a lot of code. Can you boil it down to a reproducible test case&#x2F; Preferably a very small one that can be run on my end so I can see the problem? At a high level, make sure you are clearing any global references you are making. You may also want to reference this post: <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;151989&#x2F;should-i-null-objects-to-release-memory-in-alloy">http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;151989&#x2F;should-i-null-objects-to-release-memory-in-alloy</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 23rd 2013, 1:10:09 pm">July 23rd 2013</span>
+								by <span class='authorname'>Tony Lukasavage</span><br>
+								<a class="icon-bg icon-link" href="question/155178/alloy-memory-leak-with-tablerowviews#answer-266273" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Tony, thanks for getting back to me. I created a very simple test case and typically that seems to work as expected! The app I&#39;m creating is quite large and complex so perhaps I&#39;m just not being patient enough with the garbage collection. Here is the test case I created anyway as I have one further question relating to it if you wouldn&#39;t mind:</p>
+<p>index.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">NavigationGroup</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"navGroup"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"container"</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">Button</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">"nextPage"</span>&gt;</span>Next page<span class="hljs-tag">&lt;/<span class="hljs-title">Button</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">NavigationGroup</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>index.js</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">nextPage</span>(<span class="hljs-params">e</span>) </span>{
+    $.page2 = Alloy.createController(<span class="hljs-string">'page2'</span>).getView();
+       $.navGroup.open($.page2);
+        $.page2.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        $.page2 = <span class="hljs-literal">null</span>;
+    });
+}
+
+$.index.open();
+</code></pre><p>page2.xml</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">Alloy</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Window</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"page2"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">TableView</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"testTable"</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">TableView</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">Window</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">Alloy</span>&gt;</span>
+</code></pre><p>page2.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testRows = [];
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">init</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-keyword">for</span> ( <span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i&lt;<span class="hljs-number">10</span>; i++ ) {
+
+        <span class="hljs-keyword">var</span> row = Alloy.createController(<span class="hljs-string">'testRow'</span>, { title: i }).getView();
+
+        testRows.push(row);
+
+    }
+
+    $.testTable.setData(testRows);
+
+}
+
+init();
+
+$.page2.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//testRows = [];</span>
+});
+</code></pre><p>testRow.xml and testRow.js are just a simple TableViewRow.</p>
+<p>My question is this - in page2.js I&#39;ve set the <code>testRows</code> array as a global variable and even if I don&#39;t empty it on window close (see commented out line), all of the rows it references are still garbage collected. Is it okay to do this type of thing with a global var within a controller or should always remove the reference on close. </p>
+<p>I&#39;ve read the question you referenced above but I think this is slightly different as it&#39;s an array referencing a collection of Alloy objects.</p>
+<p>Thanks again and sorry once again for the essay!!</p>
+<p>Cheers</p>
+<p>James</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 23rd 2013, 2:44:40 pm">July 23rd 2013</span>
+											by <span class='authorname'>James Draper</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

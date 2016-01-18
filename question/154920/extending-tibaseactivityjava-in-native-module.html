@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Extending TiBaseActivity.java in native module » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Extending TiBaseActivity.java in native module</h1>
+		</header>
+		<section>
+			<p>I&#39;m currently trying to make a module were I want to be able to create a window and provide my own, or rather extend the existing TiBaseActivity functionality, but can&#39;t seem to make it happen. Is it possible at all?</p>
+<p>the basic use of the module is similar to:</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> mod</span> = require(<span class="hljs-string">"com.example"</span>);
+<span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> = mod.createMyWindow({
+    title: <span class="hljs-string">"MyUberWindow"</span>,
+    background: <span class="hljs-string">"#000000"</span>,
+    <span class="hljs-comment">// .. whatevs you usually supply when creating a window</span>
+});
+</code></pre><p>here&#39;s my minimal implementation which I have ripped directly without shame from the WindowProxy.java:</p>
+<pre><code class="hljs"><span class="hljs-annotation">@Kroll</span>.proxy(creatableInModule=MyTestModule.class)
+<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyWindowProxy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">TiWindowProxy</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">TiActivityWindow</span> </span>{
+
+    <span class="hljs-keyword">private</span> WeakReference&lt;TiBaseActivity&gt; theActivity;
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">MyWindowProxy</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">super</span>();
+    }
+
+    <span class="hljs-annotation">@Override</span>
+    <span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title">handleOpen</span><span class="hljs-params">(KrollDict dict)</span> </span>{
+        <span class="hljs-comment">// I've tried to start my own activity here, but nooooo</span>
+        Activity topActivity = TiApplication.getAppCurrentActivity();
+        Intent intent = <span class="hljs-keyword">new</span> Intent(topActivity, TiActivity.class);
+
+        fillIntent(topActivity, intent);
+
+        <span class="hljs-keyword">int</span> windowId = TiActivityWindows.addWindow(<span class="hljs-keyword">this</span>);
+        intent.putExtra(TiC.INTENT_PROPERTY_USE_ACTIVITY_WINDOW, <span class="hljs-keyword">true</span>);
+        intent.putExtra(TiC.INTENT_PROPERTY_WINDOW_ID, windowId);
+
+        topActivity.startActivity(intent);
+    }
+
+    <span class="hljs-annotation">@Override</span>
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">windowCreated</span><span class="hljs-params">(TiBaseActivity activity)</span> </span>{
+        theActivity = <span class="hljs-keyword">new</span> WeakReference&lt;TiBaseActivity&gt;(activity);
+        activity.setWindowProxy(<span class="hljs-keyword">this</span>);
+        setActivity(activity);
+
+        <span class="hljs-comment">// set the view</span>
+        <span class="hljs-comment">// ... </span>
+
+        activity.getActivityProxy().getDecorView().add(<span class="hljs-keyword">this</span>);
+        activity.addWindowToStack(<span class="hljs-keyword">this</span>);
+
+        opened = <span class="hljs-keyword">true</span>;
+        fireEvent(TiC.EVENT_OPEN, <span class="hljs-keyword">null</span>);
+        handlePostOpen();
+    }
+
+    <span class="hljs-annotation">@Override</span>
+    <span class="hljs-function"><span class="hljs-keyword">protected</span> Activity <span class="hljs-title">getWindowActivity</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> (theActivity != <span class="hljs-keyword">null</span>) ? theActivity.get() : <span class="hljs-keyword">null</span>;
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title">fillIntent</span><span class="hljs-params">(Activity activity, Intent intent)</span> </span>{
+        <span class="hljs-comment">// ...</span>
+    }
+}
+</code></pre><p>Are there any examples of modules extending the TiWindowProxy or implementing their own Activity and supplying it to the window?</p>
+<p>I have no problem creating the window and setting views and such, my problem is that I want to hack a little in the activity.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 16th 2013, 10:40:43 am">July 16th 2013</span>
+				by <span class='authorname'>Tomas Persson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>custom</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-266038">
+				
+						<section>
+							<p>Well…that was wasy :)</p>
+<p>Make sure you add your activity to the timodule.xml (which I had done, but not the &quot;right&quot; way, i.e. add the activity with the full path; package and name) like:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">android</span> <span class="hljs-attribute">xmlns:android</span>=<span class="hljs-value">"http://schemas.android.com/apk/res/android"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">manifest</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">application</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">activity</span> <span class="hljs-attribute">android:name</span>=<span class="hljs-value">"com.example.MyCustomActivity"</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">activity</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">manifest</span>&gt;</span> 
+<span class="hljs-tag">&lt;/<span class="hljs-title">android</span>&gt;</span>
+</code></pre><p>then make sure it&#39;s the one that gets started in the <code>handleOpen</code> method and you&#39;re all set.</p>
+<p>\o&#x2F;</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 17th 2013, 10:49:46 am">July 17th 2013</span>
+								by <span class='authorname'>Tomas Persson</span><br>
+								<a class="icon-bg icon-link" href="question/154920/extending-tibaseactivityjava-in-native-module#answer-266038" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>nfc.transceive() crashes app » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>nfc.transceive() crashes app</h1>
+		</header>
+		<section>
+			<p>Hello</p>
+<p>I have successfully been able to connect to a DesFire (IsoDep) card and am able to call all the Tag methods associated with it. However every time I call the transceive() method my app crashes with no error. I have wrapped the transceive() call in a try catch but no exception is caught.<br>Here is my code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> nfc = <span class="hljs-built_in">require</span>(<span class="hljs-string">"ti.nfc"</span>);
+<span class="hljs-keyword">var</span> nfcAdapter = <span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> dispatchFilter = <span class="hljs-literal">null</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setupNfc</span>(<span class="hljs-params"></span>) </span>{
+
+        nfcAdapter = nfc.createNfcAdapter({
+            onTechDiscovered: handleDiscovery
+        });
+
+        <span class="hljs-keyword">if</span> (!nfcAdapter.isEnabled()) {
+            alert(<span class="hljs-string">"NFC is not enabled on this device"</span>);
+            <span class="hljs-keyword">return</span>;
+        }
+
+        <span class="hljs-keyword">var</span> act = self.activity;
+
+        act.addEventListener(<span class="hljs-string">"newintent"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            nfcAdapter.onNewIntent(e.intent);
+        });
+
+        act.addEventListener(<span class="hljs-string">"resume"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            nfcAdapter.enableForegroundDispatch(dispatchFilter);
+        });
+
+        act.addEventListener(<span class="hljs-string">"pause"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+            nfcAdapter.disableForegroundDispatch();
+        });
+
+        dispatchFilter = nfc.createNfcForegroundDispatchFilter({
+            intentFilters: [ {
+                action: nfc.ACTION_TECH_DISCOVERED
+            } ],
+            techLists: [ [<span class="hljs-string">"android.nfc.tech.IsoDep"</span>], [ <span class="hljs-string">"android.nfc.tech.NfcA"</span> ] ]
+        });
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">handleDiscovery</span>(<span class="hljs-params">e</span>) </span>{
+
+    <span class="hljs-keyword">var</span> tech = nfc.createTagTechnologyIsoDep({
+        tag:e.tag
+    });    
+
+    tech.connect();
+
+    <span class="hljs-keyword">if</span> (tech.isConnected()) {
+        <span class="hljs-keyword">var</span> command = Ti.createBuffer({length:<span class="hljs-number">260</span>});
+        <span class="hljs-keyword">var</span> response = Ti.createBuffer({length:<span class="hljs-number">260</span>});
+
+        <span class="hljs-keyword">if</span> (tech.isValid())
+        {
+            Ti.API.debug(<span class="hljs-string">"isValid"</span>);
+        }
+
+        response = tech.getHistoricalBytes();
+        Ti.API.debug(<span class="hljs-string">"historical bytes : "</span> + response.toString());
+
+        <span class="hljs-keyword">var</span> max = tech.getMaxTransceiveLength();
+        Ti.API.debug(<span class="hljs-string">"MAX:"</span> + max.toString());
+
+        Ti.API.debug(<span class="hljs-built_in">JSON</span>.stringify(tech.getTag()));
+
+        tech.setTimeout(<span class="hljs-number">1000</span>);
+        Ti.API.debug(<span class="hljs-built_in">JSON</span>.stringify(tech.getTimeout()));
+
+        command = [<span class="hljs-number">0x00</span>,<span class="hljs-number">0xa4</span>,<span class="hljs-number">0x04</span>,<span class="hljs-number">0x00</span>,<span class="hljs-number">0x03</span>,<span class="hljs-number">0xff</span>,<span class="hljs-number">0xff</span>,<span class="hljs-number">0xff</span>];
+        <span class="hljs-comment">//command = [0x90,0x60,0x00,0x00,0x00];</span>
+        <span class="hljs-comment">//command = [0x5a,0xff,0xff,0xff];</span>
+
+        <span class="hljs-keyword">try</span> {
+            response = tech.transceive(command);
+            Ti.API.debug(response);
+        }
+        <span class="hljs-keyword">catch</span>(e) {
+            Ti.API.debug(e.message);
+        }    
+        tech.close();
+    }
+};
+
+self.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">//setup NFC Adapter</span>
+    setupNfc();    
+});
+</code></pre><p>It doesn&#39;t matter what command I send, the app always crashes when the tech.transceive(command) is called!</p>
+<p>I am using SDK 3.1.1.</p>
+<p>Any help would be greatly appreciated.</p>
+<p>Man thanks in advance.</p>
+<p>Vic</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 26th 2013, 11:52:13 am">September 26th 2013</span>
+				by <span class='authorname'>Victor Leitch</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>desfire</span></li>
+					
+						<li><span class='tagname'>isodep</span></li>
+					
+						<li><span class='tagname'>nfc</span></li>
+					
+						<li><span class='tagname'>transceive</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>5 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Did you manage to inspect what`s happening in your console&#x2F;DDMS?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 26th 2013, 10:12:52 pm">September 26th 2013</span>
+								by <span class='authorname'>Jiale He</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>No as I can&#39;t get the app to run on the device in debug mode - it hangs on the splash screen - a separate issue and not related to the app.</p>
+<p>I have posted a bug report on JIRA re the nfc crash.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 27th 2013, 6:08:59 am">September 27th 2013</span>
+								by <span class='authorname'>Victor Leitch</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Jira Ticket is <a href="https:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-3033">here</a></p>
+<p>Really odd that no one else has experienced this.<br>I know that the device can read the card successfully as I have NFC TagInfo app installed.</p>
+<p>I&#39;m getting very desperate so if anyone can help it would be greatly appreciated.</p>
+<p>I have managed to get debugging working on the device and have captured the following:</p>
+<pre><code class="hljs">[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>] <span class="hljs-strong">*** **</span><span class="hljs-bullet">* *</span><span class="hljs-strong">** **</span><span class="hljs-bullet">* *</span><span class="hljs-strong">** **</span><span class="hljs-bullet">* *</span><span class="hljs-strong">** **</span><span class="hljs-bullet">* *</span><span class="hljs-strong">** **</span><span class="hljs-bullet">* *</span><span class="hljs-strong">** **</span><span class="hljs-bullet">* *</span><span class="hljs-strong">** **</span><span class="hljs-bullet">* *</span><span class="hljs-strong">** **</span>*
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>] Build fingerprint: 'samsung/t03gxx/t03g:4.1.2/JZO54K/N7100XXDME6:user/release-keys'
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>] pid: 2498, tid: 2573, name: KrollRuntimeThr  &gt;&gt;&gt; uk.co.scotcomms.nfcisodeptest <span class="xml"><span class="hljs-tag">&lt;&lt;&lt;
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">signal</span> <span class="hljs-attribute">11</span> (<span class="hljs-attribute">SIGSEGV</span>), <span class="hljs-attribute">code</span> <span class="hljs-attribute">1</span> (<span class="hljs-attribute">SEGV_MAPERR</span>), <span class="hljs-attribute">fault</span> <span class="hljs-attribute">addr</span> <span class="hljs-attribute">0000000a</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">r0</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">r1</span> <span class="hljs-attribute">00000004</span>  <span class="hljs-attribute">r2</span> <span class="hljs-attribute">41f7b228</span>  <span class="hljs-attribute">r3</span> <span class="hljs-attribute">572c72f0</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">r4</span> <span class="hljs-attribute">5d6f9248</span>  <span class="hljs-attribute">r5</span> <span class="hljs-attribute">41052e70</span>  <span class="hljs-attribute">r6</span> <span class="hljs-attribute">571f24e0</span>  <span class="hljs-attribute">r7</span> <span class="hljs-attribute">0000106e</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">r8</span> <span class="hljs-attribute">40855040</span>  <span class="hljs-attribute">r9</span> <span class="hljs-attribute">41f7b228</span>  <span class="hljs-attribute">sl</span> <span class="hljs-attribute">41052e58</span>  <span class="hljs-attribute">fp</span> <span class="hljs-attribute">5d75c4f8</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">ip</span> <span class="hljs-attribute">00000004</span>  <span class="hljs-attribute">sp</span> <span class="hljs-attribute">5daef7f8</span>  <span class="hljs-attribute">lr</span> <span class="hljs-attribute">408598c0</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">4085e1f8</span>  <span class="hljs-attribute">cpsr</span> <span class="hljs-attribute">00000010</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d0</span>  <span class="hljs-attribute">3fe6a09e667f3bcd</span>  <span class="hljs-attribute">d1</span>  <span class="hljs-attribute">3ff6a09e667f3bcd</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d2</span>  <span class="hljs-attribute">0000000100000001</span>  <span class="hljs-attribute">d3</span>  <span class="hljs-attribute">000f4240003d0900</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d4</span>  <span class="hljs-attribute">0000000000000001</span>  <span class="hljs-attribute">d5</span>  <span class="hljs-attribute">3ff0000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d6</span>  <span class="hljs-attribute">0000860300000000</span>  <span class="hljs-attribute">d7</span>  <span class="hljs-attribute">000000ff00000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d8</span>  <span class="hljs-attribute">0000000000000000</span>  <span class="hljs-attribute">d9</span>  <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d10</span> <span class="hljs-attribute">0000000000000000</span>  <span class="hljs-attribute">d11</span> <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d12</span> <span class="hljs-attribute">0000000000000000</span>  <span class="hljs-attribute">d13</span> <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d14</span> <span class="hljs-attribute">0000000000000000</span>  <span class="hljs-attribute">d15</span> <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d16</span> <span class="hljs-attribute">4074400000000000</span>  <span class="hljs-attribute">d17</span> <span class="hljs-attribute">7e37e43c8800759c</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d18</span> <span class="hljs-attribute">0000000000004001</span>  <span class="hljs-attribute">d19</span> <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d20</span> <span class="hljs-attribute">4008000000000000</span>  <span class="hljs-attribute">d21</span> <span class="hljs-attribute">3fbc71c71c71c71c</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d22</span> <span class="hljs-attribute">3fcc7288e957b53b</span>  <span class="hljs-attribute">d23</span> <span class="hljs-attribute">3fd24998d6307188</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d24</span> <span class="hljs-attribute">3fd99a27ad32ddf5</span>  <span class="hljs-attribute">d25</span> <span class="hljs-attribute">3fe555b0aaeac752</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d26</span> <span class="hljs-attribute">0000000000000000</span>  <span class="hljs-attribute">d27</span> <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d28</span> <span class="hljs-attribute">0000000000000005</span>  <span class="hljs-attribute">d29</span> <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">d30</span> <span class="hljs-attribute">0000000000000000</span>  <span class="hljs-attribute">d31</span> <span class="hljs-attribute">0000000000000000</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">scr</span> <span class="hljs-attribute">60000013</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">backtrace:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     #<span class="hljs-attribute">00</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">000271f8</span>  /<span class="hljs-attribute">system</span>/<span class="hljs-attribute">lib</span>/<span class="hljs-attribute">libdvm.so</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     #<span class="hljs-attribute">01</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">0002bbe8</span>  /<span class="hljs-attribute">system</span>/<span class="hljs-attribute">lib</span>/<span class="hljs-attribute">libdvm.so</span> (<span class="hljs-attribute">dvmInterpret</span>(<span class="hljs-attribute">Thread</span>*, <span class="hljs-attribute">Method</span> <span class="hljs-attribute">const</span>*, <span class="hljs-attribute">JValue</span>*)+<span class="hljs-attribute">180</span>)
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     #<span class="hljs-attribute">02</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">0005f743</span>  /<span class="hljs-attribute">system</span>/<span class="hljs-attribute">lib</span>/<span class="hljs-attribute">libdvm.so</span> (<span class="hljs-attribute">dvmCallMethodA</span>(<span class="hljs-attribute">Thread</span>*, <span class="hljs-attribute">Method</span> <span class="hljs-attribute">const</span>*, <span class="hljs-attribute">Object</span>*, <span class="hljs-attribute">bool</span>, <span class="hljs-attribute">JValue</span>*, <span class="hljs-attribute">jvalue</span> <span class="hljs-attribute">const</span>*)+<span class="hljs-attribute">298</span>)
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     #<span class="hljs-attribute">03</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">0004c84d</span>  /<span class="hljs-attribute">system</span>/<span class="hljs-attribute">lib</span>/<span class="hljs-attribute">libdvm.so</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     #<span class="hljs-attribute">04</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">00012457</span>  /<span class="hljs-attribute">data</span>/<span class="hljs-attribute">data</span>/<span class="hljs-attribute">uk.co.scotcomms.nfcisodeptest</span>/<span class="hljs-attribute">lib</span>/<span class="hljs-attribute">libti.nfc.so</span> (<span class="hljs-attribute">ti::nfc::nfc::TagTechnologyIsoDepProxy::transceive</span>(<span class="hljs-attribute">v8::Arguments</span> <span class="hljs-attribute">const</span>&amp;)+<span class="hljs-attribute">166</span>)
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     #<span class="hljs-attribute">05</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">00169634</span>  /<span class="hljs-attribute">data</span>/<span class="hljs-attribute">data</span>/<span class="hljs-attribute">uk.co.scotcomms.nfcisodeptest</span>/<span class="hljs-attribute">lib</span>/<span class="hljs-attribute">libkroll-v8.so</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     #<span class="hljs-attribute">06</span>  <span class="hljs-attribute">pc</span> <span class="hljs-attribute">0002f1cb</span>  &lt;<span class="hljs-attribute">unknown</span>&gt;</span></span>
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>] 
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>] stack:
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7b8  5daef800  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7bc  40896875  /system/lib/libdvm.so (dvmCallMethodV(Thread<span class="hljs-emphasis">*, Method const*</span>, Object<span class="hljs-emphasis">*, bool, JValue*</span>, std::<span class="hljs-emphasis">__va_</span>list)+276)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7c0  571f24e0  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7c4  572db588  /dev/ashmem/dalvik-LinearAlloc (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7c8  4203a070  /dev/ashmem/dalvik-heap (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7cc  2740000d  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7d0  572db588  /dev/ashmem/dalvik-LinearAlloc (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7d4  4203a070  /dev/ashmem/dalvik-heap (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7d8  5daef7fc  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7dc  572db588  /dev/ashmem/dalvik-LinearAlloc (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7e0  4203a070  /dev/ashmem/dalvik-heap (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7e4  4087ff29  /system/lib/libdvm.so
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7e8  2740000d  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7ec  40883b4d  /system/lib/libdvm.so
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7f0  df0027ad  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7f4  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]     #00  5daef7f8  41f7b228  /dev/ashmem/dalvik-heap (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef7fc  571f24e0  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef800  408dcc94  /system/lib/libdvm.so
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef804  57666ca0  /dev/ashmem/dalvik-LinearAlloc (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef808  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef80c  5daef82c  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef810  5daef8f8  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef814  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef818  5d75c4f8  /data/dalvik-cache/data@app@uk.co.scotcomms.nfcisodeptest-1.apk@classes.dex
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef81c  40862bec  /system/lib/libdvm.so (dvmInterpret(Thread<span class="hljs-emphasis">*, Method const*</span>, JValue*)+184)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]     #01  5daef820  5e04bf18  /data/data/uk.co.scotcomms.nfcisodeptest/lib/libkroll-v8.so
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef824  5daef834  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef828  5e04bf18  /data/data/uk.co.scotcomms.nfcisodeptest/lib/libkroll-v8.so
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef82c  585cce16  /system/framework/core.odex
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef830  41052e70  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef834  57627460  /dev/ashmem/dalvik-LinearAlloc (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef838  589a8000  /dev/ashmem/dalvik-aux-structure (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef83c  4001a7f8  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef840  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef844  5daefda8  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef848  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef84c  5daefddc  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef850  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef854  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef858  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef85c  00000000  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          ........  ........
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]     #02  5daef8b0  00000168  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8b4  5daef9f8  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8b8  5fe2f1cd  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8bc  00000001  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8c0  408dcc94  /system/lib/libdvm.so
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8c4  420ac3e0  /dev/ashmem/dalvik-heap (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8c8  57666ca0  /dev/ashmem/dalvik-LinearAlloc (deleted)
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8cc  571f1680  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8d0  5daef928  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8d4  5daef918  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8d8  00000168  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8dc  5daef9f8  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8e0  5fe2f1cd  
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]          5daef8e4  40883851  /system/lib/libdvm.so
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>] 
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>] memory near r2:
+[<span class="hljs-link_label">INFO</span>][<span class="hljs-link_reference">DEBUG   ( 1923)</span>]     41f7b208 410b3cd0 00000000 41f7b148 41f7b138  .<span class="xml"><span class="hljs-tag">&lt;<span class="hljs-title">.A....H..A8..A</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b218</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">2f2dacac</span> <span class="hljs-attribute">2f697064</span> <span class="hljs-attribute">0000003b</span>  <span class="hljs-attribute">......-</span>/<span class="hljs-attribute">dpi</span>/;<span class="hljs-attribute">...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b228</span> <span class="hljs-attribute">410a5e90</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">00000008</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">.</span>^<span class="hljs-attribute">.A............</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b238</span> <span class="hljs-attribute">4203a000</span> <span class="hljs-attribute">4203a010</span> <span class="hljs-attribute">4203a020</span> <span class="hljs-attribute">4203a030</span>  <span class="hljs-attribute">...B...B</span> <span class="hljs-attribute">..B0..B</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b248</span> <span class="hljs-attribute">4203a040</span> <span class="hljs-attribute">4203a050</span> <span class="hljs-attribute">4203a060</span> <span class="hljs-attribute">4203a070</span>  @<span class="hljs-attribute">..BP..B</span>`<span class="hljs-attribute">..Bp..B</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">r3:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">572c72d0</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">01000000</span> <span class="hljs-attribute">4089cfbd</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">...........</span>@<span class="hljs-attribute">....</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">572c72e0</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">0000002c</span>  <span class="hljs-attribute">............</span>,<span class="hljs-attribute">...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">572c72f0</span> <span class="hljs-attribute">572c7080</span> <span class="hljs-attribute">572c70b8</span> <span class="hljs-attribute">572c70f0</span> <span class="hljs-attribute">572c7128</span>  <span class="hljs-attribute">.p</span>,<span class="hljs-attribute">W.p</span>,<span class="hljs-attribute">W.p</span>,<span class="hljs-attribute">W</span>(<span class="hljs-attribute">q</span>,<span class="hljs-attribute">W</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">572c7300</span> <span class="hljs-attribute">572c7160</span> <span class="hljs-attribute">572c7198</span> <span class="hljs-attribute">572c71d0</span> <span class="hljs-attribute">572c7208</span>  `<span class="hljs-attribute">q</span>,<span class="hljs-attribute">W.q</span>,<span class="hljs-attribute">W.q</span>,<span class="hljs-attribute">W.r</span>,<span class="hljs-attribute">W</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">572c7310</span> <span class="hljs-attribute">572c7240</span> <span class="hljs-attribute">572c7278</span> <span class="hljs-attribute">572c72b0</span> <span class="hljs-attribute">00000004</span>  @<span class="hljs-attribute">r</span>,<span class="hljs-attribute">Wxr</span>,<span class="hljs-attribute">W.r</span>,<span class="hljs-attribute">W....</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">r4:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d6f9228</span> <span class="hljs-attribute">5b362054</span> <span class="hljs-attribute">1cfc206e</span> <span class="hljs-attribute">fa280030</span> <span class="hljs-attribute">00020005</span>  <span class="hljs-attribute">T</span> <span class="hljs-attribute">6</span>[<span class="hljs-attribute">n</span> <span class="hljs-attribute">..0.</span>(<span class="hljs-attribute">.....</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d6f9238</span> <span class="hljs-attribute">00000002</span> <span class="hljs-attribute">00596cc8</span> <span class="hljs-attribute">00000010</span> <span class="hljs-attribute">5b363154</span>  <span class="hljs-attribute">.....lY.....T16</span>[
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d6f9248</span> <span class="hljs-attribute">9e3a106e</span> <span class="hljs-attribute">020c0004</span> <span class="hljs-attribute">1cfd206e</span> <span class="hljs-attribute">000c0021</span>  <span class="hljs-attribute">n.:.....n</span> <span class="hljs-attribute">..</span>!<span class="hljs-attribute">...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d6f9258</span> <span class="hljs-attribute">12e90122</span> <span class="hljs-attribute">9e302070</span> <span class="hljs-attribute">01110001</span> <span class="hljs-attribute">00010003</span>  "<span class="hljs-attribute">...p</span> <span class="hljs-attribute">0.........</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d6f9268</span> <span class="hljs-attribute">00000002</span> <span class="hljs-attribute">00596cd8</span> <span class="hljs-attribute">0000001d</span> <span class="hljs-attribute">8faa1070</span>  <span class="hljs-attribute">.....lY.....p...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">r5:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e50</span> <span class="hljs-attribute">41052e7c</span> <span class="hljs-attribute">5855ca10</span> <span class="hljs-attribute">41f7b228</span> <span class="hljs-attribute">41052e98</span>  |<span class="hljs-attribute">..A..UX</span>(<span class="hljs-attribute">..A...A</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e60</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">57666ca0</span> <span class="hljs-attribute">5d6f9248</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">.....lfWH.o</span>]<span class="hljs-attribute">....</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e70</span> <span class="hljs-attribute">572db588</span> <span class="hljs-attribute">42028998</span> <span class="hljs-attribute">4233b5e8</span> <span class="hljs-attribute">420ac3e0</span>  <span class="hljs-attribute">..-W...B..3B...B</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e80</span> <span class="hljs-attribute">41f7b228</span> <span class="hljs-attribute">41052eac</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">00000000</span>  (<span class="hljs-attribute">..A...A........</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e90</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">41052ebc</span> <span class="hljs-attribute">41052ed8</span> <span class="hljs-attribute">5d68263a</span>  <span class="hljs-attribute">.......A...A:</span>&amp;<span class="hljs-attribute">h</span>]
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">r6:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">571f24c0</span> <span class="hljs-attribute">0001000a</span> <span class="hljs-attribute">00000008</span> <span class="hljs-attribute">00000028</span> <span class="hljs-attribute">00000013</span>  <span class="hljs-attribute">........</span>(<span class="hljs-attribute">.......</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">571f24d0</span> <span class="hljs-attribute">00030182</span> <span class="hljs-attribute">07020600</span> <span class="hljs-attribute">00000706</span> <span class="hljs-attribute">00000453</span>  <span class="hljs-attribute">............S...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">571f24e0</span> <span class="hljs-attribute">5d6f9244</span> <span class="hljs-attribute">41052e70</span> <span class="hljs-attribute">57666ca0</span> <span class="hljs-attribute">589a8000</span>  <span class="hljs-attribute">D.o</span>]<span class="hljs-attribute">p..A.lfW...X</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">571f24f0</span> <span class="hljs-attribute">4001a7f8</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">5daef7f8</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">...</span>@<span class="hljs-attribute">.......</span>]<span class="hljs-attribute">....</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">571f2500</span> <span class="hljs-attribute">5daef82c</span> <span class="hljs-attribute">0000000a</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">40855040</span>  ,<span class="hljs-attribute">..</span>]<span class="hljs-attribute">........</span>@<span class="hljs-attribute">P.</span>@
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">r7:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">0000104c</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span>  <span class="hljs-attribute">................</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">0000105c</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span>  <span class="hljs-attribute">................</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">0000106c</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span>  <span class="hljs-attribute">................</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">0000107c</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span>  <span class="hljs-attribute">................</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">0000108c</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span> <span class="hljs-attribute">ffffffff</span>  <span class="hljs-attribute">................</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">r8:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">40855020</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span>  <span class="hljs-attribute">..</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">40855030</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span>  <span class="hljs-attribute">..</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">40855040</span> <span class="hljs-attribute">e1f470b2</span> <span class="hljs-attribute">e207c0ff</span> <span class="hljs-attribute">e088f30c</span> <span class="hljs-attribute">e92d4ff0</span>  <span class="hljs-attribute">.p...........O-.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">40855050</span> <span class="hljs-attribute">e24dd004</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span>  <span class="hljs-attribute">..M...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">40855060</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span> <span class="hljs-attribute">e320f000</span>  <span class="hljs-attribute">..</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">...</span> <span class="hljs-attribute">.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">r9:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b208</span> <span class="hljs-attribute">410b3cd0</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">41f7b148</span> <span class="hljs-attribute">41f7b138</span>  <span class="hljs-attribute">.</span>&lt;<span class="hljs-attribute">.A....H..A8..A</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b218</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">2f2dacac</span> <span class="hljs-attribute">2f697064</span> <span class="hljs-attribute">0000003b</span>  <span class="hljs-attribute">......-</span>/<span class="hljs-attribute">dpi</span>/;<span class="hljs-attribute">...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b228</span> <span class="hljs-attribute">410a5e90</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">00000008</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">.</span>^<span class="hljs-attribute">.A............</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b238</span> <span class="hljs-attribute">4203a000</span> <span class="hljs-attribute">4203a010</span> <span class="hljs-attribute">4203a020</span> <span class="hljs-attribute">4203a030</span>  <span class="hljs-attribute">...B...B</span> <span class="hljs-attribute">..B0..B</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41f7b248</span> <span class="hljs-attribute">4203a040</span> <span class="hljs-attribute">4203a050</span> <span class="hljs-attribute">4203a060</span> <span class="hljs-attribute">4203a070</span>  @<span class="hljs-attribute">..BP..B</span>`<span class="hljs-attribute">..Bp..B</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">sl:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e38</span> <span class="hljs-attribute">41052e68</span> <span class="hljs-attribute">5d6916f6</span> <span class="hljs-attribute">572d8e78</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">h..A..i</span>]<span class="hljs-attribute">x.-W....</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e48</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">41052e7c</span> <span class="hljs-attribute">5855ca10</span>  <span class="hljs-attribute">........</span>|<span class="hljs-attribute">..A..UX</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e58</span> <span class="hljs-attribute">41f7b228</span> <span class="hljs-attribute">41052e98</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">57666ca0</span>  (<span class="hljs-attribute">..A...A.....lfW</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e68</span> <span class="hljs-attribute">5d6f9248</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">572db588</span> <span class="hljs-attribute">42028998</span>  <span class="hljs-attribute">H.o</span>]<span class="hljs-attribute">......-W...B</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">41052e78</span> <span class="hljs-attribute">4233b5e8</span> <span class="hljs-attribute">420ac3e0</span> <span class="hljs-attribute">41f7b228</span> <span class="hljs-attribute">41052eac</span>  <span class="hljs-attribute">..3B...B</span>(<span class="hljs-attribute">..A...A</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">fp:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d75c4d8</span> <span class="hljs-attribute">4a4a4c05</span> <span class="hljs-attribute">0400494a</span> <span class="hljs-attribute">4c4a4a4c</span> <span class="hljs-attribute">4a4c0500</span>  <span class="hljs-attribute">.LJJJI..LJJL..LJ</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d75c4e8</span> <span class="hljs-attribute">004c4c4a</span> <span class="hljs-attribute">4c4a4c03</span> <span class="hljs-attribute">4a4c0400</span> <span class="hljs-attribute">02004c4c</span>  <span class="hljs-attribute">JLL..LJL..LJLL..</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d75c4f8</span> <span class="hljs-attribute">03004c4c</span> <span class="hljs-attribute">00424c4c</span> <span class="hljs-attribute">434c4c03</span> <span class="hljs-attribute">4c4c0300</span>  <span class="hljs-attribute">LL..LLB..LLC..LL</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d75c508</span> <span class="hljs-attribute">4c030044</span> <span class="hljs-attribute">0400464c</span> <span class="hljs-attribute">46464c4c</span> <span class="hljs-attribute">4c4c0600</span>  <span class="hljs-attribute">D..LLF..LLFF..LL</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5d75c518</span> <span class="hljs-attribute">46464646</span> <span class="hljs-attribute">4c4c0400</span> <span class="hljs-attribute">03004c46</span> <span class="hljs-attribute">00494c4c</span>  <span class="hljs-attribute">FFFF..LLFL..LLI.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">memory</span> <span class="hljs-attribute">near</span> <span class="hljs-attribute">sp:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5daef7d8</span> <span class="hljs-attribute">5daef7fc</span> <span class="hljs-attribute">572db588</span> <span class="hljs-attribute">4203a070</span> <span class="hljs-attribute">4087ff29</span>  <span class="hljs-attribute">...</span>]<span class="hljs-attribute">..-Wp..B</span>)<span class="hljs-attribute">..</span>@
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5daef7e8</span> <span class="hljs-attribute">2740000d</span> <span class="hljs-attribute">40883b4d</span> <span class="hljs-attribute">df0027ad</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">..</span>@'<span class="hljs-attribute">M</span>;<span class="hljs-attribute">.</span>@<span class="hljs-attribute">.</span>'<span class="hljs-attribute">......</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5daef7f8</span> <span class="hljs-attribute">41f7b228</span> <span class="hljs-attribute">571f24e0</span> <span class="hljs-attribute">408dcc94</span> <span class="hljs-attribute">57666ca0</span>  (<span class="hljs-attribute">..A.</span>$<span class="hljs-attribute">.W...</span>@<span class="hljs-attribute">.lfW</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5daef808</span> <span class="hljs-attribute">00000000</span> <span class="hljs-attribute">5daef82c</span> <span class="hljs-attribute">5daef8f8</span> <span class="hljs-attribute">00000000</span>  <span class="hljs-attribute">....</span>,<span class="hljs-attribute">..</span>]<span class="hljs-attribute">...</span>]<span class="hljs-attribute">....</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">5daef818</span> <span class="hljs-attribute">5d75c4f8</span> <span class="hljs-attribute">40862bec</span> <span class="hljs-attribute">5e04bf18</span> <span class="hljs-attribute">5daef834</span>  <span class="hljs-attribute">..u</span>]<span class="hljs-attribute">.</span>+<span class="hljs-attribute">.</span>@<span class="hljs-attribute">...</span>^<span class="hljs-attribute">4..</span>]
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">code</span> <span class="hljs-attribute">around</span> <span class="hljs-attribute">pc:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">4085e1d8</span> <span class="hljs-attribute">e201c0f0</span> <span class="hljs-attribute">e795212c</span> <span class="hljs-attribute">e1a00000</span> <span class="hljs-attribute">e52a2004</span>  <span class="hljs-attribute">....</span>,!<span class="hljs-attribute">.......</span> *<span class="hljs-attribute">.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">4085e1e8</span> <span class="hljs-attribute">e201c00f</span> <span class="hljs-attribute">e795210c</span> <span class="hljs-attribute">e1a00000</span> <span class="hljs-attribute">e52a2004</span>  <span class="hljs-attribute">.....</span>!<span class="hljs-attribute">.......</span> *<span class="hljs-attribute">.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">4085e1f8</span> <span class="hljs-attribute">e1d090ba</span> <span class="hljs-attribute">e1d030bc</span> <span class="hljs-attribute">e5902020</span> <span class="hljs-attribute">e5907000</span>  <span class="hljs-attribute">.....0..</span>  <span class="hljs-attribute">...p..</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">4085e208</span> <span class="hljs-attribute">e2451014</span> <span class="hljs-attribute">e0411109</span> <span class="hljs-attribute">e241a014</span> <span class="hljs-attribute">e596903c</span>  <span class="hljs-attribute">..E...A...A.</span>&lt;<span class="hljs-attribute">...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">4085e218</span> <span class="hljs-attribute">e04a3103</span> <span class="hljs-attribute">e1530009</span> <span class="hljs-attribute">e1d6e2b8</span> <span class="hljs-attribute">e5903004</span>  <span class="hljs-attribute">.1J...S......0..</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] 
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] <span class="hljs-attribute">code</span> <span class="hljs-attribute">around</span> <span class="hljs-attribute">lr:</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">408598a0</span> <span class="hljs-attribute">e795910a</span> <span class="hljs-attribute">e1d020b8</span> <span class="hljs-attribute">e3590000</span> <span class="hljs-attribute">0a00132b</span>  <span class="hljs-attribute">.....</span> <span class="hljs-attribute">....Y.</span>+<span class="hljs-attribute">...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">408598b0</span> <span class="hljs-attribute">e5993000</span> <span class="hljs-attribute">e5933074</span> <span class="hljs-attribute">e7930102</span> <span class="hljs-attribute">eb00122f</span>  <span class="hljs-attribute">.0..t0......</span>/<span class="hljs-attribute">...</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">408598c0</span> <span class="hljs-attribute">e59a1048</span> <span class="hljs-attribute">e1d020b8</span> <span class="hljs-attribute">e5913070</span> <span class="hljs-attribute">e5054008</span>  <span class="hljs-attribute">H....</span> <span class="hljs-attribute">..p0...</span>@<span class="hljs-attribute">..</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">408598d0</span> <span class="hljs-attribute">e1520003</span> <span class="hljs-attribute">2a000008</span> <span class="hljs-attribute">e5911074</span> <span class="hljs-attribute">e7910102</span>  <span class="hljs-attribute">..R....</span>*<span class="hljs-attribute">t.......</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)]     <span class="hljs-attribute">408598e0</span> <span class="hljs-attribute">eb001226</span> <span class="hljs-attribute">e1a0000a</span> <span class="hljs-attribute">e3a02003</span> <span class="hljs-attribute">fa012245</span>  &amp;<span class="hljs-attribute">........</span> <span class="hljs-attribute">..E</span>"<span class="hljs-attribute">..</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">DEBUG</span>   ( <span class="hljs-attribute">1923</span>)] !@<span class="hljs-attribute">dumpstate</span> <span class="hljs-attribute">-k</span> <span class="hljs-attribute">-t</span> <span class="hljs-attribute">-z</span> <span class="hljs-attribute">-d</span> <span class="hljs-attribute">-o</span> /<span class="hljs-attribute">data</span>/<span class="hljs-attribute">log</span>/<span class="hljs-attribute">dumpstate_app_native</span> <span class="hljs-attribute">-m</span> <span class="hljs-attribute">2498</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">BootReceiver</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">Copying</span> /<span class="hljs-attribute">data</span>/<span class="hljs-attribute">tombstones</span>/<span class="hljs-attribute">tombstone_05</span> <span class="hljs-attribute">to</span> <span class="hljs-attribute">DropBox</span> (<span class="hljs-attribute">SYSTEM_TOMBSTONE</span>)
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">dumpstate</span>( <span class="hljs-attribute">3322</span>)] <span class="hljs-attribute">begin</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getGsmLevel</span>=<span class="hljs-value">4</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getGsmLevel</span>=<span class="hljs-value">4</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getLevel</span>=<span class="hljs-value">4</span> (<span class="hljs-attribute">SignalStrength:</span> <span class="hljs-attribute">14</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">gsm</span>|<span class="hljs-attribute">lte</span> <span class="hljs-attribute">4</span>)
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getGsmLevel</span>=<span class="hljs-value">4</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">AlarmManager</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">FACTORY_ON</span>= <span class="hljs-attribute">0</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getLevel</span>=<span class="hljs-value">4</span> (<span class="hljs-attribute">SignalStrength:</span> <span class="hljs-attribute">14</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">gsm</span>|<span class="hljs-attribute">lte</span> <span class="hljs-attribute">4</span>)
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getLevel</span>=<span class="hljs-value">4</span> (<span class="hljs-attribute">SignalStrength:</span> <span class="hljs-attribute">14</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">gsm</span>|<span class="hljs-attribute">lte</span> <span class="hljs-attribute">4</span>)
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getGsmDbm</span>=<span class="hljs-value">-85</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getDbm</span>=<span class="hljs-value">-85</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">AlarmManager</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">FACTORY_ON</span>= <span class="hljs-attribute">0</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getGsmAsuLevel</span>=<span class="hljs-value">14</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getAsuLevel</span>=<span class="hljs-value">14</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">LocationManagerService</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">request</span> <span class="hljs-attribute">network</span> (<span class="hljs-attribute">pid</span> <span class="hljs-attribute">2186</span>) <span class="hljs-attribute">0</span> <span class="hljs-attribute">0</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getGsmLevel</span>=<span class="hljs-value">4</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getLevel</span>=<span class="hljs-value">4</span> (<span class="hljs-attribute">SignalStrength:</span> <span class="hljs-attribute">15</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">gsm</span>|<span class="hljs-attribute">lte</span> <span class="hljs-attribute">4</span>)
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getGsmLevel</span>=<span class="hljs-value">4</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2569</span>)] <span class="hljs-attribute">getLevel</span>=<span class="hljs-value">4</span> (<span class="hljs-attribute">SignalStrength:</span> <span class="hljs-attribute">15</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">gsm</span>|<span class="hljs-attribute">lte</span> <span class="hljs-attribute">4</span>)
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getGsmLevel</span>=<span class="hljs-value">4</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getLevel</span>=<span class="hljs-value">4</span> (<span class="hljs-attribute">SignalStrength:</span> <span class="hljs-attribute">15</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">-1</span> <span class="hljs-attribute">gsm</span>|<span class="hljs-attribute">lte</span> <span class="hljs-attribute">4</span>)
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">AlarmManager</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">FACTORY_ON</span>= <span class="hljs-attribute">0</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getGsmDbm</span>=<span class="hljs-value">-83</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getDbm</span>=<span class="hljs-value">-83</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getGsmAsuLevel</span>=<span class="hljs-value">15</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">SignalStrength</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">getAsuLevel</span>=<span class="hljs-value">15</span>
+[<span class="hljs-attribute">WARN</span>][<span class="hljs-attribute">AlarmManager</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">FACTORY_ON</span>= <span class="hljs-attribute">0</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">dumpstate</span>( <span class="hljs-attribute">3322</span>)] <span class="hljs-attribute">done</span>
+[<span class="hljs-attribute">ERROR</span>][<span class="hljs-attribute">Watchdog</span>( <span class="hljs-attribute">2267</span>)] !@<span class="hljs-attribute">Sync</span> <span class="hljs-attribute">121388</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">ActivityManager</span>( <span class="hljs-attribute">2267</span>)] <span class="hljs-attribute">Process</span> <span class="hljs-attribute">uk.co.scotcomms.nfcisodeptest</span> (<span class="hljs-attribute">pid</span> <span class="hljs-attribute">2498</span>) (<span class="hljs-attribute">adj</span> <span class="hljs-attribute">0</span>) <span class="hljs-attribute">has</span> <span class="hljs-attribute">died.</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">SurfaceFlinger</span>( <span class="hljs-attribute">1930</span>)] <span class="hljs-attribute">id</span>=<span class="hljs-value">8880</span> <span class="hljs-attribute">Removed</span> <span class="hljs-attribute">Ofcisodepte</span> <span class="hljs-attribute">idx</span>=<span class="hljs-value">3</span> <span class="hljs-attribute">MapSz</span>=<span class="hljs-value">16</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">SurfaceFlinger</span>( <span class="hljs-attribute">1930</span>)] <span class="hljs-attribute">id</span>=<span class="hljs-value">8880</span> <span class="hljs-attribute">Removed</span> <span class="hljs-attribute">Ofcisodepte</span> <span class="hljs-attribute">idx</span>=<span class="hljs-value">-2</span> <span class="hljs-attribute">MapSz</span>=<span class="hljs-value">16</span>
+[<span class="hljs-attribute">ERROR</span>][<span class="hljs-attribute">Launcher</span>( <span class="hljs-attribute">2822</span>)] <span class="hljs-attribute">Error</span> <span class="hljs-attribute">finding</span> <span class="hljs-attribute">setting</span>, <span class="hljs-attribute">default</span> <span class="hljs-attribute">accessibility</span> <span class="hljs-attribute">to</span> <span class="hljs-attribute">not</span> <span class="hljs-attribute">found:</span> <span class="hljs-attribute">accessibility_enabled</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">FlashBarService</span>( <span class="hljs-attribute">2781</span>)] <span class="hljs-attribute">mPkgManagerReceiver</span> <span class="hljs-attribute">:</span> <span class="hljs-attribute">onReceive</span>
+[<span class="hljs-attribute">INFO</span>][<span class="hljs-attribute">SurfaceFlinger</span>( <span class="hljs-attribute">1930</span>)] <span class="hljs-attribute">id</span>=<span class="hljs-value">8881(608)</span> <span class="hljs-attribute">createSurf</span> <span class="hljs-attribute">0x44880e1c</span> (<span class="hljs-attribute">720x1280</span>),<span class="hljs-attribute">1</span> <span class="hljs-attribute">flag</span>=<span class="hljs-value">0,</span> <span class="hljs-attribute">Mauncher</span></span></span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="October 10th 2013, 9:08:13 am">October 10th 2013</span>
+								by <span class='authorname'>Victor Leitch</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Our company is now in panic mode regarding this NFC bug. I have raised a ticket with Appcelerator but have had no feedback as to whether they are investigating it. We are willing to pay for the bug to be fixed as we have invested months of development in this project and if this issue isn&#39;t resolved soon we don&#39;t know what we will do - we have no time (or knowledge) to rewrite in native android.</p>
+<p>Please, if anyone knows a way of getting paid support for Titanium, let me know.</p>
+<p>Thanks in advance.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 31st 2013, 10:06:56 am">October 31st 2013</span>
+								by <span class='authorname'>Victor Leitch</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Got round it by writing an app in native android to read the IsoDep card and pass resultant data in custom broadcast intent - works very well.</p>
+<p>However I&#39;m more than a little dismayed at the lack of official support on this, especially considering this is documented and supposed to work - who tests this before release - my guess is no one???<br>Really considering ditching Titanium and going native!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="November 8th 2013, 7:59:28 pm">November 8th 2013</span>
+								by <span class='authorname'>Victor Leitch</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-283151">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hey Victor,</p>
+<p>Here is a solution I came across today:</p>
+<p>I believe the crash is happening becasue you are passing in a byte array instead of a Ti.Buffer. You do var it as a Ti.Buffer, but you then replace it with a byte array:</p>
+<pre><code class="hljs">command = [<span class="hljs-number">0x00</span>,<span class="hljs-number">0xa4</span>,<span class="hljs-number">0x04</span>,<span class="hljs-number">0x00</span>,<span class="hljs-number">0x03</span>,<span class="hljs-number">0xff</span>,<span class="hljs-number">0xff</span>,<span class="hljs-number">0xff</span>];
+</code></pre><p>In my code I wrote a function to transform the byte array to a Ti.Buffer:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">byteArray2Buffer</span><span class="hljs-params">(array)</span> </span>{
+  <span class="hljs-keyword">var</span> buffer = Ti.createBuffer({length:<span class="hljs-keyword">array</span>.length});
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-keyword">array</span>.length; i++) {
+    buffer[i] = <span class="hljs-keyword">array</span>[i];
+  }
+  <span class="hljs-keyword">return</span> buffer;
+}
+</code></pre><p>So, if you add that and then modify your code like the following I think it would solve your problem:</p>
+<pre><code class="hljs">function handleDiscovery(e) {
+
+    var tech = nfc.createTagTechnologyIsoDep({
+        tag:e.tag
+    })<span class="hljs-comment">; </span>
+
+    tech.connect()<span class="hljs-comment">;</span>
+
+    if (tech.isConnected()) {
+        var command = Ti.createBuffer({length:260})<span class="hljs-comment">;</span>
+        var response = Ti.createBuffer({length:260})<span class="hljs-comment">;</span>
+
+        if (tech.isValid())
+        {
+            Ti.API.debug("isValid")<span class="hljs-comment">;</span>
+        }
+
+        response = tech.getHistoricalBytes()<span class="hljs-comment">;</span>
+        Ti.API.debug("historical bytes : " + response.toString())<span class="hljs-comment">;</span>
+
+        var max = tech.getMaxTransceiveLength()<span class="hljs-comment">;</span>
+        Ti.API.debug("MAX:" + max.toString())<span class="hljs-comment">;</span>
+
+        Ti.API.debug(JSON.stringify(tech.getTag()))<span class="hljs-comment">;</span>
+
+        tech.setTimeout(1000)<span class="hljs-comment">;</span>
+        Ti.API.debug(JSON.stringify(tech.getTimeout()))<span class="hljs-comment">;</span>
+
+        command = [0x00,0xa<span class="hljs-number">4,0x04,0</span>x<span class="hljs-number">00,0x03,0</span>xff,0xff,0xff]<span class="hljs-comment">;</span>
+        //command = [<span class="hljs-number">0x90,0x60</span>,<span class="hljs-number">0x00,0x00</span>,0x00]<span class="hljs-comment">;</span>
+        //command = [0x5a,0xff,0xff,0xff]<span class="hljs-comment">;</span>
+
+        try {
+            response = tech.transceive(byteArray2Buffer(command))<span class="hljs-comment">;</span>
+            Ti.API.debug(response)<span class="hljs-comment">;</span>
+        }
+        catch(e) {
+            Ti.API.debug(e.message)<span class="hljs-comment">;</span>
+        }   
+        tech.close()<span class="hljs-comment">;</span>
+    }
+}<span class="hljs-comment">;</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 16th 2014, 6:24:13 pm">October 16th 2014</span>
+								by <span class='authorname'>Andrew Simpson</span><br>
+								<a class="icon-bg icon-link" href="question/157705/nfctransceive-crashes-app#answer-283151" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Andrew</p>
+<p>Many thanks for your answer.<br>I had to get round the problem another way as I heard nothing from Appcelerator even though I created a ticket. It should have taken them less than 5 minutes to notice that you&#39;d think!</p>
+<p>I haven&#39;t tried your solution but I&#39;m confident that it would have solved my issue.</p>
+<p>Many thanks again :-)</p>
+<p>Vic</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 20th 2014, 11:38:02 am">October 20th 2014</span>
+											by <span class='authorname'>Victor Leitch</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

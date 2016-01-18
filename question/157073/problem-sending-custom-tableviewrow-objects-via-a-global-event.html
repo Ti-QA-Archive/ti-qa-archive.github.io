@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Problem sending custom TableViewRow objects via a global event » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Problem sending custom TableViewRow objects via a global event</h1>
+		</header>
+		<section>
+			<p>Hi guys,</p>
+<p>I&#39;m running into a strange problem developing a mobile application. I&#39;m currently working and testing on the iPhone simulator. I&#39;m running Titanium SDK 3.1.1.GA on Mac OS Mountain Lion and building with iOS SDK 6.1.</p>
+<p>I&#39;m trying to parse an RSS feed and send the data around elsewhere in the application. I have a Network.js module that creates an XHR object and parses XML. I want to use the parsed items in a TableView UI element in another CommonJS module.</p>
+<p>Now, when I create an empty data array and push the parsed items as dictionary data (generating a default TableViewRow in the TableView), the TableView receives and renders the data accordingly.</p>
+<p>However, I want to use custom TableViewRows. So, for each item I create a custom TableViewRow. Then I push the row in the data array. But, for some reason this doesn&#39;t work. The TableView UI element receives an event but with a (seemingly) empty data array.</p>
+<p>So in sum, when I fill the data array with custom TableViewRows the TableView object doesn&#39;t display anything. If I push items as a dictionary in the data array then the TableViewRow renders the data fine. </p>
+<p>I&#39;ve seen other code &#x2F; tutorials &#x2F; examples where Ti.UI.TableViewRow objects can safely passed to the data array of a TableView. So, am I doing something wrong in sending the data via Ti.App.fireEvent?</p>
+<p>Any clues on how to troubleshoot this issue is much appreciated!</p>
+<p>Below I pasted the relevant code.</p>
+<p>Network.js</p>
+<pre><code class="hljs">
+xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        Ti.API.info(<span class="hljs-string">"Fetching RSS data"</span>);
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.status == <span class="hljs-number">200</span>) {
+            Ti.API.info(<span class="hljs-string">"Succesfully requested page."</span>)
+
+            <span class="hljs-keyword">var</span> doc = <span class="hljs-keyword">this</span>.responseXML.documentElement;
+            <span class="hljs-keyword">var</span> items = doc.getElementsByTagName(<span class="hljs-string">"item"</span>);            
+
+            <span class="hljs-keyword">var</span> data = [];
+            Ti.API.info(data);
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt; items.length; i++){
+                <span class="hljs-keyword">var</span> raw_uri = items.item(i).getElementsByTagName(<span class="hljs-string">"description"</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> begin = raw_uri.indexOf(<span class="hljs-string">"&lt;img src="</span>);
+                <span class="hljs-keyword">var</span> end = raw_uri.indexOf(<span class="hljs-string">"/&gt;"</span>);
+                <span class="hljs-keyword">var</span> uri = raw_uri.substring(begin+<span class="hljs-number">10</span>,end-<span class="hljs-number">1</span>);
+
+                <span class="hljs-keyword">var</span> title = items.item(i).getElementsByTagName(<span class="hljs-string">"title"</span>).item(<span class="hljs-number">0</span>).text;
+                <span class="hljs-keyword">var</span> row = <span class="hljs-keyword">new</span> Row(title, uri);
+
+                <span class="hljs-comment">//data.push(row); //&lt;-- Pushing the row doesn't work</span>
+
+                data.push({
+                                 title: items.item(i).getElementsByTagName(<span class="hljs-string">"title"</span>).item(<span class="hljs-number">0</span>).text,
+                                 hasChild: <span class="hljs-literal">true</span>,
+                                 url: uri,          
+                        }); <span class="hljs-comment">//Pushing data like this does work</span>
+
+            };
+
+            Ti.App.fireEvent(<span class="hljs-string">"Network:update"</span>, {<span class="hljs-string">'data'</span>: data});
+            Ti.App.fireEvent(<span class="hljs-string">"Loader:stop"</span>);
+
+        } <span class="hljs-keyword">else</span> {
+            Ti.API.info(<span class="hljs-string">"There was an error fetching the page"</span>);
+            Ti.API.info(<span class="hljs-string">"Status: "</span>, <span class="hljs-keyword">this</span>.status);
+        }
+    };
+</code></pre><p>TableView.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> TableView = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> row = <span class="hljs-keyword">new</span> Row(<span class="hljs-string">"test"</span>, <span class="hljs-string">"http://www.blalbla.com"</span>); <span class="hljs-comment">// This works fine</span>
+    <span class="hljs-keyword">var</span> data = [];
+    data.push(row);
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">self</span> = Ti.UI.createTableView({
+        data: data,
+    });
+
+    Ti.App.addEventListener(<span class="hljs-string">"Network:update"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        alert(e);
+        <span class="hljs-keyword">self</span>.setData(e.data);
+        Ti.API.info(<span class="hljs-string">"Network updated"</span>);
+    });
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">self</span>;    
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 11th 2013, 1:06:10 pm">September 11th 2013</span>
+				by <span class='authorname'>A E</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>custom</span></li>
+					
+						<li><span class='tagname'>global events</span></li>
+					
+						<li><span class='tagname'>tableviewrow</span></li>
+					
+						<li><span class='tagname'>xml</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>6 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Hello, Can you post your Row function? I think in your row function having some issue. Thanks</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 12th 2013, 4:30:03 am">September 12th 2013</span>
+								by <span class='authorname'>Md. Mostafizur Rahman</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi,</p>
+<p>Below I&#39;ve pasted the code for the TableViewRow. However, when I load a TableView with custom TableViewRows directly (so without the xhr call) the row displays fine. </p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> TableViewRow = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">title, url</span>) </span>{
+
+    <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow({
+        backgroundColor: <span class="hljs-string">'red'</span>,
+    });
+
+    <span class="hljs-keyword">var</span> rowContainerView = Ti.UI.createView({
+        <span class="hljs-comment">//layout: 'horizontal',</span>
+        height: <span class="hljs-number">100</span>,
+        width: <span class="hljs-number">100</span>,
+        backgroundColor: <span class="hljs-string">'red'</span>,
+    });
+
+    <span class="hljs-keyword">var</span> rowImage = Ti.UI.createImageView({
+        image: url,
+        width: <span class="hljs-string">'25p'</span>,
+        height: <span class="hljs-string">'25dp'</span>
+    });
+
+    <span class="hljs-keyword">var</span> lbl = Ti.UI.createLabel({
+        text: title,
+        height: <span class="hljs-number">100</span>,
+        width: <span class="hljs-number">100</span>,
+        font: {
+            fontColor: <span class="hljs-string">'#000'</span>,
+            fontFamily: <span class="hljs-string">"Arial"</span>,
+            fontSize: <span class="hljs-number">10</span>
+        }
+    });
+
+    <span class="hljs-comment">//rowContainerView.add(rowImage);</span>
+    <span class="hljs-comment">//rowContainerView.add(lbl);</span>
+    <span class="hljs-comment">//row.add(rowContainerView);</span>
+    <span class="hljs-keyword">return</span> row;
+};
+
+<span class="hljs-built_in">module</span>.exports = TableViewRow;
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="September 12th 2013, 5:03:56 am">September 12th 2013</span>
+								by <span class='authorname'>A E</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>According to this code, your row should be empty. You never added anything to it. </p>
+<p>i.e., uncomment the add of the sutff to the rowContainerr, add the rowContainer to the row, etc. </p>
+<p>Best,</p>
+<p>Mauro</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 12th 2013, 6:36:04 am">September 12th 2013</span>
+								by <span class='authorname'>Mauro Parra</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi,</p>
+<p>Indeed, I added one of the views with a specified height. How silly that I didn&#39;t notice that!</p>
+<p>Thanks a lot, I appreciate your help!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 12th 2013, 6:55:10 am">September 12th 2013</span>
+								by <span class='authorname'>A E</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Ai caramba, I cheered to soon and thought it worked. But it still does not. I did update the Row module as you suggested.</p>
+<p>Whenever the TableView (in TableView.js) receives the event from the network module, the data container is empty.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 12th 2013, 7:33:50 am">September 12th 2013</span>
+								by <span class='authorname'>A E</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#39;m still stuck trying to resolve this issue. Specifically, the data seems to get lost when I fire the event and passing the data array with TableViewRow objects.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 13th 2013, 3:06:54 pm">September 13th 2013</span>
+								by <span class='authorname'>A E</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

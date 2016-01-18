@@ -1,0 +1,246 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>setTimeout and asynchronous window.open() » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>setTimeout and asynchronous window.open()</h1>
+		</header>
+		<section>
+			<p>Let&#39;s consider the following code :</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sleep</span>(<span class="hljs-params">milliSeconds</span>) </span>{
+    <span class="hljs-keyword">var</span> startTime = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime(); <span class="hljs-comment">// get the current time</span>
+    <span class="hljs-keyword">while</span> (<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() &lt; startTime + milliSeconds); <span class="hljs-comment">// hog cpu</span>
+}
+
+<span class="hljs-keyword">var</span> win1 = Ti.UI.createWindow({
+    backgroundColor: <span class="hljs-string">'white'</span>
+});
+
+<span class="hljs-keyword">var</span> spinner = Ti.UI.createActivityIndicator({
+    style: Ti.UI.ActivityIndicatorStyle.BIG
+});
+
+win1.add(spinner);
+spinner.show();
+
+win1.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Ti.API.log(<span class="hljs-string">"window is open"</span>);
+});
+win1.open();
+Ti.API.log(<span class="hljs-string">"do some things here"</span>);
+
+Ti.API.log(<span class="hljs-string">"before long running operation"</span>);
+sleep(<span class="hljs-number">5000</span>);
+Ti.API.log(<span class="hljs-string">"after long running operation"</span>);
+</code></pre><p>When opening window without parameters, open event is fired very quickly, so the output is : </p>
+<ul>
+<li>window is open</li>
+<li>do some things here</li>
+<li>before long running operation</li>
+<li>after long running operation</li>
+</ul>
+<p>Although the open event has been fired, the window is visible only after log &quot;after long running operation&quot;. Quite normal since long running operation is not asynchronous.</p>
+<p><strong>But</strong></p>
+<p>Let&#39;s try this workaround :</p>
+<pre><code class="hljs">setTimeout<span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> {
+    win1.addEventListener<span class="hljs-list">(<span class="hljs-quoted">'open</span>', function<span class="hljs-list">()</span> {
+        Ti.API.log<span class="hljs-list">(<span class="hljs-string">"window is open"</span>)</span><span class="hljs-comment">;</span>
+    })</span><span class="hljs-comment">;</span>
+    win1.open<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+    Ti.API.log<span class="hljs-list">(<span class="hljs-string">"do some things here"</span>)</span><span class="hljs-comment">;</span>
+}, <span class="hljs-number">0</span>)</span><span class="hljs-comment">;</span>
+
+setTimeout<span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> {
+    Ti.API.log<span class="hljs-list">(<span class="hljs-string">"before long running operation"</span>)</span><span class="hljs-comment">;</span>
+    sleep<span class="hljs-list">(<span class="hljs-number">5000</span>)</span><span class="hljs-comment">;</span>
+    Ti.API.log<span class="hljs-list">(<span class="hljs-string">"after long running operation"</span>)</span><span class="hljs-comment">;</span>
+}, <span class="hljs-number">0</span>)</span><span class="hljs-comment">;</span>
+</code></pre><p>The output didn&#39;t change : </p>
+<ul>
+<li>window is open</li>
+<li>do some things here</li>
+<li>before long running operation</li>
+<li>after long running operation</li>
+</ul>
+<p>But the window is now visible directly after log &quot;window is open&quot;. By doing so I guess we can &quot;simulate&quot; a task stack but it seems to be a non handled behavior because if the open() method receives somes parameters, the action of opening a window takes a longer time and the open event is fired after long running operation and the window is only visible after this operation. In fact, I think the open event is fired correctly but Javascript Engine can handle it only until there are running operations. It is a normal behavior or a bug ?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 3rd 2013, 7:08:16 am">July 3rd 2013</span>
+				by <span class='authorname'>Pierre Criulanscy</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>open</span></li>
+					
+						<li><span class='tagname'>settimeout</span></li>
+					
+						<li><span class='tagname'>ui</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>What are you actually trying to achieve ?  To show a activityIndicator while the window is opening ?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 3rd 2013, 7:14:57 am">July 3rd 2013</span>
+								by <span class='authorname'>Nick Milner</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I&#39;m trying to open a window wich shows an activityIndicator while intensive initialization work is being. The fact is the window&#39;s open event was fired at the right time but the UI seems to be freezed and the activityIndicator only appeared after the running operations was done, making it useless. So there is a another event which is more relevant than open to ensure that the window is visible ?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="July 3rd 2013, 7:28:11 am">July 3rd 2013</span>
+								by <span class='authorname'>Pierre Criulanscy</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-265290">
+				
+						<section>
+							<p>Here&#39;s a pattern that will work for that</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow();
+<span class="hljs-keyword">var</span> ind = Ti.UI.createActivityIndicator();
+win.add(ind);
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">longRunningProcess</span><span class="hljs-params">(onComplete)</span></span>{
+
+    <span class="hljs-comment">// do the long running stuff then call the onComplete delegate</span>
+    onComplete();
+
+}
+
+win.addEventListener(<span class="hljs-string">'open'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    ind.show();
+
+    longRunningProcess(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        ind.hide();
+    });
+
+});
+
+win.open();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 3rd 2013, 7:47:58 am">July 3rd 2013</span>
+								by <span class='authorname'>Nick Milner</span><br>
+								<a class="icon-bg icon-link" href="question/154400/settimeout-and-asynchronous-windowopen#answer-265290" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I&#39;m already using this kind of pattern but it&#39;s not working. Since the open event is correctly fired the inwindow is not visible until the long running operation is done. The only workaround I found is to use the &#39;postlayout&#39; event instead of &#39;open&#39; event but it&#39;s seems to be a hack for me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2013, 8:03:50 am">July 3rd 2013</span>
+											by <span class='authorname'>Pierre Criulanscy</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hmm.. Something weird happening in your long-running-operation - I use this pattern extensively and it works fine. (eg performing a remote xhdr to retrieve tableview rows etc)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2013, 8:14:47 am">July 3rd 2013</span>
+											by <span class='authorname'>Nick Milner</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I have same issue with focus event. I&#39;m trying to display an ActivityIndicator, doing long running process, and hide the ActivityIndicator but although the focus event is correctly fired when I touch my tab, the ActivityIndicator is only displayed after the long running process</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 3rd 2013, 10:38:27 am">July 3rd 2013</span>
+											by <span class='authorname'>Pierre Criulanscy</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
