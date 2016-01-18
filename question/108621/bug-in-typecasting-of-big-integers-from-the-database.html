@@ -1,0 +1,335 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>bug in typecasting of big integers from the database » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>bug in typecasting of big integers from the database</h1>
+		</header>
+		<section>
+			<p>I just discovered a bug in the database code, in that it does not properly typecast big integers coming from the database.</p>
+<p>Running this code:</p>
+<pre><code class="hljs">var db = Titanium.Database.open('bigint_test');
+db.execute("<span class="hljs-operator"><span class="hljs-keyword">DROP</span> <span class="hljs-keyword">TABLE</span> <span class="hljs-string">`test`</span><span class="hljs-string">")
+db.execute("</span><span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">TABLE</span> <span class="hljs-string">`test`</span> (<span class="hljs-string">`val1`</span> <span class="hljs-built_in">BIGINT</span>, <span class="hljs-string">`val2`</span> <span class="hljs-built_in">BIGINT</span>)<span class="hljs-string">");
+db.execute("</span><span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> <span class="hljs-string">`test`</span><span class="hljs-string">");
+db.execute("</span><span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> <span class="hljs-keyword">test</span> (val1, val2) <span class="hljs-keyword">VALUES</span> (<span class="hljs-number">1</span>, <span class="hljs-number">1296802544867</span>)<span class="hljs-string">");
+
+Titanium.API.info(1296802544867);
+Titanium.API.info(db.execute("</span><span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> <span class="hljs-string">`test`</span><span class="hljs-string">").field(0));
+Titanium.API.info(db.execute("</span><span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> <span class="hljs-string">`test`</span><span class="hljs-string">").field(1));</span></span>
+</code></pre><p>produces this log:</p>
+<pre><code class="hljs"><span class="hljs-string">[INFO]</span> <span class="hljs-number">1296802544867</span>
+<span class="hljs-string">[INFO]</span> <span class="hljs-number">1</span>
+<span class="hljs-string">[INFO]</span> -<span class="hljs-number">277578525</span>
+</code></pre><p>so you can see that the last log line is wrong it should be 1296802544867.</p>
+<p>Do you want these things in lighthouse or is this the place to put it?</p>
+<p>Mick</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 4th 2011, 5:31:24 am">February 4th 2011</span>
+				by <span class='authorname'>Mick Staugaard</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-200421">
+				
+						<section>
+							<p>I have found the problem. In the file PLSqliteResultSet.m, there is the following code which grabs data from sqlite and makes an NSNumber out of it.</p>
+<pre><code class="hljs">    <span class="hljs-keyword">case</span> <span class="hljs-string">SQLITE_INTEGER:</span>
+        <span class="hljs-keyword">return</span> [NSNumber <span class="hljs-string">numberWithLong:</span> [self <span class="hljs-string">bigIntForColumnIndex:</span> columnIndex]];
+</code></pre><p>It appears that Objective-C long on the iPhone is just 32 bits. To get 64 bits we need &#39;long long&#39;. So occurrences of NSNumber numberWithLong in this file need to be changed to NSNumber numberWithLongLong.</p>
+<p>I have verified that this fixes the problem. The actual code seems to be from Pldatabase which is a project separate from Titanium. I am not sure how to go about getting this fix in the code base.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 20th 2011, 6:24:26 am">February 20th 2011</span>
+								by <span class='authorname'>Abhay Vardhan</span><br>
+								<a class="icon-bg icon-link" href="question/108621/bug-in-typecasting-of-big-integers-from-the-database#answer-200421" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-225515">
+				
+						<section>
+							<p>I can confirm that the fix suggested by Abhay corrects the issue. Does anyone know how to fix code base so that I do not have to fix the line of code each time a clean project is done?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 15th 2011, 4:57:26 pm">December 15th 2011</span>
+								by <span class='authorname'>Shaun Stephenson</span><br>
+								<a class="icon-bg icon-link" href="question/108621/bug-in-typecasting-of-big-integers-from-the-database#answer-225515" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-191981">
+				
+						<section>
+							<p>Oh and looking at the .sql file from the iPhone Simulator, I can tell you that the right value is stored in the db.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 4th 2011, 5:36:23 am">February 4th 2011</span>
+								by <span class='authorname'>Mick Staugaard</span><br>
+								<a class="icon-bg icon-link" href="question/108621/bug-in-typecasting-of-big-integers-from-the-database#answer-191981" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-191991">
+				
+						<section>
+							<p>I don&#39;t think this is a defect in appcelerator.  Rather it is a by-product of sqlite3 having no concept of a BIGINT.  In sqlite3, there are only 5 data types and ANYTHING declared with the subset INT in the type name is considered an Integer.  Thus even FLOATING POINT is considered an integer due to the presence of INT in point.</p>
+<p>See <a href="http:&#x2F;&#x2F;www.sqlite.org&#x2F;datatype3.html">this</a> explanation of data types in sqlite3 and how it differs from a traditional RDBS.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 4th 2011, 5:46:13 am">February 4th 2011</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/108621/bug-in-typecasting-of-big-integers-from-the-database#answer-191991" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><pre><code class="hljs">var table_info = db.<span class="hljs-built_in">execute</span>(<span class="hljs-string">"PRAGMA table_info(test)"</span>)
+<span class="hljs-keyword">for</span> (var i=<span class="hljs-number">0</span><span class="hljs-comment">; i &lt; table_info.fieldCount(); i++) {</span>
+  Titanium.API.info(table_info.fieldName(i) + <span class="hljs-string">": "</span> + table_info.field(i))<span class="hljs-comment">;</span>
+}<span class="hljs-comment">;</span>
+</code></pre><p>on that same db gives:</p>
+<pre><code class="hljs">[<span class="hljs-preprocessor">INFO</span>] cid: <span class="hljs-number">0</span>
+[<span class="hljs-preprocessor">INFO</span>] name: val1
+[<span class="hljs-preprocessor">INFO</span>] type: <span class="hljs-keyword">BIGINT
+</span>[<span class="hljs-preprocessor">INFO</span>] notnull: <span class="hljs-number">0</span>
+[<span class="hljs-preprocessor">INFO</span>] dflt_value: null
+[<span class="hljs-preprocessor">INFO</span>] pk: <span class="hljs-number">0</span>
+</code></pre><p>so the client definitely has all the info that it needs, and other sqlite clients read out the data just find from the exact same db file.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 4th 2011, 6:09:21 am">February 4th 2011</span>
+											by <span class='authorname'>Mick Staugaard</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I had reached the same conclusion repeating the SQL statements within Firefox&#39;s SQLite Manager then dumping the actual db file.  The value stored is hex 12DEF747CE3.  And while sqlite3 itself only has the 5 basic data types, it does store the original sql statement from the create table.  Looking in PLSqliteResultSet.m, it appears it extracts the type passed in the CREATE TABLE command then does have different handling.</p>
+<p>I never knew it did that…</p>
+<p>My guess is they would want this as a ticket in lighthouse.  This is just a user community.  It is not really a support channel.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 4th 2011, 6:19:22 am">February 4th 2011</span>
+											by <span class='authorname'>Doug Handy</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-192011">
+				
+						<section>
+							<p>Looking at the implementation (PLSqliteResultSet.m) it does look like you are trying to handle it.</p>
+<p>Given that the right value is in fact stored in the db, it should be possible to support this.</p>
+<p>Looking at the database with the SQLite Manager Firefox Extension, it tells me that the column types are in fact BIGINT.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 4th 2011, 5:53:42 am">February 4th 2011</span>
+								by <span class='authorname'>Mick Staugaard</span><br>
+								<a class="icon-bg icon-link" href="question/108621/bug-in-typecasting-of-big-integers-from-the-database#answer-192011" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Who are you responding to with this post? This is (just) one of the reasons you should not answer your own questions. Please use the comment facility instead.  Thanks :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 4th 2011, 10:06:20 am">February 4th 2011</span>
+											by <span class='authorname'>Paul Dowsett</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Dude, I&#39;m Just trying to add value to the conversation. Maybe the forum software should not allow people to answer their own questions?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 4th 2011, 3:01:11 pm">February 4th 2011</span>
+											by <span class='authorname'>Mick Staugaard</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-192021">
+				
+						<section>
+							<p>http:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;307179&#x2F;what-is-javascripts-max-int-whats-the-highest-integer-value-a-number-can-go-to</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 4th 2011, 6:01:11 am">February 4th 2011</span>
+								by <span class='authorname'>Damien Elmes</span><br>
+								<a class="icon-bg icon-link" href="question/108621/bug-in-typecasting-of-big-integers-from-the-database#answer-192021" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>since Titanium.API.info(1296802544867); gives the right value in the log, the JS environment can clearly handle this number.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 4th 2011, 6:10:26 am">February 4th 2011</span>
+											by <span class='authorname'>Mick Staugaard</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That particular number perhaps, but you&#39;re not guaranteed precision.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 4th 2011, 6:12:05 am">February 4th 2011</span>
+											by <span class='authorname'>Damien Elmes</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

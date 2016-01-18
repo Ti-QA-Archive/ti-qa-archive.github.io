@@ -1,0 +1,193 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Remote Webview file can&#39;t send events, works in emulator but not on physical device » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Remote Webview file can&#39;t send events, works in emulator but not on physical device</h1>
+		</header>
+		<section>
+			<p>I have a case of a project that runs perfectly in the emulator but not on the android.</p>
+<p>My app consists of webview that opens an asp file that links to a script.</p>
+<p>If you use the following sample code, you&#39;ll find that it works perfectly in the emulator but will not fire the necessary events on the physical device. Specifically, the ASP file is not able to interact with its associated script.</p>
+<p>Here are the code snippets:<br>http:&#x2F;&#x2F;pastie.org&#x2F;1469105</p>
+<p>The above code works perfectly in emulator but not working on physical device. Is this due to the fact I am using remote file not local file ? or there is issue in the code ?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 16th 2011, 6:47:43 am">January 16th 2011</span>
+				by <span class='authorname'>Abdul Rehman</span>
+			</div>
+
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Abdul</p>
+<p>Is there any chance that you could edit this question to include the formatting functions provided? Then maybe someone can make sense of it.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="January 16th 2011, 9:04:45 am">January 16th 2011</span>
+								by <span class='authorname'>Paul Dowsett</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-184761">
+				
+						<section>
+							<p>Yesterday I spent the entire day trying various schemes to sneak my way around this challenge.  I tried framesets, iframes (one local, the other remote) and security is tight.  I couldn&#39;t find a way around it.</p>
+<p>However, I managed to find what can only be considered a horrible &quot;hack&quot; but it seems to work.  After much frustration with the fireEvent approach, my thoughts turned to the standard events webView fires when new pages are loaded.  Although this approach was almost a dead end because the beforeload event doesn&#39;t pass the &quot;go to&quot; url.  (I believe this is a bug that the Titanium folks are working to fix…)</p>
+<p>Finally I discovered that the error event will fire when the navigation fails.  I used this to create what can only be considered a &quot;poor man&#39;s&quot; event mechanism with the app hosting the webView.</p>
+<p>Sample web page:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">html</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"button"</span> <span class="hljs-attribute">value</span>=<span class="hljs-value">"myEvent"</span>
+            <span class="hljs-attribute">onclick</span>=<span class="hljs-value">"window.location='xxxx://myEvent'"</span>/&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">br</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"button"</span> <span class="hljs-attribute">value</span>=<span class="hljs-value">"yourEvent"</span>
+            <span class="hljs-attribute">onclick</span>=<span class="hljs-value">"window.location='xxxx://yourEvent'"</span>/&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">html</span>&gt;</span>
+</code></pre><p>Because the location uses xxxx as the protocol, the error event will fire and the message property of the error event&#39;s argument will, among other things, contain the requested URL.  Use whatever you want in the URL name to create a crude event handler.  The entire URL is returned in the message so you can even pass data with the event.  Here&#39;s a code snippet that traps the error and based on the error message, determines what event the web page requested.</p>
+<pre><code class="hljs">    <span class="hljs-keyword">var</span> webView = Ti.UI.createWebView();
+    webView.url=<span class="hljs-string">"test.htm"</span>;
+    webView.addEventListener(<span class="hljs-string">"error"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+    </span>{
+        <span class="hljs-keyword">if</span> (e.message.indexOf(<span class="hljs-string">"myEvent"</span>)&gt;-<span class="hljs-number">1</span>)
+            alert(<span class="hljs-string">"Web page fired myEvent"</span>);
+        <span class="hljs-keyword">if</span> (e.message.indexOf(<span class="hljs-string">"yourEvent"</span>)&gt;-<span class="hljs-number">1</span>)
+            alert(<span class="hljs-string">"Web page fired yourEvent"</span>);
+    });
+</code></pre><p>If you want to pass data, you can invent whatever scheme you want that allows you to figure out how to separate the event name from the data.  For instance you could use the standard web approach of &quot;xxxx:&#x2F;&#x2F;event_name?nvpair1=value1&amp;nvpair2=value2&amp;nvpair3=value3&quot; as the window.location property in the web page.  Frankly there should be a better way for remote webView content but this seems to work.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 25th 2011, 12:08:59 pm">January 25th 2011</span>
+								by <span class='authorname'>Robert R Radina</span><br>
+								<a class="icon-bg icon-link" href="question/101171/remote-webview-file-cant-send-events-works-in-emulator-but-not-on-physical-device#answer-184761" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Nice, this was what I needed…… and it works!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 27th 2011, 7:28:28 am">July 27th 2011</span>
+											by <span class='authorname'>Chris Moore</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-184341">
+				
+						<section>
+							<p>Based on my experience (Titanium 1.5.1 SDK + iPhone 4.2 SDK) and digging through many posts about this issue, this integration functionality is only available from &quot;local&quot; html files.  If you use WebView to load a remote file, it seems to be disabled.</p>
+<p>From my perspective, this is a unfortunate as it would be nice to enhance a remote web app with Titanium-written custom functionality.  My guess is the security risk is too big.</p>
+<p>It would be great if an Appcelerator employee could provide a final word on this.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 24th 2011, 7:01:53 pm">January 24th 2011</span>
+								by <span class='authorname'>Robert R Radina</span><br>
+								<a class="icon-bg icon-link" href="question/101171/remote-webview-file-cant-send-events-works-in-emulator-but-not-on-physical-device#answer-184341" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>even on a local file, the events are not triggered on the android phone (DROIDX) though It works in the emulator. I had posted about this issue yesterday</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 24th 2011, 7:14:35 pm">January 24th 2011</span>
+											by <span class='authorname'>raj chundur</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

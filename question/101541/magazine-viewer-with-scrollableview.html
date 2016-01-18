@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Magazine viewer with ScrollableView » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Magazine viewer with ScrollableView</h1>
+		</header>
+		<section>
+			<p>Hello,</p>
+<p>I have been trying to make a magazine app for iPad for the last month, but I keep having memory issues with ScrollableView (which is the best suited native control for a magazine). The problem is that I can&#39;t fit 300 imageView objects in memory, and even if I break it down in segments, the objects never leave the memory: using remove(view) doesn&#39;t seem to remove them whether that&#39;s immediately or when the device runs out of memory and decides to remove them.</p>
+<p>Now I&#39;m considering alternatives such as having 1 imageView and changing the image property (which does seem to clear previously used images from memory!). But that means to write my own swipe events and apply transitions for example, to try and replicate ScrollableView&#39;s behavior.</p>
+<p>My question: has anyone ever used appcelerator&#39;s ScrollableView to display a large set of images with success ? If so, can you point me to the right direction ? Or am I trying to do something impossible ? :)</p>
+<p>P.S. While my images are less than 1024x768 (and less than ~200kb), if I use scrollableView each imageView seems to take 5-10mb of ram! Is that normal ? If I use the alternative method said above, images only take up 200-300kb as expected.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="January 17th 2011, 2:12:00 pm">January 17th 2011</span>
+				by <span class='authorname'>Alexandros Vagkidas</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ipad</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>scrollableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-189821">
+				
+						<section>
+							<p>Here is a simple implementation.  Note I&#39;m using Helium to create all of my UI components.<br>I have three ImageViews that I never dispose of but just change the &#39;image&#39; property to the new image, that way the objects aren&#39;t lying around waiting to be disposed of.  I&#39;ve tested this on remote images as well as local resources and the memory drops a bit but from what my tests have shown so far it never continues to drop and usually starts going back up.</p>
+<p>This is based off of http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;86381&#x2F;dynamic-scrollable-view-with-3-views-at-a-time</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> viewCollection = [];
+<span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> j = <span class="hljs-number">1</span>; j&lt;<span class="hljs-number">19</span>; j++)<span class="hljs-comment">{
+    viewCollection.push(String.format('./images/%s.jpg', j.toString()));
+}</span>
+<span class="hljs-keyword">var</span> loadedViews = [];
+<span class="hljs-keyword">var</span> lastView = <span class="hljs-comment">{}</span>;
+<span class="hljs-keyword">var</span> v1 = he.<span class="hljs-keyword">create</span>(<span class="hljs-string">'ImageView'</span>, <span class="hljs-comment">{index: 0}</span>);
+<span class="hljs-keyword">var</span> v2 = he.<span class="hljs-keyword">create</span>(<span class="hljs-string">'ImageView'</span>, <span class="hljs-comment">{index: 1}</span>);
+<span class="hljs-keyword">var</span> v3 = he.<span class="hljs-keyword">create</span>(<span class="hljs-string">'ImageView'</span>, <span class="hljs-comment">{index: 2}</span>);
+
+<span class="hljs-comment">//SCROLLER</span>
+<span class="hljs-keyword">var</span> scroller = he.<span class="hljs-keyword">create</span>(<span class="hljs-string">'ScrollableView'</span>, <span class="hljs-comment">{
+    showPagingControl: false,
+    maxZoomScale: 1,
+    minZoomScale: 1
+}</span>);
+scroller.addEventListener(<span class="hljs-string">'scroll'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span><span class="hljs-comment">{
+    if(e.currentView != lastView.index){
+        loadViews(e.view.index);
+    }</span>
+});</span>
+
+<span class="hljs-comment">//LOAD VIEWS</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadViews</span><span class="hljs-params">(<span class="hljs-keyword">index</span>)</span><span class="hljs-comment">{
+    loadedViews = [];
+    var selectedPage = 0;
+    var i = 0;
+
+    //Create the previous view if one exists
+    if(index &gt; 0){
+        i = index - 1;
+        v1.index = i;
+        v1.image = viewCollection[i];
+        loadedViews.push(v1);
+        selectedPage = 1;
+    }</span>
+
+    //<span class="hljs-title">Create</span> <span class="hljs-title">the</span> <span class="hljs-title">current</span> <span class="hljs-title">View</span> <span class="hljs-title">and</span> <span class="hljs-title">add</span> <span class="hljs-title">it</span> <span class="hljs-title">to</span> <span class="hljs-title">the</span> <span class="hljs-title">collection</span>
+    <span class="hljs-title">i</span> = <span class="hljs-title">index</span>;</span>
+    v2.<span class="hljs-keyword">index</span> = i;
+    v2.image = viewCollection[i];
+    loadedViews.push(v2);
+
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">index</span> &lt; viewCollection.length - <span class="hljs-number">1</span>)<span class="hljs-comment">{
+        i = index + 1;
+        v3.index = i;
+        v3.image = viewCollection[i];
+        loadedViews.push(v3);
+    }</span> <span class="hljs-keyword">else</span> <span class="hljs-comment">{
+        selectedPage = 1;
+    }</span>
+
+    scroller.views = loadedViews;
+    scroller.currentPage = selectedPage;
+    lastView = loadedViews[scroller.currentPage];
+    Titanium.API.info(<span class="hljs-string">'Available Memory: '</span> + Titanium.<span class="hljs-keyword">Platform</span>.availableMemory);
+}
+
+loadViews(<span class="hljs-number">0</span>);
+
+win.<span class="hljs-keyword">add</span>(scroller);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 1st 2011, 2:55:25 pm">February 1st 2011</span>
+								by <span class='authorname'></span><br>
+								<a class="icon-bg icon-link" href="question/101541/magazine-viewer-with-scrollableview#answer-189821" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-180691">
+				
+						<section>
+							<p>i have created an app that used scrollableView and I store up to 250 images in my views on an iphone with no problem. </p>
+<p>can you post a simple project showing this memory problem you are running into?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 17th 2011, 3:22:20 pm">January 17th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/101541/magazine-viewer-with-scrollableview#answer-180691" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>hi Aaron,</p>
+<p>here&#39;s a stripped version of the code I used to set the images the simple way (without breaking them up in batches): http:&#x2F;&#x2F;gist.github.com&#x2F;783132<br>, but even in batches it&#39;s the same process, that loads images from files and sets scrollableView.views</p>
+<p>if I were to create such a view, it would load fine but on each swipe the available memory would drop and keep dropping even on revisited views, until the iPad would crash because of low memory.</p>
+<p>how did you load 250 images ? all at once ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 17th 2011, 3:43:50 pm">January 17th 2011</span>
+											by <span class='authorname'>Alexandros Vagkidas</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-180871">
+				
+						<section>
+							<p>after looking at what you posted, ,my first suggestion is to not load the images into the image views until the image is about to be rendered</p>
+<p>you can listen for the scrollEvent and when it is triggered, load the image and maybe the one before it and after it. Then I would suggest attempting to remove the images when they are not needed.</p>
+<p>My implementation is a little different because the images are remote and I believe the framework is not loading them until they are needed and are visible</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 17th 2011, 9:38:11 pm">January 17th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/101541/magazine-viewer-with-scrollableview#answer-180871" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-194221">
+				
+						<section>
+							<p>Pls visit the following link</p>
+<p><strong>http:&#x2F;&#x2F;shakilspace.blogspot.com&#x2F;2011&#x2F;02&#x2F;appcelerator-titanium-scrollview-swipe.html</strong></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 8th 2011, 9:23:40 am">February 8th 2011</span>
+								by <span class='authorname'>Manaday Mavani</span><br>
+								<a class="icon-bg icon-link" href="question/101541/magazine-viewer-with-scrollableview#answer-194221" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

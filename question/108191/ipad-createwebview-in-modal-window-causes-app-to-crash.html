@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>iPad: createWebView in modal window causes app to crash » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>iPad: createWebView in modal window causes app to crash</h1>
+		</header>
+		<section>
+			<p>Hey all,</p>
+<p>I&#39;m currently building an iPad app using Titanium version 1.5.1 with the iPhone SDK 4.2 on Snow Leopard 10.6.6</p>
+<p>I am creating a modal window and within that I am creating a WebView containing a PDF. But everytime my code hits the createWebView call it crashes the application in the simulator.</p>
+<p>These are the main parts of my code, nothing extravagant: </p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> PDFWindow = Titanium.UI.createWindow({ 
+    backgroundColor:<span class="hljs-string">'#336699'</span>,     
+    title:<span class="hljs-string">'Modal Window'</span>,
+    barColor:<span class="hljs-string">'black'</span>,
+    modal:<span class="hljs-literal">true</span>
+});
+
+<span class="hljs-keyword">var</span> webview = Titanium.UI.createWebView({
+    <span class="hljs-comment">//url: 'pdf/test.pdf',</span>
+    url: <span class="hljs-string">'http://www.google.com'</span>,
+    title: <span class="hljs-string">'webview'</span>    
+});
+</code></pre><p>Below is the Stack Trace. Note it says </p>
+<p>&gt;Terminating app due to uncaught exception &#39;org.testsalestool.module&#39;, reason: &#39;invalid method (createWebView) passed to UIModule&#39;</p>
+<p>In my app I have about 1 window and about 5 views, could this be a memory issue? I have tried the code above in a standalone project and it created fine. </p>
+<p>I&#39;ve also tried just loading a webpage rather than a pdf and it still gave me the same error. I then changed it simply to a createView to see what would happen and it worked fine.</p>
+<p>This is the stack trace<br><a href="http:&#x2F;&#x2F;pastie.org&#x2F;1523432">http:&#x2F;&#x2F;pastie.org&#x2F;1523432</a></p>
+<p>Anyone any ideas as to what this could be or how I could further debug it?</p>
+<p>Thanks in advance,<br>Pat</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="February 2nd 2011, 10:11:09 pm">February 2nd 2011</span>
+				by <span class='authorname'>Pat O&#39;Callaghan</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>createwebview</span></li>
+					
+						<li><span class='tagname'>ipad</span></li>
+					
+						<li><span class='tagname'>modal</span></li>
+					
+						<li><span class='tagname'>window</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-190971">
+				
+						<section>
+							<p>I&#39;ve managed to find out what the issue was here. There problem was indeed related to the following error.</p>
+<p>&gt;Terminating app due to uncaught exception &#39;org.testsalestool.module&#39;, reason: &#39;invalid method (createWebView) passed to UIModule&#39;</p>
+<p>I worked out the problem after reading this thread at <a href="https:&#x2F;&#x2F;appcelerator.lighthouseapp.com&#x2F;projects&#x2F;32238&#x2F;tickets&#x2F;2600-invalid-method-createtabgroup-passed-to-uimodule-at-appjs">lighthouse</a></p>
+<p>It mentions that when building the project for a device the Appcelerator compiler dynamically tries to work out what parts of the API you use within your application (checking for all your UI.create…functions) and only includes the modules you use. These are listed in the build&#x2F;iphone&#x2F;Classes&#x2F;defines.h file. On the other hand in the simulator it should include ALL of the API in defines.h.</p>
+<p>I noticed my defines.h didn&#39;t include a call to UI.WebView <code>#define USE_TI_UIWEBVIEW</code> even though I was using it in my code. I built my app for a device yesterday but only added the WebView code today so it looked like the compiler wasn&#39;t updating the defines.h but rather using the one from building for the device yesterday.</p>
+<p>Anyway to cut a very long story short, I deleted the build folder, recompiled the project and now it&#39;s working fine.</p>
+<p>So moral of the story is, if you get the &#39;invalid method&#39; error, check the defines.h file to see if the module is included. Hopefully this will help someone out.</p>
+<p>Thanks,<br>Pat</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 2nd 2011, 10:50:59 pm">February 2nd 2011</span>
+								by <span class='authorname'>Pat O&#39;Callaghan</span><br>
+								<a class="icon-bg icon-link" href="question/108191/ipad-createwebview-in-modal-window-causes-app-to-crash#answer-190971" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Is there no way of marking your own answer as the solution?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 2nd 2011, 10:52:53 pm">February 2nd 2011</span>
+											by <span class='authorname'>Pat O&#39;Callaghan</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks, that really helped!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="February 3rd 2011, 10:04:08 am">February 3rd 2011</span>
+											by <span class='authorname'>Isneesh Marwah</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve been searching for that answer for the past 8 hours.  Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="April 25th 2011, 7:01:35 pm">April 25th 2011</span>
+											by <span class='authorname'>Jesse Barrus</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>7</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-199401">
+				
+						<section>
+							<p>Any time you see an invalid method error, delete the build directory.</p>
+<p>I am losing count of the number of times i have had do this.</p>
+<p>I know we&#39;re waiting for the Aptana acquisition to bear fruit, but in the meantime can we have a more helpful stack trace for these errors and a &quot;clean build&quot; button on Titanium Developer please?</p>
+<p>EDIT - Hit the &quot;save changes&quot; button on the edit tab and this will force a full rebuild.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="February 17th 2011, 2:36:19 pm">February 17th 2011</span>
+								by <span class='authorname'>Jeff Antram</span><br>
+								<a class="icon-bg icon-link" href="question/108191/ipad-createwebview-in-modal-window-causes-app-to-crash#answer-199401" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
