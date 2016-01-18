@@ -1,0 +1,288 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Reload fresh data on window open » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Reload fresh data on window open</h1>
+		</header>
+		<section>
+			<p>I have a window that loads records from a db and displays them in a tableview. Then I navigate to another window where a new record is added then programatically go back a window. Now the list has one more record to be displayed but the list isn&#39;t refreshed. </p>
+<p>Is there anyway to refresh this data everytime the window is open even if it&#39;s the result of going or closing the current window?</p>
+<p>This is one method I guess but I&#39;m wondering if there is anything simpler?</p>
+<pre><code class="hljs">Titanium.UI.currentWindow.addEventListener(<span class="hljs-string">'focus'</span>, winopened);
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">winopened</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-comment">//stuff in here is run evertime the window is loaded.</span>
+}
+</code></pre><p>Here is my JS. This gets a list of groups and products and creates tableview. It also creates a tableview of lines that have been added to the quote and displays it on the left. It&#39;s this list I need to refresh everytime the window comes into view.</p>
+<pre><code class="hljs">Titanium.<span class="hljs-keyword">include</span>(<span class="hljs-string">'../sql/groupsSql.js'</span>);
+Titanium.<span class="hljs-keyword">include</span>(<span class="hljs-string">'../sql/productsSql.js'</span>);
+Titanium.<span class="hljs-keyword">include</span>(<span class="hljs-string">'../sql/quoteLineSql.js'</span>);
+Titanium.<span class="hljs-keyword">include</span>(<span class="hljs-string">'lists/quote_lines.js'</span>);
+
+win = Ti.UI.currentWindow;
+
+win.backgroundColor = <span class="hljs-string">'#fff'</span>;    
+<span class="hljs-keyword">var</span> level = win.level;
+<span class="hljs-keyword">var</span> title = win.title;
+<span class="hljs-keyword">var</span> quote_header = win.header_id;
+
+<span class="hljs-keyword">var</span> lines = lines.<span class="hljs-keyword">get</span>(quote_header);
+<span class="hljs-comment">// check whether or not the new group has any products associated with it?</span>
+<span class="hljs-comment">// If it does we have to load product.js instead of reloading this page</span>
+<span class="hljs-keyword">var</span> hasProducts = <span class="hljs-literal">false</span>;
+<span class="hljs-keyword">var</span> products = dbProducts.get_by_group(level);
+<span class="hljs-keyword">var</span> groups = dbGroups.get_group_level(level);
+<span class="hljs-keyword">var</span> _data = []; <span class="hljs-comment">// holds either products or groups based on the next result</span>
+<span class="hljs-keyword">if</span>(products.length &gt; <span class="hljs-number">0</span>){
+    _data = products;
+    hasProducts = <span class="hljs-literal">true</span>;
+}<span class="hljs-keyword">else</span>{
+    _data = groups;
+}
+
+<span class="hljs-keyword">var</span> data = []; <span class="hljs-comment">// an array of table rows for the tableview</span>
+
+<span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; _data.length; i++){
+    <span class="hljs-keyword">var</span> row = Titanium.UI.createTableViewRow({title:_data[i].label, id: _data[i].id, hasChild: <span class="hljs-literal">true</span>});
+    data.push(row);
+}
+
+<span class="hljs-keyword">var</span> groupList = Titanium.UI.createTableView({data:data});
+
+<span class="hljs-comment">// create scroll view</span>
+
+<span class="hljs-keyword">var</span> scrollview = Titanium.UI.createScrollView({
+    contentWidth:<span class="hljs-string">'auto'</span>,
+    contentHeight:<span class="hljs-string">'auto'</span>,
+    top:<span class="hljs-number">0</span>,
+    showVerticalScrollIndicator:<span class="hljs-literal">true</span>,
+    showHorizontalScrollIndicator:<span class="hljs-literal">false</span>,
+    backgroundColor:<span class="hljs-string">'#e4e1ce'</span>,
+});
+
+<span class="hljs-keyword">var</span> leftview = Titanium.UI.createView({
+    backgroundColor:<span class="hljs-string">'#e4e1ce'</span>,
+    width:<span class="hljs-number">300</span>,
+    height:<span class="hljs-number">2000</span>,
+    left:<span class="hljs-number">0</span>
+});
+
+<span class="hljs-comment">// create table section with the header of 'quote lines'</span>
+<span class="hljs-keyword">var</span> linesSection = Titanium.UI.createTableViewSection();
+linesSection.headerTitle = <span class="hljs-string">'Quote Lines'</span>;
+<span class="hljs-comment">// add rows to tablebiewsection</span>
+<span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; lines.length; i++){
+linesSection.add(lines[i]);    
+}
+
+<span class="hljs-keyword">var</span> lines_data = <span class="hljs-keyword">new</span> Array();
+lines_data.push(linesSection);
+
+<span class="hljs-comment">// create tableview and add linesSection.</span>
+<span class="hljs-keyword">var</span> lines_list = Titanium.UI.createTableView({editable: <span class="hljs-literal">true</span>});
+lines_list.data = lines_data;
+
+<span class="hljs-comment">// crearte an event listener to pick up the delete swipe event</span>
+lines_list.addEventListener(<span class="hljs-string">'delete'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">var</span> lineID = e.rowData.id;
+    dbLine.del(lineID);
+    alert(<span class="hljs-string">'Line Deleted'</span>); 
+});
+
+scrollview.add(lines_list);
+
+<span class="hljs-keyword">var</span> rightview = Titanium.UI.createView({
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    width:<span class="hljs-number">724</span>,
+    left: <span class="hljs-number">300</span>
+});
+
+rightview.add(groupList);
+
+win.add(scrollview);
+
+win.add(rightview);
+
+groupList.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    <span class="hljs-comment">// open new window</span>
+    <span class="hljs-keyword">var</span> url = <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">if</span>(hasProducts === <span class="hljs-literal">true</span>){
+        url = <span class="hljs-string">'product.js'</span>;
+    }<span class="hljs-keyword">else</span>{
+        url = <span class="hljs-string">'quote_line.js'</span>;
+    }
+    <span class="hljs-keyword">var</span> new_win = Titanium.UI.createWindow({url: url});
+    <span class="hljs-keyword">if</span>(level &gt; <span class="hljs-number">0</span>){
+        <span class="hljs-keyword">var</span> win_title = title + <span class="hljs-string">' &gt; '</span> + e.rowData.title;
+    }<span class="hljs-keyword">else</span>{
+        <span class="hljs-keyword">var</span> win_title = e.rowData.title;
+    }
+
+    <span class="hljs-keyword">if</span>(hasProducts === <span class="hljs-literal">true</span>){
+        new_win.product_id = e.rowData.id;        
+    }
+
+    new_win.title = win_title;
+    new_win.level = e.rowData.id;
+    new_win.header_id = quote_header;
+    Ti.UI.currentTab.open(new_win);
+});
+</code></pre><p>How can I get fresh data for the <code>lines_list</code> every time the window is shown?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 4th 2011, 12:19:04 pm">October 4th 2011</span>
+				by <span class='authorname'>Billy Jones</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>windows</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-220157">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>you should fire an event when the database changes and have the tableView listen for that event and then update itself</p>
+<p><a href="http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;td&#x2F;250+Working+With+Local+Data">http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;td&#x2F;250+Working+With+Local+Data</a></p>
+<p>in this code the database module fires events when it is updated and the tableView is listening</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 4th 2011, 12:24:50 pm">October 4th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/126396/reload-fresh-data-on-window-open#answer-220157" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks for this. Though I can&#39;t actually see where the code is?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 4th 2011, 12:44:06 pm">October 4th 2011</span>
+											by <span class='authorname'>Billy Jones</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The documentation on database.fireEvent is almost nil :( http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;1.7.1&#x2F;Titanium.Database.fireEvent-method.html</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 4th 2011, 12:46:26 pm">October 4th 2011</span>
+											by <span class='authorname'>Billy Jones</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>did you look through the training materials?</p>
+<p>Also the final solution is here <a href="http:&#x2F;&#x2F;assets.appcelerator.com.s3.amazonaws.com&#x2F;app_u&#x2F;code&#x2F;250.zip">http:&#x2F;&#x2F;assets.appcelerator.com.s3.amazonaws.com&#x2F;app_u&#x2F;code&#x2F;250.zip</a></p>
+<p>the lesson link was included so you could understand the overall concept and see the solution</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 4th 2011, 12:50:11 pm">October 4th 2011</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I had downloaded that file but I guess I didn&#39;t see what I was looking for. Got it now and it works a treat. Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 5th 2011, 7:31:28 am">October 5th 2011</span>
+											by <span class='authorname'>Billy Jones</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>What if it is not a DB but rather a form? I have a form and every time people go back to that window, it shows their old data input.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 26th 2012, 3:32:24 pm">October 26th 2012</span>
+											by <span class='authorname'>Joseph Lancaster</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

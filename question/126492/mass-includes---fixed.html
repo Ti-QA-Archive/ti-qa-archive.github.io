@@ -1,0 +1,552 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Mass Includes - FIXED! » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Mass Includes - FIXED!</h1>
+		</header>
+		<section>
+			<p>Hi,<br>Yesterday I was watching <a href="http:&#x2F;&#x2F;vimeo.com&#x2F;29804284">Rick Blalock lecture</a> from Code Strong &quot;<a href="http:&#x2F;&#x2F;vimeo.com&#x2F;29804284">Your Apps are Leaking - Controlling Memory Leaks</a>&quot; - A very recommended lecture about memory leaks and introduction to tools to analyze your app.</p>
+<p>At around minute 10 he talks about Mass Includes and demonstrates a code that he uses to make sure he include something only once, saves that object in memory and re-use it every time.<br>Yesterday I wrote a <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;126467&#x2F;mass-includes">Q&amp;A</a> about that code because I tried it and it wasn&#39;t working - It returned null every time. That null was to be expected, because we returned an object but did not initialize it.</p>
+<pre><code class="hljs">return new appIncluder[<span class="hljs-link_label">type</span>][<span class="hljs-link_reference">name</span>](params);
+</code></pre><p>I still liked the line of thought of that script so I spent some time try to see how to make it work. Now that it finally works - I thought I&#39;d post it here.</p>
+<p>I would very much like to hear your thoughts about it. See if you think it&#39;s efficient and considered as &quot;best practice&quot;. Also, I&#39;ll be posting my thoughts after the code it self…</p>
+<p>The (fixed) Code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> appIncluder = {
+    <span class="hljs-type">Controllers</span>: {},
+    <span class="hljs-type">Models</span>: {},
+    <span class="hljs-type">Views</span>: {}
+};
+
+appIncluder.loadObject = function(<span class="hljs-class"><span class="hljs-keyword">type</span>, <span class="hljs-title">name</span>, <span class="hljs-title">params</span>) {</span>
+    <span class="hljs-keyword">if</span>(appIncluder[<span class="hljs-class"><span class="hljs-keyword">type</span>] <span class="hljs-title">==</span> <span class="hljs-title">null</span>) {</span> <span class="hljs-comment">// If the controler type we want to load was not a pre-defined controller</span>
+        <span class="hljs-keyword">throw</span> <span class="hljs-symbol">'Includer</span> error: <span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-title">\</span>'' <span class="hljs-title">+</span> <span class="hljs-title">type</span> <span class="hljs-title">+</span> '<span class="hljs-title">\</span>' <span class="hljs-title">not</span> <span class="hljs-title">found!</span>';</span>
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(appIncluder[<span class="hljs-class"><span class="hljs-keyword">type</span>][</span>name] == <span class="hljs-literal">null</span>) { <span class="hljs-comment">// If the child object doesn't exist, include the file and use it</span>
+        <span class="hljs-type">Ti</span>.include(<span class="hljs-class"><span class="hljs-keyword">type</span>.<span class="hljs-title">toLowerCase</span>(</span>) + '/' + name + '.js');
+        appIncluder[<span class="hljs-class"><span class="hljs-keyword">type</span>][</span>name] = function(<span class="hljs-class"><span class="hljs-keyword">object</span>) {</span>
+            <span class="hljs-keyword">var</span> a;
+            eval(<span class="hljs-symbol">'a</span> = <span class="hljs-keyword">new</span> ' + name + '(' + <span class="hljs-type">JSON</span>.stringify(params) + ');');
+            <span class="hljs-keyword">return</span> a;
+        };
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> appIncluder[<span class="hljs-class"><span class="hljs-keyword">type</span>][</span>name](params);
+    } <span class="hljs-keyword">else</span> { <span class="hljs-comment">// If the name of the type object already been loaded / exists</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> appIncluder[<span class="hljs-class"><span class="hljs-keyword">type</span>][</span>name](params);
+    }
+};
+
+<span class="hljs-comment">// Useage example:</span>
+<span class="hljs-comment">// var someThing = appIncluder.loadObject('Controllers', 'List', { param1: 'value', param2: 'value' ... });</span>
+</code></pre><p>My thoughts about this code:</p>
+<ol>
+<li><p>First of all - it depends on what you want to do with your app and what global classes you think you&#39;ll reuse across the entire app.</p>
+</li>
+<li><p>The class name (or function) has to match the name of the file you are passing.</p>
+</li>
+<li><p>The params you pass has to be of JSON type.</p>
+</li>
+<li><p>I wasn&#39;t really sure that using &#39;eval&#39; was the best practice because &#39;eval&#39; itself could be a bit slow - but since it&#39;s only called the first time it might not be so bad.</p>
+</li>
+</ol>
+<p>If you are looking for explanations about what this code does or how it works - I recommend watching the lecture, and if you have any more questions post them here and I&#39;ll try to answer them.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 6th 2011, 6:23:35 am">October 6th 2011</span>
+				by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>best practice</span></li>
+					
+						<li><span class='tagname'>code</span></li>
+					
+						<li><span class='tagname'>includes</span></li>
+					
+						<li><span class='tagname'>mass includes</span></li>
+					
+						<li><span class='tagname'>memory leaks</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>2</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-220348">
+				
+						<section>
+							<p>Here is one more approach.</p>
+<p>I use namespaces and function constructors in the files that I include.</p>
+<p>For example:</p>
+<pre><code class="hljs">Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'/lib.js'</span>);
+
+<span class="hljs-keyword">var</span> NS = {};
+
+Lib.require(<span class="hljs-string">'Ns.MyFancyView'</span>);
+
+
+<span class="hljs-comment">//my_fancy_view.js</span>
+Ns.MyFancyView = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.Element = Ti.UI.createView({ backgroundColor: <span class="hljs-string">'#fc9'</span> });
+};
+</code></pre><p>&quot;Lib.require&quot; function does similar thing as &quot;appIncluder.loadObject&quot; in Rick&#39;s approach, only it doesn&#39;t create objects, it include files (names are mapped to the file system) and adds function constructor to the namespace object if it is not already defined in namespace.</p>
+<p>Rick&#39;s approach has a problem because his function constructors are globally defined (so, they are global variables). That can be solved by using namespaces, but then &quot;appIncluder&quot; is unnecessary overhead (including one extra function &quot;appIncluder[type][name]&quot; for each included file and &quot;eval&quot; in your case).</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 6th 2011, 7:12:19 am">October 6th 2011</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/126492/mass-includes---fixed#answer-220348" rel="permalink">permalink</a>
+							</div>
+
+							<h5>7 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Ivan, Thanks for the remark. Sure worth looking into. Where can I find lib.js ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2011, 7:18:13 am">October 6th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nowhere public (for now). :D</p>
+<p>But I can show you how &quot;require&quot; function works (I removed some parts, some parts I added to make it simple as possible, but I haven&#39;t test it so it might not work, but you can get the idea how it works).</p>
+<pre><code class="hljs">Lib = {};
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    Lib.require = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-comment">//supports more arguments/includes at once</span>
+        <span class="hljs-keyword">var</span> componentName = <span class="hljs-built_in">arguments</span>;
+        <span class="hljs-keyword">var</span> cnlen = componentName.length;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c = <span class="hljs-number">0</span>; c &lt; cnlen; ++c) {
+            _register(componentName[c]);
+        }
+    };
+
+    <span class="hljs-keyword">var</span> _registry = {};
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_register</span>(<span class="hljs-params">componentName</span>) </span>{
+
+        <span class="hljs-keyword">if</span> (_registry[componentName] !== <span class="hljs-literal">undefined</span>) {
+            <span class="hljs-keyword">return</span>;
+        }
+
+        <span class="hljs-keyword">var</span> parts = componentName.split(<span class="hljs-string">'.'</span>);
+
+        <span class="hljs-keyword">if</span> (parts.length) {
+            <span class="hljs-comment">//namespace</span>
+            <span class="hljs-keyword">var</span> Ns = parts.shift();
+
+            <span class="hljs-keyword">var</span> plen = parts.length;
+
+            <span class="hljs-comment">//mapping of component name to file name</span>
+            <span class="hljs-comment">//Ns.Components.MyName -&gt; /components/my_name.js</span>
+            <span class="hljs-keyword">var</span> pathParts = [];
+
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; plen; ++i) {
+
+                <span class="hljs-keyword">var</span> p = parts[i].split(<span class="hljs-regexp">/(?=[A-Z])/</span>);
+
+                <span class="hljs-keyword">var</span> pl = p.length;
+
+                <span class="hljs-keyword">if</span> (pl) {
+                    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> j = <span class="hljs-number">0</span>; j &lt; pl; ++j) {
+                        p[j] = p[j].toLowerCase();
+                    }
+                    pathParts.push(p.join(<span class="hljs-string">'_'</span>));
+                }
+            }
+
+            <span class="hljs-keyword">var</span> path = <span class="hljs-string">'/'</span> + pathParts.join(<span class="hljs-string">'/'</span>) + <span class="hljs-string">'.js'</span>;
+
+            Ti.include(path);
+            _registry[componentName] = <span class="hljs-number">42</span>;
+        }
+    }
+})();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2011, 7:54:53 am">October 6th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Ivan,<br>I&#39;ve reviewed the code you posted. Basically, It does the same as appIncluder. What I liked about your code is the namespace parser.</p>
+<p>As for the global var - you code also stores a global var (Lib) - with exception that it&#39;s not storing inner objects inside it.</p>
+<p>appIncluder saves you the time in initializing your object (it returns a new instance of the object, witch it stores in memory), So you can make request to objects without worrying about including and just getting the instance of the object you currently need to use. But you are right - your way only handles the includes so you can include whatever in that file.</p>
+<p>You should post an entry about it for other to learn.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2011, 10:53:17 am">October 6th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes, it has very similar idea - usage of some kind of registry to record what has been included (so it can be used for preventing of re-including same files).</p>
+<p>As for the global var - you missed the point. You need to look at included files to see the difference.</p>
+<p>In Rick&#39;s approach, in let&#39;s say … &quot;something.js&quot;:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">something</span><span class="hljs-params">()</span> </span>{}
+
+<span class="hljs-comment">//or</span>
+
+<span class="hljs-keyword">var</span> something = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{};
+</code></pre><p>That is creating global variables.</p>
+<p>In my approach:</p>
+<pre><code class="hljs">Ns.something = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{};
+</code></pre><p>No global variables, function constructor is added to the global namespace object.</p>
+<p>As for your last remark, &quot;appIncluder&quot; does not saves time in initializing object, new objects are created every time with this function:</p>
+<pre><code class="hljs">appIncluder[<span class="hljs-link_label">type</span>][<span class="hljs-link_reference">name</span>] = function(object) {
+<span class="hljs-code">    var a;</span>
+<span class="hljs-code">        eval('a = new ' + name + '(' + JSON.stringify(params) + ');');</span>
+<span class="hljs-code">        return a;</span>
+};
+</code></pre><p>Because of &quot;else&quot; part:</p>
+<pre><code class="hljs"><span class="hljs-keyword">else</span> { <span class="hljs-comment">// If the name of the type object already been loaded / exists</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> appIncluder[<span class="hljs-class"><span class="hljs-keyword">type</span>][<span class="hljs-title">name</span>]</span>(params);
+}
+</code></pre><p>So, it does &quot;eval&quot; and &quot;stringify&quot; every time you need new object.</p>
+<p>In my approach, you just use function constructor directly from namespace object:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> somethingInstance = <span class="hljs-keyword">new</span> Ns.something();
+</code></pre><p>So, once you do &quot;require&quot; of function constructor (which I call component) and after you can create as many object as you want not worrying about including files (of course, this applies only to one-context applications, in multi-context environment you need to pass namespace object to new context).</p>
+<p>Also, my approach in more OOP friendly, in Rick&#39;s approach you can&#39;t reference function constructor, only function constructor object instances.</p>
+<p>Anyway, I hope that in the future I&#39;ll have time to write some blog posts about this approach (any many other things I found helpful).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2011, 11:22:30 am">October 6th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi,<br>I get what you&#39;re saying. but what I don&#39;t understand is how you get the object into the namespace:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> somethingInstance = <span class="hljs-keyword">new</span> Ns.something();
+</code></pre><p>It seems that your code just includes the js file and I still need to do:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> something = <span class="hljs-keyword">new</span> Something();
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2011, 12:22:26 pm">October 6th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>No, you can&#39;t do that.</p>
+<p>You missed this line (which is in included file):</p>
+<pre><code class="hljs">Ns.something = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{};
+</code></pre><p>&quot;Ns&quot; is namespace global object and in included file I don&#39;t create new global variable (I don&#39;t define variable &quot;Something&quot; as function constructor in global scope), I just add property to the namespace object. That&#39;s why, when you create new object, you create it via namespace property to which you added function constructor (&quot;something&quot;).</p>
+<p>So, you can&#39;t do this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> something = <span class="hljs-keyword">new</span> Something();
+</code></pre><p>because &quot;Something&quot; is not defined in included file, but you can do this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> somethingInstance = <span class="hljs-keyword">new</span> Ns.something();
+</code></pre><p>because in included file you did this:</p>
+<pre><code class="hljs">//add <span class="hljs-function"><span class="hljs-keyword">function</span></span> constructor as namespace property not global variable
+Ns.something = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span> {
+
+};
+</code></pre><p>Hope you understand :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2011, 12:36:45 pm">October 6th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi, I got what you were doing - Nice! So every file you include needs to have the the function put into NS (or any other name you choose)?</p>
+<p>Second, lets say you&#39;ve loaded some very common classes that you use in your application, and now I open a new window from another js (heavyloading) - how can I ask the object a already included in app.js ?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 6th 2011, 12:45:45 pm">October 6th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-220446">
+				
+						<section>
+							<p>Yes, you just add function constructor to a namespace object which can be called where you want and need since namespace object is a global variable. If you&#39;re using multi-context windows, then you need to pass namespace object reference to every new context you create (but using multi-context isn&#39;t good practice anyway).</p>
+<p>As for your second question, it is simple, let&#39;s say that you have component called &quot;MyBlueView&quot;:</p>
+<pre><code class="hljs"><span class="hljs-comment">//my_blue_view.js</span>
+Ns.MyBlueView = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.Element = Ti.UI.createView({ backgroundColor: <span class="hljs-string">'#00f'</span> });
+};
+</code></pre><p>Now you can include it and use it in &quot;app.js&quot;:</p>
+<pre><code class="hljs">
+Lib.<span class="hljs-keyword">require</span>(<span class="hljs-string">'Ns.MyBlueView'</span>);
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow();
+
+<span class="hljs-keyword">var</span> component = <span class="hljs-keyword">new</span> Ns.MyBlueView();
+
+win.<span class="hljs-keyword">add</span>(component.Element);
+
+win.open();
+</code></pre><p>Now, you can make new component that adds some kind of interaction to the &quot;MyBlueView&quot; component:</p>
+<pre><code class="hljs">Lib.require(<span class="hljs-string">'Ns.MyBlueView'</span>);
+
+Ns.MyBlueViewController = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.Element.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        Ti.alert(<span class="hljs-string">'Hello from my blue view'</span>);
+    });
+};
+
+Ns.MyBlueViewController.prototype = <span class="hljs-keyword">new</span> Ns.MyBlueView();
+</code></pre><p>And you (almost) have MVC. You only miss model part (there are some existing ORM tools).</p>
+<p>Inside &quot;MyBlueViewController&quot; you can open new windows and create new components, for example:</p>
+<pre><code class="hljs">Lib.require(<span class="hljs-string">'Ns.MyBlueView'</span>);
+Lib.require(<span class="hljs-string">'Ns.MyGreenViewController'</span>);
+
+Ns.MyBlueViewController = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.Element.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">var</span> win = Ti.UI.createWindow();
+        <span class="hljs-keyword">var</span> comp = <span class="hljs-keyword">new</span> Ns.MyGreenViewController();
+        win.add(comp);
+        win.open();
+    });
+};
+
+Ns.MyBlueViewController.prototype = <span class="hljs-keyword">new</span> Ns.MyBlueView();
+
+
+<span class="hljs-comment">//my_green_view_controller.js</span>
+Lib.require(<span class="hljs-string">'Ns.MyGreenView'</span>);
+
+Ns.MyGreenViewController = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.Element.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        Ti.alert(<span class="hljs-string">'Hi from my green view'</span>);
+    });
+};
+
+Ns.MyGreenViewController.prototype = <span class="hljs-keyword">new</span> Ns.MyGreenView();
+
+<span class="hljs-comment">//my_green_view.js</span>
+Ns.MyGreenView = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.Element = Ti.UI.createView({ backgroundColor: <span class="hljs-string">'#0f0'</span> });
+};
+</code></pre><p>Of course, if you haven&#39;t noticed, components can be configured via parameters passed to the function constructor.</p>
+<p>There are a lot more things that I made (abstraction of native Titanium components, generic component &quot;class&quot;, ORM tool, form components, grid component, generic containers, custom event system, etc.), hope you got some impression how things can be organized in simple and intuitive way and if you have more questions about this or other things that can be made to make Titanium more friendlier to use, please don&#39;t mind to ask. :)</p>
+<p>Bad thing with this approach (and with Titanium in general) is that you can&#39;t use &quot;include&quot; inside functions, so you need to preload all components (so, if you have many components, application would load slowly). I haven&#39;t tried CommonJS yet, maybe it can solve this problem.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 7th 2011, 7:03:06 am">October 7th 2011</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/126492/mass-includes---fixed#answer-220446" rel="permalink">permalink</a>
+							</div>
+
+							<h5>10 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Oh, sorry, this was meant to be a comment, not an answer. :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 7th 2011, 7:04:12 am">October 7th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>why multi-context isn&#39;t good practice?</p>
+<p>if i write an app that has a lot of windows in it - what should I do? because if I don&#39;t use multi-context I will need to include all the files that handles all the windows and components on start - or is there a better way?</p>
+<p>thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 7th 2011, 11:17:50 am">October 7th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Multi-context is not very stable, many things didn&#39;t worked for me. It also has some annoying things you need to do.</p>
+<p>For example, if you have some common functionality (library) that you want to use in every context you create, you need to re-include it in every context.</p>
+<pre><code class="hljs"><span class="hljs-comment">//lib.js</span>
+<span class="hljs-keyword">var</span> Lib = {};
+Lib.doSomethingCool = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{};
+
+<span class="hljs-comment">//app.js</span>
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'/lib.js'</span>);
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow({ url: <span class="hljs-string">"something.js"</span> });
+win.open();
+
+<span class="hljs-comment">//something.js</span>
+Ti.API.debug(Lib); <span class="hljs-comment">//undefined</span>
+</code></pre><p>You can avoid that by passing reference to every new context you create:</p>
+<pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> win</span> = Ti.UI.createWindow({ url: <span class="hljs-string">"something.js"</span>, Lib: Lib });
+
+<span class="hljs-comment">//something.js</span>
+<span class="hljs-variable"><span class="hljs-keyword">var</span> Lib</span> = Ti.UI.currentWindow.Lib;
+Ti.API.debug(Lib); <span class="hljs-comment">//not undefined :)</span>
+</code></pre><p>Which sucks, because you need to recreate &quot;Lib&quot; variable in every JS file.</p>
+<p>Also, when you use complex directory structure (for example &quot;components&#x2F;ui&#x2F;component_name.js&quot;), using &quot;url&quot; changes your root directory, so in your &quot;include&quot;s sometimes wouldn&#39;t work as you expect.</p>
+<p>The most stable thing that worked very good for me was usage of heavyweight window (just define { modal: true } when creating windows).</p>
+<p>Yes, you&#39;re right. You would need to include all files at once. That would make your application load slower, but it would worked faster (because you wouldn&#39;t need to parse JS files that you load with url property). I think that CommonJS approach could be useful and I would recommend trying it. The thing is, as I said, you can&#39;t include file inside function (and that&#39;s why lazy loading is not possible), I think CommonJS require method solves that problem and it is more memory efficient.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 7th 2011, 11:48:59 am">October 7th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi,<br>Thanks for all your help! I&#39;ve done some reading about commonJS this weekend - indeed a very nice thing. I remember when I first started learning Javascript - it didn&#39;t do much back in the days but I still saw the potential so I kept on learning.</p>
+<p>commonJS indeed keeps the global scope clean - but, for large scale applications it still has the same problem of having all your scripts load when you start the app - so there&#39;s no lazy loading for js like the Titanium guys recommend on doing.</p>
+<p>So I think best practice is to consider the app we&#39;re building and it&#39;s complexity to decide what&#39;s the right way for you to work with.</p>
+<p>It can be a bit confusing since there are so many theories and so many methods.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 9th 2011, 4:07:36 am">October 9th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Also worth taking a look at: https:&#x2F;&#x2F;gist.github.com&#x2F;1093947 - a &quot;monkey patch&quot; for commonJS</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 9th 2011, 12:04:51 pm">October 9th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If CommonJS can work inside functions, for example:</p>
+<pre><code class="hljs">Ns.MyComponent = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> myModule = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ModuleName'</span>);
+}
+</code></pre><p>then you can implement lazy loading.</p>
+<p>I agree with you that the best practice is to have in mind application that you build, not all frameworks&#x2F;libraries&#x2F;approaches are suitable for all applications.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 10th 2011, 6:19:23 am">October 10th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I found out something that sucks! commonJS currently doesn&#39;t work on Android!!! even the workarounds don&#39;t work.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 10th 2011, 6:26:01 am">October 10th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Auch :D<br>Let us hope they&#39;ll fix that soon. :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 10th 2011, 7:12:21 am">October 10th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>commonJS works on Android… i have used it in my blog post and on two projects I am working on</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 16th 2011, 4:51:28 pm">October 16th 2011</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>there are problems with commonJS and Android. it&#39;s a known issue and an open bug for 1.7.2 - which will be fixed in 1.7.3. you can look it up in Q&amp;A. If you use 1.7.3 beta it will work.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 16th 2011, 6:49:36 pm">October 16th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

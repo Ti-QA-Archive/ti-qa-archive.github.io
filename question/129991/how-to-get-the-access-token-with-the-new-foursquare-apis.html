@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to get the access token with the new foursquare APIs » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to get the access token with the new foursquare APIs</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been watching a lot of code, reading a lot about oauth2 and making a lot of mistakes (the only way to learn :P).</p>
+<p>So, I&#39;ve been able to get an access token for the APIs with a webView and with split.</p>
+<p>In order to achieve this goal, first you need to make an application in foursquare and set a callback url. After doing that you can access your client application&#39;s ID, wich will be (like the callback url) the keys to get the token.</p>
+<pre><code class="hljs"><span class="hljs-comment">//Just for design stuff x)</span>
+<span class="hljs-keyword">var</span> device = Ti.Platform.displayCaps;
+
+<span class="hljs-keyword">var</span> frmVentana = Ti.UI.createWindow({
+    backgroundColor:<span class="hljs-string">'#CCFFCC'</span>
+});
+
+<span class="hljs-comment">//If not logged in or you hadn't let the application get the token,</span>
+<span class="hljs-comment">//this will display a dialog in the webView to insert your data.</span>
+<span class="hljs-comment">//After that, you will be redirected to the callback url with the</span>
+<span class="hljs-comment">//access token ID in it</span>
+<span class="hljs-keyword">var</span> wvwWeb = Ti.UI.createWebView({
+    url: <span class="hljs-string">'https://foursquare.com/oauth2/authenticate?client_id=your_client_id'</span>+
+    <span class="hljs-string">'&amp;response_type=token'</span>+
+    <span class="hljs-string">'&amp;redirect_uri=callback_url'</span>,
+});
+
+<span class="hljs-keyword">var</span> vwmNormalView = Ti.UI.createView({
+    top:<span class="hljs-number">60</span>,
+    size:{width: device.platformWidth,
+    height: device.platformHeight - <span class="hljs-number">65</span>},
+});
+
+<span class="hljs-keyword">var</span> txfURL = Ti.UI.createTextField({
+    <span class="hljs-comment">//hintText:"write your name or select one",</span>
+    height:<span class="hljs-number">30</span>,
+    width:device.platformWidth,
+    top:<span class="hljs-number">20</span>,
+
+});
+
+<span class="hljs-keyword">if</span>(Ti.Platform.osname === <span class="hljs-string">'iphone'</span>)
+{
+    txfURL.borderStyle = Titanium.UI.INPUT_BORDERSTYLE_ROUNDED;
+}
+
+vwmNormalView.add(wvwWeb);
+
+<span class="hljs-comment">//Just to edit the url</span>
+txfURL.addEventListener(<span class="hljs-string">'return'</span>, function(){
+    txfURL.<span class="hljs-keyword">value</span> = txfURL.<span class="hljs-keyword">value</span>.toLowerCase();
+    wvwWeb.url = txfURL.<span class="hljs-keyword">value</span>;
+});
+
+<span class="hljs-function">function <span class="hljs-title">loadToken</span>(<span class="hljs-params">e</span>)
+</span>{
+<span class="hljs-comment">//The callback URL will have a format like this:</span>
+<span class="hljs-comment">//http://somerandomurl.com/#access_token=token_id</span>
+<span class="hljs-comment">//so that token ID is what is interesting :)</span>
+    txfURL.<span class="hljs-keyword">value</span> = e.url.toLowerCase();
+    <span class="hljs-keyword">var</span> token = txfURL.<span class="hljs-keyword">value</span>.split(<span class="hljs-string">"="</span>, <span class="hljs-number">2</span>);
+    alert(<span class="hljs-string">"URL: "</span>+txfURL.<span class="hljs-keyword">value</span> +<span class="hljs-string">"\n"</span> + <span class="hljs-string">"token: "</span>+token[<span class="hljs-number">1</span>]+<span class="hljs-string">"\n"</span>);
+    wvwWeb.removeEventListener(<span class="hljs-string">'load'</span>, loadToken);
+<span class="hljs-comment">//For each new content loaded in the webView, this method will be called.</span>
+<span class="hljs-comment">//So, in order to get the token just once, I remove the event.</span>
+<span class="hljs-comment">//After you get the token, you can save it in a database or something</span>
+};
+
+<span class="hljs-comment">//Event fired when content is loaded in the webView, ergo, I have the</span>
+<span class="hljs-comment">//callback URL with the access token</span>
+wvwWeb.addEventListener(<span class="hljs-string">'load'</span>, loadToken);
+
+frmVentana.add(vwmNormalView);
+frmVentana.add(txfURL);
+frmVentana.open();
+</code></pre><p>Hope that helps :)</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 29th 2011, 9:04:55 am">December 29th 2011</span>
+				by <span class='authorname'>Juan Manuel Pedraza</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>api</span></li>
+					
+						<li><span class='tagname'>foursquare</span></li>
+					
+						<li><span class='tagname'>sdk</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-236267">
+				
+						<section>
+							<p>Juan,</p>
+<p>Thanks for the info, I am trying to use your code, however after the page loads neither the webView nor the TextField are responding to clicks both on the iOS emulator and on devices (on Android devices it works fine)</p>
+<p>I&#39;ve already tried setting the <code>WillHandleTouches</code> property to false, to no avail…</p>
+<p>Thanks in advance,</p>
+<p>Jay Santos</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 17th 2012, 1:10:35 am">April 17th 2012</span>
+								by <span class='authorname'>Jay Santos</span><br>
+								<a class="icon-bg icon-link" href="question/129991/how-to-get-the-access-token-with-the-new-foursquare-apis#answer-236267" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-236732">
+				
+						<section>
+							<p>try this code, has been around for a while, should work <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;885560">code here</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="April 20th 2012, 2:46:39 pm">April 20th 2012</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/129991/how-to-get-the-access-token-with-the-new-foursquare-apis#answer-236732" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

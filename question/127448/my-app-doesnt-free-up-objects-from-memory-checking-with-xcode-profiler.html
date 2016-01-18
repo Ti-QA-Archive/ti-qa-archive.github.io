@@ -1,0 +1,368 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>My app doesn&#39;t free up objects from memory... (Checking with xCode Profiler) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>My app doesn&#39;t free up objects from memory... (Checking with xCode Profiler)</h1>
+		</header>
+		<section>
+			<p>Hi,<br>I&#39;ve decided to check out what I&#39;m doing to make sure my app memory management is ok. So I opened up profiler and checked it out - I found that the app is not clearing up memory when I close a window.</p>
+<p>here&#39;s my app.js:</p>
+<pre><code class="hljs"><span class="hljs-built_in">require</span>(<span class="hljs-string">'/commonJS/require_patch'</span>).monkeypatch(<span class="hljs-keyword">this</span>);
+
+<span class="hljs-keyword">var</span> appWindow;
+(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> iUserId = Titanium.App.Properties.getInt(<span class="hljs-string">'UserId'</span>);
+    <span class="hljs-keyword">if</span> (iUserId) { <span class="hljs-comment">//User is registered open app main window</span>
+        <span class="hljs-comment">//<span class="hljs-doctag">TODO:</span> open app main screen</span>
+    } <span class="hljs-keyword">else</span> { <span class="hljs-comment">//User is not registered - open registration window</span>
+        startApp(<span class="hljs-string">'register'</span>);
+    }
+
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">startApp</span>(<span class="hljs-params">name</span>) </span>{
+        <span class="hljs-keyword">switch</span> (Ti.Platform.osname) {
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'iphone'</span>:
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'ipad'</span>:
+                appWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/iphone/'</span> + name)();
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'android'</span>:
+                appWindow = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ui/android/'</span> + name)();
+                <span class="hljs-keyword">break</span>;
+        }
+        appWindow.open();
+    }
+}());
+</code></pre><p>The window opens up ok. here&#39;s register.js:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> steps = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/ui/controls/register_steps'</span>);
+Ti.include(<span class="hljs-string">'regDesign.js'</span>);
+
+exports.register = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> instance = Ti.UI.createWindow(Register.MainWindow);
+
+    <span class="hljs-keyword">var</span> oStep1 = steps.createStep1();
+    instance.add(oStep1);
+
+    <span class="hljs-comment">// Step 1 continue button</span>
+    <span class="hljs-keyword">var</span> btnContinue = Ti.UI.createButton(Register.Step1.btnContinue);
+    oStep1.add(btnContinue);
+
+    <span class="hljs-comment">// Step 1 term and agreement</span>
+    <span class="hljs-keyword">var</span> lblTermsLink = Ti.UI.createLabel(Register.Step1.lblTerms);
+    oStep1.add(lblTermsLink);
+
+    lblTermsLink.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        <span class="hljs-keyword">var</span> oTerms = steps.createTerms(oStep1);
+        navGroup.open(oTerms);
+    });
+
+    <span class="hljs-keyword">var</span> winStep1 = Ti.UI.createWindow({ title: <span class="hljs-string">'IMS'</span> });
+    winStep1.add(oStep1);
+
+    <span class="hljs-keyword">var</span> navGroup = Ti.UI.iPhone.createNavigationGroup({
+        <span class="hljs-built_in">window</span>: winStep1
+    });
+    instance.add(navGroup);
+
+    <span class="hljs-keyword">var</span> btnTest = Ti.UI.createButton({
+        top: <span class="hljs-number">10</span>,
+        left: <span class="hljs-number">10</span>,
+        width: <span class="hljs-number">100</span>,
+        height: <span class="hljs-number">100</span>,
+        title: <span class="hljs-string">'test3'</span>        
+    });
+    instance.add(btnTest);
+
+    btnTest.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        instance.close();
+    });
+
+    <span class="hljs-keyword">return</span> instance;
+};
+</code></pre><p>on btnTest click event I call the close button on the instance variable - which is the window I return. The window closes, but the objects remain in memory.</p>
+<p>Can anyone explain what I&#39;m doing wrong?</p>
+<p>Thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 27th 2011, 1:18:02 pm">October 27th 2011</span>
+				by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>profiler</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-222034">
+				
+						<section>
+							<p>I <strong>think</strong> it&#39;s because from &quot;exports.register&quot; function you return &quot;instance&quot; variable (a window), which you store to global variable &quot;appWindow&quot;. Try to remove that reference like this:</p>
+<pre><code class="hljs">appWindow.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    appWindow = <span class="hljs-literal">null</span>;
+});
+</code></pre><p>and see does that solve the problem.</p>
+<p>That code is just for testing, you should change your app design if it is. ;)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 27th 2011, 1:31:16 pm">October 27th 2011</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/127448/my-app-doesnt-free-up-objects-from-memory-checking-with-xcode-profiler#answer-222034" rel="permalink">permalink</a>
+							</div>
+
+							<h5>12 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Nope. Just tried it - it didn&#39;t work.</p>
+<p>As for the app design - I don&#39;t see what should be wrong with it. I return a window just like I would if one is created with createWindow. copied that app design from Kevin Whinnery CodeStrong lecture about &quot;writing better javascripts&quot;…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 1:41:57 pm">October 27th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Since there is a reference to appWindow in the global namespace, it will stick around.  Ivan is on the right track, but by adding an event listener, you are creating another reference to the object in the global namespace.  Try doing an appWindow.removeEventListener before setting appWindow to null.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 2:17:54 pm">October 27th 2011</span>
+											by <span class='authorname'>Mark Rosenthal</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Mark, That doesn&#39;t do the trick either. At first appWindow was placed inside the self calling function - but I placed it outside because I thought that might be the problem.</p>
+<p>I started using this type of app design because it seems to give a nice clean solution for cross platform development as explained in CodeStrong lecture.</p>
+<p>Any other suggestions for app design that is both efficient and both clean?</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 5:02:09 pm">October 27th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>After some more testing - I think it has nothing to do with the with appWindow variable.<br>What I did is:</p>
+<pre><code class="hljs"><span class="hljs-keyword">case</span> <span class="hljs-string">'iphone'</span><span class="hljs-symbol">:</span>
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'ipad'</span><span class="hljs-symbol">:</span>
+                <span class="hljs-keyword">require</span>(<span class="hljs-string">'ui/iphone/'</span> + name)().open();
+                <span class="hljs-keyword">break</span>;
+</code></pre><p>and it still didn&#39;t free up the objects.</p>
+<p>In case you&#39;re interested, here&#39;s the example I was following:<br><a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator-titans&#x2F;TeamFeeder&#x2F;">https:&#x2F;&#x2F;github.com&#x2F;appcelerator-titans&#x2F;TeamFeeder&#x2F;</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 5:30:18 pm">October 27th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Isn&#39;t it sticking around because of the navGroup and labels associated with it? Don&#39;t you need to kill those off first if you want the memory released?  Maybe I&#39;m wrong, I&#39;m not sure (I&#39;m pretty new to all this so sorrt if that does not help).  There was a memory leak presentation at Codestrong, if you didn&#39;t catch it it might be worth watching it online.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 7:09:24 pm">October 27th 2011</span>
+											by <span class='authorname'>Richard Shergold</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Nope - that&#39;s not it. I removed everything and left only the button on the screen - still sticking around in memory. I did further testing and I find that Titanium isn&#39;t clearing memory at all(!!!) - even in much simpler cases:</p>
+<p>myClass.js:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">myClass</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> win = Ti.UI.createWindow();
+
+    <span class="hljs-keyword">var</span> btnTest = Ti.UI.createButton({
+        top: <span class="hljs-number">10</span>,
+        left: <span class="hljs-number">50</span>,
+        width: <span class="hljs-number">100</span>,
+        height: <span class="hljs-number">100</span>,
+        title: <span class="hljs-string">'test5'</span>        
+    });
+    <span class="hljs-keyword">var</span> btnTest1 = Ti.UI.createButton({
+        top: <span class="hljs-number">10</span>,
+        left: <span class="hljs-number">50</span>,
+        width: <span class="hljs-number">100</span>,
+        height: <span class="hljs-number">100</span>,
+        title: <span class="hljs-string">'test5'</span>        
+    });
+    <span class="hljs-keyword">var</span> btnTest2 = Ti.UI.createButton({
+        top: <span class="hljs-number">10</span>,
+        left: <span class="hljs-number">50</span>,
+        width: <span class="hljs-number">100</span>,
+        height: <span class="hljs-number">100</span>,
+        title: <span class="hljs-string">'test5'</span>        
+    });
+
+
+    win.add(btnTest);
+
+    btnTest.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        win.close();
+    });
+
+    <span class="hljs-keyword">return</span> win;
+}
+</code></pre><p>app.js:</p>
+<pre><code class="hljs"><span class="hljs-type">Ti</span>.<span class="hljs-keyword">include</span>(<span class="hljs-char">'/ui/myClass.js'</span>);
+
+appWindow = new myClass<span class="hljs-literal">()</span>;
+appWindow.<span class="hljs-keyword">open</span><span class="hljs-literal">()</span>;
+</code></pre><p>even if I write appWindow.close() and appWindow = null right after it - still not clearing any memory.</p>
+<p>even if I create a button that closes appWindow from app.js - still objects remain in memory.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 7:14:54 pm">October 27th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Even writing this simple app.js keeps the window in memory:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> <span class="hljs-keyword">win</span> = Ti.UI.createWindow();
+<span class="hljs-keyword">win</span>.<span class="hljs-keyword">open</span>();
+<span class="hljs-keyword">win</span>.<span class="hljs-keyword">close</span>();
+<span class="hljs-keyword">win</span> = null;
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 7:43:06 pm">October 27th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Have you tried to put that last part into the closure?</p>
+<pre><code class="hljs"><span class="hljs-list">(<span class="hljs-keyword">function</span><span class="hljs-list">()</span> <span class="hljs-collection">{
+    var win = Ti.UI.createWindow<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+    win.open<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+    win.close<span class="hljs-list">()</span><span class="hljs-comment">;</span>
+    win = null;
+}</span>)</span><span class="hljs-list">()</span><span class="hljs-comment">;</span>
+</code></pre><p>Nevertheless, it seems to me that you found serious issue that you should report.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 28th 2011, 5:38:50 am">October 28th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi Ivan. Since yesterday I did all kind of experiments with Titanium and watched the objects in memory. It seems that sometimes it does clear memory for some objects (I&#39;m not sure right now if it&#39;s a commonJS problem or not) and sometimes it doesn&#39;t.</p>
+<p>I think maybe the GC doesn&#39;t work right away and has a delay of X actions made before it kicks in. I&#39;m still testing… in any case, I&#39;m encountering strange behavior. Even if GC does kicks in, there are always some leftovers….</p>
+<p>How can I report a bug if I do think there is one?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 28th 2011, 12:49:24 pm">October 28th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><a href="http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;How+to+Submit+a+Bug+Report">http:&#x2F;&#x2F;wiki.appcelerator.org&#x2F;display&#x2F;guides&#x2F;How+to+Submit+a+Bug+Report</a></p>
+<p>Yes, GC is executed when there are resources to do that (when other things don&#39;t execute). In general, memory is not release immediately. So, try to monitor you application for a while and then see if memory is increasing or it is constant.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 28th 2011, 12:53:59 pm">October 28th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks. I want to be more sure of myself before I bother them (I&#39;m sure they have a lot more to do without me having them chase false bugs) - so I&#39;m gonna do further testing as to when this takes place.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 28th 2011, 1:01:09 pm">October 28th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>After some more testing… It&#39;s becoming more complex to understand memory management in Titanium. I wrote a simple program that opens a window and a button that closes that window. When I start the program I see 2 windows in profiler - so far it&#39;s good. Then I click the button that closes the window - I still see 2 windows. Now I do other operation on the app (that are not related to windows in any way) and that second window still remains in memory.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 28th 2011, 4:58:27 pm">October 28th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

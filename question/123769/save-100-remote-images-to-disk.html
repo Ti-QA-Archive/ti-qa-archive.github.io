@@ -1,0 +1,384 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>save 100+ remote images to disk » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>save 100+ remote images to disk</h1>
+		</header>
+		<section>
+			<p>Hi,<br>Im trying to download a image gallery and have it to the phones filesystem. This works great with 30-50 images at the time. But one of apps has a large amount of images in the galleries, which for some reason will not save all these files to disk. Some files are just skipped or saved to disk with filesize 0 bytes. </p>
+<p>Anyone know why? I cannot figure this out by myself. </p>
+<p>json load remote images:</p>
+<pre><code class="hljs">xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">var</span> items = eval(<span class="hljs-string">'('</span>+<span class="hljs-keyword">this</span>.responseText+<span class="hljs-string">')'</span>);
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=<span class="hljs-number">1</span>;c&lt;items.length;c++)
+        {            
+            <span class="hljs-keyword">var</span> id = items[c].id;
+            <span class="hljs-keyword">var</span> imageLarge = items[c].imageLarge;
+            <span class="hljs-keyword">var</span> imageSmall = items[c].imageSmall;
+            <span class="hljs-keyword">var</span> imageMedium = items[c].imageMedium; 
+
+            <span class="hljs-comment">//image related content</span>
+            <span class="hljs-keyword">var</span> imageArr = [imageLarge, imageSmall, imageMedium];
+            <span class="hljs-keyword">var</span> imageNameArr = [<span class="hljs-string">'imageLarge_'</span>, <span class="hljs-string">'thumb_'</span>, <span class="hljs-string">'thumb_'</span>];
+            <span class="hljs-keyword">var</span> imageNativePath = [];
+
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt; imageArr.length; i++) {
+                <span class="hljs-keyword">var</span> filename = xtractFile(imageArr[i]);
+                <span class="hljs-keyword">var</span> imageName = <span class="hljs-string">''</span> + imageNameArr[i] + id + filename.extension;
+
+                <span class="hljs-comment">//SAVE REMOTE FILE NOW !</span>
+                <span class="hljs-comment">//get_remote_file( filename, url, debug, progress, override)</span>
+                getRemoteFile(<span class="hljs-string">'gallery/'</span>+imageName, imageArr[i], <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(fileobj)</span></span>{ Ti.API.info(fileobj) }, <span class="hljs-literal">null</span>, <span class="hljs-literal">true</span> );
+            };
+
+        <span class="hljs-comment">//all done - show - DO I NEED A SAVE TO DISK LISTENER HERE?</span>
+
+        showContent();
+    }
+        <span class="hljs-keyword">catch</span>(e) {
+            <span class="hljs-comment">//something goes wrong - showcontent</span>
+            <span class="hljs-keyword">trace</span>(<span class="hljs-string">"CATCH ERROR: "</span> + e);
+        }
+    };
+    xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">trace</span>(<span class="hljs-string">"ONERROR: "</span> + e);
+    };
+    xhr.open(<span class="hljs-string">"GET"</span>,rssFeed);
+    xhr.send(); 
+};
+</code></pre><p>save to filesystem function:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getRemoteFile</span><span class="hljs-params">(filename, url, fn_end, fn_progress, override )</span> </span>{
+    <span class="hljs-keyword">var</span> file_obj = {file:filename, url:url, path: <span class="hljs-literal">null</span>};
+    <span class="hljs-keyword">var</span> file = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,filename);
+
+    <span class="hljs-keyword">if</span> ( file.exists() ) {
+        file_obj.path = Titanium.Filesystem.applicationDataDirectory+Titanium.Filesystem.separator;
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">override</span>) {
+            file.deleteFile();
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">return</span>;
+        }     
+    }
+    <span class="hljs-keyword">if</span> ( Titanium.Network.online ) {
+        <span class="hljs-keyword">var</span> c = Titanium.Network.createHTTPClient();
+        c.setTimeout(<span class="hljs-number">10000</span>);
+        c.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+        </span>{
+            <span class="hljs-keyword">if</span> (c.status == <span class="hljs-number">200</span> ) {
+                <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,filename);
+
+                <span class="hljs-comment">//write file to disk</span>
+                f.write(<span class="hljs-keyword">this</span>.responseData);
+
+                <span class="hljs-keyword">if</span>(f.size == <span class="hljs-number">0</span>) {
+                    <span class="hljs-comment">//size 0 - start over</span>
+                    <span class="hljs-keyword">trace</span>(<span class="hljs-string">"ERROR: image write, try again"</span>);
+                    getRemoteFile(filename, url, fn_end, fn_progress, <span class="hljs-keyword">override</span> )
+                }
+
+                file_obj.path = Titanium.Filesystem.applicationDataDirectory+Titanium.Filesystem.separator;
+            } <span class="hljs-keyword">else</span> {
+                file_obj.error = <span class="hljs-string">'file not found'</span>; <span class="hljs-comment">// to set some errors codes</span>
+            }
+        };
+        c.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+        </span>{
+            <span class="hljs-keyword">if</span> ( fn_progress ) fn_progress(e.progress);
+        };
+        c.error = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+        </span>{
+
+            file_obj.error = e.error;
+            fn_end(file_obj);
+            <span class="hljs-keyword">trace</span>(<span class="hljs-string">"error: "</span> + e);
+        };
+        c.open(<span class="hljs-string">'GET'</span>,url);
+        c.send();           
+    } <span class="hljs-keyword">else</span> {
+        file_obj.error = <span class="hljs-string">'no internet'</span>;
+        fn_end(file_obj);
+    }  
+};
+</code></pre><p>Cheers!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 4th 2011, 5:42:00 pm">August 4th 2011</span>
+				by <span class='authorname'>Mads Møller</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>images</span></li>
+					
+						<li><span class='tagname'>json</span></li>
+					
+						<li><span class='tagname'>remote</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>1 Comment</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>did you ever get this to work?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="March 28th 2012, 1:51:36 pm">March 28th 2012</span>
+								by <span class='authorname'>samuel east</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-215461">
+				
+						<section>
+							<p>Have you tried setting a longer timeout ? Maybe the download isn&#39;t finished by the time the connection reaches its timeout.</p>
+<p>I personally prefer using the built-in function to automatically save the contents of a xhr file download to a local file as <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;latest&#x2F;Titanium.Network.HTTPClient-object.html">documented here</a> under the &#39;file&#39; property. But that&#39;s actually iOS only and I don&#39;t know if you&#39;re running under iOS or Android.</p>
+<p>Hope this helps</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 4th 2011, 6:24:56 pm">August 4th 2011</span>
+								by <span class='authorname'>Vincent Ghyssens</span><br>
+								<a class="icon-bg icon-link" href="question/123769/save-100-remote-images-to-disk#answer-215461" rel="permalink">permalink</a>
+							</div>
+
+							<h5>5 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Vincent, thanks for the reply! Yeah, I tried a timeout and also the beneath fireevent each time the image was created, when all events are fired, showContent.<br>The problem remains.. some images are still left out ! :S </p>
+<pre><code class="hljs"><span class="hljs-comment">//Remote image Events</span>
+Ti.App.addEventListener(<span class="hljs-string">'remoteImage'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{    
+    remoteImagesDone++;
+    <span class="hljs-keyword">if</span> (remoteImagesDone == remoteImagesStarted) {
+        <span class="hljs-comment">//its all done !</span>
+        showContent();
+    } 
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="August 4th 2011, 6:31:38 pm">August 4th 2011</span>
+											by <span class='authorname'>Mads Møller</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Regarding the file property, I have never tried it, but I develope to both platforms..<br>Any other solution?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 4th 2011, 6:33:05 pm">August 4th 2011</span>
+											by <span class='authorname'>Mads Møller</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It won&#39;t solve your problem but to parse a JSON string you can use the built-in <code>JSON.parse()</code> method which is safer than using <code>eval()</code>.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 4th 2011, 7:15:33 pm">August 4th 2011</span>
+											by <span class='authorname'>Vincent Ghyssens</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The eventListener is a good idea, your downloads being done asynchronously the execution of the code is not stopped and you might find yourself calling <code>showContent()</code> while some images are still being downloaded.</p>
+<p>Have you tried logging some infos on your script ? My best tool against buggy scripts is doing a bunch of <code>console.log()</code> at some crucial points. Eventually you should have a better idea what the source of the problem is.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 4th 2011, 7:24:26 pm">August 4th 2011</span>
+											by <span class='authorname'>Vincent Ghyssens</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi again</p>
+<p>Yeah, I have a bunch of log calls to figure out what is going on. e.g I have a gallery with 250 images, and the log shows that every 250 is called <code>getRemoteFile()</code> but only 221 (this number varies each time I test it) images are created and returns.</p>
+<p>I even added this below code to my save function to control that the size is not zero, but the problem is not that, the execution of the app just dont finish all 250 images. </p>
+<pre><code class="hljs"><span class="hljs-keyword">if</span><span class="hljs-comment">(f.size == 0)</span> {
+  <span class="hljs-comment">//size 0 - start over</span>
+  trace<span class="hljs-comment">("ERROR: image write, try again")</span>;
+  getRemoteFile<span class="hljs-comment">(filename, url, fn_end, fn_progress, override )</span>
+}
+</code></pre><p>Are there any javascript limitation to how many function call I can make? I thinking if the javascript compiled code cannot manage 250 function calls from a loop?? Is that the case?</p>
+<p>Any Appcelerator Core Team members that can tell me what is wrong?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 5th 2011, 9:14:07 am">August 5th 2011</span>
+											by <span class='authorname'>Mads Møller</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-215667">
+				
+						<section>
+							<p>Anyone that could give me a hint why the images are not stored to the filesystem? </p>
+<p><strong>The app is online, and I desperately need to figure out a solution.</strong></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 7th 2011, 6:49:03 am">August 7th 2011</span>
+								by <span class='authorname'>Mads Møller</span><br>
+								<a class="icon-bg icon-link" href="question/123769/save-100-remote-images-to-disk#answer-215667" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-217031">
+				
+						<section>
+							<p>I filed this as a bug. Meanwhile, would the community care to share how you manage to store images locally on the phone using the SDK?<br>Any suggestion would aid my critical situation. </p>
+<p>Cheers</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 20th 2011, 3:42:20 pm">August 20th 2011</span>
+								by <span class='authorname'>Mads Møller</span><br>
+								<a class="icon-bg icon-link" href="question/123769/save-100-remote-images-to-disk#answer-217031" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Well, in my case I download a zip file with literally thousands of images, then extract those to the filesystem.  But that is a single XHR download.  Probably not the answer you are looking for, but it answers this question as opposed to the original problem.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 20th 2011, 4:23:18 pm">August 20th 2011</span>
+											by <span class='authorname'>Doug Handy</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-217032">
+				
+						<section>
+							<p>I would suggest not using the <code>f.write(this.responseData);</code> method of saving the data.  As Vincent suggests, when running under iOS you should instead download directly to the file.  See the kitchen sink <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;KitchenSink&#x2F;blob&#x2F;master&#x2F;Resources&#x2F;examples&#x2F;xhr_filedownload.js">xhr_filedownload</a> for example code.</p>
+<p>As also noted, the file property is (so far) only implemented in the Titanium mobile iOS SDK.  However, for android you can achieve a similar effect using the technique shown in <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;35041&#x2F;large-file-download-on-mobile">this</a> thread.</p>
+<p>Just test Ti.Platform.osname and use the file property when iOS, and the other method when android.</p>
+<p>I don&#39;t know this will solve your problem if the images are small.  However, I can attest to the fact both of these methods are invaluable when the download size is &quot;large&quot; (by mobile standards).</p>
+<p>It is certainly worth a try.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 20th 2011, 4:31:47 pm">August 20th 2011</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/123769/save-100-remote-images-to-disk#answer-217032" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

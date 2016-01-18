@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Looking for validation on commonjs code design attempt » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Looking for validation on commonjs code design attempt</h1>
+		</header>
+		<section>
+			<p>I&#39;m beginning to refactor an app I&#39;d written that used multiple windows defined in their own .js files and called by …createUIWindow({ url:&#39;xyz.js&#39;}) style calls.  </p>
+<p>Thoughts are to preserve a lot of the work in the separate .js files, but &#39;require&#39; them in as needed.  I&#39;m sensitive to issues of leaving a lot of global objects lying around that will eventually cause memory issues, so I would prefer to get this setup figured out correctly now and not have to redo again.  </p>
+<p>So for SDK 1.0.8.1 and iOS5 platform, does the following make sense for code separation, for memory, for performance, or would anyone suggest a different approach?  </p>
+<pre><code class="hljs"><span class="hljs-comment">// app.js</span>
+<span class="hljs-keyword">var</span> myApp = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/myapp'</span>);
+<span class="hljs-keyword">var</span> rootWindow = Titanium.UI.createWindow();
+<span class="hljs-keyword">var</span> winHome = myApp.createHomeWindow();
+<span class="hljs-keyword">var</span> navGroup = myApp.createNavGroup(winHome);
+rootWindow.add(navGroup);
+rootWindow.open();
+
+<span class="hljs-comment">// lib/myapp.js</span>
+<span class="hljs-built_in">module</span>.exports={
+    someGlobalProp:<span class="hljs-string">'test'</span>,
+    createHomeWindow : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> winHome = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/lib/ui/winhome'</span>); 
+        <span class="hljs-keyword">return</span> winHome.buildWindow();
+    },
+    createNavGroup : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">w</span>) </span>{
+        <span class="hljs-keyword">var</span> navGroup = Titanium.UI.iPhone.createNavigationGroup({
+            <span class="hljs-built_in">window</span>:w
+        });
+        <span class="hljs-keyword">return</span> navGroup;
+    }
+};
+
+<span class="hljs-comment">// lib/ui/winhome.js</span>
+<span class="hljs-built_in">module</span>.exports = {
+    buildWindow : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">var</span> w = Ti.UI.createWindow({
+            title:<span class="hljs-string">'Home'</span>,
+            otherProps:<span class="hljs-string">'...'</span>
+        });
+
+        <span class="hljs-comment">// build views, etc... add to window</span>
+        <span class="hljs-keyword">return</span> w;
+    }
+};
+</code></pre><p>and so on for other screens.  All are built off initial home window and could be required in as needed.  NavGroup should hopefully take care of cleaning up as they are exited.  Thoughts?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 28th 2011, 2:19:12 am">December 28th 2011</span>
+				by <span class='authorname'>Lance Spellman</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>best practice</span></li>
+					
+						<li><span class='tagname'>code structure</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>performance</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-226208">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Without seeing a lot more code I would say that you are along the right lines.</p>
+<p>I will try and explain about the lack of global scope and memory management. Within commonJS there is no global scope so if you require a variable accessible across all windows then you would need to create a common module with the variable in and require it within each window.</p>
+<p>This may seem like it is going to cause a memory leak, but the file is actually only loaded into memory once and used be the different files. You can do the same with common routines, again they will only be loaded into memory once.</p>
+<p>however the module.exports should be exports.name { …. };</p>
+<p>A few gotchas is that you need to be very strict about syntax, do not forget to close all elements etc with a ; or commonJS will complain.</p>
+<p>so an example would be </p>
+<p>common.js</p>
+<pre><code class="hljs">
+exports.globalVars    =
+{
+  globalVar1:        <span class="hljs-string">'Hello World'</span>;
+
+};
+exports.commonFunc    =    <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+</span>{
+  <span class="hljs-keyword">if</span> (!android)
+  {
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  }
+  <span class="hljs-keyword">else</span>
+  {
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+  };
+};
+</code></pre><p>you can then require these in any other module and use them like</p>
+<p>app.js</p>
+<pre><code class="hljs">
+var inCommon = require <span class="hljs-list">(<span class="hljs-quoted">'common</span>')</span><span class="hljs-comment">;</span>
+
+alert<span class="hljs-list">(<span class="hljs-keyword">inCommon</span>.globalVars.globalVar1)</span><span class="hljs-comment">;</span>
+alert<span class="hljs-list">(<span class="hljs-keyword">inCommon</span>.commonFunc<span class="hljs-list">()</span>)</span><span class="hljs-comment">;</span>
+</code></pre><p>So using this way enables you to have as many variables as you need and as many functions which can each be handled individually.</p>
+<p>Hope this helps</p>
+<p>T..</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 28th 2011, 7:23:59 am">December 28th 2011</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/129924/looking-for-validation-on-commonjs-code-design-attempt#answer-226208" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Heed Trevor&#39;s syntax warning.  Go turn on JSLINT to help with missing semi-colons, etc.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 28th 2011, 11:30:14 am">December 28th 2011</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Stephen fancy posting something about JSLint so the folks know what it is and how to use it…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 28th 2011, 11:53:35 am">December 28th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><a href="http:&#x2F;&#x2F;www.feather.us&#x2F;2011&#x2F;12&#x2F;28&#x2F;jslint-the-annoying-little-friend&#x2F;">JSLint: The annoying little friend</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 28th 2011, 1:54:00 pm">December 28th 2011</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>thanks Stephen now stop answering questions so I can catch you up in the top 100 :) …….. (hehehehehe)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 28th 2011, 2:10:32 pm">December 28th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>LOL. I was once well into the top 10.  Then I spent 2 months writing an app. <em>sigh</em> priorities.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 29th 2011, 11:22:02 am">December 29th 2011</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for the feedback and JSLint suggestion.  Code is a lot further down the track at this point. Each js file is now basically a set of function calls with no TI objects stored internally to it.  I&#39;m about to run it through XCode memory analysis and see how it&#39;s doing there.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 29th 2011, 1:17:19 pm">December 29th 2011</span>
+											by <span class='authorname'>Lance Spellman</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

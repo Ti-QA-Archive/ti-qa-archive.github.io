@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Sending ASCII (CP437) characters to a printer with appcelerator » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Sending ASCII (CP437) characters to a printer with appcelerator</h1>
+		</header>
+		<section>
+			<p>Hello all,</p>
+<p>I am attempting to write special characters to a TCP socket. The input data comes from a UTF8 encoded .json file, and is read and operated on by appcelerator as UTF8.</p>
+<p>I am building a lengthy string containing both ASCII data as well as command codes as well as special characters to send to the printer. I attempt to convert the UTF8 special characters (é, etc…) to the ASCII CP437 equialent.</p>
+<p>I&#39;ve written my own function to replace any supported UTF8 character (read: has an equivalent on dos code page 437) with the correct ASCII character code. Unfortunately, when I use<br><code>String.fromCharCode(130)</code></p>
+<p>and send that to the printer, it actually sends two bytes (0xC2 0x82).</p>
+<p>Does anyone have any ideas with how to write a non-unicode special character to a string? Or basically construct an ASCII string in appcelerator?</p>
+<p>I tried playing around with buffers and streams to only write a specific byte, but when I write String.fromCharCode(130) to a buffer, and then write it out again to a BufferStream, it says it contains only 1 byte…</p>
+<p>Adam</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 1st 2011, 12:58:39 pm">December 1st 2011</span>
+				by <span class='authorname'>Adam Rankin</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ascii</span></li>
+					
+						<li><span class='tagname'>string</span></li>
+					
+						<li><span class='tagname'>utf8</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>CP437: <a href="http:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Code_page_437#Standard_code_page">http:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Code_page_437#Standard_code_page</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 1st 2011, 12:59:54 pm">December 1st 2011</span>
+								by <span class='authorname'>Adam Rankin</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I have tried the following… it does not work.</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> lookup</span> = <span class="hljs-number">130</span>; <span class="hljs-comment">// é in CP437</span>
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> tempBuffer</span> = Titanium.createBuffer({
+    length : <span class="hljs-number">8</span>
+});
+<span class="hljs-variable"><span class="hljs-keyword">var</span> stream</span> = Titanium.Stream.createStream({
+    mode : Titanium.Stream.MODE_WRITE,
+    source : tempBuffer
+});
+<span class="hljs-variable"><span class="hljs-keyword">var</span> length</span> = <span class="hljs-number">0</span>;
+length += stream.write(Titanium.createBuffer({
+    value : lookup,
+    length : <span class="hljs-number">1</span>,
+    type : Ti.Codec.TYPE_BYTE
+}));
+tempBuffer.length = length;
+<span class="hljs-variable"><span class="hljs-keyword">var</span> read_buffer</span> = Titanium.createBuffer({
+    length : <span class="hljs-number">1</span>
+});
+stream.close();
+stream = Titanium.Stream.createStream({
+    mode : Titanium.Stream.MODE_READ,
+    source : tempBuffer
+});
+length = <span class="hljs-number">0</span>;
+<span class="hljs-variable"><span class="hljs-keyword">var</span> bytes_read</span> = <span class="hljs-number">0</span>;
+length = stream.read(read_buffer, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+
+<span class="hljs-variable"><span class="hljs-keyword">var</span> character</span> = Ti.Codec.decodeString({
+    source : read_buffer,
+    charset : Ti.Codec.CHARSET_ASCII,
+    length : <span class="hljs-number">1</span>,
+    position : <span class="hljs-number">0</span>
+});
+
+<span class="hljs-comment">// Cleanup</span>
+stream.close();
+newStr += character;
+</code></pre><p>The value of character in the debugger shows up as</p>
+<pre><code class="hljs"><span class="hljs-string">"¬à</span>
+</code></pre></div>
+							<div class="author">
+								&mdash; commented <span title="December 1st 2011, 1:24:01 pm">December 1st 2011</span>
+								by <span class='authorname'>Adam Rankin</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-224652">
+				
+						<section>
+							<p>I was able to do it using buffers in the end.</p>
+<p>They key point was in the </p>
+<pre><code class="hljs"><span class="hljs-built_in">length</span> += stream.<span class="hljs-built_in">write</span>(Titanium.createBuffer({
+    <span class="hljs-built_in">value</span> : specialCharacter<span class="hljs-comment"> // this is 2 bytes long</span>
+}), <span class="hljs-number">1</span>, <span class="hljs-number">1</span>);<span class="hljs-comment"> // write only the 2nd byte &lt;-- this is the key</span>
+</code></pre><p>after that my buffer contained only the 2nd byte of the </p>
+<pre><code class="hljs"><span class="hljs-type">String</span>.fromCharCode(<span class="hljs-number">130</span>) // <span class="hljs-literal">result</span> <span class="hljs-number">0xC2</span> <span class="hljs-number">0x82</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 1st 2011, 3:29:52 pm">December 1st 2011</span>
+								by <span class='authorname'>Adam Rankin</span><br>
+								<a class="icon-bg icon-link" href="question/128934/sending-ascii-cp437-characters-to-a-printer-with-appcelerator#answer-224652" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

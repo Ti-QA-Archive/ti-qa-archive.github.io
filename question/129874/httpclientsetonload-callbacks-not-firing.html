@@ -1,0 +1,322 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>HTTPClient.setOnload callbacks not firing? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>HTTPClient.setOnload callbacks not firing?</h1>
+		</header>
+		<section>
+			<p>I have a file, KPClient.js, through which I want to reuse one instance of Ti.Network.HTTPClient.  I need to call a series of URLs in order, so I add individual functions for each URL and its associated (callback) handling and set the asynchronous flag to false for each.</p>
+<p>The functions (fetchSession, postLogin, et. al.) are executing correctly (I can see the http calls in WireShark), but the callbacks are not being executed.  I can verify in the Ti Studio debugger that the lines inside the setOnload functions are not reached.</p>
+<p>What am I doing wrong?</p>
+<p>Thank you,<br>Todd</p>
+<pre><code class="hljs">exports.KPClient = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+
+    <span class="hljs-keyword">var</span> debug = <span class="hljs-literal">false</span>;
+
+    <span class="hljs-comment">// var isAndroid = (Ti.Platform.osname=='android') ? true : false;</span>
+    <span class="hljs-keyword">var</span> host = (debug) ? <span class="hljs-string">"http://karmapoints.local"</span> : <span class="hljs-string">"http://www.karmapoints.org"</span>;
+    <span class="hljs-keyword">var</span> sessionURL = host + <span class="hljs-string">"/rest/system/connect"</span>;
+    <span class="hljs-keyword">var</span> loginURL = host + <span class="hljs-string">"/rest/user/login"</span>;
+    <span class="hljs-keyword">var</span> readyCoordinatorURL = host + <span class="hljs-string">"/coordinatorsession.php"</span>;
+    <span class="hljs-keyword">var</span> eventsURL = host + <span class="hljs-string">"/rest/views/view_mobile_coordinator_events"</span>;
+    <span class="hljs-keyword">var</span> checkinURL = host + <span class="hljs-string">"/event/checkin/{VOLUNTEER_ID}?ajax=1"</span>;
+    <span class="hljs-keyword">var</span> logoutURL = host + <span class="hljs-string">"/logout"</span>;
+    <span class="hljs-keyword">var</span> sessid = <span class="hljs-string">""</span>;
+    <span class="hljs-keyword">var</span> userid = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">var</span> loggedIn = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-keyword">return</span> (userid &gt; <span class="hljs-number">0</span>);
+    }
+
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient({
+        onerror: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+        Ti.API.debug(<span class="hljs-string">"STATUS: "</span> + <span class="hljs-keyword">this</span>.status);
+        Ti.API.debug(<span class="hljs-string">"TEXT:   "</span> + <span class="hljs-keyword">this</span>.responseText);
+        Ti.API.debug(<span class="hljs-string">"ERROR:  "</span> + e.error);
+        alert(<span class="hljs-string">'There was an error retrieving the remote data. Try again.'</span>);
+        },
+        timeout:<span class="hljs-number">5000</span>
+    });
+
+    xhr.fetchSession = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">user,pass</span>) </span>{
+        xhr.setOnload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">responseText</span>) </span>{
+            alert(responseText);
+            <span class="hljs-comment">// parse the response</span>
+            json = <span class="hljs-built_in">JSON</span>.parse(responseText);
+            <span class="hljs-keyword">this</span>.sessid = json.sessid;
+            alert(<span class="hljs-string">"sessid is "</span> + <span class="hljs-keyword">this</span>.sessid)
+        }
+        <span class="hljs-keyword">var</span> params = {  
+            <span class="hljs-string">'user'</span>:user,  
+            <span class="hljs-string">'pass'</span>:pass
+        };
+        xhr.open(<span class="hljs-string">"POST"</span>,sessionURL,<span class="hljs-literal">false</span>);
+        xhr.send(params);
+        params = <span class="hljs-literal">null</span>;
+    }
+
+    xhr.postLogin = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">username,password</span>) </span>{
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.sessid!=<span class="hljs-string">""</span>){
+            xhr.setOnload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">responseText</span>) </span>{
+                <span class="hljs-comment">// parse the response</span>
+                <span class="hljs-keyword">var</span> xmlDoc = <span class="hljs-keyword">this</span>.responseText;
+                <span class="hljs-keyword">var</span> docRoot = xmlDoc.getElementsByTagName(<span class="hljs-string">"uid"</span>)[<span class="hljs-number">0</span>];
+                <span class="hljs-keyword">this</span>.userid = <span class="hljs-built_in">parseInt</span>(docRoot.childNodes[<span class="hljs-number">0</span>].firstChild.data);
+            }
+            <span class="hljs-keyword">var</span> params = {  
+                <span class="hljs-string">'sessid'</span>:<span class="hljs-keyword">this</span>.sessid,  
+                <span class="hljs-string">'username'</span>:username,  
+                <span class="hljs-string">'password'</span>:password
+            };
+            xhr.open(<span class="hljs-string">"POST"</span>,loginURL,<span class="hljs-literal">false</span>);
+            xhr.send(params);
+            params = <span class="hljs-literal">null</span>
+            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.userid&gt;<span class="hljs-number">0</span>) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;    
+        } <span class="hljs-keyword">else</span> {
+            alert(<span class="hljs-string">"There is no session id 'sessid'!"</span>);
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+    }
+
+    xhr.readyCoordinator = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">event_id</span>) </span>{
+        xhr.setOnload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">responseText</span>) </span>{
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+        }
+        <span class="hljs-keyword">var</span> params = {  
+            <span class="hljs-string">'event_id'</span>:event_id
+        };
+        xhr.open(<span class="hljs-string">"GET"</span>,readyCoordinatorURL,<span class="hljs-literal">false</span>);
+        xhr.send(params);
+        params = <span class="hljs-literal">null</span>;
+    }
+
+    xhr.fetchEvents = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        xhr.setOnload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">responseText</span>) </span>{
+                <span class="hljs-comment">// parse the response</span>
+                <span class="hljs-keyword">var</span> xmlDoc = <span class="hljs-keyword">this</span>.responsetext;
+                <span class="hljs-keyword">var</span> docRoot = xmlDoc.getElementsByTagName(<span class="hljs-string">"uid"</span>)[<span class="hljs-number">0</span>];
+                <span class="hljs-keyword">this</span>.userid = <span class="hljs-built_in">parseInt</span>(docRoot.childNodes[<span class="hljs-number">0</span>].firstChild.data);
+        }
+        <span class="hljs-comment">// all parameters come from session and are already set</span>
+        xhr.open(<span class="hljs-string">"GET"</span>,eventsURL,<span class="hljs-literal">false</span>);
+        xhr.send(<span class="hljs-literal">null</span>);
+    }
+
+    xhr.checkinVolunteer = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">volunteer_id</span>) </span>{
+        <span class="hljs-keyword">var</span> newCheckinURL = checkinURL.replace(<span class="hljs-string">"{VOLUNTEER_ID}"</span>, volunteer_id);
+        xhr.setOnload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">responseText</span>) </span>{
+            <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.responseText;
+        }
+        xhr.open(<span class="hljs-string">"GET"</span>,newCheckinURL,<span class="hljs-literal">false</span>);
+    }
+
+    xhr.fetchLogout = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">volunteer_id</span>) </span>{
+        xhr.setOnload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">responseText</span>) </span>{
+            <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.responseText;
+        }
+        xhr.open(<span class="hljs-string">"GET"</span>,logoutURL);
+    }
+
+    <span class="hljs-keyword">return</span> xhr;
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 26th 2011, 10:28:16 pm">December 26th 2011</span>
+				by <span class='authorname'>Todd Rimes</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>you should not be associating properties to the standard Ti object, it is considered a bad practice and might be the cause of your problems.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 26th 2011, 10:30:56 pm">December 26th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hey, Aaron:  I just found this comment.  I don&#39;t understand what you mean.  Will you please elaborate or point me toward an explanation and&#x2F;or the &quot;right&quot; way to do what I need (which I hope is clear from the code)?  Thank you in advance,<br>Todd</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 27th 2011, 12:10:28 am">December 27th 2011</span>
+								by <span class='authorname'>Todd Rimes</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>I should have said – as far as I can tell I am only associating my properties to an <em>instance</em> of the standard TI object.  That is not okay?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="December 27th 2011, 12:12:19 am">December 27th 2011</span>
+								by <span class='authorname'>Todd Rimes</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-226103">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>you are using <code>setOnload</code> incorrectly…</p>
+<p>what you want is</p>
+<pre><code class="hljs">xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(responseText)</span> </span>{
+}
+</code></pre><p>I believe <code>setOnload</code> is a method not a property</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 26th 2011, 10:32:19 pm">December 26th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/129874/httpclientsetonload-callbacks-not-firing#answer-226103" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hey, Aaron: calling it as a method worked as well when I used parenthesis correctly instead of assignment.  However, the debugger now says &quot;responseText&quot; is undefined.  In the code above, what is the right way to reference responseText outside the constructor block?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 26th 2011, 10:39:28 pm">December 26th 2011</span>
+											by <span class='authorname'>Todd Rimes</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p><code>xhr.responseText</code></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 26th 2011, 10:43:17 pm">December 26th 2011</span>
+											by <span class='authorname'>Aaron Saunders</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Excellent - I was just trying that now so I look forward to it working!  Thank you loads for the quick help!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 26th 2011, 10:45:30 pm">December 26th 2011</span>
+											by <span class='authorname'>Todd Rimes</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-226105">
+				
+						<section>
+							<p>Ahh - thank you!  I just realized that and was changing the &quot;setOnload = function&quot;&#39;s to &quot;setOnload(function&quot;.  I&#39;m testing that change now, imagining it should be equivalent to your suggestion.  If my change fails, I&#39;ll do it your way.  Thank you, Aaron!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 26th 2011, 10:35:48 pm">December 26th 2011</span>
+								by <span class='authorname'>Todd Rimes</span><br>
+								<a class="icon-bg icon-link" href="question/129874/httpclientsetonload-callbacks-not-firing#answer-226105" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

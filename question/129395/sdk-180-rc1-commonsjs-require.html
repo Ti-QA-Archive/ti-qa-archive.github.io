@@ -1,0 +1,351 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>SDK 1.8.0 RC1 commonsJS require » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>SDK 1.8.0 RC1 commonsJS require</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>Does anyone know if on 1.8 RC1 (AKA 1.8.0.1) require saves the module it loads in memory or is there still a need to use monkey patch?</p>
+<p>Also, if I have a commonJS (lets call it test.js) like this:</p>
+<pre><code class="hljs">exports.Test = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">// some things to do</span>
+};
+</code></pre><p>and I want to create a new object of it…</p>
+<p>on android I need to write this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testClass = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/commonJS/test'</span>).Test;
+<span class="hljs-keyword">var</span> obj = <span class="hljs-keyword">new</span> testClass();
+</code></pre><p>on iPhone I need to write this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testClass = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/commonJS/test'</span>);
+<span class="hljs-keyword">var</span> obj = <span class="hljs-keyword">new</span> testClass();
+</code></pre><p>what works on iPhone doesn&#39;t work on android and the opposite. why is that?<br>and it seems that if I use monkey patch it works the same way (the iPhone way).</p>
+<p>My problem here with it is that if I need to require a commonJS module from within a different module I need to re-include the monkey patch (because now modules actually do run in their own context).</p>
+<p>Thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 13th 2011, 1:54:36 pm">December 13th 2011</span>
+				by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>1.8</span></li>
+					
+						<li><span class='tagname'>commonjs</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-225390">
+				
+						<section>
+							<p>Basically, iPhone got it wrong. Monkey patch is actually also wrong (so that leaves Android implementation as the right one - finally Android got something right). :)</p>
+<p>&quot;exports&quot; is an empty object ({}) which &quot;require&quot; function will return, so if you add &quot;Test&quot; property to that object, &quot;require&quot; function call will return:</p>
+<pre><code class="hljs"><span class="hljs-rules">{ <span class="hljs-rule"><span class="hljs-attribute">Test</span>:<span class="hljs-value"> <span class="hljs-function">function</span>() { do something </span></span></span>} }
+</code></pre><p>That&#39;s why you need to use:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testClass = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/commonJS/test'</span>).Test;
+</code></pre><p>to get function constructor that you need and that&#39;s obviously boring to write for every module.</p>
+<p>You can read <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-5406">here</a> why is this implemented that way and what is other way to use function constructors in CommonJS module (monkey patch won&#39;t work in future because of global variables functionality in CommonJS&#39;s Titanium implementation :) ). Basically, you just need to use this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//test.js</span>
+<span class="hljs-built_in">module</span>.exports = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//do something</span>
+};
+
+<span class="hljs-comment">//app.js</span>
+<span class="hljs-keyword">var</span> test = <span class="hljs-built_in">require</span>(<span class="hljs-string">'test'</span>);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 14th 2011, 8:22:32 am">December 14th 2011</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/129395/sdk-180-rc1-commonsjs-require#answer-225390" rel="permalink">permalink</a>
+							</div>
+
+							<h5>17 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>&quot;finally Android got something right&quot; - couldn&#39;t agree more… :-)</p>
+<p>so basically, because of the iPhone bug I need to do an if - so on iPhone I call the object one way (wrong way) and on android I call it the other way (the correct one). That&#39;s what monkey patch does for me right now - other than that I don&#39;t have any use for it (and yes, I do need to require it on each of my modules). I&#39;ll fix that once the iPhone bug is fixed…</p>
+<p>do you know anything about if require saves the module it loads in memory?</p>
+<p>lets say I&#39;ve required a module in app.js, and I require the same module inside a different module - does the call from the inside of the module loads the module from memory? or is it being re-evaluated?</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 8:30:37 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Monkey-patch will work until global variable bug will exist on iPhone. So, watch in JIRA for that bug.</p>
+<p>Module is not re-evaluated every time it&#39;s &quot;require&quot;d, you can test that like this:</p>
+<pre><code class="hljs"><span class="hljs-comment">//app.js</span>
+<span class="hljs-keyword">var</span> test1 = <span class="hljs-built_in">require</span>(<span class="hljs-string">'test'</span>);
+<span class="hljs-keyword">var</span> test2 = <span class="hljs-built_in">require</span>(<span class="hljs-string">'test'</span>);
+
+<span class="hljs-comment">//test.js</span>
+Ti.API.info(<span class="hljs-string">'Module'</span>);
+</code></pre><p>You should get just one record in console output.</p>
+<p>Now, that could be good thing or bad thing … because, if someone changes your module, it will be reflected on all instances (modules are singletons in a way). Some people says that is a bad thing, most doesn&#39;t care. I think it&#39;s not so bad because there are workarounds to prevent that (ECMAScript 5 features can prevent object modifications).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 8:43:19 am">December 14th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>The status of the bug you mentioned is set to Resolved on ver Release 1.8.0.1 - which is the one I&#39;m testing my app on… and still it is not resolved.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 8:48:08 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>How do you test it and what do you test? :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 9:00:19 am">December 14th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I downloaded 1.8 RC1 and ran my app on it. I&#39;ve learned that I need to stop calling my global scope NS from modules, so started doing improvements. This is how I encounter these questions.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 9:04:14 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>How can I make it work on both iPhone and android without monkey patch?</p>
+<p>I tried putting this in my module:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">module</span>.<span class="hljs-title">exports</span> =</span> <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> {</span>
+    <span class="hljs-comment">//do something</span>
+};
+</code></pre><p>it makes iPhone crash (didn&#39;t try android).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 9:19:25 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes, no more global variables, unfortunately. I had to put inclusion of my library in every module to get things work. It&#39;s against DRY principles. I really don&#39;t understand the paranoia about global variables usage, especially when it&#39;s OK to use global native objects like Array or Date, or global host objects like Titanium objects. This seems like half-baked solution to me.</p>
+<p>Anyway, I&#39;m not sure about iPhone, I think &quot;module&quot; is still not implemented, but should be soon. You could try to use &quot;exports&quot; directly, but it&#39;s against CommonJS standard to store anything directly to &quot;exports&quot; variable.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 10:31:46 am">December 14th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I found another solution that makes it work on both - simply put (don&#39;t know if it&#39;s a bug or not) - don&#39;t name your export.MyFunc the same name as the module name.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 10:39:39 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes, that will work on SDKs &gt; 1.8. But it&#39;s against CommonJS nature (see my last comment in the link I posted).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 10:47:04 am">December 14th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Why is it against commonJS nature? you can&#39;t use export with a different function name? it is a function in a module after all…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 10:49:37 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>and as you stated the correct format is doing:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testClass = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/commonJS/test'</span>).test;
+</code></pre><p>so instead I would write:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testClass = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/commonJS/test'</span>).testNew;
+</code></pre><p>if require was in the following way:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> testClass = <span class="hljs-built_in">require</span>(<span class="hljs-string">'/commonJS/test'</span>);
+</code></pre><p>it would have made sense.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 10:51:28 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>It&#39;s against CommonJS nature because it&#39;s against specification and it won&#39;t work in every environment that implements CommonJS (see my comment to see precisely why). If you&#39;re not planing to port your code, then leave as is.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 11:02:15 am">December 14th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>As long as it works for both iPhone and Android - it&#39;s fine for now (until fixed and then all I&#39;ll need to change is one line of code to adjust it).</p>
+<p>I think it&#39;s better then writing workarounds… I think because we&#39;re using titanium to develop our apps, and it&#39;s something that relatively is still in it&#39;s first steps (even though it had come a long way since I&#39;ve been using it) - we need to do what works (it is cross platform, so we need to adjust ourselves sometime in order to enjoy this advantage.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 11:10:45 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If you have 1000 modules, then it&#39;s 1000 lines to fix. :)</p>
+<p>Yeah, we need what works now, but also what will work in the future.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 11:18:07 am">December 14th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>That&#39;s right! but better then waiting who knows how long until it&#39;s fixed…</p>
+<p>I rather publish an app then have one written according to nature that sits on my drive waiting to be published.</p>
+<p>When the time comes, I&#39;ll have to change a 1000 rows, like the time had come for me to get rid of my global NS.</p>
+<p>I&#39;m not sure what is the correct way to write stuff anymore - so I&#39;m trying my best with what I got - as long as I deliver, stuff work, responsive and don&#39;t crash…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 11:22:17 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Yes, that is so if you pursue the profit. We all do in some way, but I strive for greater things. Code esthetic and good app design is what I love and what makes me happy. I try to write code that looks and runs good, and I hate to write &quot;good enough&quot; code that is full of ugly hacks (although, sometimes that is a &quot;must&quot;). :)</p>
+<p>Anyway, I think we concluded this discussion, right?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 11:37:23 am">December 14th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I agree! I also like good code and better practices (I wrote about it more then once in this forum) - but also have a deadline ;-)</p>
+<p>Thanks for all the help :-)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 14th 2011, 11:39:55 am">December 14th 2011</span>
+											by <span class='authorname'>Ophir &#39;Shlomi&#39; Oren</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-225440">
+				
+						<section>
+							<p>We have identified and fixed this issue (http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-6573)<br>in iOS platform and the fix will be available in 1.8 GA release.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 14th 2011, 4:47:48 pm">December 14th 2011</span>
+								by <span class='authorname'>Neeraj Gupta</span><br>
+								<a class="icon-bg icon-link" href="question/129395/sdk-180-rc1-commonsjs-require#answer-225440" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

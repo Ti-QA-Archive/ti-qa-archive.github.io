@@ -1,0 +1,702 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Multiple File Download method » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Multiple File Download method</h1>
+		</header>
+		<section>
+			<p>Up to date I&#39;ve not been able to find a working method of downloading multiple files within an app. It seems to me that this should be a rather fundamental requirement for most apps out there so I would like to work with the community on a good way of doing it.<br>Here is what I have so far, it doesn&#39;t work but it seems pretty close.<br>I&#39;m hoping with someone in the community can help me perfect it. </p>
+<p>This method has an onclick statement that creates a for loop. Can anyone help me figure out what it&#39;s doing wrong?</p>
+<h4 id="netdl-js">netdl.js</h4>
+<pre><code class="hljs">//VARIABLES===================================================================
+var numberOfFiles = <span class="hljs-string">'3'</span>,
+    fileNames = Array(<span class="hljs-string">'biggerhouse.jpg'</span>, <span class="hljs-string">'bighouse.jpg'</span>, <span class="hljs-string">'home-1-1.jpg'</span>),
+    file1 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'biggerhouse.jpg'</span>),
+    file2 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'bighouse.jpg'</span>),
+    file3 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'home-1-1.jpg'</span>),
+    dir = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory),
+    fileN = <span class="hljs-string">'biggerhouse.jpg'</span>,
+    c = null;
+
+//VARIABLES===================================================================
+
+
+//UI ELEMENTS=================================================================
+var progressSingle = Titanium.UI.createProgressBar({
+        width:<span class="hljs-number">200</span>,
+        height:<span class="hljs-number">50</span>,
+        min:<span class="hljs-number">0</span>,
+        max:<span class="hljs-number">1</span>,
+        value:<span class="hljs-number">0</span>,
+        style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+        top:<span class="hljs-number">40</span>,
+        left:<span class="hljs-string">'65%'</span>,
+        message:<span class="hljs-string">'DL File 1 of '</span>+ numberOfFiles,     
+        font:{fontSize:<span class="hljs-number">12</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+        color:<span class="hljs-string">'#888'</span>
+});
+var progressOverall = Titanium.UI.createProgressBar({
+        width:<span class="hljs-number">200</span>,
+        height:<span class="hljs-number">50</span>,
+        min:<span class="hljs-number">0</span>,
+        max:numberOfFiles,
+        value:<span class="hljs-number">0</span>,
+        style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+        top:<span class="hljs-number">60</span>,
+        left:<span class="hljs-string">'65%'</span>,
+        message:<span class="hljs-string">'Syncing'</span>,    
+        font:{fontSize:<span class="hljs-number">12</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+        color:<span class="hljs-string">'#888'</span>
+});
+
+var IcnSynced = Titanium.UI.createImageView({
+        top:<span class="hljs-number">40</span>,
+        left:<span class="hljs-string">'60%'</span>,
+        height:<span class="hljs-number">32</span>,
+        width:<span class="hljs-number">32</span>,
+        image: <span class="hljs-string">'images/icons/ok.png'</span>
+});
+IcnSynced.hide();
+
+var ImgDL = Titanium.UI.createImageView({
+        top:<span class="hljs-number">300</span>,
+        left:<span class="hljs-string">'60%'</span>,
+        height:<span class="hljs-number">500</span>,
+        width:<span class="hljs-number">452</span>,
+        image: file1
+});
+
+var b1 = Titanium.UI.createButton({
+        title:<span class="hljs-string">'SYNC'</span>,
+        height:<span class="hljs-number">40</span>,
+        width:<span class="hljs-number">70</span>,
+        top:<span class="hljs-number">70</span>
+});
+var b2 = Titanium.UI.createButton({
+        title:<span class="hljs-string">'Check File Stats'</span>,
+        height:<span class="hljs-number">40</span>,
+        width:<span class="hljs-number">200</span>,
+        top:<span class="hljs-number">150</span>
+});
+
+
+progressSingle.value = <span class="hljs-number">0</span>;
+
+//UI ELEMENTS=================================================================
+
+
+//DOWNLOAD EACH FILE==========================================================
+b1.addEventListener(<span class="hljs-string">'click'</span>, function()
+{
+        //DL ALL FILES
+        <span class="hljs-keyword">for</span> (var i = numberOfFiles - <span class="hljs-number">1</span>; i &gt;= <span class="hljs-number">0</span>; i--) {
+        Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'File:'</span>+ fileNames[i]);
+            //DL ONE FILE
+
+            progressSingle.show();
+
+            progressOverall.show();
+            IcnSynced.hide();
+            //MB SYNC-----------------------------------------------------------------------
+            c = Titanium.Network.createHTTPClient();
+            c.setTimeout(<span class="hljs-number">10000</span>);
+            c.onload = function() {
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'===========  IN ONLOAD ====================='</span>);
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'=========== Response Data:'</span>+ dir+fileNames[i]);
+                    file1.write(this.responseData);
+                    progressOverall.value = i;
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Download Supposedly Completed'</span>);
+
+            };
+
+            //SYNC-----------------------------------------------------------------------
+            c.ondatastream = function(e)
+            {
+
+                    progressSingle.value = e.progress;
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'=======    ONDATASTREAM1 - PROGRESS: '</span> + e.progress);
+
+                        <span class="hljs-keyword">if</span>(e.progress == <span class="hljs-number">1</span>){
+                        progressSingle.hide();
+                        IcnSynced.show();
+                        Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'===========progressSingle VALUE HAS REACHED 1 ====================='</span>);
+                        };
+                    };
+            c.onerror = function(e)
+            {
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'=======    XHR Error '</span> + e.<span class="hljs-keyword">error</span>);
+            };
+
+
+            // send the data
+            c.<span class="hljs-keyword">open</span>(<span class="hljs-string">'GET'</span>,<span class="hljs-string">'http://www.dovevstudios.com/dev/images/'</span> + fileNames[i]);
+            c.send();
+       };
+});
+//DOWNLOAD EACH FILE==========================================================
+
+
+
+b2.addEventListener(<span class="hljs-string">'click'</span>, function()
+{
+//Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'====******file = '</span> + localFile);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the file1 exist:'</span> + file1.exists());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the file2 exist:'</span> + file2.exists());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the file3 exist:'</span> + file3.exists());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the DirFile exist:'</span> + dir,fileN.exists());
+
+var contents = file1.<span class="hljs-keyword">read</span>();
+/*
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">"contents blob object = "</span>+contents);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'contents = '</span> + contents.text);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'mime type = '</span> + contents.mimeType);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'nativePath = '</span> + localFile.nativePath);
+
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'size = '</span> + localFile.size);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'readonly = '</span> + localFile.readonly);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'symbolicLink = '</span> + localFile.symbolicLink);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'executable = '</span> + localFile.executable);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'hidden = '</span> + localFile.hidden);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'writeable = '</span> + localFile.writeable);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'name = '</span> + localFile.name);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'extension = '</span> + localFile.extension());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'resolve = '</span> + localFile.resolve());
+*/
+});
+</code></pre><p>This  part is just the finishing touch of the UI if you intend to build this or implement it.<br>I would like this method to be built standalone from app.js - Kinda like a class that you just include in your app. </p>
+<h3 id="app-js">app.js</h3>
+<pre><code class="hljs"><span class="hljs-comment">// this sets the background color of the master UIView (when there are no windows/tab groups on it)</span>
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+Ti.include(<span class="hljs-string">'netdl.js'</span>);
+
+<span class="hljs-comment">// create tab group</span>
+var tabGroup = Titanium.UI.createTabGroup();
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// create base UI tab and root window</span>
+<span class="hljs-comment">//</span>
+var win1 = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Tab 1'</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>
+});
+var tab1 = Titanium.UI.createTab({  
+    icon:<span class="hljs-string">'KS_nav_views.png'</span>,
+    title:<span class="hljs-string">'Tab 1'</span>,
+    window:win1
+});
+
+var label1 = Titanium.UI.createLabel({
+    <span class="hljs-built_in">color</span>:<span class="hljs-string">'#999'</span>,
+    <span class="hljs-built_in">text</span>:<span class="hljs-string">'I am Window 1 sir'</span>,
+    font:{fontSize:<span class="hljs-number">20</span>,fontFamily:<span class="hljs-string">'Helvetica Neue'</span>},
+    <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'center'</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-string">'auto'</span>
+});
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// create controls tab and root window</span>
+<span class="hljs-comment">//</span>
+var win2 = Titanium.UI.createWindow({  
+    title:<span class="hljs-string">'Tab 2'</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>
+});
+var tab2 = Titanium.UI.createTab({  
+    icon:<span class="hljs-string">'KS_nav_ui.png'</span>,
+    title:<span class="hljs-string">'Tab 2'</span>,
+    window:win2
+});
+
+var label2 = Titanium.UI.createLabel({
+    <span class="hljs-built_in">color</span>:<span class="hljs-string">'#999'</span>,
+    <span class="hljs-built_in">text</span>:<span class="hljs-string">'I am Window 2'</span>,
+    font:{fontSize:<span class="hljs-number">20</span>,fontFamily:<span class="hljs-string">'Helvetica Neue'</span>},
+    <span class="hljs-built_in">textAlign</span>:<span class="hljs-string">'center'</span>,
+    <span class="hljs-variable">width</span>:<span class="hljs-string">'auto'</span>
+});
+
+
+win1.<span class="hljs-built_in">add</span>(b1);
+win1.<span class="hljs-built_in">add</span>(b2);
+win1.<span class="hljs-built_in">add</span>(label1);
+win1.<span class="hljs-built_in">add</span>(progressSingle);
+win1.<span class="hljs-built_in">add</span>(progressOverall);
+win1.<span class="hljs-built_in">add</span>(IcnSynced);
+win1.<span class="hljs-built_in">add</span>(ImgDL);
+win2.<span class="hljs-built_in">add</span>(label2);
+
+
+
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">//  add tabs</span>
+<span class="hljs-comment">//</span>
+tabGroup.addTab(tab1);  
+tabGroup.addTab(tab2);  
+
+
+<span class="hljs-comment">// open tab group</span>
+tabGroup.<span class="hljs-built_in">open</span>();
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 21st 2011, 7:33:08 pm">June 21st 2011</span>
+				by <span class='authorname'>Mike Burk</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>download file</span></li>
+					
+						<li><span class='tagname'>ipad</span></li>
+					
+						<li><span class='tagname'>mobile, download</span></li>
+					
+						<li><span class='tagname'>multiple download</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>3</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-213527">
+				
+						<section>
+							<p>So I&#39;ve attempted to implement the suggestion above and this is what I&#39;ve come up with.<br>It appears to do the recursion correctly and it&#39;s writing the files but it&#39;s somewhat bloated and another problem it has is that it&#39;s pulling all of the files at once. </p>
+<p>That may be ideal for some situations but it seems kinda buggy and poorly. Can someone take a look at this script and help me clean it up so that it can serve as an open-source example for Multiple Download script?</p>
+<pre><code class="hljs">//VARIABLES===================================================================
+var numberOfFiles = <span class="hljs-string">'3'</span>,
+    fileNames = Array(<span class="hljs-string">'biggerhouse.jpg'</span>, <span class="hljs-string">'bighouse.jpg'</span>, <span class="hljs-string">'home-1-1.jpg'</span>),
+    file1 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'biggerhouse.jpg'</span>),
+    file2 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'bighouse.jpg'</span>),
+    file3 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'home-1-1.jpg'</span>),
+    dir = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory),
+    fileN = <span class="hljs-string">'biggerhouse.jpg'</span>,
+    url = <span class="hljs-string">'http://www.dovevstudios.com/dev/images/'</span>,
+    c = null;
+
+
+    var addressQueue = [
+    <span class="hljs-string">"bighouse.jpg"</span>
+    ];
+
+//VARIABLES===================================================================
+
+
+//UI ELEMENTS=================================================================
+var progressSingle = Titanium.UI.createProgressBar({
+        width:<span class="hljs-number">200</span>,
+        height:<span class="hljs-number">50</span>,
+        min:<span class="hljs-number">0</span>,
+        max:<span class="hljs-number">1</span>,
+        value:<span class="hljs-number">0</span>,
+        style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+        top:<span class="hljs-number">40</span>,
+        left:<span class="hljs-string">'65%'</span>,
+        message:<span class="hljs-string">'DL File 1 of '</span>+ numberOfFiles,     
+        font:{fontSize:<span class="hljs-number">12</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+        color:<span class="hljs-string">'#888'</span>
+});
+var progressOverall = Titanium.UI.createProgressBar({
+        width:<span class="hljs-number">200</span>,
+        height:<span class="hljs-number">50</span>,
+        min:<span class="hljs-number">0</span>,
+        max:numberOfFiles,
+        value:<span class="hljs-number">0</span>,
+        style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+        top:<span class="hljs-number">80</span>,
+        left:<span class="hljs-string">'65%'</span>,
+        message:<span class="hljs-string">'Syncing'</span>,    
+        font:{fontSize:<span class="hljs-number">12</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+        color:<span class="hljs-string">'#888'</span>
+});
+
+var IcnSynced = Titanium.UI.createImageView({
+        top:<span class="hljs-number">40</span>,
+        left:<span class="hljs-string">'60%'</span>,
+        height:<span class="hljs-number">32</span>,
+        width:<span class="hljs-number">32</span>,
+        image: <span class="hljs-string">'images/icons/ok.png'</span>
+});
+IcnSynced.hide();
+
+var ImgDL = Titanium.UI.createImageView({
+        top:<span class="hljs-number">300</span>,
+        left:<span class="hljs-string">'60%'</span>,
+        height:<span class="hljs-number">500</span>,
+        width:<span class="hljs-number">452</span>,
+        image: file1
+});
+
+var b1 = Titanium.UI.createButton({
+        title:<span class="hljs-string">'SYNC'</span>,
+        height:<span class="hljs-number">40</span>,
+        width:<span class="hljs-number">70</span>,
+        top:<span class="hljs-number">70</span>
+});
+var b2 = Titanium.UI.createButton({
+        title:<span class="hljs-string">'Check File Stats'</span>,
+        height:<span class="hljs-number">40</span>,
+        width:<span class="hljs-number">200</span>,
+        top:<span class="hljs-number">150</span>
+});
+//UI ELEMENTS=================================================================
+
+
+//DOWNLOAD====================================================================
+    //RECURSION
+    function processAddressQueue(index) {
+        Titanium.Geolocation.forwardGeocoder(fileNames[index], function(evt) {
+
+    //DL ALL FILES
+        Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'File:'</span>+ fileNames[index]);
+        progressSingle.show();
+        progressOverall.show();
+        IcnSynced.hide();
+        var writeme = dir+fileNames[index];
+        //MB SYNC-----------------------------------------------------------------------
+            c = Titanium.Network.createHTTPClient();
+            c.setTimeout(<span class="hljs-number">10000</span>);
+            c.onload = function() {
+                          var f = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,fileNames[index]);
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'===========  IN ONLOAD ====================='</span>);
+                            Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'=========== Response Data:'</span>+ f +dir+<span class="hljs-string">'/'</span>+fileNames[index]);
+                            f.write(this.responseData);
+                            Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Download Supposedly Completed'</span>);
+
+            };
+            //MB SYNC-----------------------------------------------------------------------
+            c.ondatastream = function(e)
+            {
+                    progressSingle.value = e.progress;
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'=======    ONDATASTREAM1 - PROGRESS: '</span> + e.progress);
+                        <span class="hljs-keyword">if</span>(e.progress == <span class="hljs-number">1</span>){
+                                progressOverall.value++;
+                                Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'===========progressSingle VALUE HAS REACHED 1 ====================='</span>);
+                                Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the DirFile exist:'</span> + writeme.exists());
+                                };
+
+                  };
+                     <span class="hljs-keyword">if</span>(progressOverall.value === fileNames.length){
+                        progressSingle.hide();
+                        IcnSynced.show();
+                        Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'ALL DOWNLOADS COMPLETE======================'</span>);    
+                        };
+            c.onerror = function(e)
+            {
+                    Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'=======    XHR Error '</span> + e.<span class="hljs-keyword">error</span>);
+            };
+
+
+            // send the data
+            c.<span class="hljs-keyword">open</span>(<span class="hljs-string">'GET'</span>,url + fileNames[index]);
+            c.send();
+
+        <span class="hljs-keyword">if</span> (fileNames.length &gt; index) {
+           processAddressQueue(index + <span class="hljs-number">1</span>);
+            }
+
+        });
+    };
+
+
+processAddressQueue(<span class="hljs-number">0</span>);
+
+
+b2.addEventListener(<span class="hljs-string">'click'</span>, function()
+{
+//Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'====******file = '</span> + localFile);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the file1 exist:'</span> + file1.exists());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'size = '</span> + file1.size);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the file2 exist:'</span> + file2.exists());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'size = '</span> + file2.size);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'Does the file3 exist:'</span> + file3.exists());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'size = '</span> + file3.size);
+
+var contents = file1.<span class="hljs-keyword">read</span>();
+/*
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">"contents blob object = "</span>+contents);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'contents = '</span> + contents.text);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'mime type = '</span> + contents.mimeType);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'nativePath = '</span> + localFile.nativePath);
+
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'size = '</span> + localFile.size);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'readonly = '</span> + localFile.readonly);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'symbolicLink = '</span> + localFile.symbolicLink);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'executable = '</span> + localFile.executable);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'hidden = '</span> + localFile.hidden);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'writeable = '</span> + localFile.writeable);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'name = '</span> + localFile.name);
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'extension = '</span> + localFile.extension());
+Ti.API.<span class="hljs-keyword">info</span>(<span class="hljs-string">'resolve = '</span> + localFile.resolve());
+*/
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 18th 2011, 4:45:02 pm">July 18th 2011</span>
+								by <span class='authorname'>Mike Burk</span><br>
+								<a class="icon-bg icon-link" href="question/121390/multiple-file-download-method#answer-213527" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Repost with code, sry.</p>
+<p>###netdl.js</p>
+<pre><code class="hljs"><span class="hljs-comment">//VARIABLES===================================================================</span>
+<span class="hljs-keyword">var</span> numberOfFiles = <span class="hljs-string">'3'</span>,
+    fileNames = <span class="hljs-built_in">Array</span>(<span class="hljs-string">'biggerhouse.jpg'</span>, <span class="hljs-string">'bighouse.jpg'</span>, <span class="hljs-string">'home-1-1.jpg'</span>),
+    file1 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'biggerhouse.jpg'</span>),
+    file2 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'bighouse.jpg'</span>),
+    file3 = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,<span class="hljs-string">'home-1-1.jpg'</span>),
+    dir = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory),
+    fileN = <span class="hljs-string">'biggerhouse.jpg'</span>,
+    url = <span class="hljs-string">'http://www.dovevstudios.com/dev/images/'</span>,
+    c = <span class="hljs-literal">null</span>;    
+
+<span class="hljs-comment">//VARIABLES===================================================================</span>
+
+
+<span class="hljs-comment">//UI ELEMENTS=================================================================</span>
+<span class="hljs-keyword">var</span> progressSingle = Titanium.UI.createProgressBar({
+        width:<span class="hljs-number">200</span>,
+        height:<span class="hljs-number">50</span>,
+        min:<span class="hljs-number">0</span>,
+        max:<span class="hljs-number">1</span>,
+        value:<span class="hljs-number">0</span>,
+        style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+        top:<span class="hljs-number">40</span>,
+        left:<span class="hljs-string">'65%'</span>,
+        message:<span class="hljs-string">'DL File 1 of '</span>+ numberOfFiles,     
+        font:{fontSize:<span class="hljs-number">12</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+        color:<span class="hljs-string">'#888'</span>
+});
+<span class="hljs-keyword">var</span> progressOverall = Titanium.UI.createProgressBar({
+        width:<span class="hljs-number">200</span>,
+        height:<span class="hljs-number">50</span>,
+        min:<span class="hljs-number">0</span>,
+        max:numberOfFiles,
+        value:<span class="hljs-number">0</span>,
+        style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+        top:<span class="hljs-number">80</span>,
+        left:<span class="hljs-string">'65%'</span>,
+        message:<span class="hljs-string">'Syncing'</span>,    
+        font:{fontSize:<span class="hljs-number">12</span>, fontWeight:<span class="hljs-string">'bold'</span>},
+        color:<span class="hljs-string">'#888'</span>
+});
+
+<span class="hljs-keyword">var</span> IcnSynced = Titanium.UI.createImageView({
+        top:<span class="hljs-number">40</span>,
+        left:<span class="hljs-string">'60%'</span>,
+        height:<span class="hljs-number">32</span>,
+        width:<span class="hljs-number">32</span>,
+        image: <span class="hljs-string">'images/icons/ok.png'</span>
+});
+IcnSynced.hide();
+
+<span class="hljs-keyword">var</span> ImgDL = Titanium.UI.createImageView({
+        top:<span class="hljs-number">300</span>,
+        left:<span class="hljs-string">'60%'</span>,
+        height:<span class="hljs-number">500</span>,
+        width:<span class="hljs-number">452</span>,
+        image: file1
+});
+
+<span class="hljs-keyword">var</span> b1 = Titanium.UI.createButton({
+        title:<span class="hljs-string">'SYNC'</span>,
+        height:<span class="hljs-number">40</span>,
+        width:<span class="hljs-number">70</span>,
+        top:<span class="hljs-number">70</span>
+});
+<span class="hljs-keyword">var</span> b2 = Titanium.UI.createButton({
+        title:<span class="hljs-string">'Check File Stats'</span>,
+        height:<span class="hljs-number">40</span>,
+        width:<span class="hljs-number">200</span>,
+        top:<span class="hljs-number">150</span>
+});
+<span class="hljs-comment">//UI ELEMENTS=================================================================</span>
+
+
+<span class="hljs-comment">//DOWNLOAD====================================================================</span>
+    <span class="hljs-comment">//RECURSION</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">processAddressQueue</span>(<span class="hljs-params">index</span>) </span>{
+
+        Titanium.Geolocation.forwardGeocoder(fileNames[index], <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">evt</span>) </span>{
+    <span class="hljs-comment">//not sure what this line above does but it seems necessary^:    </span>
+    <span class="hljs-comment">//DL ALL FILES</span>
+        Ti.API.info(<span class="hljs-string">'File:'</span>+ fileNames[index]);
+        progressSingle.show();
+        progressOverall.show();
+        IcnSynced.hide();
+        <span class="hljs-keyword">var</span> writeme = dir+fileNames[index];
+        <span class="hljs-comment">//MB SYNC-----------------------------------------------------------------------</span>
+            c = Titanium.Network.createHTTPClient();
+            c.setTimeout(<span class="hljs-number">10000</span>);
+            c.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+                          <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,fileNames[index]);
+                    Ti.API.info(<span class="hljs-string">'===========  IN ONLOAD ====================='</span>);
+                            Ti.API.info(<span class="hljs-string">'=========== Response Data:'</span>+ f +dir+<span class="hljs-string">'/'</span>+fileNames[index]);
+                            f.write(<span class="hljs-keyword">this</span>.responseData);
+                            Ti.API.info(<span class="hljs-string">'Download Supposedly Completed'</span>);
+
+            };
+            <span class="hljs-comment">//MB SYNC-----------------------------------------------------------------------</span>
+            c.ondatastream = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+            </span>{
+                    progressSingle.value = e.progress;
+                    Ti.API.info(<span class="hljs-string">'=======    ONDATASTREAM1 - PROGRESS: '</span> + e.progress);
+                        <span class="hljs-keyword">if</span>(e.progress == <span class="hljs-number">1</span>){
+                                progressOverall.value++;
+                                Ti.API.info(<span class="hljs-string">'===========progressSingle VALUE HAS REACHED 1 ====================='</span>);
+                                Ti.API.info(<span class="hljs-string">'Does the DirFile exist:'</span> + writeme.exists());
+                                };
+
+                  };
+                     <span class="hljs-keyword">if</span>(progressOverall.value === fileNames.length){
+                        progressSingle.hide();
+                        IcnSynced.show();
+                        Ti.API.info(<span class="hljs-string">'ALL DOWNLOADS COMPLETE======================'</span>);    
+                        };
+            c.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)
+            </span>{
+                    Ti.API.info(<span class="hljs-string">'=======    XHR Error '</span> + e.error);
+            };
+
+
+            <span class="hljs-comment">// send the data</span>
+            c.open(<span class="hljs-string">'GET'</span>,url + fileNames[index]);
+            c.send();
+
+        <span class="hljs-keyword">if</span> (fileNames.length &gt; index) {
+           processAddressQueue(index + <span class="hljs-number">1</span>);
+            }
+
+        });
+    };
+
+
+processAddressQueue(<span class="hljs-number">0</span>);
+
+
+b2.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)
+</span>{
+<span class="hljs-comment">//Ti.API.info('====******file = ' + localFile);</span>
+Ti.API.info(<span class="hljs-string">'Does the file1 exist:'</span> + file1.exists());
+Ti.API.info(<span class="hljs-string">'size = '</span> + file1.size);
+Ti.API.info(<span class="hljs-string">'Does the file2 exist:'</span> + file2.exists());
+Ti.API.info(<span class="hljs-string">'size = '</span> + file2.size);
+Ti.API.info(<span class="hljs-string">'Does the file3 exist:'</span> + file3.exists());
+Ti.API.info(<span class="hljs-string">'size = '</span> + file3.size);
+
+<span class="hljs-keyword">var</span> contents = file1.read();
+});
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="July 18th 2011, 4:52:54 pm">July 18th 2011</span>
+											by <span class='authorname'>Mike Burk</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-210951">
+				
+						<section>
+							<p>mike, this the same problem which is duplicated many times in the forum and it is all about asynchronous programming patterns.</p>
+<p>you basically create a queue of objects and start to process the items one at a time until the queue is empty; the trick is to not pull an item off off of the queue until the first is done processing.</p>
+<p>this blog posting has the basic concept, you should be able to build upon it to solve your problem.</p>
+<p><a href="http:&#x2F;&#x2F;blog.clearlyinnovative.com&#x2F;post&#x2F;5764810716&#x2F;titanium-appcelerator-quickie-forwardgeocoder-callback">http:&#x2F;&#x2F;blog.clearlyinnovative.com&#x2F;post&#x2F;5764810716&#x2F;titanium-appcelerator-quickie-forwardgeocoder-callback</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 21st 2011, 11:37:17 pm">June 21st 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/121390/multiple-file-download-method#answer-210951" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

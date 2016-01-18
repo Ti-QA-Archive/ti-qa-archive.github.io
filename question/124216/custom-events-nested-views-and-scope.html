@@ -1,0 +1,342 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Custom Events, Nested Views, and Scope » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Custom Events, Nested Views, and Scope</h1>
+		</header>
+		<section>
+			<p>It seems that individual views can not fire their own custom events. Nor can scope be passed up the &quot;chain of command&quot;. Approaching this the way that Javascript applications are built is not good. There is a very definitive line between where something is, and the rest of the application.</p>
+<p>What I need is a way for a child views to communicate with its parent who is managing the child and it&#39;s sibling views.</p>
+<p>In the process of writing this question. I came up with a solution, so I figured I would share.</p>
+<p>I will begin with a working example of a basic MVC namespace. This closely resembles a real world example where a button isn&#39;t directly modifying its sibling, but allowing for a &quot;controller&quot; to do it.</p>
+<pre><code class="hljs">var win = Ti.UI.createWindow()<span class="hljs-comment">;</span>
+
+
+
+var <span class="hljs-keyword">NS</span> = {}<span class="hljs-comment">;</span>
+<span class="hljs-keyword">NS</span>.Controller = {
+    updateLabel: function(e){
+        <span class="hljs-keyword">NS</span>.Objects.lbl.text = "Updated Label: " + e.msg<span class="hljs-comment">;</span>
+    },
+    init: function(){
+        Ti.App.addEventListener('BUTTON_CLICKED', <span class="hljs-keyword">NS</span>.Controller.updateLabel)<span class="hljs-comment">;</span>
+    }
+}
+<span class="hljs-keyword">NS</span>.Objects = {}<span class="hljs-comment">;</span>
+<span class="hljs-keyword">NS</span>.Builder = {
+    buildInterface: function(){
+        //build up the interface into a new view
+        <span class="hljs-keyword">NS</span>.Objects.InterfaceContainer = Titanium.UI.createView()<span class="hljs-comment">;</span>
+
+        <span class="hljs-keyword">NS</span>.Objects.btn = Titanium.UI.createButton( <span class="hljs-keyword">NS</span>.Builder.uiPieces.uiButton )<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">NS</span>.Objects.btn.specialParam = "Important Message"<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">NS</span>.Objects.btn.addEventListener('click', function(e){
+            Titanium.App.fireEvent("BUTTON_CLICKED", {msg:<span class="hljs-keyword">NS</span>.Objects.btn.specialParam})
+        })
+        <span class="hljs-keyword">NS</span>.Objects.InterfaceContainer.add(<span class="hljs-keyword">NS</span>.Objects.btn)<span class="hljs-comment">;</span>
+
+        //give back object.
+        return <span class="hljs-keyword">NS</span>.Objects.InterfaceContainer<span class="hljs-comment">;</span>
+
+    },
+    buildLayout: function(){
+        <span class="hljs-keyword">NS</span>.Objects.LayoutContainer = Titanium.UI.createView()<span class="hljs-comment">;</span>
+
+        <span class="hljs-keyword">NS</span>.Objects.lbl = Titanium.UI.createLabel( <span class="hljs-keyword">NS</span>.Builder.uiPieces.uiLabel )<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">NS</span>.Objects.LayoutContainer.add(<span class="hljs-keyword">NS</span>.Objects.lbl)<span class="hljs-comment">;</span>
+
+        //give back layout
+        return <span class="hljs-keyword">NS</span>.Objects.LayoutContainer<span class="hljs-comment">;</span>
+
+    },
+    uiPieces: {
+        uiButton: {
+            title: 'Button',
+            height:40,
+            width:200
+        },
+        uiLabel: {
+            text:'Label',
+            height:60,
+            width:320,
+            top: 50,
+            color:'#FFF',
+            textAlign: "center"
+
+        }
+    }
+
+}
+win.add(<span class="hljs-keyword">NS</span>.Builder.buildLayout())<span class="hljs-comment">;</span>
+win.add(<span class="hljs-keyword">NS</span>.Builder.buildInterface())<span class="hljs-comment">;</span>
+
+<span class="hljs-keyword">NS</span>.Controller.init()<span class="hljs-comment">;</span>
+
+win.open()<span class="hljs-comment">;</span>
+</code></pre><p>The problem came when adding interactivity to rows inside of a TableView. In my actual scenario I was expanding the height of the row when I click on a button inside of it - to show more content. I only want 1 row to be expanded at a time, so when you click on a different row the currently expanded row needed retract.</p>
+<p>The example below does not show any expanding - but it is a fair representation of how to get to manage all siblings which is a simpler version of the same problem.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> win = Ti.UI.createWindow();
+
+<span class="hljs-keyword">var</span> NS = {};
+NS.Controller = {
+    updateLabels: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+        <span class="hljs-comment">//both labels need updated, how can we reference them?</span>
+
+        <span class="hljs-comment">//from: http://developer.appcelerator.com/question/72021/getting-tableview-data</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> NS.Objects.TableView.data) {
+            <span class="hljs-keyword">var</span> section = NS.Objects.TableView.data[i];
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> j <span class="hljs-keyword">in</span> section.rows) {
+                <span class="hljs-keyword">var</span> row = section.rows[j];
+                <span class="hljs-keyword">if</span>(j != e.row){
+                    <span class="hljs-comment">//since the ui elements are on the tableViewRow itself, I can reference it by name</span>
+                        row.uiLabel.text = <span class="hljs-string">"[     blank     ]"</span>;
+                   }
+            }
+        }
+        NS.Objects.TableView.data[<span class="hljs-number">0</span>].rows[e.row].uiLabel.text = e.msg;
+
+    },
+    init: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        Ti.App.addEventListener(<span class="hljs-string">'BUTTON_CLICKED'</span>, NS.Controller.updateLabels);
+    }
+}
+NS.Objects = {};
+NS.Builder = {
+    buildTable: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+
+        <span class="hljs-comment">//Pretend like this is coming back from an API call or from a localdb response.</span>
+        <span class="hljs-keyword">var</span> pretendAPIResponse = [{lblname:<span class="hljs-string">"foo"</span>, msg:<span class="hljs-string">"Hello"</span>},{lblname:<span class="hljs-string">"bar"</span>, msg:<span class="hljs-string">"World!"</span>}];
+        <span class="hljs-keyword">var</span> data = [];
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt; pretendAPIResponse.length; i++){
+            data.push( NS.Builder.buildRow(pretendAPIResponse[i], i) )
+        }
+                <span class="hljs-comment">//set up TableView</span>
+        NS.Objects.TableView = Ti.UI.createTableView( NS.Builder.uiPieces.TableBase );
+        NS.Objects.TableView.setData(data);
+
+        <span class="hljs-comment">//give back object.</span>
+        <span class="hljs-keyword">return</span> NS.Objects.TableView;
+
+    },
+    buildRow: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data, index)</span></span>{
+        <span class="hljs-keyword">var</span> row = Ti.UI.createTableViewRow( NS.Builder.uiPieces.row );
+        row.uiLabel = Ti.UI.createLabel( NS.Builder.uiPieces.uiLabel );
+        row.uiLabel.text = data.lblname;
+
+        row.uiButton = Ti.UI.createButton( NS.Builder.uiPieces.uiButton );
+        row.uiButton.title = row.uiButton.title + <span class="hljs-string">" "</span> + index;
+        row.uiButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+            Titanium.App.fireEvent(<span class="hljs-string">"BUTTON_CLICKED"</span>, {msg:data.msg, row:index})
+        })
+        row.add(row.uiLabel, row.uiButton);
+        <span class="hljs-keyword">return</span>(row);        
+    },
+    uiPieces: {
+        TableBase:{
+            height: <span class="hljs-number">480</span>,
+            width: <span class="hljs-number">320</span>,
+            backgroundColor: <span class="hljs-string">'#AAA'</span>
+        },
+        row: {
+            layout:<span class="hljs-string">"vertical"</span>,
+            width: <span class="hljs-number">320</span>,
+            height: <span class="hljs-number">150</span>,
+            backgroundColor: <span class="hljs-string">'#333'</span>
+        },
+        uiButton: {
+            title: <span class="hljs-string">'Button'</span>,
+            height:<span class="hljs-number">40</span>,
+            width:<span class="hljs-number">200</span>
+        },
+        uiLabel: {
+            text:<span class="hljs-string">'I have text'</span>,
+            height:<span class="hljs-number">60</span>,
+            width:<span class="hljs-number">320</span>,
+            top: <span class="hljs-number">20</span>,
+            color:<span class="hljs-string">'#FFF'</span>,
+            textAlign: <span class="hljs-string">"center"</span>
+
+        }
+    }
+
+}
+win.add(NS.Builder.buildTable());
+
+NS.Controller.init();
+
+win.open();
+</code></pre><p>Both examples can replace the contents of app.js in a new Titanium Mobile projects.</p>
+<p>I&#39;d like to know if there&#39;s a better way to be managing the views instead of stapling them to the parent view itself.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 13th 2011, 5:34:45 am">August 13th 2011</span>
+				by <span class='authorname'>Aaron Sherrill</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>button inside</span></li>
+					
+						<li><span class='tagname'>custom events</span></li>
+					
+						<li><span class='tagname'>interacting with</span></li>
+					
+						<li><span class='tagname'>tableviewrow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>honestly it is very difficult to follow what you are doing here and I am not sure if the Q&amp;A forum will get you the desired response. You are asking for an answer to a pretty high level question which is about application architecture and the example code you provided is not trivial</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 13th 2011, 12:17:06 pm">August 13th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Hi Aaron, How are you?<br>Thank you so much for the reply. To take the exact problem out of the context of my implementation and plop it into a message board is tricky.</p>
+<p>The solution I have come up with seems to work. It seems to be a reliable way to bypass children[#] for targeting nested views.</p>
+<p>I searched relentlessly through the Q&amp;A for similar types of problems. Most of the problems I&#39;ve faced so far are related to trying to customize my application. The stuff outside of the basics. I can&#39;t expect much help out here though.</p>
+<p>Thanks for your time. My name is Aaron too :)</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 13th 2011, 1:17:00 pm">August 13th 2011</span>
+								by <span class='authorname'>Aaron Sherrill</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-216446">
+				
+						<section>
+							<p>Hi, I have question regarding the syntax when putting a code like this in the CommonJS standard (http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;blog&#x2F;2011&#x2F;08&#x2F;forging-titanium-episode-1-commonjs-modules.html).</p>
+<p>Will your NS.Builder defined as:</p>
+<pre><code class="hljs">exports.NS.Builder =  <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    buildInterface: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-comment">//build up the interface into a new view</span>
+</code></pre><p>???</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 14th 2011, 7:17:28 am">August 14th 2011</span>
+								by <span class='authorname'>Joe Da Silva</span><br>
+								<a class="icon-bg icon-link" href="question/124216/custom-events-nested-views-and-scope#answer-216446" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Interesting question. I didn&#39;t quite know there was such a thing as Titanium Modules. The code above assumes a few things. Things that are specific to non-modules.</p>
+<p>From the link you shared, there&#39;s an intriguing bit. He says that all of the variables you define inside your exports object act as the interface to the insides of your require.</p>
+<p>I wonder if you can say:</p>
+<pre><code class="hljs">exports.buildInterface = <span class="hljs-keyword">NS</span>.Builder.buildInterface<span class="hljs-comment">;</span>
+
+var <span class="hljs-keyword">NS</span> = {}<span class="hljs-comment">;</span>
+...
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="August 14th 2011, 9:19:45 am">August 14th 2011</span>
+											by <span class='authorname'>Aaron Sherrill</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Modules are equally fidgety. Headstrong is looking better and better. I&#39;m sure my instructors will love me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 14th 2011, 10:40:47 am">August 14th 2011</span>
+											by <span class='authorname'>Aaron Sherrill</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>*Codestrong. &quot;Headstrong&quot; is what i am attempting to do while figuring this stuff out.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 14th 2011, 5:07:55 pm">August 14th 2011</span>
+											by <span class='authorname'>Aaron Sherrill</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

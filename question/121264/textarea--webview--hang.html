@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>TextArea + WebView = hang » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>TextArea + WebView = hang</h1>
+		</header>
+		<section>
+			<p>Titanium 1.7, Android 2.1 SDK, testing on emulator and Nexus S (2.4.3)</p>
+<p>I&#39;m displaying something in a webview.  The user is able to enter data via a textarea that is reflected in that webview.  It can be a long block of text, displayed in multiple lines during editing, but no carriage returns.  Enter should process the entry and clear the textarea for the next one.</p>
+<p>Except if you enter a couple of things in a row (or sometimes, it seems, accidentally tap Enter twice too quickly), the app hangs.  One common thing that gets logged is:</p>
+<pre><code class="hljs">W/InputConnectionWrapper.<span class="hljs-function"><span class="hljs-title">ICC</span><span class="hljs-params">(  <span class="hljs-number">102</span>)</span></span>: Timed out waiting on IInputContextCallback
+</code></pre><p>Here&#39;s a test case:</p>
+<p><a href="http:&#x2F;&#x2F;pastie.org&#x2F;2088389">http:&#x2F;&#x2F;pastie.org&#x2F;2088389</a></p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="June 18th 2011, 5:13:32 pm">June 18th 2011</span>
+				by <span class='authorname'>K T</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>hang</span></li>
+					
+						<li><span class='tagname'>inputconnection</span></li>
+					
+						<li><span class='tagname'>inputcontextcallback</span></li>
+					
+						<li><span class='tagname'>textarea</span></li>
+					
+						<li><span class='tagname'>webview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-210686">
+				
+						<section>
+							<p>Fantastic usecase, KT! It made the problem very easy to reproduce.</p>
+<p>I have raised a ticket <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-4455">TIMOB-4455</a> for you, to address this.</p>
+<p>Thanks for bringing it to our attention.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 18th 2011, 10:11:39 pm">June 18th 2011</span>
+								by <span class='authorname'>Paul Dowsett</span><br>
+								<a class="icon-bg icon-link" href="question/121264/textarea--webview--hang#answer-210686" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-211380">
+				
+						<section>
+							<p>Okay, what seems to be going on is a combination of two things:</p>
+<p>1)  Titanium&#39;s textarea is not properly handling returns, so that despite suppressReturn being set to true, the textarea&#39;s value may still contain &#39;\n&#39;.  Whether or not it does, however, appears to be somewhat random.</p>
+<p>2)  evalJS() is choking on the &#39;\n&#39;.  You can see in logcat that there are two separate TiWebViewBinding getJSValue() calls for the same (single) evalJS() statement in the app code, where the evalJS() is getting broken in two because of the newline.</p>
+<p>If in fact this is the problem, then there are several solutions:</p>
+<p>1)  App developers can scrub the textarea&#39;s value before using it as in: <code>text = textArea.value.replace(&amp;#x2F;\n&amp;#x2F;g, &amp;#39;&amp;#39;)</code>. (Or similar, depending on how Titanium is corrupting the input for your purposes.)</p>
+<p>2)  If the problem is deeply rooted, then the hack fix is to scrub the value for a textarea with suppressReturn = true in the Titanium Android Java code so that app developers don&#39;t have to do it themselves manually.</p>
+<p>3)  Ultimately, of course, the textarea should be fixed and – in my opinion – so should evalJS():  a bad value passed to evalJS() should certainly fail, but it shouldn&#39;t crash&#x2F;hang the app.</p>
+<p>I&#39;ll update this further if I find out more (or if it turns out this isn&#39;t the end of the issue).</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="June 25th 2011, 4:30:30 pm">June 25th 2011</span>
+								by <span class='authorname'>K T</span><br>
+								<a class="icon-bg icon-link" href="question/121264/textarea--webview--hang#answer-211380" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

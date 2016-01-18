@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Photo Slideshow Control » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Photo Slideshow Control</h1>
+		</header>
+		<section>
+			<p>I had the requirement of needing a photo slideshow that lets you have a list of thumbnails and you can click on one to view the full sized image. I didn&#39;t see any existing for Titanium so I went ahead and created one, in case anyone else can benefit from this. </p>
+<p>Basically you just include photoslider.js and then pass in a list of objects into the photoslider.init function, where each object must have ThumbnailPhotoUrl and OriginalPhotoUrl properties. These can be urls or just paths to images in your project. It will create thumbnails (showing 5 at a time) that slide left or right as you click on the thumbnails. There are also next and previous buttons at the bottom, which you would need to include. Lastly, you will want to adjust the placement of the photoslider.photosView to fit wherever you want it in your window.</p>
+<p>Here is the code for photoslider.js:</p>
+<pre><code class="hljs">var photoslider = {
+
+    init: function (photos) {
+
+        photoslider.photos = photos;
+        photoslider.display(photos);
+
+    },
+
+    display: function (photos) {
+
+        photoslider.photosView = <span class="hljs-keyword">new</span> View({ top: <span class="hljs-number">160</span>, bottom: <span class="hljs-number">0</span>, left: <span class="hljs-number">0</span>, right: <span class="hljs-number">0</span> });
+        <span class="hljs-keyword">if</span>(photos &amp;&amp; photos.length &gt; <span class="hljs-number">0</span>) {
+
+            <span class="hljs-comment">//create big photo.</span>
+            var bigPhoto = <span class="hljs-keyword">new</span> ImageView({ image: photos[<span class="hljs-number">0</span>].OriginalPhotoUrl, 
+                    left: <span class="hljs-number">0</span>, right: <span class="hljs-number">0</span>, top: <span class="hljs-number">16</span> });
+            photoslider.selectedPhotoIndex = <span class="hljs-number">0</span>;
+            photoslider.photosView.add(bigPhoto);
+
+            <span class="hljs-comment">//create thumbnails.</span>
+            var thumbnailWidth = (Ti.Platform.displayCaps.platformWidth / <span class="hljs-number">5</span>) - <span class="hljs-number">2</span>;
+            photoslider.thumbnails = [];
+            <span class="hljs-keyword">for</span>(var k=<span class="hljs-number">0</span>;k&lt;photos.length; k++) {
+                photoslider.thumbnails[k] = <span class="hljs-keyword">new</span> ImageView({ image: photos[k].ThumbnailPhotoUrl, borderColor: <span class="hljs-string">"#3B5998"</span>,
+                    width: thumbnailWidth, height: <span class="hljs-number">42</span>, top: <span class="hljs-number">5</span>, photo: photos[k], index: k, visible: <span class="hljs-literal">false</span> });
+                photoslider.thumbnails[k].addEventListener(<span class="hljs-string">"click"</span>, function(sender) { 
+                    bigPhoto.image = sender.source.photo.OriginalPhotoUrl;
+                    photoslider.selectedPhotoIndex = sender.source.index;
+                    photoslider.updateThumbnails();
+                    photoslider.displayPreviousNextButtons();
+                });
+                photoslider.photosView.add(photoslider.thumbnails[k]);
+               }
+               photoslider.updateThumbnails();
+
+               <span class="hljs-comment">//create previous/next buttons.</span>
+               photoslider.previous = <span class="hljs-keyword">new</span> ImageView({ image: <span class="hljs-string">"/images/buttons/previous.png"</span>, 
+                width: <span class="hljs-number">100</span>, height: <span class="hljs-number">33</span>, bottom: <span class="hljs-number">2</span>, left: <span class="hljs-number">10</span>, visible: <span class="hljs-literal">false</span> });
+            photoslider.previous.addEventListener(<span class="hljs-string">"click"</span>, function() { 
+                <span class="hljs-keyword">if</span>(photoslider.selectedPhotoIndex &gt; <span class="hljs-number">0</span>)
+                    photoslider.selectedPhotoIndex--;
+                photoslider.displayPreviousNextButtons();
+                bigPhoto.image = photoslider.photos[photoslider.selectedPhotoIndex].OriginalPhotoUrl;
+                photoslider.updateThumbnails();
+            });
+            photoslider.photosView.add(photoslider.previous);
+            photoslider.next = <span class="hljs-keyword">new</span> ImageView({ image: <span class="hljs-string">"/images/buttons/next.png"</span>, 
+                width: <span class="hljs-number">100</span>, height: <span class="hljs-number">33</span>, bottom: <span class="hljs-number">2</span>, right: <span class="hljs-number">10</span>, visible: (photos.length &gt; <span class="hljs-number">1</span>) });
+            photoslider.next.addEventListener(<span class="hljs-string">"click"</span>, function() { 
+                <span class="hljs-keyword">if</span>(photoslider.selectedPhotoIndex != photoslider.photos.length - <span class="hljs-number">1</span>)
+                    photoslider.selectedPhotoIndex++;
+                photoslider.displayPreviousNextButtons();
+                bigPhoto.image = photoslider.photos[photoslider.selectedPhotoIndex].OriginalPhotoUrl;
+                photoslider.updateThumbnails();
+            });
+            photoslider.photosView.add(photoslider.next);
+        }
+        win.add(photoslider.photosView);
+
+    },
+
+    displayPreviousNextButtons: function() {
+
+        photoslider.previous.visible = photoslider.selectedPhotoIndex != <span class="hljs-number">0</span>;
+        photoslider.next.visible = photoslider.selectedPhotoIndex != photoslider.photos.length - <span class="hljs-number">1</span>;
+
+    },
+
+    updateThumbnails: function() {
+
+        <span class="hljs-comment">//decide what cutoff is for distance away from photo to be shown.</span>
+        var cutOff = <span class="hljs-number">2</span>;
+        <span class="hljs-keyword">if</span>(photoslider.selectedPhotoIndex == <span class="hljs-number">0</span> || photoslider.selectedPhotoIndex == photoslider.thumbnails.length - <span class="hljs-number">1</span>)
+            cutOff = <span class="hljs-number">4</span>;
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(photoslider.selectedPhotoIndex == <span class="hljs-number">1</span> || photoslider.selectedPhotoIndex == photoslider.thumbnails.length - <span class="hljs-number">2</span>)
+            cutOff = <span class="hljs-number">3</span>;
+
+        var placement = <span class="hljs-number">0</span>;
+        var thumbnailWidth = Ti.Platform.displayCaps.platformWidth / <span class="hljs-number">5</span>;
+        <span class="hljs-keyword">for</span>(var k=<span class="hljs-number">0</span>;k&lt;photoslider.thumbnails.length;k++) {
+            <span class="hljs-comment">//check how far away photo is from selected photo.</span>
+            var difference = k - photoslider.selectedPhotoIndex;
+            var isLeft = difference &lt; <span class="hljs-number">0</span>;
+            <span class="hljs-keyword">if</span>(isLeft)
+                difference *= -<span class="hljs-number">1</span>;
+            <span class="hljs-comment">//if photo within [cutOff] places of selected photo, show it.</span>
+            <span class="hljs-keyword">if</span>(difference &lt;= cutOff) {
+                photoslider.thumbnails[k].visible = <span class="hljs-literal">true</span>;
+                photoslider.moveThumbnail(photoslider.thumbnails[k], placement);
+                placement += thumbnailWidth;
+                photoslider.thumbnails[k].borderWidth = difference == <span class="hljs-number">0</span> ? <span class="hljs-number">2</span> : <span class="hljs-number">0</span>;
+            }
+            <span class="hljs-keyword">else</span> {
+                photoslider.thumbnails[k].visible = <span class="hljs-literal">false</span>;
+                var newPlacement = isLeft ? -<span class="hljs-number">100</span> : Ti.Platform.displayCaps.platformWidth + <span class="hljs-number">100</span>;
+                photoslider.moveThumbnail(photoslider.thumbnails[k], newPlacement);
+            }
+        }
+
+    },
+
+    moveThumbnail: function(thumbnail, left) {
+
+        <span class="hljs-keyword">if</span>(Ti.Platform.name == <span class="hljs-string">"android"</span>)
+            thumbnail.left = left;
+        <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//animate movement if iphone.</span>
+            var animation = Ti.UI.createAnimation();
+            animation.left = left;
+            animation.duration = <span class="hljs-number">300</span>;
+            animation.curve = Ti.UI.ANIMATION_CURVE_LINEAR;
+            thumbnail.animate(animation);
+        }
+
+    },
+
+    show: function() {
+
+        photoslider.photosView.show();
+
+    },
+
+    hide: function() {
+
+        photoslider.photosView.hide();
+
+    }
+
+};
+</code></pre><p>One thing that would make it cooler would be the ability to slide your finger left or right to navigate. Also, once Titanium gets animations working correctly for Android (they are super buggy right now) then the thumbnails will be able to slide on Android.</p>
+<p>Cheers!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 16th 2011, 2:39:10 pm">October 16th 2011</span>
+				by <span class='authorname'>Justin Toth</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>images</span></li>
+					
+						<li><span class='tagname'>photo</span></li>
+					
+						<li><span class='tagname'>photo slider</span></li>
+					
+						<li><span class='tagname'>slider</span></li>
+					
+						<li><span class='tagname'>slideshow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>4</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-221552">
+				
+						<section>
+							<p>You could use a <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;latest&#x2F;Titanium.UI.ScrollView-object">ScrollView</a> and add the images to that.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 21st 2011, 7:30:10 pm">October 21st 2011</span>
+								by <span class='authorname'>Sindre Sorhus</span><br>
+								<a class="icon-bg icon-link" href="question/126914/photo-slideshow-control#answer-221552" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

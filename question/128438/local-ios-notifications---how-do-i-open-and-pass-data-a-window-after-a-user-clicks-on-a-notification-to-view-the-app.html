@@ -1,0 +1,300 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Local IOS Notifications - How do i open (and pass data) a window after a user clicks on a notification to view the app? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Local IOS Notifications - How do i open (and pass data) a window after a user clicks on a notification to view the app?</h1>
+		</header>
+		<section>
+			<p>I am trying to open a detail window when a user receives a notification. What event and parameters to achieve this?</p>
+<p>Thanks in advance!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 19th 2011, 4:02:48 am">November 19th 2011</span>
+				by <span class='authorname'>Franklin Aguinaldo</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>notification</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-223789">
+				
+						<section>
+							<p>Hi<br>Let me provide some other part of the code. And do add the SDK you use for this app.</p>
+<pre><code class="hljs"><span class="hljs-comment">//Global variable for application data..</span>
+Ti.App.glbAppState = { _isPaused:<span class="hljs-literal">false</span> };
+
+
+<span class="hljs-comment">//This will open window to dispaly on notification click..</span>
+showNotificationWindow = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(id)</span>
+</span>{
+    <span class="hljs-keyword">var</span> newWin = Ti.UI.createWindow();
+    newWin.url = <span class="hljs-string">'mainwindow.js'</span>;
+    newWin.Id = id;
+    newWin.open({modal:<span class="hljs-literal">true</span>});            
+};
+</code></pre><p>The above code we will use to open when the notification have been raised.</p>
+<p>Now let me show the notification listener code which works for me well</p>
+<pre><code class="hljs"><span class="hljs-comment">// listen for a local notification event</span>
+Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+
+    Ti.API.info(<span class="hljs-string">"local notification received: "</span>+ e.userInfo.id);
+
+    <span class="hljs-keyword">var</span> mId = e.userInfo.id;
+    <span class="hljs-keyword">if</span>(mId &gt; <span class="hljs-number">0</span>) 
+    {
+        <span class="hljs-keyword">if</span>(!Ti.App.glbAppState._isPaused)
+        {
+            <span class="hljs-keyword">var</span> confirmDialog = Titanium.UI.createAlertDialog({
+              title: <span class="hljs-string">'notification'</span>,
+              message: <span class="hljs-string">'Would you like to see window?'</span>,
+              buttonNames: [<span class="hljs-string">'Yes'</span>,<span class="hljs-string">'No'</span>]
+            }); 
+            confirmDialog.show();
+
+            confirmDialog.addEventListener(<span class="hljs-string">'click'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+                <span class="hljs-keyword">switch</span>(e.index)
+                {
+                    <span class="hljs-keyword">case</span> <span class="hljs-number">0</span>:        <span class="hljs-comment">//when ok is clicked..</span>
+                        showNotificationWindow(mId);    
+                    <span class="hljs-keyword">break</span>;
+
+                    <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
+                        confirmDialog.hide();
+                        <span class="hljs-keyword">break</span>;
+                }
+            });
+        }
+        <span class="hljs-keyword">else</span> {
+            Ti.App.fireEvent(<span class="hljs-string">'pause'</span>);
+            showNotificationData(mAlarmId);
+        }
+    }
+
+});
+
+<span class="hljs-comment">// listened when an app resumes for suspension</span>
+Ti.App.addEventListener(<span class="hljs-string">'resume'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(<span class="hljs-string">"app is resuming from the background"</span>);
+    <span class="hljs-keyword">if</span>(!Ti.App.glbAppState._isPaused) {
+        Ti.App.fireEvent(<span class="hljs-string">'pause'</span>);
+    }    
+});
+
+Ti.App.addEventListener(<span class="hljs-string">'resumed'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(<span class="hljs-string">"app has resumed from the background"</span>);
+    Ti.App.glbAppState = { _isPaused:<span class="hljs-literal">false</span> };
+});
+
+Ti.App.addEventListener(<span class="hljs-string">'pause'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{
+    Ti.API.info(<span class="hljs-string">"app was paused from the foreground"</span>);
+    Ti.App.glbAppState = { _isPaused:<span class="hljs-literal">true</span> };
+});
+</code></pre><p>I really hope by maintaining this format you able to open the window.</p>
+<p>Regards</p>
+<p>Nikunj</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 20th 2011, 2:20:12 am">November 20th 2011</span>
+								by <span class='authorname'>Nikunj Sakhrelia</span><br>
+								<a class="icon-bg icon-link" href="question/128438/local-ios-notifications---how-do-i-open-and-pass-data-a-window-after-a-user-clicks-on-a-notification-to-view-the-app#answer-223789" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>HI  Franklin Aguinaldo</p>
+<p>Is the above code helped you to solve the issue. let me know if the problem is not solved.</p>
+<p>Regards</p>
+<p>Nikunj</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 5th 2011, 5:01:57 am">December 5th 2011</span>
+											by <span class='authorname'>Nikunj Sakhrelia</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-223727">
+				
+						<section>
+							<p>Hi Franklin</p>
+<p>When you set the localnotification in IOS like the below code you can set some userinfo with it which you can again get when the notification have been clicked.</p>
+<pre><code class="hljs">notifications = Ti.<span class="hljs-keyword">App</span>.iOS.scheduleLocalNotification({
+            alertBody:'<span class="hljs-keyword">Local</span> notification recieved: Click to go <span class="hljs-keyword">in</span> <span class="hljs-keyword">app</span>',
+            alertAction:<span class="hljs-string">"Continue"</span>,
+            userInfo:{<span class="hljs-string">"notificationID"</span>:1},
+            date:aTime.getTime(),
+            <span class="hljs-keyword">repeat</span>:<span class="hljs-string">"weekly"</span>
+        });
+</code></pre><p>The above code will schedule the notification and when it comes you can listen the notification by the below code.</p>
+<pre><code class="hljs"><span class="hljs-comment">// listen for a local notification event</span>
+Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-comment">//Ti.API.info("local notification received: "+JSON.stringify(e));</span>
+    Ti.API.info(<span class="hljs-string">"local notification received: "</span>+ e.userInfo.notificationID);
+
+    <span class="hljs-keyword">var</span> mNotificationID = e.userInfo.notificationID;
+    <span class="hljs-keyword">if</span>(mNotificationID &gt; <span class="hljs-number">0</span>) 
+    {
+        <span class="hljs-comment">//do something.</span>
+    }
+
+});
+</code></pre><p>Here i have passed the notificationID in the local notification which i received back when the notification is listened, Then you can use the notification in your own way.</p>
+<p>Hope this will help you.</p>
+<p>Regards</p>
+<p>Nikunj</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 19th 2011, 4:36:22 am">November 19th 2011</span>
+								by <span class='authorname'>Nikunj Sakhrelia</span><br>
+								<a class="icon-bg icon-link" href="question/128438/local-ios-notifications---how-do-i-open-and-pass-data-a-window-after-a-user-clicks-on-a-notification-to-view-the-app#answer-223727" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi Nikunj,</p>
+<p>Thank you very much for the answer.  I did try passing the userInfo, but i am unable to figure out how to actually bring up a window using it.  It seems even doing a simple alert of the value causes the app to crash.</p>
+<pre><code class="hljs">Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">var</span> id= e.userInfo.id;
+    <span class="hljs-keyword">if</span>(id&gt; <span class="hljs-number">0</span>) 
+    {
+        alert(id);
+    }
+
+});
+</code></pre><p>or even this code below causes a crash.</p>
+<pre><code class="hljs">Ti.App.iOS.addEventListener(<span class="hljs-string">'notification'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    alert(e);
+
+});
+</code></pre><p>I would assume that were allowed to be able to open a window on app resume and not just non UI code.  Is my assumption correct or am i just doing something wrong here?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 19th 2011, 5:05:58 pm">November 19th 2011</span>
+											by <span class='authorname'>Franklin Aguinaldo</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Franklin,<br>Try to only fire an app event which is then connected to a method of your choice inside that event listener. I did that and it seems to work for me.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 11th 2012, 1:33:49 pm">October 11th 2012</span>
+											by <span class='authorname'>Leonardo Amigoni</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Is there a way for doing this with Android?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 23rd 2013, 1:14:29 am">September 23rd 2013</span>
+											by <span class='authorname'>Erik Campos</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

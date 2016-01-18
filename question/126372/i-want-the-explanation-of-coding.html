@@ -1,0 +1,415 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>i want the explanation of coding » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>i want the explanation of coding</h1>
+		</header>
+		<section>
+			<pre><code class="hljs"><span class="hljs-keyword">var</span> Analytics = AnalyticsBase.extend({
+
+<span class="hljs-comment">//Constants</span>
+_PAGEVIEW:<span class="hljs-string">'__##PAGEVIEW##__'</span>,
+_USER_AGENT:<span class="hljs-string">'GoogleAnalytics/1.0 ('</span>+ Titanium.Platform.username +<span class="hljs-string">'; U; CPU '</span>+ Titanium.Platform.name + <span class="hljs-string">' '</span> + Titanium.Platform.version + <span class="hljs-string">' like Mac OS X; '</span> + Titanium.Platform.locale + <span class="hljs-string">'-'</span> + Titanium.Locale.getCurrentCountry() + <span class="hljs-string">')'</span>,
+
+<span class="hljs-comment">//Private properties</span>
+_accountId: <span class="hljs-literal">undefined</span>,
+_db: <span class="hljs-literal">undefined</span>,
+_session: <span class="hljs-literal">undefined</span>,
+_storedEvents:<span class="hljs-number">0</span>,
+_dispatcherIsBusy:<span class="hljs-literal">false</span>,
+_httpClient:<span class="hljs-literal">undefined</span>,
+
+<span class="hljs-comment">//Public properties</span>
+enabled: <span class="hljs-literal">true</span>,
+
+<span class="hljs-comment">//Constructor: var analytics = new Analytics('UA-<span class="hljs-label">XXXXXXX-X');</span></span>
+init: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(accountId)</span></span>{
+<span class="hljs-keyword">this</span>._accountId = accountId;
+<span class="hljs-keyword">this</span>._db = Titanium.Database.open(<span class="hljs-string">'analytics'</span>);
+<span class="hljs-keyword">this</span>._initialize_db();
+},
+
+<span class="hljs-comment">//Main public methods</span>
+start: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(dispatchPeriod)</span></span>{
+<span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.enabled) {
+<span class="hljs-keyword">this</span>._startNewVisit();
+<span class="hljs-keyword">this</span>._httpClient = Titanium.Network.createHTTPClient();
+
+<span class="hljs-keyword">var</span> context = <span class="hljs-keyword">this</span>;
+setInterval(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+context._dispatchEvents();
+}, dispatchPeriod * <span class="hljs-number">1000</span>);
+}
+},
+
+stop: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+<span class="hljs-keyword">this</span>.enabled = <span class="hljs-literal">false</span>;
+},
+</code></pre><pre><code class="hljs"><span class="hljs-attribute">trackPageview</span>: <span class="hljs-string">function(pageUrl){</span>
+
+<span class="javascript"><span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>._session &amp;&amp; <span class="hljs-keyword">this</span>.enabled) {
+
+<span class="hljs-keyword">this</span>._createEvent(<span class="hljs-keyword">this</span>._PAGEVIEW, pageUrl, <span class="hljs-literal">null</span>, -<span class="hljs-number">1</span>);
+}
+},
+
+trackEvent: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">category, action, label, value</span>)</span>{
+<span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>._session &amp;&amp; <span class="hljs-keyword">this</span>.enabled) {
+<span class="hljs-keyword">this</span>._createEvent(category, action, label, value);
+}
+},
+
+reset:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+Titanium.App.Properties.setString(<span class="hljs-string">'analytics_session'</span>, <span class="hljs-literal">null</span>);
+},
+
+<span class="hljs-comment">// Private methods</span>
+_initialize_db: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+
+<span class="hljs-keyword">this</span>._db.execute(<span class="hljs-string">'CREATE TABLE IF NOT EXISTS events ('</span> +
+<span class="hljs-string">'event_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, '</span> +
+<span class="hljs-string">'user_id INTEGER NOT NULL, '</span> +
+<span class="hljs-string">'random_val INTEGER NOT NULL, '</span> +
+<span class="hljs-string">'timestamp_first INTEGER NOT NULL, '</span> +
+<span class="hljs-string">'timestamp_previous INTEGER NOT NULL, '</span> +
+<span class="hljs-string">'timestamp_current INTEGER NOT NULL, '</span> +
+<span class="hljs-string">'visits INTEGER NOT NULL, '</span> +
+<span class="hljs-string">'category STRING NOT NULL, '</span> +
+<span class="hljs-string">'action STRING NOT NULL, '</span> +
+<span class="hljs-string">'label STRING NULL, '</span> +
+<span class="hljs-string">'value INTEGER NOT NULL);'</span>);
+
+<span class="hljs-keyword">var</span> rowCount = <span class="hljs-keyword">this</span>._db.execute(<span class="hljs-string">'SELECT COUNT(*) FROM events'</span>);
+<span class="hljs-keyword">while</span> (rowCount.isValidRow()) {
+<span class="hljs-keyword">this</span>._storedEvents = rowCount.field(<span class="hljs-number">0</span>);
+rowCount.next();
+}
+rowCount.close();
+},
+
+_startNewVisit: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+
+<span class="hljs-keyword">var</span> now = <span class="hljs-built_in">Math</span>.round(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime() / <span class="hljs-number">1000</span>);
+<span class="hljs-keyword">if</span> (!Titanium.App.Properties.hasProperty(<span class="hljs-string">'analytics_session'</span>)) {
+
+<span class="hljs-keyword">this</span>._session = {
+user_id:<span class="hljs-built_in">Math</span>.floor(<span class="hljs-built_in">Math</span>.random()*<span class="hljs-number">9999999999</span>),
+timestamp_first:now,
+timestamp_previous:now,
+timestamp_current:now,
+visits:<span class="hljs-number">1</span>
+};
+}
+<span class="hljs-keyword">else</span> {
+<span class="hljs-keyword">var</span> oldSession = <span class="hljs-built_in">JSON</span>.parse(Titanium.App.Properties.getString(<span class="hljs-string">'analytics_session'</span>));
+
+<span class="hljs-keyword">this</span>._session = {
+user_id:oldSession.user_id,
+timestamp_first:oldSession.timestamp_first,
+timestamp_previous:oldSession.timestamp_current,
+timestamp_current:now,
+visits:oldSession.visits + <span class="hljs-number">1</span>
+};
+
+}
+
+Titanium.App.Properties.setString(<span class="hljs-string">'analytics_session'</span>, <span class="hljs-built_in">JSON</span>.stringify(<span class="hljs-keyword">this</span>._session));
+
+},
+
+_createEvent : <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">category, action, label, value</span>) </span>{
+
+<span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>._storedEvents &gt;= <span class="hljs-number">1000</span>) {
+Titanium.API.warn(<span class="hljs-string">'Analytics: Store full, not storing last event'</span>);
+<span class="hljs-keyword">return</span>;
+}
+
+<span class="hljs-keyword">var</span> rnd = <span class="hljs-built_in">Math</span>.floor(<span class="hljs-built_in">Math</span>.random()*<span class="hljs-number">999999999</span>);</span>
+</code></pre><pre><code class="hljs"><span class="hljs-keyword">this</span>._db.execute(<span class="hljs-string">'INSERT INTO events (user_id, random_val, timestamp_first, timestamp_previous, timestamp_current, visits, category, action, label, value) VALUES (?,?,?,?,?,?,?,?,?,?)'</span>, <span class="hljs-keyword">this</span>._session.user_id, rnd, <span class="hljs-keyword">this</span>._session.timestamp_first, <span class="hljs-keyword">this</span>._session.timestamp_previous, <span class="hljs-keyword">this</span>._session.timestamp_current, <span class="hljs-keyword">this</span>._session.visits, category, action, label, <span class="hljs-keyword">value</span>);
+<span class="hljs-keyword">this</span>._storedEvents++;
+},
+
+_dispatchEvents : function() {
+
+<span class="hljs-keyword">if</span>(!<span class="hljs-keyword">this</span>._dispatcherIsBusy &amp;&amp; Titanium.Network.online){
+
+<span class="hljs-keyword">this</span>._dispatcherIsBusy = <span class="hljs-keyword">true</span>;
+
+<span class="hljs-keyword">var</span> eventRows = <span class="hljs-keyword">this</span>._db.execute(<span class="hljs-string">'SELECT * FROM events'</span>);
+
+<span class="hljs-keyword">var</span> eventsToDelete = [];
+
+<span class="hljs-keyword">while</span>(eventRows.isValidRow()) {
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">event</span> = {
+event_id:eventRows.fieldByName(<span class="hljs-string">'event_id'</span>),
+user_id:eventRows.fieldByName(<span class="hljs-string">'user_id'</span>),
+random_val:eventRows.fieldByName(<span class="hljs-string">'random_val'</span>),
+timestamp_first:eventRows.fieldByName(<span class="hljs-string">'timestamp_first'</span>),
+timestamp_previous:eventRows.fieldByName(<span class="hljs-string">'timestamp_previous'</span>),
+timestamp_current:eventRows.fieldByName(<span class="hljs-string">'timestamp_current'</span>),
+visits:eventRows.fieldByName(<span class="hljs-string">'visits'</span>),
+category:eventRows.fieldByName(<span class="hljs-string">'category'</span>),
+action:eventRows.fieldByName(<span class="hljs-string">'action'</span>),
+label:eventRows.fieldByName(<span class="hljs-string">'label'</span>),
+<span class="hljs-keyword">value</span>:eventRows.fieldByName(<span class="hljs-string">'value'</span>),
+};
+
+<span class="hljs-keyword">var</span> path = <span class="hljs-keyword">this</span>._constructRequestPath(<span class="hljs-keyword">event</span>);
+
+<span class="hljs-keyword">this</span>._httpClient.open(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://www.google-analytics.com'</span> + path, <span class="hljs-keyword">false</span>);
+<span class="hljs-keyword">this</span>._httpClient.setRequestHeader(<span class="hljs-string">'User-Agent'</span>, <span class="hljs-keyword">this</span>._USER_AGENT);
+<span class="hljs-keyword">this</span>._httpClient.send();
+
+eventsToDelete.push(<span class="hljs-keyword">event</span>.event_id);
+
+eventRows.next();
+}
+
+eventRows.close();
+
+<span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; eventsToDelete.length; i++) {
+<span class="hljs-keyword">this</span>._db.execute(<span class="hljs-string">'DELETE FROM events WHERE event_id = ?'</span>, eventsToDelete[i]);
+}
+
+<span class="hljs-keyword">this</span>._dispatcherIsBusy = <span class="hljs-keyword">false</span>;
+}
+},
+
+_constructRequestPath : function(<span class="hljs-keyword">event</span>) {
+<span class="hljs-keyword">var</span> path = <span class="hljs-keyword">new</span> StringBuilder(<span class="hljs-string">'/__utm.gif'</span>);
+path.append(<span class="hljs-string">'?utmwv=4.4mi'</span>);
+path.append(<span class="hljs-string">'&amp;utmn='</span>).append(<span class="hljs-keyword">event</span>.random_val);
+path.append(<span class="hljs-string">'&amp;utmcs=UTF-8'</span>);
+path.append(<span class="hljs-string">'&amp;utmsr='</span> + Titanium.Platform.displayCaps.platformWidth + <span class="hljs-string">'x'</span> + Titanium.Platform.displayCaps.platformHeight);
+path.append(<span class="hljs-string">'&amp;utmsc=24-bit'</span>);
+path.append(<span class="hljs-string">'&amp;utmul='</span>+ Titanium.Platform.locale + <span class="hljs-string">'-'</span> + Titanium.Platform.countryCode);
+
+path.append(<span class="hljs-string">'&amp;utmac='</span>).append(<span class="hljs-keyword">this</span>._accountId);
+
+<span class="hljs-keyword">if</span> (<span class="hljs-keyword">event</span>.category == <span class="hljs-keyword">this</span>._PAGEVIEW) {
+<span class="hljs-comment">//just page tracking</span>
+path.append(<span class="hljs-string">'&amp;utmp='</span>).append(<span class="hljs-keyword">event</span>.action);
+} <span class="hljs-keyword">else</span> {
+<span class="hljs-comment">//event tracking</span>
+<span class="hljs-keyword">var</span> tmpValue = (<span class="hljs-keyword">event</span>.<span class="hljs-keyword">value</span> &gt; <span class="hljs-number">0</span>) ? <span class="hljs-keyword">event</span>.<span class="hljs-keyword">value</span> : <span class="hljs-number">1</span>;
+path.append(<span class="hljs-string">'&amp;utmt=event'</span>);
+path.append(<span class="hljs-string">'&amp;utme=5('</span>+<span class="hljs-keyword">event</span>.category+<span class="hljs-string">'*'</span>+<span class="hljs-keyword">event</span>.action+<span class="hljs-string">'*'</span>+<span class="hljs-keyword">event</span>.label+<span class="hljs-string">')('</span>+tmpValue+<span class="hljs-string">')'</span>);
+pageTracker._trackEvent(<span class="hljs-string">'VLP'</span>, <span class="hljs-string">'click-out'</span>, <span class="hljs-number">12345</span>);
+}
+
+path.append(<span class="hljs-string">'&amp;utmcc='</span>);
+
+<span class="hljs-keyword">var</span> cookie = <span class="hljs-keyword">new</span> StringBuilder(<span class="hljs-string">'__utma='</span>);
+cookie.append(<span class="hljs-string">'737325'</span>).append(<span class="hljs-string">'.'</span>);
+cookie.append(<span class="hljs-keyword">event</span>.user_id).append(<span class="hljs-string">'.'</span>);
+cookie.append(<span class="hljs-keyword">event</span>.timestamp_first).append(<span class="hljs-string">"."</span>);
+cookie.append(<span class="hljs-keyword">event</span>.timestamp_previous).append(<span class="hljs-string">"."</span>);
+cookie.append(<span class="hljs-keyword">event</span>.timestamp_current).append(<span class="hljs-string">"."</span>);
+cookie.append(<span class="hljs-keyword">event</span>.visits);
+
+path.append(cookie.toString());
+
+<span class="hljs-keyword">return</span> path.toString();
+},
+});
+
+<span class="hljs-comment">// Initializes a new instance of the StringBuilder class</span>
+<span class="hljs-comment">// and appends the given value if supplied</span>
+<span class="hljs-function">function <span class="hljs-title">StringBuilder</span>(<span class="hljs-params"><span class="hljs-keyword">value</span></span>)
+</span>{
+    <span class="hljs-keyword">this</span>.strings = <span class="hljs-keyword">new</span> Array(<span class="hljs-string">''</span>);
+    <span class="hljs-keyword">this</span>.append(<span class="hljs-keyword">value</span>);
+};
+
+<span class="hljs-comment">// Appends the given value to the end of this instance.</span>
+StringBuilder.prototype.append = function (<span class="hljs-keyword">value</span>)
+{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">value</span>) {
+        <span class="hljs-keyword">this</span>.strings.push(<span class="hljs-keyword">value</span>);
+    }
+<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+};
+
+<span class="hljs-comment">// Clears the string buffer</span>
+StringBuilder.prototype.clear = function (){
+    <span class="hljs-keyword">this</span>.strings.length = <span class="hljs-number">1</span>;
+};
+
+<span class="hljs-comment">// Converts this instance to a String.</span>
+StringBuilder.prototype.toString = function (){
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.strings.<span class="hljs-keyword">join</span>(<span class="hljs-string">''</span>);
+};
+</code></pre><p>can u explain me plz…….</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 4th 2011, 4:33:57 am">October 4th 2011</span>
+				by <span class='authorname'>nagina nagina</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>coding</span></li>
+					
+						<li><span class='tagname'>google analytics</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-220114">
+				
+						<section>
+							<p>Since this code is pulled from github <a href="https:&#x2F;&#x2F;github.com&#x2F;rogchap&#x2F;Titanium-Google-Analytics">https:&#x2F;&#x2F;github.com&#x2F;rogchap&#x2F;Titanium-Google-Analytics</a> i thinkit it would be better to ask the author.</p>
+<p>I personally think the question is way too generic and vague.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 4th 2011, 4:41:27 am">October 4th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/126372/i-want-the-explanation-of-coding#answer-220114" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>yes it is from that link………but i want to kw how code is linking to the google analytics</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 4th 2011, 5:16:39 am">October 4th 2011</span>
+											by <span class='authorname'>nagina nagina</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-220124">
+				
+						<section>
+							<p>This line from your last piece of code is where the code <strong>talks</strong> to google analytics.</p>
+<pre><code class="hljs"><span class="hljs-keyword">this</span>._httpClient.<span class="hljs-built_in">open</span>(<span class="hljs-string">'GET'</span>, <span class="hljs-string">'http://www.google-analytics.com'</span> + path, <span class="hljs-keyword">false</span>);
+</code></pre><p>It is a simple Ajax function call that will inform Google which action has been triggered. All the parameters necessary for the request are initialized inside the <code>_constructRequestPath</code>.</p>
+<p>So, in short:</p>
+<ul>
+<li>The user triggers the action he wants tracked.</li>
+<li>The code fills the request with the appropriate parameters.</li>
+<li>A call is made to analytics servers to increment the counters. (all in background)</li>
+</ul>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 4th 2011, 7:07:11 am">October 4th 2011</span>
+								by <span class='authorname'>Christian Brousseau</span><br>
+								<a class="icon-bg icon-link" href="question/126372/i-want-the-explanation-of-coding#answer-220124" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>ok…thank u  Christian Brousseau…but after executing this program…….only event tracking is not working(it means events r not counted).can u tell me the problem y im getting that??</p>
+<p>thnk u</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 4th 2011, 8:59:13 am">October 4th 2011</span>
+											by <span class='authorname'>nagina nagina</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Well… it can be many things. (invalid credentials, not the right permissions, etc.)</p>
+<p>I&#39;m gonna go with Aaron and suggest that you contact the developer whou actually coded the function.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 4th 2011, 9:33:19 am">October 4th 2011</span>
+											by <span class='authorname'>Christian Brousseau</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

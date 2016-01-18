@@ -1,0 +1,381 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Reproducible crash and errors with database access in 1.7.2 » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Reproducible crash and errors with database access in 1.7.2</h1>
+		</header>
+		<section>
+			<p>Hi,</p>
+<p>Starting from 1.7.0 up to the current 1.7.3 1&#x2F;Aug&#x2F;2011 CI build I&#39;m getting random crashes of the type</p>
+<pre><code class="hljs"><span class="hljs-built_in">Exception</span> <span class="hljs-built_in">Type</span>:  EXC_BAD_ACCESS (SIGBUS)
+<span class="hljs-built_in">Exception</span> Codes: KERN_PROTECTION_FAILURE at <span class="hljs-number">0x000000000000000c</span>
+</code></pre><p>I&#39;ve managed to reproduce them. Put the following code in the app.js</p>
+<pre><code class="hljs"><span class="hljs-keyword">app</span> = {};
+
+<span class="hljs-comment">//Create and initialize the database</span>
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Ti.Database.<span class="hljs-keyword">open</span>('data.<span class="hljs-keyword">db</span>');
+<span class="hljs-keyword">db</span>.execute('create <span class="hljs-keyword">table</span> <span class="hljs-keyword">if</span> not exists data (col1 primary key,col2)');
+<span class="hljs-keyword">db</span>.execute('begin transaction');
+<span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=0; i&lt;100; i++) {
+    <span class="hljs-keyword">db</span>.execute('insert or <span class="hljs-keyword">replace</span> into data (col1,col2) values (?,?)',i,100+i);
+}
+<span class="hljs-keyword">db</span>.execute('commit transaction');
+<span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+
+function read_from_db()
+{
+    <span class="hljs-keyword">var</span> <span class="hljs-keyword">db</span> = Ti.Database.<span class="hljs-keyword">open</span>('data.<span class="hljs-keyword">db</span>');
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=0; i&lt;10000; i++) {
+        <span class="hljs-keyword">var</span> recordSet = <span class="hljs-keyword">db</span>.execute('select * from data');
+
+        <span class="hljs-keyword">if</span>(recordSet.isValidRow()) {
+            <span class="hljs-comment">//Do nothing</span>
+        }
+        recordSet.<span class="hljs-keyword">close</span>();
+    }
+    <span class="hljs-keyword">db</span>.<span class="hljs-keyword">close</span>();
+}
+
+read_from_db();
+Ti.API.info('------------------ AFTER read_from_db() --------------------------');
+
+
+
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">win</span> = Ti.UI.createWindow();
+<span class="hljs-keyword">var</span> win2 = Ti.UI.createWindow();
+
+<span class="hljs-keyword">app</span>.tabGroup = Ti.UI.createTabGroup({});
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// Tab 2</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-keyword">app</span>.<span class="hljs-keyword">Tab1</span> = Titanium.UI.createTab({
+    title:'<span class="hljs-keyword">Tab</span> 1',
+    <span class="hljs-keyword">window</span>:<span class="hljs-keyword">win</span>
+});
+<span class="hljs-keyword">app</span>.tabGroup.addTab(<span class="hljs-keyword">app</span>.<span class="hljs-keyword">Tab1</span>);
+
+<span class="hljs-comment">//</span>
+<span class="hljs-comment">// Tab 2</span>
+<span class="hljs-comment">//</span>
+<span class="hljs-keyword">app</span>.<span class="hljs-keyword">Tab2</span> = Ti.UI.createTab({
+    title:'<span class="hljs-keyword">Tab</span> 2',
+    <span class="hljs-keyword">window</span>:win2
+});
+<span class="hljs-keyword">app</span>.tabGroup.addTab(<span class="hljs-keyword">app</span>.<span class="hljs-keyword">Tab2</span>);
+
+<span class="hljs-keyword">app</span>.tabGroup.<span class="hljs-keyword">open</span>();
+</code></pre><p>This will work in 1.6.0 and 1.6.2, but in 1.7.0 and later will (depending on the particular number of cycles used) exit with the error:</p>
+<p><code>Result of expression &amp;#39;recordSet.isValidRow&amp;#39; [] is not a function. at app.js (line 19).</code></p>
+<p>or sometimes crash the iPhone simulator with the same kind of crash logs I&#39;m getting in my app.</p>
+<p>It would be great if this issue was fixed. Reverting to 1.6.2 isn&#39;t feasible for me (I need the enhanced Facebook support of 1.7).</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 4th 2011, 10:05:06 am">August 4th 2011</span>
+				by <span class='authorname'>Joao Silva</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>database</span></li>
+					
+						<li><span class='tagname'>isvalidrow</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-217412">
+				
+						<section>
+							<p>I&#39;ve posted this issue to the Titanium (Community) bug tracker <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-220">issue TC-220</a> with a refined version of this code that exemplifies the EXC_BAD_ACCESS (SIGBUS) crashes present in the 1.7 version of Titanium in a reproducible way. Can anyone help with this issue? I&#39;m sure there must be more people with the same problem.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 25th 2011, 10:58:05 am">August 25th 2011</span>
+								by <span class='authorname'>Joao Silva</span><br>
+								<a class="icon-bg icon-link" href="question/123736/reproducible-crash-and-errors-with-database-access-in-172#answer-217412" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I&#39;ve been going crazy with this one.  I cannot provide code to reproduce it because it&#39;s so random. Just now it finally crashed with the exact error above.  Show stopper.  I don&#39;t know what to do.  Workaround anyone?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 25th 2011, 9:40:15 pm">August 25th 2011</span>
+											by <span class='authorname'>Bruce Xavier</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I was seeing the same problem in an app I was developing. Refactoring the code to strictly use a single execution context helps a LOT! </p>
+<p>My theory (for my situation) FWIW, looking at the randomness of the crashing is that there&#39;re race conditions when using multiple execution context which is triggered during garbage collection. Probably a released mem is being referred by another thread.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 25th 2011, 9:47:33 pm">August 25th 2011</span>
+											by <span class='authorname'>Shamsul Azhar Ahmad Shamsuddin</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-218342">
+				
+						<section>
+							<p>I have this error with 1.7.2 in my code. I assume there&#39;s an issue with the create statement and it not closing the connection before the next one opens again. I stuck the remaining code with the isValid() in a small 200ms setTimeout() and it now works EVERYTime, so at least it lets me continue..</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 7th 2011, 12:46:17 pm">September 7th 2011</span>
+								by <span class='authorname'>Mark Henderson</span><br>
+								<a class="icon-bg icon-link" href="question/123736/reproducible-crash-and-errors-with-database-access-in-172#answer-218342" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-218792">
+				
+						<section>
+							<p>I&#39;ve submitted these crashes to the Titanium community bug tracker and clarifying a few points it was finally accepted as <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TIMOB-5196">Titanium Mobile ticket TIMOB-5196</a> from community tickets TC-195 and TC-220 (see also <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;123951&#x2F;crash-updating-window-from-focus-event-while-querying-database--ios-43--sdk-172">Crash updating window from focus event while querying database : IOS 4.3 , SDK 1.7.2</a> and <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;124936&#x2F;app-very-unstable-using-17-fine-on-15">App very unstable using 1.7, fine on 1.5</a>). However it has now been closed as &quot;Cannot reproduce&quot;. If anyone can create a better test case or has more insight on this matter help would be much appreciated.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 14th 2011, 7:16:21 am">September 14th 2011</span>
+								by <span class='authorname'>Joao Silva</span><br>
+								<a class="icon-bg icon-link" href="question/123736/reproducible-crash-and-errors-with-database-access-in-172#answer-218792" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>The tester apparently did not test it with 1.7.*. He tested with SDK Build1.8.0.0c3b052 and closed it.</p>
+<p>I think the correct response is to identify what fix it and apply it to the 1.7.* branch.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 14th 2011, 8:26:54 am">September 14th 2011</span>
+											by <span class='authorname'>Shamsul Azhar Ahmad Shamsuddin</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thank you, I had missed the comment regarding the 1.8 build. I&#39;ve now tested it with build 1.8.0.v20110912131752 and it seems to be fixed. It does crash with the 1.7.x builds.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 14th 2011, 9:20:48 am">September 14th 2011</span>
+											by <span class='authorname'>Joao Silva</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I have the exact same problem.<br>Tested it with 1.8.0.v20111010114849 and it is fixed but 1.8 still has the TitleBar Image bug so I cannot use it to deploy with either.<br>Tested with 1.7.4.v20111025165811 and lower and they all have the database crash while inserting with<br>Exception Type:  EXC_BAD_ACCESS (SIGBUS)<br>Exception Codes: KERN_PROTECTION_FAILURE at 0x000000000000000c</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 26th 2011, 11:31:00 pm">October 26th 2011</span>
+											by <span class='authorname'>Rafe Roberts</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-218796">
+				
+						<section>
+							<p>I&#39;m wondering whether it&#39;s a particular version of xcode that they are using that makes them to totally not experience these crashes. </p>
+<p>From looking at the number of issues on the Q&amp;A, the instability of 1.7.* is a real issue.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 14th 2011, 7:54:12 am">September 14th 2011</span>
+								by <span class='authorname'>Shamsul Azhar Ahmad Shamsuddin</span><br>
+								<a class="icon-bg icon-link" href="question/123736/reproducible-crash-and-errors-with-database-access-in-172#answer-218796" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-217697">
+				
+						<section>
+							<p>Joeo</p>
+<p>Your code contains errors. I have corrected it in <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-220">TC-220</a>. Please use this as a starting point for proving whether the behavior you have observed is actually a bug in Titanium. </p>
+<p>Thank you</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 30th 2011, 6:17:02 am">August 30th 2011</span>
+								by <span class='authorname'>Paul Dowsett</span><br>
+								<a class="icon-bg icon-link" href="question/123736/reproducible-crash-and-errors-with-database-access-in-172#answer-217697" rel="permalink">permalink</a>
+							</div>
+
+							<h5>4 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Is opening and closing a resultSet inside a loop unsupported in Titanium? Because this is the only thing required to cause the crash, you only have to do it quickly enough.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 30th 2011, 7:38:01 am">August 30th 2011</span>
+											by <span class='authorname'>Joao Silva</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Joao</p>
+<p>OK, I see what you are doing now, although I don&#39;t understand why you would want to do this in a real app.</p>
+<p>The latest version of my code does not crash for me. Would you test it please?</p>
+<p>Thank you</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 30th 2011, 8:08:16 am">August 30th 2011</span>
+											by <span class='authorname'>Paul Dowsett</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I need to, for example, load a given record from a table from various items. So for each item of the list, I do a db.execute, check if the record exists, and close the resultSet. The real app doesn&#39;t crash all the time, this code is the reduced version to expose the problem.</p>
+<p>   For me your latest code crashes exactly as I described above.</p>
+<pre><code class="hljs">Ti version       Simulator version     Result
+----------      ------------------   --------
+<span class="hljs-number">1.6</span><span class="hljs-number">.2</span>                iOS <span class="hljs-number">4.3</span>            OK
+<span class="hljs-number">1.7</span><span class="hljs-number">.0</span>                iOS <span class="hljs-number">4.3</span>            Crash
+<span class="hljs-number">1.7</span><span class="hljs-number">.2</span>                iOS <span class="hljs-number">4.0</span>,<span class="hljs-number">4.2</span>,<span class="hljs-number">4.3</span>    Crash
+<span class="hljs-number">1.7</span><span class="hljs-number">.3</span>v20110826161351 iOS <span class="hljs-number">4.3</span>            Crash
+</code></pre><p>What are the differences between your environment and mine?</p>
+<p>I&#39;m using:</p>
+<p>Titanium Studio, build: 1.0.4.201108101535<br>Mac Mini (2.4GHz Intel Core 2 Duo, 4GB RAM) with Mac OS&#x2F;X 10.6.8<br>Various versions of the iPhone simulator, as described above</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 30th 2011, 8:43:47 am">August 30th 2011</span>
+											by <span class='authorname'>Joao Silva</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Where did Paul go?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 29th 2011, 8:31:46 pm">November 29th 2011</span>
+											by <span class='authorname'>Robert Reinhard</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Close the root window of navigation group on Android and iOS? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Close the root window of navigation group on Android and iOS?</h1>
+		</header>
+		<section>
+			<p>I am trying to create a &quot;login&quot; window that will appear first if the user is not logged in. I am having a heck of a time making it work properly with the back button and the android windows. It works fine in iOS as there is no way back to that window. Though I would still like to remove it from the nav group. How can I remove the first window of the navgroup which would in turn make the 2nd window the actual root… I get errors if I just try to close() the first window. I am using the example given by Appcelerator:</p>
+<pre><code class="hljs">exports.NavigationController = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.windowStack = [];
+};
+
+exports.NavigationController.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToOpen,animation</span>) </span>{
+    <span class="hljs-comment">//add the window to the stack of windows managed by the controller</span>
+    <span class="hljs-keyword">this</span>.windowStack.push(windowToOpen);
+
+    <span class="hljs-comment">//grab a copy of the current nav controller for use in the callback</span>
+    <span class="hljs-keyword">var</span> that = <span class="hljs-keyword">this</span>;
+    windowToOpen.addEventListener(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        that.windowStack.pop();
+    });
+
+    <span class="hljs-comment">//hack - setting this property ensures the window is "heavyweight" (associated with an Android activity)</span>
+    windowToOpen.navBarHidden = windowToOpen.navBarHidden || <span class="hljs-literal">false</span>;
+
+    <span class="hljs-comment">//This is the first window</span>
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.windowStack.length === <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">if</span>(BT.__isAndroid) {
+            windowToOpen.exitOnClose = <span class="hljs-literal">true</span>;
+            windowToOpen.open();
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">this</span>.navGroup = Ti.UI.iPhone.createNavigationGroup({
+                <span class="hljs-built_in">window</span> : windowToOpen
+            });
+            <span class="hljs-keyword">var</span> containerWindow = Ti.UI.createWindow();
+            containerWindow.add(<span class="hljs-keyword">this</span>.navGroup);
+            containerWindow.open();
+        }
+    }
+    <span class="hljs-comment">//All subsequent windows</span>
+    <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span>(BT.__isAndroid) {
+            windowToOpen.open(animation);
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">this</span>.navGroup.open(windowToOpen,animation);
+        }
+    }
+};
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+exports.NavigationController.prototype.home = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    <span class="hljs-keyword">var</span> windows = <span class="hljs-keyword">this</span>.windowStack.concat([]);
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">1</span>, l = windows.length; i &lt; l; i++) {
+        (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windows[i]) : windows[i].close();
+    }
+    <span class="hljs-keyword">this</span>.windowStack = [<span class="hljs-keyword">this</span>.windowStack[<span class="hljs-number">0</span>]]; <span class="hljs-comment">//reset stack</span>
+};
+
+<span class="hljs-comment">//go back to the initial window of the NavigationController</span>
+exports.NavigationController.prototype.close = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"><span class="hljs-comment">/*Ti.UI.Window*/</span>windowToClose</span>) </span>{
+    <span class="hljs-comment">//store a copy of all the current windows on the stack</span>
+    (<span class="hljs-keyword">this</span>.navGroup) ? <span class="hljs-keyword">this</span>.navGroup.close(windowToClose) : windowToClose.close();
+};
+</code></pre><p>Note: I would be open to another way of doing the login window outside the navgroup. But the back button on Android needs to NOT take the user back to the login screen. I think there is a simplier way, my brain is just stuck… Thanks for your help.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 21st 2011, 7:21:32 pm">November 21st 2011</span>
+				by <span class='authorname'>Daniel Mahon</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>heavyweight</span></li>
+					
+						<li><span class='tagname'>lightweight</span></li>
+					
+						<li><span class='tagname'>navgroup</span></li>
+					
+						<li><span class='tagname'>windows</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-223939">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>when the app starts up, if the user is not logged in then display the login window. do not display any other window(s) until the user logs in… that alleviates the problem of closing other windows.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 22nd 2011, 1:17:51 am">November 22nd 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/128533/close-the-root-window-of-navigation-group-on-android-and-ios#answer-223939" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>This is what I had originally done, I was having some problems with XHR requests being sent during the switching of windows which is why I was looking for another way to make the login screen happen. In the end I reverted back to this approach and solved the XHR problem. Im marking this as correct since it is essentially what I ended up doing. Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 22nd 2011, 1:19:24 pm">November 22nd 2011</span>
+											by <span class='authorname'>Daniel Mahon</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I wanted to add one more thing for anyone who might be wondering: You have to create the login window outside the navGroup so you can later close it without effecting the navGroup. Also on Android I had to set a small delay in closing the login window after creating the root of the navGroup.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 22nd 2011, 1:22:09 pm">November 22nd 2011</span>
+											by <span class='authorname'>Daniel Mahon</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>@Daniel – im having the same problem with the XHR request.  How did you solve this?  Can you post a code snippet?</p>
+<p>i&#39;m using a separate window for login that i create&#x2F;open&#x2F;close, but i&#39;m seeing errors like:</p>
+<p><code>sending message to a Handler on a dead thread</code></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 29th 2012, 8:49:08 pm">January 29th 2012</span>
+											by <span class='authorname'>John Brennan</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-223919">
+				
+						<section>
+							<p>Can you use a modal window? On iPhone a modal window slides up over the application and you can disable the &quot;Close&quot; button until they&#39;ve signed in or they click cancel for instance. Not sure how you&#39;d complete this by replacing the root window, other than replacing the window contents but keeping the same window object.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 21st 2011, 7:50:10 pm">November 21st 2011</span>
+								by <span class='authorname'>David Doran</span><br>
+								<a class="icon-bg icon-link" href="question/128533/close-the-root-window-of-navigation-group-on-android-and-ios#answer-223919" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>the problem with the modal window is the back button on Android closes the window but not the app. I would like it to close the app since all my app data is dependant on them being logged in.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="November 21st 2011, 8:01:09 pm">November 21st 2011</span>
+											by <span class='authorname'>Daniel Mahon</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Daniel, how did you implement this, I have a similar question. I&#39;m using a similar framework and scenario. Curious what you did. This was my solution, but logout then back in shows 2 home windows(one slides over the other) when logging back in.</p>
+<pre><code class="hljs"><span class="hljs-comment">//open initial window</span>
+<span class="hljs-keyword">if</span>(Ti.App.Properties.getString(<span class="hljs-string">'profile'</span>) == <span class="hljs-keyword">null</span>)
+{
+    controller.<span class="hljs-built_in">open</span>(<span class="hljs-keyword">new</span> login(controller));
+}<span class="hljs-keyword">else</span>
+{
+    controller.<span class="hljs-built_in">open</span>(<span class="hljs-keyword">new</span> home(controller));
+}
+</code></pre><p>curious.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="March 28th 2012, 6:14:51 pm">March 28th 2012</span>
+											by <span class='authorname'>matt s</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How do I save in database recursively » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How do I save in database recursively</h1>
+		</header>
+		<section>
+			<p>I am having a problem trying to save to a database recursively, I am evoking a function with two parameters from within a For loop. So that function can be called a couple of times (generally about 10 times) changing the parameters. The function gets evoked fine but for some reason it saves the same information all the time, like if the params variable didn&#39;t reset themselves.<br>So I have a for loop doing the following:</p>
+<pre><code class="hljs"><span class="hljs-keyword">for</span>(var <span class="hljs-built_in">j</span> = <span class="hljs-number">0</span>; <span class="hljs-built_in">j</span> &lt; section.rowCount; <span class="hljs-built_in">j</span>++)
+<span class="hljs-cell">{
+var myRow = section.rows[j];
+saveUser(myRow._param1,myRow_param2);
+}</span>
+</code></pre><p>This is the function that get evoked on each loop passing to different parameters:</p>
+<pre><code class="hljs">function saveUser(param1,param2){
+if(Ti.Network.online){
+var randomnumber=Math.floor(Math.random()*<span class="hljs-number">101</span>);
+var dbUrl= <span class="hljs-string">"http://www.myserver.com/saveToDb.php?_"</span>+randomnumber;
+createReq.open(<span class="hljs-string">"<span class="hljs-keyword">POST</span>"</span>,dbUrl);
+var params = {  
+  to: param1,  
+  from: param2
+}; 
+
+createReq.send(params); 
+
+ } else {
+alert(<span class="hljs-string">"No internet connection detected. Please try again later"</span>);    
+}    
+}
+</code></pre><p>but it seems that only the last round in the loop the one that gets saved. I mean if the loop was for 10 items it save 10 thing in the database but the content is the last iteration for the 10 of them.<br>here a image capture of what get saved<br><img src="http:&#x2F;&#x2F;grupoquantum.com&#x2F;cadbury&#x2F;titanium-problem.png &quot;Title&quot;" alt="alt text"><br>the &quot;to&quot; and &quot;from&quot; field should be different on each entry.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 21st 2011, 7:50:31 am">July 21st 2011</span>
+				by <span class='authorname'>Andres Arguello Pitt</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>saving to database</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-213920">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>You aren&#39;t showing what createReq does, but my SWAG is it uses a httpClient to pass the data to the server.  If so, the basic problem here is the httpClient calls are asynchronous from the current thread.  So your loop continues running before the first POST has been sent.  It sounds like all iterations are completing before the first POST has been sent, and all are picking up what is the latest value of params.</p>
+<p>What you want to do instead is have the loop push the params values onto a stack (i.e. an array you keep), then have a function which processes that stack.  In the onload event as each stack item completes, pop it off the stack and check for more array entries.</p>
+<p>See <a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;35991&#x2F;multiple-httpclient-get-requests-asynchronous">this</a> thread for an example of what I mean.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 21st 2011, 11:15:53 am">July 21st 2011</span>
+								by <span class='authorname'>Doug Handy</span><br>
+								<a class="icon-bg icon-link" href="question/122949/how-do-i-save-in-database-recursively#answer-213920" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>fantastic!!! that was the problem, got it fixed using code from thread suggested. thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 21st 2011, 1:07:21 pm">July 21st 2011</span>
+											by <span class='authorname'>Andres Arguello Pitt</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-213912">
+				
+						<section>
+							<p>Andres</p>
+<p>Is there an erroneous period in the following line?</p>
+<pre><code class="hljs">saveUser<span class="hljs-list">(<span class="hljs-keyword">myRow</span>._param1,myRow_param2)</span><span class="hljs-comment">;</span>
+</code></pre><p>Cheers</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 21st 2011, 9:48:04 am">July 21st 2011</span>
+								by <span class='authorname'>Paul Dowsett</span><br>
+								<a class="icon-bg icon-link" href="question/122949/how-do-i-save-in-database-recursively#answer-213912" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>It depends, if he reads property then one period is missing. :)</p>
+<p>It seems to me that &quot;row&quot; has property that he wants to pass to the function, so period should be in second function parameter.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 21st 2011, 9:52:25 am">July 21st 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>yes, sorry but that only here not in my original code.</p>
+<p><code>saveUser(myRow._param1,myRow._param2);</code></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 21st 2011, 9:53:12 am">July 21st 2011</span>
+											by <span class='authorname'>Andres Arguello Pitt</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Using addEventListener &amp; fireEvent » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Using addEventListener &amp; fireEvent</h1>
+		</header>
+		<section>
+			<p>Hi, I&#39;m one day in to Appcelerator and could do with some basic help please…</p>
+<p>I have a bit of code that is currently triggered using addEventListener with a picker. I want the same code to be triggered using addEventListener for two other pickers, i.e. changing all three pickers has the same effect.</p>
+<p>Is there a way for one addEventListener to point to the other, perhaps using fireEvent? - I want to avoid having to duplicate my code for each individual picker event.</p>
+<p>Hope that makes sense!</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 24th 2011, 7:07:37 pm">October 24th 2011</span>
+				by <span class='authorname'>Ian Taylor</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>addeventlistener</span></li>
+					
+						<li><span class='tagname'>fireevent</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>1</span> Vote</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-221765">
+				
+						<section>
+							<p>Yes, create an app level event listener that contains the code that is common for your app. Then, within the eventlistener for each picker, fire that event with the necessary data to your custom event listener.</p>
+<pre><code class="hljs"><span class="hljs-tag">Ti</span><span class="hljs-class">.App</span><span class="hljs-class">.addEventListener</span>(<span class="hljs-string">'custom_event'</span>, <span class="hljs-function">function</span>(e) {
+  <span class="hljs-comment">// Common app code</span>
+});
+
+<span class="hljs-comment">// You picker listener</span>
+<span class="hljs-tag">somepicker</span><span class="hljs-class">.addEventListener</span>(<span class="hljs-string">'change'</span>, <span class="hljs-function">function</span>(e) {
+  <span class="hljs-tag">Ti</span><span class="hljs-class">.App</span><span class="hljs-class">.fireEvent</span>(<span class="hljs-string">'custom_event'</span>, {<span class="hljs-attribute">custom_data</span>:e});
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 24th 2011, 7:20:52 pm">October 24th 2011</span>
+								by <span class='authorname'>Anthony Decena</span><br>
+								<a class="icon-bg icon-link" href="question/127319/using-addeventlistener--fireevent#answer-221765" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221798">
+				
+						<section>
+							<p>Although app-level events solve some issues related with the usage of common code, they introduce other problems. If not used carefully, they can create memory leaks, here is simple example:</p>
+<pre><code class="hljs">Ti.App.addEventListener('update_label', <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> {</span>
+    label1.<span class="hljs-built_in">text</span> = e.<span class="hljs-built_in">text</span>;
+});
+</code></pre><p>As you can see, label&#39;s reference is present in app-level event listener function. That listener will never be released (because it&#39;s app-level) and therefore, label will not be released from memory.</p>
+<p>And what about function generalization? What if you want to make it work for any label? Well, you could pass label&#39;s reference via fire event function and you would even solve memory issue, but then you would have a (OOP) design problem since that functionality is related to all labels and not in general for all elements - therefore, it should be present in all label instances (well, if you want to reuse it).</p>
+<p>Now, I&#39;m not sure have I understood your problem well, but it seems to me that you want to add same event listener to every label. You can do that in several way, one simple is to create non-anonymous function and add it to all labels as event listener:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> onClick = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    Ti.API.debug(<span class="hljs-keyword">this</span>); <span class="hljs-comment">//should be label instance</span>
+};
+
+label1.addEventListener(<span class="hljs-string">'click'</span>, onClick);
+label2.addEventListener(<span class="hljs-string">'click'</span>, onClick);
+label3.addEventListener(<span class="hljs-string">'click'</span>, onClick);
+</code></pre><p>Even better - you can create function factory that creates labels with particular functionality:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">LabelWithClick</span><span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">var</span> label = Ti.UI.createLabel(options);
+    label3.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">//do something</span>
+    });
+    <span class="hljs-keyword">return</span> label;
+}
+</code></pre><p>If you want this function to be globally available, create global namespace object. Let me know if you need help with that, or if you&#39;re using multi-context windows.</p>
+<p>The advantage of this approach is - the label created with this way will be garbage collected and it&#39;s event listener also. Now you have functionality related to the labels at right place and you could also separate your code:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MyLabel</span><span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">var</span> label = Ti.UI.createLabel(options);
+    <span class="hljs-keyword">return</span> label;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MyLabelWithClick</span><span class="hljs-params">(label)</span> </span>{
+    label3.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+        <span class="hljs-comment">//do something</span>
+    });
+    <span class="hljs-keyword">return</span> label;
+}
+</code></pre><p>Put that two functions in separate files and you have basic VC approach (MVC without a model :D )</p>
+<p>If I missed the point, please correct me. :)</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 25th 2011, 8:49:13 am">October 25th 2011</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/127319/using-addeventlistener--fireevent#answer-221798" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I have some copy-pasting issues in my answer, &quot;label3.addEventListener&quot; should be &quot;label.addEventListener&quot; of course! :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 25th 2011, 8:57:57 am">October 25th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for the very detailed explanations - maybe a little too detailed for me! I&#39;m not interested in passing variables around my whole app, so would like to do this without app-level events at this stage.</p>
+<p>I don&#39;t know if it&#39;s the done thing, but I&#39;m going to take the liberty of copying my code below.  The code works fine at the moment, but what I&#39;d like to do is to get the same functionality for the other two pickers, whilst avoiding duplicating code unnecessarily.</p>
+<p>I am only a few days into Titanium (and in fact any code for that!) so hopefully you&#39;ll excuse me for asking what is probably a really easy question.</p>
+<pre><code class="hljs">var win = Titanium.UI.currentWindow;
+
+<span class="hljs-comment">// build custom tableView data/layout</span>
+var array = [];
+
+var letterRow = Titanium.UI.createTableViewRow({<span class="hljs-string">height:</span><span class="hljs-number">46</span>, <span class="hljs-string">className:</span><span class="hljs-string">'letterRow'</span>}); 
+var numberRow = Titanium.UI.createTableViewRow({<span class="hljs-string">height:</span><span class="hljs-number">46</span>, <span class="hljs-string">className:</span><span class="hljs-string">'numberRow'</span>}); 
+var comboRow = Titanium.UI.createTableViewRow({<span class="hljs-string">height:</span><span class="hljs-number">46</span>, <span class="hljs-string">className:</span><span class="hljs-string">'comboRow'</span>}); 
+
+var letterLabel = Ti.UI.createLabel({<span class="hljs-string">color:</span><span class="hljs-string">'#000000'</span>, <span class="hljs-string">text:</span><span class="hljs-string">"Letter"</span>, <span class="hljs-string">font:</span>{<span class="hljs-string">fontSize:</span><span class="hljs-number">17</span>, <span class="hljs-string">fontWeight:</span><span class="hljs-string">'bold'</span>}, <span class="hljs-string">top:</span><span class="hljs-number">8</span>, <span class="hljs-string">left:</span><span class="hljs-number">12</span>, <span class="hljs-string">height:</span><span class="hljs-number">24</span>, <span class="hljs-string">width:</span><span class="hljs-number">170</span>});
+var letterValue = Ti.UI.createLabel({<span class="hljs-string">color:</span><span class="hljs-string">'#3D4460'</span>, <span class="hljs-string">text:</span><span class="hljs-string">""</span>, <span class="hljs-string">font:</span>{<span class="hljs-string">fontSize:</span><span class="hljs-number">17</span>, <span class="hljs-string">fontWeight:</span><span class="hljs-string">'normal'</span>}, <span class="hljs-string">top:</span><span class="hljs-number">11</span>, <span class="hljs-string">left:</span><span class="hljs-number">102</span>, <span class="hljs-string">height:</span><span class="hljs-number">20</span>, <span class="hljs-string">width:</span><span class="hljs-number">180</span>, <span class="hljs-string">textAlign:</span><span class="hljs-string">'right'</span>});    
+var numberLabel = Ti.UI.createLabel({<span class="hljs-string">color:</span><span class="hljs-string">'#000000'</span>, <span class="hljs-string">text:</span><span class="hljs-string">"Number"</span>, <span class="hljs-string">font:</span>{<span class="hljs-string">fontSize:</span><span class="hljs-number">17</span>, <span class="hljs-string">fontWeight:</span><span class="hljs-string">'bold'</span>}, <span class="hljs-string">top:</span><span class="hljs-number">8</span>, <span class="hljs-string">left:</span><span class="hljs-number">12</span>, <span class="hljs-string">height:</span><span class="hljs-number">24</span>, <span class="hljs-string">width:</span><span class="hljs-number">170</span>});
+var numberValue = Ti.UI.createLabel({<span class="hljs-string">color:</span><span class="hljs-string">'#3D4460'</span>, <span class="hljs-string">text:</span><span class="hljs-string">""</span>, <span class="hljs-string">font:</span>{<span class="hljs-string">fontSize:</span><span class="hljs-number">17</span>, <span class="hljs-string">fontWeight:</span><span class="hljs-string">'normal'</span>}, <span class="hljs-string">top:</span><span class="hljs-number">11</span>, <span class="hljs-string">left:</span><span class="hljs-number">102</span>, <span class="hljs-string">height:</span><span class="hljs-number">20</span>, <span class="hljs-string">width:</span><span class="hljs-number">180</span>, <span class="hljs-string">textAlign:</span><span class="hljs-string">'right'</span>});    
+var comboLabel = Ti.UI.createLabel({<span class="hljs-string">color:</span><span class="hljs-string">'#000000'</span>, <span class="hljs-string">text:</span><span class="hljs-string">"Combo"</span>, <span class="hljs-string">font:</span>{<span class="hljs-string">fontSize:</span><span class="hljs-number">17</span>, <span class="hljs-string">fontWeight:</span><span class="hljs-string">'bold'</span>}, <span class="hljs-string">top:</span><span class="hljs-number">8</span>, <span class="hljs-string">left:</span><span class="hljs-number">12</span>, <span class="hljs-string">height:</span><span class="hljs-number">24</span>, <span class="hljs-string">width:</span><span class="hljs-number">170</span>});
+var comboValue = Ti.UI.createLabel({<span class="hljs-string">color:</span><span class="hljs-string">'#3D4460'</span>, <span class="hljs-string">text:</span><span class="hljs-string">""</span>, <span class="hljs-string">font:</span>{<span class="hljs-string">fontSize:</span><span class="hljs-number">17</span>, <span class="hljs-string">fontWeight:</span><span class="hljs-string">'normal'</span>}, <span class="hljs-string">top:</span><span class="hljs-number">11</span>, <span class="hljs-string">left:</span><span class="hljs-number">102</span>, <span class="hljs-string">height:</span><span class="hljs-number">20</span>, <span class="hljs-string">width:</span><span class="hljs-number">180</span>, <span class="hljs-string">textAlign:</span><span class="hljs-string">'right'</span>});    
+
+letterRow.add(letterLabel);
+letterRow.add(letterValue);
+numberRow.add(numberLabel);
+numberRow.add(numberValue);
+comboRow.add(comboLabel);
+comboRow.add(comboValue);
+
+array.push(letterRow);
+array.push(numberRow);
+array.push(comboRow);
+
+<span class="hljs-comment">// view initialisation</span>
+var tableView = Titanium.UI.createTableView({<span class="hljs-string">data:</span>array, <span class="hljs-string">style:</span>Titanium.UI.iPhone.TableViewStyle.GROUPED});
+var letterPickerView = Titanium.UI.createView({<span class="hljs-string">height:</span><span class="hljs-number">248</span>,<span class="hljs-string">bottom:</span>-<span class="hljs-number">248</span>});
+var numberPickerView = Titanium.UI.createView({<span class="hljs-string">height:</span><span class="hljs-number">248</span>,<span class="hljs-string">bottom:</span>-<span class="hljs-number">248</span>});
+var comboPickerView = Titanium.UI.createView({<span class="hljs-string">height:</span><span class="hljs-number">248</span>,<span class="hljs-string">bottom:</span>-<span class="hljs-number">248</span>});
+
+
+<span class="hljs-comment">// letter picker initialisation</span>
+var letterPicker = Titanium.UI.createPicker({<span class="hljs-string">top:</span><span class="hljs-number">0</span>});
+letterPicker.selectionIndicator=<span class="hljs-literal">true</span>;
+var letterPickerValues = [
+    Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'A'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'1'</span>}),
+    Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'B'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'2'</span>}),
+    Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'C'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'3'</span>}),
+];
+letterPicker.add(letterPickerValues);
+letterPickerView.add(letterPicker);
+
+<span class="hljs-comment">// number picker initialisation</span>
+var numberPicker = Titanium.UI.createPicker({<span class="hljs-string">top:</span><span class="hljs-number">0</span>});
+numberPicker.selectionIndicator=<span class="hljs-literal">true</span>;
+var numberPickerValues = [
+    Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'1'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'1'</span>}),
+    Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'2'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'2'</span>}),
+    Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'3'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'3'</span>}),        
+];
+numberPicker.add(numberPickerValues);
+numberPickerView.add(numberPicker);
+
+<span class="hljs-comment">// combo picker initialisation</span>
+var comboPicker = Titanium.UI.createPicker({<span class="hljs-string">top:</span><span class="hljs-number">0</span>});
+var col1 = Ti.UI.createPickerColumn({<span class="hljs-string">opacity:</span><span class="hljs-number">0</span>});
+var col2 = Ti.UI.createPickerColumn();
+comboPicker.selectionIndicator=<span class="hljs-literal">true</span>;
+var col1Values = [
+    col1.addRow(Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'A'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'1'</span>})),
+    col1.addRow(Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'B'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'2'</span>})),
+    col1.addRow(Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'C'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'3'</span>})),
+];
+var col2Values = [
+    col2.addRow(Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'1'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'1'</span>})),
+    col2.addRow(Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'2'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'2'</span>})),
+    col2.addRow(Titanium.UI.createPickerRow({<span class="hljs-string">title:</span><span class="hljs-string">'3'</span>,<span class="hljs-string">value:</span><span class="hljs-string">'3'</span>})),
+];
+comboPicker.add([col1,col2]);
+comboPickerView.add(comboPicker);
+
+<span class="hljs-comment">// picker animations</span>
+var slideIn =  Titanium.UI.createAnimation({<span class="hljs-string">bottom:</span>-<span class="hljs-number">43</span>});
+var slideOut =  Titanium.UI.createAnimation({<span class="hljs-string">bottom:</span>-<span class="hljs-number">251</span>});
+
+<span class="hljs-comment">// event functions</span>
+tableView.addEventListener(<span class="hljs-string">'click'</span>, function(eventObject){
+    <span class="hljs-keyword">if</span> (eventObject.rowData.className == <span class="hljs-string">"letterRow"</span>)
+    {
+        comboPickerView.animate(slideOut);
+        numberPickerView.animate(slideOut);    
+        letterPickerView.animate(slideIn);        
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (eventObject.rowData.className == <span class="hljs-string">"numberRow"</span>)
+    {
+        letterPickerView.animate(slideOut);
+        comboPickerView.animate(slideOut);
+        numberPickerView.animate(slideIn);    
+    }
+
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (eventObject.rowData.className == <span class="hljs-string">"comboRow"</span>)
+    {
+        letterPickerView.animate(slideOut);
+        numberPickerView.animate(slideOut);    
+        comboPickerView.animate(slideIn);
+    };
+});
+
+var letter;
+var number;
+var combo;
+
+<span class="hljs-comment">//combo picker selection</span>
+comboPicker.addEventListener(<span class="hljs-string">'change'</span>,function(e)
+{
+    letter = comboPicker.getSelectedRow(<span class="hljs-number">0</span>).title;
+    letterValue.text = letter;
+    letterPicker.setSelectedRow(<span class="hljs-number">0</span>,letter-<span class="hljs-number">1</span>);
+
+    number = comboPicker.getSelectedRow(<span class="hljs-number">1</span>).title;
+    numberValue.text = number;
+    numberPicker.setSelectedRow(<span class="hljs-number">0</span>,number-<span class="hljs-number">1</span>);
+
+    combo = letter + <span class="hljs-string">":"</span> + number;
+    comboValue.text = combo;
+
+    tableView.setData(array);
+});
+
+<span class="hljs-comment">// build display</span>
+win.add(tableView);
+win.add(letterPickerView);
+win.add(numberPickerView);
+win.add(comboPickerView);
+</code></pre></p>
+										<div class="author">
+											&mdash; commented <span title="October 26th 2011, 4:08:02 pm">October 26th 2011</span>
+											by <span class='authorname'>Ian Taylor</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>As I said and shown, you can simply write a function that constructs pickers (like everything else that you want to make reusable).</p>
+<p>Don&#39;t use row&#39;s property &quot;className&quot; for things other than the one it was intended to be used. &quot;className&quot; property is used to group rows with same layouts, so if you have rows with pickers, you should use same class name for them. If you need to identify particular row, use some other property (id, or some custom name for property).</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 27th 2011, 5:40:20 am">October 27th 2011</span>
+											by <span class='authorname'>Ivan Škugor</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221766">
+				
+						<section>
+							<p>Thanks for the quick answer. I&#39;m not sure how&#x2F;where to implement the app level EventListener, presumably in app.js ? But is this a problem if the various variables in the common app code are defined in a different .js file?</p>
+<p>I tried putting the app level code at the head of the .js file that contains my common app code, but it didn&#39;t work.</p>
+<p>I&#39;ll keep experimenting over the next couple of days.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 24th 2011, 7:48:08 pm">October 24th 2011</span>
+								by <span class='authorname'>Ian Taylor</span><br>
+								<a class="icon-bg icon-link" href="question/127319/using-addeventlistener--fireevent#answer-221766" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221767">
+				
+						<section>
+							<p>Try not to answer you own questions unless you are providing an answer. Use the comment system when responding to a posted answer. </p>
+<p>It doesn&#39;t matter where you create your app level events because you are attaching the event to Ti.App, so anywhere that has access to Ti.App will have access to your event listener. </p>
+<p>Check the custom events section of the Kitchen Sink demo for more on implementing them in your code.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 24th 2011, 7:54:34 pm">October 24th 2011</span>
+								by <span class='authorname'>Anthony Decena</span><br>
+								<a class="icon-bg icon-link" href="question/127319/using-addeventlistener--fireevent#answer-221767" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

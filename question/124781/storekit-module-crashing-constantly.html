@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>StoreKit Module crashing constantly » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>StoreKit Module crashing constantly</h1>
+		</header>
+		<section>
+			<p>Is anyone else experiencing constant crashing from the StoreKit Module?  I am getting &quot;SKProductsRequest handleFinishResponse:returningError&quot; in the crash logs.</p>
+<p>The issue is intermittent. Sometimes I get a valid product array (so I know my app, products, and provisioning profile are all setup correctly), other times it just crashes right after the app opens.  It seems like a timing issue.</p>
+<p>To duplicate the issue, you can use the following code (you will need a valid app id with app store products and the corresponding provisioning profile).</p>
+<p>My environment is as follows: iPhone 4, iOS SDK 4.3, Titanium Studio 1.0.4, Mobile SDK 1.7.2, Mac OS X 10.6.8, Apple StoreKit Module 1.1</p>
+<p>Here is my crash log: <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;1171984">https:&#x2F;&#x2F;gist.github.com&#x2F;1171984</a></p>
+<p>add this to tiapp.xml:</p>
+<pre><code class="hljs"><span class="hljs-tag">&lt;<span class="hljs-title">modules</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">module</span> <span class="hljs-attribute">version</span>=<span class="hljs-value">"1.1"</span>&gt;</span>ti.storekit<span class="hljs-tag">&lt;/<span class="hljs-title">module</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">modules</span>&gt;</span>
+</code></pre><p>app.js</p>
+<pre><code class="hljs"><span class="hljs-comment">// this sets the background color of the master UIView (when there are no windows/tab groups on it)</span>
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+
+<span class="hljs-comment">// In-App purchases</span>
+Titanium.Storekit = Ti.Storekit = <span class="hljs-built_in">require</span>(<span class="hljs-string">'ti.storekit'</span>);
+<span class="hljs-keyword">var</span> storeProducts = [];
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createWindow</span> (<span class="hljs-params">_args</span>) </span>{
+    <span class="hljs-keyword">var</span> win = Ti.UI.createWindow(_args);
+    <span class="hljs-keyword">return</span> win;
+}
+
+<span class="hljs-keyword">var</span> win1 = createWindow({title:<span class="hljs-string">'Window 1'</span>});
+<span class="hljs-keyword">var</span> tab1 = Titanium.UI.createTab({
+    title:<span class="hljs-string">'Tab 1'</span>,
+    <span class="hljs-built_in">window</span>:win1
+});
+
+<span class="hljs-keyword">var</span> win2 = createWindow({title:<span class="hljs-string">'Window 2'</span>});
+<span class="hljs-keyword">var</span> tab2 = Titanium.UI.createTab({
+    title:<span class="hljs-string">'Tab 2'</span>,
+    <span class="hljs-built_in">window</span>:win2
+});
+
+<span class="hljs-keyword">var</span> tabgroup = Titanium.UI.createTabGroup();
+tabgroup.addTab(tab1);
+tabgroup.addTab(tab2);
+
+tabgroup.open();
+
+getStoreProducts = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">_args</span>) </span>{
+    <span class="hljs-keyword">if</span> (_args===<span class="hljs-literal">undefined</span>) {_args={};};
+    storeProducts = []; <span class="hljs-comment">// reset products array</span>
+    <span class="hljs-keyword">if</span> (!Ti.Storekit.canMakePayments) {
+        Ti.API.info(<span class="hljs-string">"Can NOT make payments to in-app purchase store"</span>);
+        <span class="hljs-keyword">if</span> (_args.error) {
+            _args.error({error:<span class="hljs-string">"Cannot make payments to in-app purchase store"</span>});
+        };
+        Ti.UI.createAlertDialog({
+            title:<span class="hljs-string">'Error'</span>,
+            message:<span class="hljs-string">'Cannot make payments to in-app purchase store'</span>
+        }).show();
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">try</span> {
+            Ti.Storekit.requestProducts([<span class="hljs-string">'com.example.myapp.testProduct01'</span>], <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">if</span> (!e.success) {
+                    Ti.API.info(<span class="hljs-string">"Could not get products: "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+                    <span class="hljs-keyword">if</span> (_args.error) {
+                        _args.error(e);
+                    };
+                } <span class="hljs-keyword">else</span> {
+                    storeProducts = e.products;
+                    Ti.App.fireEvent(<span class="hljs-string">'app:store.hasProducts'</span>);
+                    <span class="hljs-keyword">if</span> (_args.success) {
+                        _args.success(e);
+                    };
+                }
+            });
+        } <span class="hljs-keyword">catch</span> (e) {
+            Ti.API.info(<span class="hljs-string">"Ti.Storekit.requestProducts EXCEPTION: "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+        }
+    } <span class="hljs-comment">// END if (!Ti.Storekit.canMakePayments)</span>
+};
+
+win1.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">"Getting store products..."</span>);
+    getStoreProducts({
+        error: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"getStoreProducts ERROR: "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+        },
+        success: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">json</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"getStoreProducts SUCCESS: "</span> + <span class="hljs-built_in">JSON</span>.stringify(json));
+        }
+    });
+    Ti.API.info(<span class="hljs-string">"Simulating some data processing..."</span>);
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.info(<span class="hljs-string">"DONE loading data..."</span>);
+    }, <span class="hljs-number">8000</span>);
+});
+win2.addEventListener(<span class="hljs-string">'focus'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    Ti.API.info(<span class="hljs-string">"Getting store products..."</span>);
+    getStoreProducts({
+        error: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"getStoreProducts ERROR: "</span> + <span class="hljs-built_in">JSON</span>.stringify(e));
+        },
+        success: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">json</span>) </span>{
+            Ti.API.info(<span class="hljs-string">"getStoreProducts SUCCESS: "</span> + <span class="hljs-built_in">JSON</span>.stringify(json));
+        }
+    });
+    Ti.API.info(<span class="hljs-string">"Simulating some data processing..."</span>);
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        Ti.API.info(<span class="hljs-string">"DONE loading data..."</span>);
+    }, <span class="hljs-number">8000</span>);
+});
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 25th 2011, 7:14:44 pm">August 25th 2011</span>
+				by <span class='authorname'>David Knell</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>crash</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+						<li><span class='tagname'>storekit</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>I added a community bug report to track this issue. My app was just approved in the app store and I&#39;m hoping someone has some insight into these crashes.  Thanks!</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 25th 2011, 7:19:03 pm">August 25th 2011</span>
+								by <span class='authorname'>David Knell</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Here&#39;s the ticket I opened - <a href="http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-230">http:&#x2F;&#x2F;jira.appcelerator.org&#x2F;browse&#x2F;TC-230</a></p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="August 25th 2011, 7:54:09 pm">August 25th 2011</span>
+								by <span class='authorname'>David Knell</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>So for your product ID, is it the in-app ID you make, or is it the app id for that app or what?  Appcelerator folks are dropping the ball by not answering…</p>
+<p>Also, is your product &#39;Waiting for Review&#39;?  I have one ready in an update, but I get an error in XCODE when its trying to get the products, saying invalid object or something.  It&#39;s getting to the &#39;success&#39; part though</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 5th 2011, 10:38:47 pm">October 5th 2011</span>
+								by <span class='authorname'>Josh Lewis</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Josh,<br>I was having a lot of problems getting the StoreKit to work also.  Eventually I came across the following blog posts that had a lot of good tips (especially the comments).</p>
+<p><a href="http:&#x2F;&#x2F;troybrant.net&#x2F;blog&#x2F;2010&#x2F;01&#x2F;in-app-purchases-a-full-walkthrough&#x2F;">http:&#x2F;&#x2F;troybrant.net&#x2F;blog&#x2F;2010&#x2F;01&#x2F;in-app-purchases-a-full-walkthrough&#x2F;</a><br><a href="http:&#x2F;&#x2F;troybrant.net&#x2F;blog&#x2F;2010&#x2F;01&#x2F;invalid-product-ids&#x2F;comment-page-1">http:&#x2F;&#x2F;troybrant.net&#x2F;blog&#x2F;2010&#x2F;01&#x2F;invalid-product-ids&#x2F;comment-page-1</a></p>
+<p>As for the product ID, you set that up in the In-App Purchases section of iTunes Connect (see screenshot below). The product id&#39;s you pass to Ti.Storekit.requestProducts has to be EXACTLY what you created in iTunes Connect.  Also another thing that got me was that Ti.Storekit.requestProducts returns a JSON result (in my example above - e), and I was trying to do something like: </p>
+<pre><code class="hljs"><span class="hljs-tag">Ti</span><span class="hljs-class">.API</span><span class="hljs-class">.info</span>(<span class="hljs-tag">e</span><span class="hljs-class">.products</span><span class="hljs-attr_selector">[0]</span>);
+</code></pre><p>but that doesn&#39;t work because those are Ti.Storekit.Product objects.  You have to debug a property of that object: </p>
+<pre><code class="hljs"><span class="hljs-tag">Ti</span><span class="hljs-class">.API</span><span class="hljs-class">.info</span>(<span class="hljs-tag">e</span><span class="hljs-class">.products</span><span class="hljs-attr_selector">[0]</span><span class="hljs-class">.title</span>);
+</code></pre><p><img src="http:&#x2F;&#x2F;dl.dropbox.com&#x2F;u&#x2F;3289523&#x2F;pics&#x2F;misc&#x2F;product_id.jpg" alt="Product ID in iTunes Connect"></p>
+<p>I hope that helps!</p>
+<p>Dave</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 6th 2011, 1:26:53 pm">October 6th 2011</span>
+								by <span class='authorname'>David Knell</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

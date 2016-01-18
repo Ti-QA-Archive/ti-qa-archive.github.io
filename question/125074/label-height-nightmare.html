@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Label height nightmare » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Label height nightmare</h1>
+		</header>
+		<section>
+			<p>Here&#39;s what I&#39;m trying to do: I want to be able to apply padding to auto-height labels, where the label text may change. To do this, I&#39;m wrapping each label in a view, then returning an object that has a &#39;resize&#39; method to adjust the view dimensions to fit the label and thus apply the correct padding.</p>
+<p>The code below demonstrates what I&#39;m trying to do. To provide a clear illustration, I&#39;ve got a red border on the label, and a green border on the view.</p>
+<p>There&#39;s some code in there which responds to device orientation changes by changing the width of the label and calling the resize method of my &#39;paddedLabel&#39; object.</p>
+<p>The problem is that I&#39;m unable to set the width of the auto-height label and then retrieve the new height. There&#39;s a distinct delay between setting the width and getting back a reliable height (more about that after the code). This is on the iOS simulator, by the way.</p>
+<pre><code class="hljs"><span class="hljs-comment">// set the background color of the master UIView</span>
+Titanium.UI.setBackgroundColor(<span class="hljs-string">'#000'</span>);
+
+<span class="hljs-comment">//create win1</span>
+<span class="hljs-keyword">var</span> win1 = Ti.UI.createWindow({  
+    orientationModes: [Titanium.UI.LANDSCAPE_LEFT, 
+        Titanium.UI.LANDSCAPE_RIGHT,
+        Titanium.UI.PORTRAIT,
+        Titanium.UI.UPSIDE_PORTRAIT],
+    backgroundColor:<span class="hljs-string">'#fff'</span>
+});
+
+<span class="hljs-comment">//create padded label</span>
+<span class="hljs-keyword">var</span> labelPadding = <span class="hljs-number">20</span>;
+
+<span class="hljs-keyword">var</span> labelText = <span class="hljs-string">'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed quam nisi, ullamcorper non interdum a, tempus et eros. Sed vitae arcu metus. Donec dignissim nunc id quam posuere pharetra nec condimentum quam. Cras sit amet dui vitae lacus ornare vehicula. Nulla ac dolor vel elit aliquet commodo. Integer accumsan tortor imperdiet nunc fringilla ut tristique erat ornare. Proin purus felis, posuere sit amet malesuada a, fermentum et enim. Mauris nibh augue, bibendum vel interdum ac, facilisis ut eros. Ut vestibulum, tellus feugiat cursus egestas, dui sem ornare diam, vitae lacinia lorem turpis id nisl. Suspendisse a ligula ipsum, non sagittis lorem. Vivamus odio massa, sodales luctus vestibulum eget, malesuada at tortor.'</span>;
+
+<span class="hljs-keyword">var</span> labelProperties = {borderColor: <span class="hljs-string">'#ff0000'</span>, borderWidth: <span class="hljs-number">1</span>, width: <span class="hljs-number">100</span>, height: <span class="hljs-string">'auto'</span>, text: labelText};
+<span class="hljs-keyword">var</span> viewProperties = {borderColor: <span class="hljs-string">'#00ff00'</span>, borderWidth: <span class="hljs-number">1</span>, top: <span class="hljs-number">20</span>, left: <span class="hljs-number">20</span>};
+
+<span class="hljs-keyword">var</span> paddedLabel1 = createPaddedLabel(labelProperties, viewProperties, labelPadding, labelPadding);
+
+<span class="hljs-comment">//add padded label view to window</span>
+win1.add(paddedLabel1.view);
+
+<span class="hljs-comment">//trigger orientation change to set initial label width</span>
+setAppOrientation();
+
+win1.open();
+
+<span class="hljs-comment">//functions to get orientation</span>
+Ti.Gesture.isLandscape = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(orient)</span> </span>{
+    orient = orient || Ti.UI.orientation;
+    <span class="hljs-keyword">return</span> orient == Ti.UI.LANDSCAPE_LEFT || orient == Ti.UI.LANDSCAPE_RIGHT;
+};
+
+Ti.Gesture.isPortrait = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(orient)</span> </span>{
+    orient = orient || Ti.UI.orientation;
+    <span class="hljs-keyword">return</span> orient == Ti.UI.PORTRAIT || orient == Ti.UI.UPSIDE_PORTRAIT;
+};
+
+<span class="hljs-comment">//add orientation change listener</span>
+Ti.Gesture.addEventListener(<span class="hljs-string">'orientationchange'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(e)</span> </span>{
+    setAppOrientation(e);
+});
+
+<span class="hljs-comment">//tweak UI for orientation</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setAppOrientation</span><span class="hljs-params">(orient)</span> </span>{
+
+    <span class="hljs-keyword">if</span> (Ti.Gesture.isLandscape()) {
+        <span class="hljs-comment">//wide</span>
+        paddedLabel1.label.width = <span class="hljs-number">944</span>;
+        paddedLabel1.resize();
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (Ti.Gesture.isPortrait()) {
+        <span class="hljs-comment">//narrow</span>
+        paddedLabel1.label.width = <span class="hljs-number">688</span>;
+        paddedLabel1.resize();    
+    }
+
+}
+
+<span class="hljs-comment">//create label inside a view (to add padding)</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createPaddedLabel</span><span class="hljs-params">(labelProperties, viewProperties, padding_x, padding_y)</span> </span>{
+
+    <span class="hljs-keyword">var</span> returnObject = {}; <span class="hljs-comment">//object that refers to label, containing view and other properties</span>
+
+    <span class="hljs-comment">//create label and view with supplied properties</span>
+    <span class="hljs-keyword">var</span> thisLabel = Ti.UI.createLabel(labelProperties);
+    <span class="hljs-keyword">var</span> thisView = Ti.UI.createView(viewProperties);
+
+    <span class="hljs-comment">//add label to view</span>
+    thisView.add(thisLabel);
+
+    <span class="hljs-comment">//position label</span>
+    thisLabel.left = padding_x;
+    thisLabel.top = padding_y;
+
+    <span class="hljs-comment">//populate return object with useful stuff</span>
+    returnObject.view = thisView;
+    returnObject.label = thisLabel;
+    returnObject.padding_x = padding_x;
+    returnObject.padding_y = padding_y;
+
+    <span class="hljs-comment">//add a 'resize' method to adjust the view size based on new label dimensions</span>
+    returnObject.resize = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+
+        <span class="hljs-keyword">this</span>.view.width  = <span class="hljs-keyword">this</span>.label.width + <span class="hljs-keyword">this</span>.padding_x + <span class="hljs-keyword">this</span>.padding_x;
+        <span class="hljs-keyword">this</span>.view.height = <span class="hljs-keyword">this</span>.label.height + <span class="hljs-keyword">this</span>.padding_y + <span class="hljs-keyword">this</span>.padding_y;
+
+        Ti.API.info(<span class="hljs-string">'label height: '</span> + <span class="hljs-keyword">this</span>.label.height + <span class="hljs-string">" , view height: "</span> + <span class="hljs-keyword">this</span>.view.height);
+
+    }
+
+    <span class="hljs-comment">//size view around label</span>
+    returnObject.resize();
+
+    <span class="hljs-keyword">return</span> returnObject;        
+}
+</code></pre><p>As you&#39;ll see if you try it, the label height is never correctly determined, so the wrapper view is not correctly resized.</p>
+<p>After some trial and error, I tried the following code:</p>
+<p>First, a new function:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">resizePaddedLabel</span><span class="hljs-params">(labelObject, newWidth)</span> </span>{
+    labelObject.label.width = newWidth;
+    <span class="hljs-keyword">var</span> delay = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ labelObject.resize(); };
+    setTimeout(delay, <span class="hljs-number">100</span>);
+}
+</code></pre><p>This calls the resize method of my label object after a delay of 100ms.</p>
+<p>I modified the setAppOrientation function as follows:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setAppOrientation</span><span class="hljs-params">(orient)</span> </span>{
+
+    <span class="hljs-keyword">if</span> (Ti.Gesture.isLandscape()) {
+        <span class="hljs-comment">//wide</span>
+        resizePaddedLabel(paddedLabel1, <span class="hljs-number">944</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (Ti.Gesture.isPortrait()) {
+        <span class="hljs-comment">//narrow</span>
+        resizePaddedLabel(paddedLabel1, <span class="hljs-number">688</span>);
+    }
+
+}
+</code></pre><p>While this change appears to work most of the time, it gets increasingly unstable (random misreporting of label height) as I decrease the timeout period, and I&#39;m concerned that it may not be a workable solution for a more complicated UI.</p>
+<p>Can anyone suggest a solution to my problems?</p>
+<p>If it helps, I&#39;m planning to use these padded labels to give me lots of control over a TableView that gets resized when the orientation changes.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 2nd 2011, 9:22:16 am">September 2nd 2011</span>
+				by <span class='authorname'>Phil Piper</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>label</span></li>
+					
+						<li><span class='tagname'>orientation</span></li>
+					
+						<li><span class='tagname'>padding</span></li>
+					
+						<li><span class='tagname'>settimeout</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>1</span> Answer</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>1 Answer</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-218008">
+				
+						<section>
+							<p>I tried your code and getting the same issues you described, both on 1.7.2 and 1.8.0 CI builds.</p>
+<p>What&#39;s worth noting is that you should only be checking sizes of objects when they are actually laid out and displayed on the screen (e.g. in the window open event) since sizes can&#39;t be determined for a layout that hasn&#39;t been created and displayed yet.</p>
+<p>This might also explain why you are getting weird sizes after device orientation changes - and why you can make it work by adding a short delay.</p>
+<p>If you only need a moderate amount of these labels inside a tableview, one solution would be to simply stop using this approach at the moment and use non-editable TextFields, because you can set the text padding for them.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 2nd 2011, 10:08:25 am">September 2nd 2011</span>
+								by <span class='authorname'>Goran Skledar</span><br>
+								<a class="icon-bg icon-link" href="question/125074/label-height-nightmare#answer-218008" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks Goran</p>
+<p>I&#39;d thought about TextFields, but it appears that there&#39;s no property for the top or bottom padding, unless the documentation is incomplete.</p>
+<p>I suppose another solution would be a keep track of all of my &#39;paddedLabel&#39; objects, then do the resizing once for the whole lot of them. Then at least I only need one timer. It&#39;s kind of a shame there&#39;s no event that gets triggered whenever a window is redrawn.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 2nd 2011, 10:31:03 am">September 2nd 2011</span>
+											by <span class='authorname'>Phil Piper</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>-1</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

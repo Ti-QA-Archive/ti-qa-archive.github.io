@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Is Ti.Include in its own context in SDK 1.8? » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Is Ti.Include in its own context in SDK 1.8?</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been using a custom iOS module that I have written since SDK 1.7.2.</p>
+<p>To keep my JS code clean, I broke my code up into multiple JS files and use Ti.Include in the app.js to link them all together.</p>
+<p>Variables are declared in each JS file and are expected to be used in other JS files if needed.</p>
+<p>Here&#39;s an example (simplified and modified, but the same concept) of the code:</p>
+<pre><code class="hljs">**data.js**
+<span class="hljs-keyword">var</span> data = {};
+<span class="hljs-keyword">var</span> mod = <span class="hljs-keyword">require</span>(<span class="hljs-string">'custom.module'</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">initdata</span><span class="hljs-params">()</span>
+</span>{
+    data.object1 = mod.createObject1();
+    data.object2 = mod.createObject2();
+}
+
+
+**process.js**
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">runProcess</span><span class="hljs-params">()</span>
+</span>{
+    alert(data.object1.getTextForSomething());
+}
+
+
+**app.js**
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'data.js'</span>);
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'process.js'</span>);
+
+initdata();
+someButton.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span> </span>{
+    runProcess();
+});
+</code></pre><p>This works when I compile it under SDK 1.7.5, where the runProcess will prompt the item as expected.</p>
+<p>However, when I compile under SDK 1.8.0.1, it seems that object1 and object2 are being released at the end of the initdata function. I added a log message to the dealloc function of my objects to find this out.</p>
+<p>On SDK 1.7.5 the objects do not get released at the end of the initdata function.</p>
+<p>My only assumption as to why this happens due to context differences is because the 1.8.0.1 change notes states some context changes with the require function. </p>
+<p>Is this something I need to change on the module side or the JS side of things?</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 24th 2011, 1:31:09 am">December 24th 2011</span>
+				by <span class='authorname'>MunHon Chan</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>1.8</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>module</span></li>
+					
+						<li><span class='tagname'>sdk</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-225998">
+				
+						<section>
+							<p>It seems that you need to change on module side.<br>Check below code you would see why :)</p>
+<pre><code class="hljs">**data.js**
+<span class="hljs-keyword">var</span> data = {};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">initdata</span><span class="hljs-params">()</span>
+</span>{
+    data.object1 = {textForSomething: <span class="hljs-string">'Hello'</span>};
+}
+
+**process.js**
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">runProcess</span><span class="hljs-params">()</span>
+</span>{
+    alert(data.object1.textForSomething);
+}
+
+**app.js**
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'data.js'</span>);
+Ti.<span class="hljs-keyword">include</span>(<span class="hljs-string">'process.js'</span>);
+
+<span class="hljs-keyword">var</span> win = Ti.UI.createWindow();
+<span class="hljs-keyword">var</span> btn = Ti.UI.createButton({
+    title: <span class="hljs-string">'Click Me'</span>
+}); 
+
+win.add(btn);
+win.open();
+
+initdata();
+btn.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    runProcess();    
+});
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 24th 2011, 9:53:57 am">December 24th 2011</span>
+								by <span class='authorname'>Minh Nguyen</span><br>
+								<a class="icon-bg icon-link" href="question/129814/is-tiinclude-in-its-own-context-in-sdk-18#answer-225998" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hmm.. that&#39;s not how my module works =). textForSomething is a function for the module that should return some value to me after it processes several things on its own.</p>
+<p>However, the problem of 1.8.0.1 is that object1 no longer exists (since its been released) by the time I call runProcess.</p>
+<p>While in 1.7 SDKs, I can retrieve the value since object1 is still available.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 26th 2011, 12:31:54 am">December 26th 2011</span>
+											by <span class='authorname'>MunHon Chan</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-226431">
+				
+						<section>
+							<p>Found the problem due to a threading issue in my module. TiProxy class in 1.8.0.1 no longer supports the function _propertyInitRequiresUIThread, so my internal objects were created and retained in the wrong sequence.</p>
+<pre><code class="hljs">- (<span class="hljs-built_in">BOOL</span>) _propertyInitRequires<span class="hljs-built_in">UIThread</span>
+{
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">YES</span>;
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 30th 2011, 4:46:29 pm">December 30th 2011</span>
+								by <span class='authorname'>MunHon Chan</span><br>
+								<a class="icon-bg icon-link" href="question/129814/is-tiinclude-in-its-own-context-in-sdk-18#answer-226431" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

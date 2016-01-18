@@ -1,0 +1,516 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>How to create a generic image cache (sample code) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>How to create a generic image cache (sample code)</h1>
+		</header>
+		<section>
+			<p>I&#39;ve been using file-based image caching in my Titanium apps for some time and thought it would be useful to others if I shared some of this work. I&#39;ve seen other, recent, posts on the topic so I went about creating a GenericImageCache object that can easily be incorporated into your Titanium applications. The code is below. Copy it into any file in your project. I saved mine into a file named <code>image_cache.js</code> and include it in my project with a line like <code>Ti.include(&amp;#39;&amp;#x2F;utility&amp;#x2F;image_cache.js&amp;#39;);</code> (note: I have a subdirectory for all my utility classes).</p>
+<p>Here&#39;s an example of using my GenericImageCacheObject. In this example I&#39;m attempting to see if I&#39;ve already captured and saved the GIF image stored on my web server. If I detect that the image is in my cache the GenericImageCache object will return a local URL. If the image isn&#39;t in my cache the URL passed to my createImageView request will be the full, external URL - and an event handler will detect when it has been loaded. From there we&#39;ll capture its bytes and store them into the cache using the save() method.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> temp_image_url = <span class="hljs-string">'http://www.eyejot.com/images/logos/eyejot_logo_225x236.gif'</span>;
+<span class="hljs-keyword">var</span> cache_name = <span class="hljs-string">'eyejot_logo'</span>;
+<span class="hljs-keyword">if</span> (GenericImageCache.isCached (cache_name)){
+    temp_image_url = GenericImageCache.getNativeURL (cache_name);
+}
+
+<span class="hljs-keyword">var</span> profile_photo = Ti.UI.createImageView({ image: temp_image_url, top: <span class="hljs-number">75</span>, left: <span class="hljs-number">30</span>, width: <span class="hljs-number">225</span>, height: <span class="hljs-number">236</span> });
+
+<span class="hljs-comment">// -----------------------------------------------------------------------------</span>
+<span class="hljs-comment">// if we had to load the image, listen for it to complete, then add to cache</span>
+<span class="hljs-comment">// -----------------------------------------------------------------------------</span>
+profile_photo.addEventListener(<span class="hljs-string">'load'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (!GenericImageCache.isCached (cache_name)) {
+        <span class="hljs-keyword">var</span> image_blob = profile_photo.toBlob();
+        GenericImageCache.save (cache_name, image_blob);
+    }
+});
+</code></pre><p>Here&#39;s the source code to the GenericImageCacheObject. Please note that I use another class for logging. Ignore references to Logger.log or simply replace them with <code>Ti.API.info</code> or your own logging utility function. I&#39;m sort or new to Titanium and Javascript. So, I would, as I&#39;m sure the community would, welcome any suggestions or tips. As noted in the code, you&#39;re free to do whatever you like with this code. But, if you end up using it and we meet at Codestrong I&#39;d love to hear all about your project.</p>
+<pre><code class="hljs"><span class="hljs-comment">/**
+ * GenericImageCache for Titanium
+ *
+ * Author: David Geller
+ *
+ * Copyright (C) 2011.
+ *
+ * License: You may use or modify this code free without any attribution to its author whatsoever
+ */</span>
+GenericImageCache = {};
+
+GenericImageCache.on = <span class="hljs-keyword">true</span>;                <span class="hljs-comment">// enable/disable cache functionality</span>
+GenericImageCache.SUB_DIR_NAME = <span class="hljs-string">"gic/"</span>;
+GenericImageCache.DIRECTORY = Titanium.Filesystem.applicationDataDirectory + GenericImageCache.SUB_DIR_NAME;
+
+<span class="hljs-comment">/**
+ * Is our image cached? Easy to check. Just look for the file
+ * and if it's there - we've got our answer!
+ * <span class="hljs-doctag">@param</span> {Object} name
+ */</span>
+GenericImageCache.isCached = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (!GenericImageCache.on) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+    }
+
+    Logger.log (<span class="hljs-string">"[image_cache.js] Looking for profile file named: "</span> + (GenericImageCache.DIRECTORY + name) + <span class="hljs-string">"..."</span>);
+    <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(GenericImageCache.DIRECTORY, name);
+    <span class="hljs-keyword">return</span> f.exists();
+};
+
+<span class="hljs-comment">/**
+ * Return File object to our cached file
+ * 
+ * <span class="hljs-doctag">@param</span> {Object} sender_guid
+ */</span>
+GenericImageCache.getFile = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name)</span>
+</span>{
+    <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(GenericImageCache.DIRECTORY, name);
+    <span class="hljs-keyword">return</span> f;
+};
+
+<span class="hljs-comment">/**
+ * Return the nativePath to our cached file, which can be used
+ * in the url item for an imageView
+ * 
+ * <span class="hljs-doctag">@param</span> {Object} sender_guid
+ */</span>
+GenericImageCache.getNativeURL = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name)</span>
+</span>{
+    <span class="hljs-keyword">var</span> f = GenericImageCache.getFile (name);
+    <span class="hljs-keyword">return</span> f.nativePath;
+};
+
+<span class="hljs-comment">/**
+ * Allow users to specify a subdirectory to be created and used off
+ * applicationDataDirectory. By default this class will use "gic" for GenericImageCache
+ */</span>
+GenericImageCache.setDirectory = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name)</span>
+</span>{
+    <span class="hljs-keyword">var</span> dir_name = (name.charAt (name.length - <span class="hljs-number">1</span>) != <span class="hljs-string">'/'</span>) ? (name + <span class="hljs-string">'/'</span>) : name;
+
+    GenericImageCache.SUB_DIR_NAME = dir_name;
+    GenericImageCache.DIRECTORY = Titanium.Filesystem.applicationDataDirectory + GenericImageCache.SUB_DIR_NAME;
+};
+
+<span class="hljs-comment">/**
+ * Does our sub directory we want to use exist?
+ */</span>
+GenericImageCache.directoryExists = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> dir = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,GenericImageCache.SUB_DIR_NAME);
+    <span class="hljs-keyword">var</span> rc = dir.exists();
+
+    Logger.log (<span class="hljs-string">"image_cache.js:directoryExists "</span> + rc);
+
+    <span class="hljs-keyword">return</span> rc;
+};
+
+<span class="hljs-comment">/**
+ * Create our directory if it doesn't alerady exist
+ */</span>
+GenericImageCache.createDirectory = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> dir = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,GenericImageCache.SUB_DIR_NAME);
+    <span class="hljs-keyword">var</span> rc = dir.createDirectory();
+
+    Logger.log (<span class="hljs-string">"image_cache.js:createDirectory "</span> + rc);
+
+    <span class="hljs-keyword">return</span> rc;
+};
+
+<span class="hljs-comment">/**
+ * Save our blob image to cache by writing it to disk
+ * 
+ * <span class="hljs-doctag">@param</span> {Object} sender_guid
+ * <span class="hljs-doctag">@param</span> {Object} blob
+ */</span>
+GenericImageCache.save = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, blob)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (!GenericImageCache.on) {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (!GenericImageCache.directoryExists()) {
+        GenericImageCache.createDirectory ();
+    }
+
+    Logger.log (<span class="hljs-string">"[image_cache.js:saveImage] Saving "</span> + blob.length + <span class="hljs-string">" bytes to "</span> + name + <span class="hljs-string">"..."</span>);
+    <span class="hljs-keyword">var</span> f = Titanium.Filesystem.getFile(GenericImageCache.DIRECTORY, name);
+    f.write (blob);
+};
+
+<span class="hljs-comment">/**
+ * Enumerate the cache directory. Return an array of file names
+ */</span>
+GenericImageCache.enumDirectory = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> dir = Titanium.Filesystem.getFile(Titanium.Filesystem.applicationDataDirectory,GenericImageCache.SUB_DIR_NAME);
+    <span class="hljs-keyword">var</span> listing = dir.getDirectoryListing();
+    <span class="hljs-keyword">return</span> listing;
+};
+
+<span class="hljs-comment">/**
+ * Return the number of items in our cache directory
+ */</span>
+GenericImageCache.itemCount = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">return</span> GenericImageCache.enumDirectory().length;
+};
+
+<span class="hljs-comment">/**
+ * Return the total number of bytes in our cache
+ */</span>
+GenericImageCache.totalBytes = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">var</span> flist = GenericImageCache.enumDirectory();
+    <span class="hljs-keyword">var</span> f;
+    <span class="hljs-keyword">var</span> total_bytes = <span class="hljs-number">0</span>;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; flist.length; i++) {
+        f = Titanium.Filesystem.getFile(GenericImageCache.DIRECTORY, flist[i]);
+        <span class="hljs-keyword">if</span> (f.exists() &amp;&amp; (f.size &gt; <span class="hljs-number">0</span>)) {
+            total_bytes += f.size;
+        }
+    }
+
+    <span class="hljs-keyword">return</span> total_bytes;
+};
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="September 13th 2011, 2:13:53 am">September 13th 2011</span>
+				by <span class='authorname'>David Geller</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>caching</span></li>
+					
+						<li><span class='tagname'>generic image cache</span></li>
+					
+						<li><span class='tagname'>images</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>2 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>Does this have a cache timeout at all? i.e. check for new files after X amount of time?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 13th 2011, 5:48:52 am">September 13th 2011</span>
+								by <span class='authorname'>Mark Beech</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Mark - I didn&#39;t add a timeout feature yet but will do so today and post new code. I&#39;ll have the cache checked using a new utility method. It would be possible to add in a timer to do this automatically but, in most cases, the cache will be accessed between sessions when the app is active.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="September 13th 2011, 1:08:32 pm">September 13th 2011</span>
+								by <span class='authorname'>David Geller</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>5</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-218718">
+				
+						<section>
+							<p>Here&#39;s an additional method to remove cache items older than a specified number of seconds. For example, to remove entries older than an hour you would make a call similar to <code>GenericImageCache.removeOldEntries(3600)</code>.</p>
+<pre><code class="hljs">
+<span class="hljs-comment">/**
+ * Remove all the objects in the cache that were created
+ * more than 'seconds' ago
+ */</span>
+GenericImageCache.removeOldEntries = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">expired_seconds</span>)
+</span>{
+    <span class="hljs-keyword">var</span> now = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span> ();
+    <span class="hljs-keyword">var</span> cache_entry_age_in_seconds;
+    <span class="hljs-keyword">var</span> flist = GenericImageCache.enumDirectory();
+    <span class="hljs-keyword">var</span> f;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; flist.length; i++) {
+
+        <span class="hljs-comment">// get our File object for each enumerate file name in our directory</span>
+        f = Titanium.Filesystem.getFile(GenericImageCache.DIRECTORY, flist[i]);
+
+        <span class="hljs-keyword">if</span> (f.exists()) {
+            <span class="hljs-comment">// calculate the age in seconds of our cache object            </span>
+            cache_entry_age_in_seconds = (now.getTime() - f.createTimestamp())/<span class="hljs-number">1000</span>;
+
+            <span class="hljs-comment">// if our cache entry is older than 'expired_seconds' add it to</span>
+            <span class="hljs-comment">// a list we'll use to delete items later</span>
+            <span class="hljs-keyword">if</span> (cache_entry_age_in_seconds &gt; expired_seconds) {
+                f.deleteFile ();
+            }
+        }
+    }
+};
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 13th 2011, 1:34:19 pm">September 13th 2011</span>
+								by <span class='authorname'>David Geller</span><br>
+								<a class="icon-bg icon-link" href="question/125483/how-to-create-a-generic-image-cache-sample-code#answer-218718" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Excellent stuff. Im just finishing for the day, but will test this out tomorrow and report back</p>
+<p>Thanks!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2011, 1:52:45 pm">September 13th 2011</span>
+											by <span class='authorname'>Mark Beech</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Excellent - since I didn&#39;t actually get to test the expiry code before posting. :) But, the other stuff works well.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 13th 2011, 1:54:16 pm">September 13th 2011</span>
+											by <span class='authorname'>David Geller</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hey David,</p>
+<p>These methods seem more suited to caching 1 or 2 images in a view.</p>
+<p>What would be the best way to implement this on a tableView where each tableViewRow has an image view?</p>
+<p>Thanks</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 14th 2011, 6:06:52 am">September 14th 2011</span>
+											by <span class='authorname'>Mark Beech</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Mark - they seem to work in all the cases I&#39;ve applied them toward. I use the image cache heavily for a table view with custom layout. Each row - of more than 200 - has an image of a message sender. The cache insures that each one is loaded quickly when the table is first drawn. While a normal http get of an external image will, itself, cache, it doesn&#39;t do that between sessions. With image cache my table view springs up even after a cold start of the application - without having to execute and process an external http call. Now, if your images are all app-based (stored with the app), then this may be a moot point. For me, all my images are external.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 14th 2011, 12:44:47 pm">September 14th 2011</span>
+											by <span class='authorname'>David Geller</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks David. I have hundreds of images in various sections of my app that are all loaded remotely.</p>
+<p>I will have a play about with it in a little while.</p>
+<p>The issue i am having at the moment is that the load event doesn&#39;t get fired on an imageView in my Android app (not with your code, just any imageView that has a &#39;load&#39; event listener. The event never fires)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 14th 2011, 1:05:20 pm">September 14th 2011</span>
+											by <span class='authorname'>Mark Beech</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Having just had a bit of a search, it seems the &#39;load&#39; event for imageViews in Android is broken.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="September 14th 2011, 1:26:41 pm">September 14th 2011</span>
+											by <span class='authorname'>Mark Beech</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-218722">
+				
+						<section>
+							<p>Here are some additional constants you can use to delete items older than an hour, day, week, etc. For example, to delete all the items older than a week you could make a call similar to: <code>GenericImageCache.removeOldEntries (GenericImageCache.EXPIRED_TIME_WEEK);</code>.</p>
+<pre><code class="hljs">GenericImageCache.EXPIRED_TIME_HOUR = 3600<span class="hljs-comment">;</span>
+GenericImageCache.EXPIRED_TIME_DAY = 86400<span class="hljs-comment">;</span>
+GenericImageCache.EXPIRED_TIME_WEEK = 604800<span class="hljs-comment">;</span>
+GenericImageCache.EXPIRED_TIME_MONTH = <span class="hljs-number">2419200</span><span class="hljs-comment">;</span>
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 13th 2011, 1:50:06 pm">September 13th 2011</span>
+								by <span class='authorname'>David Geller</span><br>
+								<a class="icon-bg icon-link" href="question/125483/how-to-create-a-generic-image-cache-sample-code#answer-218722" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-269931">
+				
+						<section>
+							<p>do you have your code in GitHub??</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 11th 2013, 8:22:46 pm">October 11th 2013</span>
+								by <span class='authorname'>Russel Cruz</span><br>
+								<a class="icon-bg icon-link" href="question/125483/how-to-create-a-generic-image-cache-sample-code#answer-269931" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>No - the code is all inside this thread.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 13th 2013, 2:16:26 am">October 13th 2013</span>
+											by <span class='authorname'>David Geller</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>https:&#x2F;&#x2F;gist.github.com&#x2F; FTW!!!! Please!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="January 4th 2014, 4:39:05 am">January 4th 2014</span>
+											by <span class='authorname'>Devin Weaver</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-273542">
+				
+						<section>
+							<p>I&#39;d like to offer an alternative. https:&#x2F;&#x2F;github.com&#x2F;sukima&#x2F;TiCachedImages is my reinvention of a caching library. It&#39;s a drop in JS file you can place in <code>Resources</code> or <code>app&amp;#x2F;lib</code>.</p>
+<h3 id="features-">Features:</h3>
+<ul>
+<li>Ability to clear out expired files</li>
+<li>Returns a Promise&#x2F;A+ compatible API</li>
+<li>Throttling of downloads (prevents possible DoS attacks)</li>
+<li>Progress notifications</li>
+</ul>
+<h3 id="example-">Example:</h3>
+<pre><code class="hljs">var FileLoader = <span class="hljs-built_in">require</span>(<span class="hljs-string">"file_loader"</span>);
+var i = Ti.UI.createImageView();
+FileLoader.download(<span class="hljs-string">"http://example.com/image.png"</span>)
+    .<span class="hljs-keyword">then</span>(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(file)</span></span> {
+        i.image = file.getFile();
+        Ti.API.info(
+            (file.downloaded ? <span class="hljs-string">"Downloaded"</span> : <span class="hljs-string">"Loaded from cache"</span>) +
+            <span class="hljs-string">" file loaded: "</span> + file.getPath()
+        );
+    })
+    .fail(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(error)</span></span> {
+        Ti.API.<span class="hljs-built_in">error</span>(<span class="hljs-string">"Something went wrong: "</span> + (<span class="hljs-built_in">error</span>.message || <span class="hljs-built_in">error</span>));
+    });
+</code></pre><p>Hope others find it useful.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="January 7th 2014, 1:46:11 am">January 7th 2014</span>
+								by <span class='authorname'>Devin Weaver</span><br>
+								<a class="icon-bg icon-link" href="question/125483/how-to-create-a-generic-image-cache-sample-code#answer-273542" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

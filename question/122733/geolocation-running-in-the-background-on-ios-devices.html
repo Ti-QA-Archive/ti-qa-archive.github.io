@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Geolocation running in the background on iOS devices » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Geolocation running in the background on iOS devices</h1>
+		</header>
+		<section>
+			<p>Hi. I have spent a few days trying to find the answer to this but the posts all seem to conflict and there is no definitive answer.</p>
+<p>Basically, I want to build an app that captures a users location every 5 minutes. I&#39;m using 1.7.1 and targeting iPhones initially.</p>
+<p>I&#39;m hoping somebody can provide a definitive answer. Can I run the geo-location service in the background - when the phone is in sleep mode or the user has started using another app?</p>
+<p>If so, can the location be posted to a web service when it is captured or does it have to be stored on the device (in a db) and then sent when the user next accesses the app?</p>
+<p>Any help on this is appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 18th 2011, 11:36:11 am">July 18th 2011</span>
+				by <span class='authorname'>Andrew Mills</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>background</span></li>
+					
+						<li><span class='tagname'>geolocation</span></li>
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>3</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>3 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-213515">
+				
+						<section>
+							<p>I implemented such a mechanism by setting up a combination of a setInterval&#x2F;setTimeout in the background and two fireEvent calls to add and remove the geolocation event listener</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> locationCallback = function(<span class="hljs-keyword">e</span>){
+        <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">e</span>.success || <span class="hljs-keyword">e</span>.<span class="hljs-keyword">error</span>)
+        {
+
+            Ti.API.info('Code translation: '+translateErrorCode(<span class="hljs-keyword">e</span>.code));
+            <span class="hljs-keyword">return</span>;
+        }
+
+        <span class="hljs-keyword">var</span> longitude = <span class="hljs-keyword">e</span>.coords.longitude;
+        <span class="hljs-keyword">var</span> latitude = <span class="hljs-keyword">e</span>.coords.latitude;
+        <span class="hljs-keyword">var</span> altitude = <span class="hljs-keyword">e</span>.coords.altitude;
+        <span class="hljs-keyword">var</span> heading = <span class="hljs-keyword">e</span>.coords.heading;
+        <span class="hljs-keyword">var</span> accuracy = <span class="hljs-keyword">e</span>.coords.accuracy;
+        <span class="hljs-keyword">var</span> speed = <span class="hljs-keyword">e</span>.coords.speed;
+        <span class="hljs-keyword">var</span> timestamp = <span class="hljs-keyword">e</span>.coords.timestamp;
+        <span class="hljs-keyword">var</span> altitudeAccuracy = <span class="hljs-keyword">e</span>.coords.altitudeAccuracy;
+
+        currentTimestamp = timestamp;
+        currentLongitude = longitude;
+        currentLatitude = latitude;
+        currentAccuracy = accuracy;
+        labelNotes5.text = 'GPS accuracy: ' + currentAccuracy;
+};
+
+Ti.<span class="hljs-keyword">App</span>.addEventListener('startGPS', function(<span class="hljs-keyword">e</span>){
+    Titanium.Geolocation.addEventListener('location', locationCallback);
+});
+
+Ti.<span class="hljs-keyword">App</span>.addEventListener('stopGPS', function(<span class="hljs-keyword">e</span>){
+    Titanium.Geolocation.removeEventListener('location', locationCallback);    
+});
+</code></pre><p>I stop the GPS when the application gets a pause event and use the setInterval to turn it back on every 9 min and keep it on for 2 mins before shutting it back off through setTimeout. The mechanism worked great (with no significant battery problems) until I moved to 1.7 and beyond.</p>
+<p>I cannot understand what has changed after 1.7 that creates this discrepancy. In the iPhone Simulator all necessary events seem to be working fine. Unfortunately the application does not work properly on the device.</p>
+<p>For the record I have tried putting the </p>
+<p>Any ideas?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 18th 2011, 2:16:58 pm">July 18th 2011</span>
+								by <span class='authorname'>Dev Team Mobiltron</span><br>
+								<a class="icon-bg icon-link" href="question/122733/geolocation-running-in-the-background-on-ios-devices#answer-213515" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I don&#39;t know what&#39;s wrong but many things that worked fine in 1.6.2 are causing a problem in 1.7.0 and beyond. One of them was related to my previous comment for the mechanism not working in 1.7.0. I tried removing an extra call of</p>
+<pre><code class="hljs">Titanium.Geolocation.addEventListener(<span class="hljs-string">'location'</span>, locationCallback);
+</code></pre><p>I had and the mechanism seems to be responding again properly.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 18th 2011, 2:35:51 pm">July 18th 2011</span>
+											by <span class='authorname'>Dev Team Mobiltron</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Hi, </p>
+<p>I&#39;ve tried use your example here, but I&#39;m having a little trouble understanding what you needed to remove to get your mechanism responding again.  If you could shed some light on this for me that would be great.</p>
+<p>And just checking that I&#39;ve understood your example correctly; you put a set interval in the bg_service.js to turn the GPS mechanism (in the main app.js) on and off?</p>
+<p>Thanks very much, Matt.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 12th 2011, 8:40:28 am">December 12th 2011</span>
+											by <span class='authorname'>Matthew Marsland</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-213491">
+				
+						<section>
+							<p>i believe the correct implementation is with signifigantlocationChange, which is not currently supported in the Appcelerator Framework. I believe any other implementation will drain your battery quickly and upset your users.</p>
+<p><a href="http:&#x2F;&#x2F;developer.apple.com&#x2F;library&#x2F;ios&#x2F;#DOCUMENTATION&#x2F;iPhone&#x2F;Conceptual&#x2F;iPhoneOSProgrammingGuide&#x2F;BackgroundExecution&#x2F;BackgroundExecution.html">Tracking the User’s Location from Apple iOS Documentation</a></p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 18th 2011, 12:10:02 pm">July 18th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span><br>
+								<a class="icon-bg icon-link" href="question/122733/geolocation-running-in-the-background-on-ios-devices#answer-213491" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Does anybody know if (and when) there are plans to implement signifigantlocationChange in the Appcelerator Framework?</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 18th 2011, 1:47:29 pm">July 18th 2011</span>
+											by <span class='authorname'>Andrew Mills</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-213508">
+				
+						<section>
+							<p>I implemented this on an Android device using a background service.  It was pretty useless as it drain the battery in no time at all.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 18th 2011, 1:37:38 pm">July 18th 2011</span>
+								by <span class='authorname'>John Olmstead</span><br>
+								<a class="icon-bg icon-link" href="question/122733/geolocation-running-in-the-background-on-ios-devices#answer-213508" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

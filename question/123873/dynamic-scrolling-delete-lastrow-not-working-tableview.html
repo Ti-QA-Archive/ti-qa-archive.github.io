@@ -1,0 +1,315 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Dynamic Scrolling, Delete lastRow not working (Tableview) » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Dynamic Scrolling, Delete lastRow not working (Tableview)</h1>
+		</header>
+		<section>
+			<p>Here is all the code that I am using from the Kitchen sink example. The issue is that it does not delete the last row which says &#39;Loading&#39;, and so knocks the index out by 1. Any ideas.</p>
+<p>Variables are all declared either locally or globally. This is on iOS 4.2.1 and latest versions of Titanium Studio</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">serviceResponse</span>(<span class="hljs-params"></span>) </span>{
+
+    Ti.API.info(<span class="hljs-keyword">this</span>.responseText);
+
+    <span class="hljs-comment">//Parse the JSON</span>
+    <span class="hljs-keyword">try</span> {
+        Ti.API.info(<span class="hljs-string">"JSON parse ok"</span>);
+        venues = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-keyword">this</span>.responseText);
+    } <span class="hljs-keyword">catch</span> (e) {
+        hideIndicator();
+        Ti.API.info(<span class="hljs-string">"JSON parse failed"</span>);
+        failureMessage.message = <span class="hljs-string">"Fatal error, please close the application and try again later"</span>;
+        failureMessage.show();
+    }
+
+    <span class="hljs-keyword">if</span> (!venues) {
+        hideIndicator();
+        Ti.API.info(<span class="hljs-string">'Response status false'</span>);
+        actInd.hide();
+        failureMessage.message = <span class="hljs-string">"Sorry there are no venues in this area"</span>;
+        failureMessage.show();
+
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i <span class="hljs-keyword">in</span> venues) {
+        Ti.API.info(<span class="hljs-string">"Parsing Venue"</span>);
+        <span class="hljs-keyword">if</span> (i &gt; lastRow) {
+            <span class="hljs-keyword">break</span>;
+        }
+
+        row = Ti.UI.createTableViewRow({
+            height:<span class="hljs-number">35</span>,
+            backgroundColor:<span class="hljs-string">'#FFFFFF'</span>,
+            selectedBackgroundColor:<span class="hljs-string">'#dddddd'</span>
+        });
+
+        <span class="hljs-keyword">var</span> venueName = Ti.UI.createLabel({
+            text: venues[i].venue.name,
+            color: <span class="hljs-string">'#000000'</span>,
+            textAlign:<span class="hljs-string">'left'</span>,
+            left:<span class="hljs-number">10</span>,
+            top:<span class="hljs-number">2</span>,
+            height:<span class="hljs-number">18</span>,
+            font: {
+                fontWeight:<span class="hljs-string">'bold'</span>,
+                fontSize:<span class="hljs-number">13</span>
+            }
+        });
+        Ti.API.info(venues[i].venue.name);
+        row.add(venueName);
+
+        tableData[i] = row;
+
+        <span class="hljs-keyword">var</span> tableview = Titanium.UI.createTableView({
+            data:tableData,
+            style:Titanium.UI.iPhone.TableViewStyle.GROUPED,
+            headerTitle:<span class="hljs-string">'Venues Near You'</span>
+        });
+
+        Titanium.UI.currentWindow.add(tableview);
+
+        tableview.addEventListener(<span class="hljs-string">'scroll'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">var</span> offset = e.contentOffset.y;
+            <span class="hljs-keyword">var</span> height = e.size.height;
+            <span class="hljs-keyword">var</span> total = offset + height;
+            <span class="hljs-keyword">var</span> theEnd = e.contentSize.height;
+            <span class="hljs-keyword">var</span> distance = theEnd - total;
+
+            <span class="hljs-comment">// going down is the only time we dynamically load,</span>
+            <span class="hljs-comment">// going up we can safely ignore -- note here that</span>
+            <span class="hljs-comment">// the values will be negative so we do the opposite</span>
+            <span class="hljs-keyword">if</span> (distance &lt; lastDistance) {
+                <span class="hljs-comment">// adjust the % of rows scrolled before we decide to start fetching</span>
+                <span class="hljs-keyword">var</span> nearEnd = theEnd * <span class="hljs-number">.75</span>;
+
+                <span class="hljs-keyword">if</span> (!updating &amp;&amp; (total &gt;= nearEnd)) {
+                    beginUpdate();
+                }
+            }
+            lastDistance = distance;
+        });
+        tableview.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+            <span class="hljs-keyword">var</span> index = e.index;
+            <span class="hljs-keyword">var</span> section = e.section;
+            <span class="hljs-keyword">var</span> row = e.row;
+            <span class="hljs-keyword">var</span> rowdata = e.rowData;
+
+            <span class="hljs-keyword">var</span> venueDetails = Titanium.UI.createWindow({
+                url:<span class="hljs-string">'kfVenueDetails.js'</span>
+            });
+            <span class="hljs-keyword">var</span> venueName = venues[e.index].venue.name;
+            <span class="hljs-keyword">var</span> venueAddress1 = venues[e.index].venue.address1;
+            <span class="hljs-keyword">var</span> venueCity = venues[e.index].venue.city;
+            <span class="hljs-keyword">var</span> venuePostCode = venues[e.index].venue.postcode;
+            <span class="hljs-keyword">var</span> venuePhone = venues[e.index].venue.phone;
+            <span class="hljs-keyword">var</span> venueEmail = venues[e.index].venue.email;
+            <span class="hljs-keyword">var</span> venueID = venues[e.index].venue.id
+            <span class="hljs-keyword">var</span> venueLong = venues[e.index].venue.longitude;
+            <span class="hljs-keyword">var</span> venueLat = venues[e.index].venue.latitude;
+
+            venueDetails.venueName = venueName;
+            venueDetails.venueAddress1 = venueAddress1;
+            venueDetails.venueCity = venueCity;
+            venueDetails.venuePostCode = venuePostCode;
+            venueDetails.venuePhone = venuePhone;
+            venueDetails.venueEmail = venueEmail;
+            venueDetails.venueID = venueID;
+            venueDetails.venueLong = venueLong;
+            venueDetails.venueLat = venueLat;
+
+            Titanium.UI.currentTab.open(venueDetails, {
+                animated:<span class="hljs-literal">true</span>
+            });
+        });
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">beginUpdate</span>(<span class="hljs-params"></span>) </span>{
+        updating = <span class="hljs-literal">true</span>;
+        navActInd.show();
+
+        tableview.appendRow(loadingRow);
+
+        <span class="hljs-comment">// just mock out the reload</span>
+        setTimeout(endUpdate,<span class="hljs-number">2000</span>);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">endUpdate</span>(<span class="hljs-params"></span>) </span>{
+        updating = <span class="hljs-literal">false</span>;
+
+        tableview.deleteRow(lastRow, {
+
+        });
+
+        <span class="hljs-comment">// simulate loading</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=lastRow;i&lt;lastRow+<span class="hljs-number">10</span>;i++) {
+            row = Ti.UI.createTableViewRow({
+                height:<span class="hljs-number">35</span>,
+                backgroundColor:<span class="hljs-string">'#FFFFFF'</span>,
+                selectedBackgroundColor:<span class="hljs-string">'#dddddd'</span>
+            });
+
+            <span class="hljs-keyword">var</span> venueName = Ti.UI.createLabel({
+                text: venues[i].venue.name,
+                color: <span class="hljs-string">'#000000'</span>,
+                textAlign:<span class="hljs-string">'left'</span>,
+                left:<span class="hljs-number">10</span>,
+                top:<span class="hljs-number">2</span>,
+                height:<span class="hljs-number">18</span>,
+                font: {
+                    fontWeight:<span class="hljs-string">'bold'</span>,
+                    fontSize:<span class="hljs-number">13</span>
+                }
+            });
+            Ti.API.info(venues[i].venue.name);
+            row.add(venueName);
+
+            tableData[i] = row;
+
+            tableview.appendRow(row);
+        }
+        lastRow += <span class="hljs-number">10</span>;
+
+        <span class="hljs-comment">// just scroll down a bit to the new rows to bring them into view</span>
+        tableview.scrollToIndex(lastRow-<span class="hljs-number">9</span>, {
+            animated:<span class="hljs-literal">true</span>,
+            position:Ti.UI.iPhone.TableViewScrollPosition.BOTTOM
+        });
+
+        navActInd.hide();
+    }
+    }
+    hideIndicator();
+
+
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="August 7th 2011, 2:26:26 pm">August 7th 2011</span>
+				by <span class='authorname'>Justin Howard</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>dynamic scrolling</span></li>
+					
+						<li><span class='tagname'>ios</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-215865">
+				
+						<section>
+							<p>Anyone able to help?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="August 8th 2011, 4:19:31 pm">August 8th 2011</span>
+								by <span class='authorname'>Justin Howard</span><br>
+								<a class="icon-bg icon-link" href="question/123873/dynamic-scrolling-delete-lastrow-not-working-tableview#answer-215865" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-243632">
+				
+						<section>
+							<p>Hey Justin, if what you want is to simply delete the last row of your table view (the &quot;Loading&quot; row) this is what you should do:</p>
+<pre><code class="hljs"><span class="hljs-tag">tableview</span><span class="hljs-class">.deleteRow</span>(<span class="hljs-tag">tableView</span><span class="hljs-class">.data</span><span class="hljs-attr_selector">[0]</span><span class="hljs-class">.rowCount-1</span>,<span class="hljs-rules">{<span class="hljs-rule"><span class="hljs-attribute">animationStyle</span>:<span class="hljs-value">Titanium.UI.iPhone.RowAnimationStyle.NONE</span></span></span>});
+</code></pre><p>This line:</p>
+<pre><code class="hljs"><span class="hljs-tag">tableView</span><span class="hljs-class">.data</span><span class="hljs-attr_selector">[0]</span><span class="hljs-class">.rowCount-1</span>
+</code></pre><p>gives you the last index of your table view.<br>Cheers!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 23rd 2012, 4:17:04 pm">July 23rd 2012</span>
+								by <span class='authorname'>Carlos Ramirez</span><br>
+								<a class="icon-bg icon-link" href="question/123873/dynamic-scrolling-delete-lastrow-not-working-tableview#answer-243632" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

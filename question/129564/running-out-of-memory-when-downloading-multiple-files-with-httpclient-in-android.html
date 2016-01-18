@@ -1,0 +1,758 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Running out of memory when downloading multiple files with httpclient in Android » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Running out of memory when downloading multiple files with httpclient in Android</h1>
+		</header>
+		<section>
+			<p>There is a lot of posts about this issue around around the forum and I have looked at ALL of them, but I still get the same result</p>
+<p>I have created a downloadQueue of urls and am using it to download files with the httpclient.  Each file in the downloadQueue is is sent the the httpclient one at a time, with the next download being initiated only after the previous has been completed.</p>
+<p>When I start the download, it seems to be working correctly and manages to download several files before it it simply freezes and I get an &quot;out of memory&quot; error in the DDMS error log.</p>
+<p>I tried implementing suggestions found in other posts a sample of which are:</p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;28911&#x2F;httpclient-leaks-easily-or-can-we-have-a-close-method#answer-104241">httpclient-leaks-easily-or-can-we-have-a-close-method#answer-104241</a></p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;35041&#x2F;large-file-download-on-mobile">large-file-download-on-mobile</a></p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;120129&#x2F;httpclient-and-setfile">httpclient-and-setfile</a></p>
+<p><a href="http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;95521&#x2F;httpclient---save-response-directly-to-file">httpclient—save-response-directly-to-file</a></p>
+<p>I tried all of the following:</p>
+<ul>
+<li><p>moving larger file downloads directly form the nativepath rather then simply saving to file in order to insure that tmp files are not kept longer then necessary.</p>
+</li>
+<li><p>using the undocument setFile method of the httpclient. (This stopped my code dead without any error message, and as it is undocumented I have no idea if it was ever implemented on android anyway)</p>
+</li>
+<li><p>using a settimeout in httplient.onload after the file has been download to pause for 1 second before requesting the next file (I have no idea how this would help, but I am clutching a straws now)</p>
+</li>
+</ul>
+<p>Below is the relevant parts of my code which is complete except for the<br>GetFileUrls functions which I excluded for simplicity sake as all this function does is return an array of URLs. </p>
+<p>Am I doing something obviously wrong? Does anyone have a work around for this issue?  I really don&#39;t want to have to start again in native code (HELP)</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> count = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> downloadQueue = [];
+<span class="hljs-keyword">var</span> rootDir = Ti.Filesystem.getExternalStorageDirectory();
+
+downloadQueue = GetFileUrls(); <span class="hljs-comment">/* this function is not included in order to keep my post as short as possible, bu it returns an array of urls */</span>
+DownloadFile(downloadQueue[count]);
+
+<span class="hljs-keyword">var</span> downloader = Ti.Network.createHTTPClient({timeout:<span class="hljs-number">10000</span>});
+
+downloader.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    Ti.API.info(<span class="hljs-keyword">this</span>.responseData);
+}
+
+downloader.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    SaveFile(<span class="hljs-keyword">this</span>.folderName, <span class="hljs-keyword">this</span>.fileName, <span class="hljs-keyword">this</span>.responseData);
+    count += <span class="hljs-number">1</span>;
+
+    setTimeout( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ DownloadFile(); }, <span class="hljs-number">1000</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">DownloadFile</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">if</span> (count &lt; downloadQueue.length){
+        <span class="hljs-keyword">var</span> fileUrl = downloadQueue[count];
+        <span class="hljs-keyword">var</span> fileName = fileUrl.substring(fileUrl.lastIndexOf(<span class="hljs-string">'/'</span>) + <span class="hljs-number">1</span>);
+
+        downloader.fileName = fileName;
+        downloader.folderName = rootDir;
+
+        downloader.open(<span class="hljs-string">'GET'</span>, fileUrl);
+        downloader.send();
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">SaveFile</span><span class="hljs-params">(foldername, filename, response)</span></span>{    
+    <span class="hljs-keyword">if</span> (response.type == <span class="hljs-number">1</span>){
+        <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(response.nativePath);
+        <span class="hljs-keyword">var</span> dest = Ti.Filesystem.getFile(foldername, filename);
+
+        <span class="hljs-keyword">if</span> (dest.exists()){
+            dest.deleteFile();
+        }
+
+        f.move(dest.nativePath);
+    }<span class="hljs-keyword">else</span>{
+        <span class="hljs-keyword">var</span> dest = Ti.Filesystem.getFile(foldername, filename);
+        dest.write(response);
+    }
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="December 18th 2011, 9:42:49 am">December 18th 2011</span>
+				by <span class='authorname'>Liam Manderson</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>android</span></li>
+					
+						<li><span class='tagname'>filesystem</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>memory</span></li>
+					
+						<li><span class='tagname'>mobile</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box vote-box-answered">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>6</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>6 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article class="accepted-answer" id="answer-225688">
+						<header>
+							<h2><span class="icon-bg icon-check-1"></span>Accepted Answer</h2>
+						</header>
+				
+						<section>
+							<p>Hi Liam </p>
+<p>So a skeleton of http Request.. (I am coding it here so may need cleaning up)..</p>
+<pre><code class="hljs">
+<span class="hljs-keyword">var</span> xhrRequest    =    [];
+<span class="hljs-keyword">var</span> xhrCount    =    <span class="hljs-number">0</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">retrieveData</span><span class="hljs-params">(params)</span>
+</span>{
+    <span class="hljs-keyword">var</span> url              =  params.URL;
+
+    xhrRequest[xhrCount]  =  Ti.Network.createHTTPClient();
+
+    <span class="hljs-keyword">try</span>
+    {
+    xhrRequest[xhrCount].open(<span class="hljs-string">'GET'</span>, url);
+        xhrRequest[xhrCount].send(); 
+    }
+    <span class="hljs-keyword">catch</span>(e)
+    {
+        .... handle error
+
+        <span class="hljs-comment">// need to null out the request on failure or success</span>
+        xhrRequest[xhrCount]  =  <span class="hljs-literal">null</span>;
+    };
+    xhrRequest[xhrCount].onError  = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+    </span>{
+        .... handle error
+
+        <span class="hljs-comment">// need to null out the request on failure or success</span>
+        xhrRequest[xhrCount]  =  <span class="hljs-literal">null</span>;
+    };
+    xhrRequest[xhrCount].onLoad  = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+    </span>{
+
+        .... <span class="hljs-keyword">do</span> your processing..
+
+        SaveFile(params.folderName, params.fileName, <span class="hljs-keyword">this</span>.responseData);
+
+        <span class="hljs-comment">// need to null out the request on failure or success</span>
+        xhrRequest[xhrCount]  =  <span class="hljs-literal">null</span>;
+
+        loadthenextFile();
+
+    };
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadthenextFile</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">if</span> (count &gt; <span class="hljs-number">0</span>)
+    {
+        downloadFiles[count - <span class="hljs-number">1</span>] == <span class="hljs-literal">null</span>;
+    }
+    <span class="hljs-keyword">if</span> (count &lt; downloadQueue.length)
+    {
+        <span class="hljs-keyword">var</span> fileUrl = downloadQueue[count];
+        <span class="hljs-keyword">var</span> fileName = fileUrl.substring(fileUrl.lastIndexOf(<span class="hljs-string">'/'</span>) + <span class="hljs-number">1</span>);
+
+        retrieveData({URL: fileUrl, fileName: fileName, rootDir: rootDir});
+
+        xhrCount++;
+};
+</code></pre><p>Hopefully this will be enough to give you the idea. I have encapsulated the http request into its own function. Thus enabling to have a unique request for each file.</p>
+<p>T….</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 20th 2011, 6:30:51 am">December 20th 2011</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/129564/running-out-of-memory-when-downloading-multiple-files-with-httpclient-in-android#answer-225688" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>hey this is not working for me , i am getting json file from server but when got more than 5 - 6 file it show same error out of memory so will you please help me</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="August 16th 2012, 5:17:23 am">August 16th 2012</span>
+											by <span class='authorname'>Arun Shejul</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks Trevor!<br>This code helped solve similar problem in my code.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 1st 2013, 2:43:01 pm">October 1st 2013</span>
+											by <span class='authorname'>SWAR M</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box vote-box-answered">
+							<div class="score"><span>5</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-225732">
+				
+						<section>
+							<p>YOU ROCK!  Thank you so much for all your help. after doing a final cleanup my download is working perfectly.  I still needed to use the file.move trick to prevent large numbers of temp files building up, but my memory problems are behind me.  I will post the code here just in case any one else is struggling with httpclients.</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> rootDir = Ti.Filesystem.getExternalStorageDirectory();
+<span class="hljs-keyword">var</span> downloadQueue = [];
+
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">100</span>; i++){
+    downloadQueue.push(<span class="hljs-string">"http://pic/url"</span>)
+}
+
+
+<span class="hljs-keyword">var</span> xhrRequest  =   [];
+<span class="hljs-keyword">var</span> xhrCount    =   <span class="hljs-number">0</span>;
+
+loadthenextFile();
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">retrieveData</span><span class="hljs-params">(params)</span>
+</span>{
+    <span class="hljs-keyword">var</span> url = params.URL;
+
+    xhrRequest[xhrCount]  =  Ti.Network.createHTTPClient();
+
+    xhrRequest[xhrCount].onerror  = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-comment">/*.... handle error*/</span>
+
+        xhrRequest[xhrCount]  =  <span class="hljs-literal">null</span>; <span class="hljs-comment">// need to null out the request on failure or success</span>
+    };
+    xhrRequest[xhrCount].onload  = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+
+         <span class="hljs-comment">/*.... do your processing..*/</span>
+
+        SaveFile(params.folderName, params.fileName, <span class="hljs-keyword">this</span>.responseData);
+
+        xhrRequest[xhrCount]  =  <span class="hljs-literal">null</span>; <span class="hljs-comment">// need to null out the request on failure or success</span>
+
+        loadthenextFile();
+    };
+
+    <span class="hljs-keyword">try</span>{
+        xhrRequest[xhrCount].open(<span class="hljs-string">'GET'</span>, url);
+        xhrRequest[xhrCount].send();
+    }<span class="hljs-keyword">catch</span>(e){
+        <span class="hljs-comment">//.... handle error</span>
+        xhrRequest[xhrCount]  =  <span class="hljs-literal">null</span>; <span class="hljs-comment">// need to null out the request on failure or success</span>
+    };
+
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadthenextFile</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">if</span> (xhrCount &gt; <span class="hljs-number">0</span>){
+        downloadQueue[xhrCount - <span class="hljs-number">1</span>] == <span class="hljs-literal">null</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (xhrCount &lt; downloadQueue.length){
+        <span class="hljs-keyword">var</span> fileUrl = downloadQueue[xhrCount];
+
+        <span class="hljs-keyword">var</span> fileName = fileUrl.substring(fileUrl.lastIndexOf(<span class="hljs-string">'/'</span>) + <span class="hljs-number">1</span>);
+         fileName = xhrCount + <span class="hljs-string">"_"</span> + fileName;
+
+        retrieveData({URL: fileUrl, fileName: fileName, folderName: rootDir});
+
+        xhrCount++;
+      }
+};
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">SaveFile</span><span class="hljs-params">(foldername, filename, response)</span></span>{
+
+    Ti.API.info(response.type);
+    Ti.API.info(foldername + <span class="hljs-string">"/"</span> + filename);
+
+    <span class="hljs-keyword">if</span> (response.type == <span class="hljs-number">1</span>){
+        <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(response.nativePath);
+        <span class="hljs-keyword">var</span> dest = Ti.Filesystem.getFile(foldername, filename);
+
+        <span class="hljs-keyword">if</span> (dest.exists()){
+            dest.deleteFile();
+        }
+
+        f.move(dest.nativePath);
+
+        f = <span class="hljs-literal">null</span>;
+        dest = <span class="hljs-literal">null</span>;
+    }<span class="hljs-keyword">else</span>{
+        <span class="hljs-keyword">var</span> dest = Ti.Filesystem.getFile(foldername, filename);
+        dest.write(response);
+
+        dest = <span class="hljs-literal">null</span>;
+    }
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 20th 2011, 3:52:01 pm">December 20th 2011</span>
+								by <span class='authorname'>Liam Manderson</span><br>
+								<a class="icon-bg icon-link" href="question/129564/running-out-of-memory-when-downloading-multiple-files-with-httpclient-in-android#answer-225732" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I am pleased I could help …. would you mind marking the answer as correct so others can easily find it.. Thanks.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2011, 4:33:38 pm">December 20th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>2</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-225618">
+				
+						<section>
+							<p>OK it appears that you have tried a lot of things, but here is a suggestion which I got wrong initially and fixed by doing this.</p>
+<p>Firstly if you are downloading the file, then you need to null out the variable containing the file after you have saved it off. Having a lot of files in memory will quickly crash the app.</p>
+<p>Secondly downloaded is a single variable, which although you are loading the next file after the first, is likely to have the connection from the previous one still open.</p>
+<p>so I would go something like this…</p>
+<p>~~~</p>
+<p>var downloaded = [];<br>var dcnt = 0;</p>
+<p>then you can use downloader[dcnt] as your request handler and increment dcnt by one for each file. remember to null out the downloader array element of the previous before moving onto the next.</p>
+<p>Hope this explains it ok. Give it a try and let me know.</p>
+<p>T.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 18th 2011, 4:54:52 pm">December 18th 2011</span>
+								by <span class='authorname'>Trevor Ward</span><br>
+								<a class="icon-bg icon-link" href="question/129564/running-out-of-memory-when-downloading-multiple-files-with-httpclient-in-android#answer-225618" rel="permalink">permalink</a>
+							</div>
+
+							<h5>2 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Thanks so much for replying to me.  You have made my day! I will give your suggestions a try and get back to your.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 18th 2011, 6:25:35 pm">December 18th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I&#39;ve become obsessive about clearing out unused variables when I&#39;m done with them, before exiting functions.</p>
+<p>Closing file handlers and closing database queries is also important.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 18th 2011, 7:31:17 pm">December 18th 2011</span>
+											by <span class='authorname'>Stephen Feather</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-225641">
+				
+						<section>
+							<p>I tried to understand and implement all your ideas but obviously I am still missing something and leaking memory from somewhere.</p>
+<p>Here is the code again withe the changes included (there are comments next to the new parts explaining my thought process, so you can hopefully see if I have completely missed the point):</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> count = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> downloadQueue = [];
+
+<span class="hljs-comment">/* I tried putting all the calls to the DownloadFile function into an array and callinging them on a count so I could null the previous item at the beginning of each new file download */</span>
+
+<span class="hljs-keyword">var</span> downloadFiles = [];
+downloadFiles[count] = DownloadFile(downloadQueue[count]);
+
+
+<span class="hljs-keyword">var</span> downloader = Ti.Network.createHTTPClient({timeout:<span class="hljs-number">10000</span>});
+
+downloader.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    Ti.API.info(<span class="hljs-keyword">this</span>.responseData);
+}
+
+downloader.onload = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    SaveFile(<span class="hljs-keyword">this</span>.folderName, <span class="hljs-keyword">this</span>.fileName, <span class="hljs-keyword">this</span>.responseData);
+    count += <span class="hljs-number">1</span>;
+
+    <span class="hljs-comment">/*tried setting variables to null after the file has been saved*/</span>
+    <span class="hljs-keyword">this</span>.folderName = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.fileName = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.responseData = <span class="hljs-literal">null</span>;
+
+    setTimeout( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ downloadFiles[count] = DownloadFile(); }, <span class="hljs-number">1000</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">DownloadFile</span><span class="hljs-params">()</span></span>{
+
+    <span class="hljs-keyword">if</span> (count &gt; <span class="hljs-number">0</span>){
+        downloadFiles[count - <span class="hljs-number">1</span>] == <span class="hljs-literal">null</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (count &lt; downloadQueue.length){
+        <span class="hljs-keyword">var</span> fileUrl = downloadQueue[count];
+        <span class="hljs-keyword">var</span> fileName = fileUrl.substring(fileUrl.lastIndexOf(<span class="hljs-string">'/'</span>) + <span class="hljs-number">1</span>);
+
+        downloader.fileName = fileName;
+        downloader.folderName = rootDir;
+
+        downloader.open(<span class="hljs-string">'GET'</span>, fileUrl);
+
+        downloader.send();
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">SaveFile</span><span class="hljs-params">(foldername, filename, response)</span></span>{
+    <span class="hljs-keyword">if</span> (response.type == <span class="hljs-number">1</span>){
+        <span class="hljs-keyword">var</span> f = Ti.Filesystem.getFile(response.nativePath);
+        <span class="hljs-keyword">var</span> dest = Ti.Filesystem.getFile(foldername, filename);
+
+        <span class="hljs-keyword">if</span> (dest.exists()){
+            dest.deleteFile();
+        }
+
+        f.move(dest.nativePath);
+    }<span class="hljs-keyword">else</span>{
+        <span class="hljs-keyword">var</span> dest = Ti.Filesystem.getFile(foldername, filename);
+        dest.write(response);
+    }
+
+    <span class="hljs-comment">/* again I try and null my variables before the leaving the function*/</span> 
+    foldername = <span class="hljs-literal">null</span>;
+    filename = <span class="hljs-literal">null</span>;
+    response = <span class="hljs-literal">null</span>;
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 19th 2011, 4:14:38 am">December 19th 2011</span>
+								by <span class='authorname'>Liam Manderson</span><br>
+								<a class="icon-bg icon-link" href="question/129564/running-out-of-memory-when-downloading-multiple-files-with-httpclient-in-android#answer-225641" rel="permalink">permalink</a>
+							</div>
+
+							<h5>3 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>After posting I noticed a couple of extra variables I had not set to null and set them to null also, but I still run out of memory.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 4:44:28 am">December 19th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>With reference to Stephen&#39;s comment I have also now set all my file handlers to null as well, but I still run out of memory!</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 5:11:29 am">December 19th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>OK just out of curiosity what size are the files your downloading ?…..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 10:13:05 am">December 19th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-225654">
+				
+						<section>
+							<p>OK, here goes. I am sorry in advance for the mass of info, but as I am not sure what information might help I am giving you everything I can think of :) :</p>
+<p>The files I am downloading can be anything from a few kb (e.g. a small image file), all the way up to 4-5 mb.  </p>
+<p>What I have found is that the larger files are being identified as type 1 and being written to my applications tmp folder (which is why I am copying them from nativepath rather then doing a write to file, because if I don&#39;t they seem to stay in the temp folder and eventually block everything up).</p>
+<p>Smaller files are identified as type 2 and don&#39;t generate any temp files, so I am assuming they are staying in memory before being written to the file.</p>
+<p>When downloading just one file, I seem to have no problem, regardless of the size.  For testing purposes I even tried downloading a file of more then 30Mb and it worked.</p>
+<p>To test there wasn&#39;t an issue with the capacity of the folder I am downloading to I uploaded almost Gb of images two it via usb to see if I could make it complain but they uploaded without, issue so storage capacity is not the problem, and the total number of files I might be downloading is never going to get anywhere near that size.</p>
+<p>It does not seem to download small files better then large or vice versa it simply downloads until the memory is full and then stops, which suggests to me that they are not being purged from memory after saving, although this is just my best guess.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 19th 2011, 10:49:14 am">December 19th 2011</span>
+								by <span class='authorname'>Liam Manderson</span><br>
+								<a class="icon-bg icon-link" href="question/129564/running-out-of-memory-when-downloading-multiple-files-with-httpclient-in-android#answer-225654" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>In addition to the above I was curious to see if the point at which it the memory ran out was consistent so I tried downloading the same file repeatedly and found that regardless of the file size the memory error came up after about 57 Mb was downloaded.  This supports my feeling that the httpclient responseData is not getting cleared from memory</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 6:55:55 pm">December 19th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Since the last post I tried playing around with increasing the threadstack size and the buffer size but the difference was not much.  No matter what I try I still end up back at &quot;TiHttpClient java.lang.OutOfMemoryError&quot;.  The httpclient simply wont flush</p>
+<p>Please! Any further suggestions of things I can try? I have exausted all the possibilities I can think of.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 8:03:09 pm">December 19th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>I am broken now, I had one last attempt trying to use a buffer filestreams as suggested in the post:</p>
+<p>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;question&#x2F;119890&#x2F;httpclient-memory-leak-when-downloading-large-files-using-filestream-instead</p>
+<p>Once again the files where downloaded, but still the same out of memory error at exactly the same point.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 8:50:44 pm">December 19th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>If I went DOH! sorry I didn&#39;t see it before.</p>
+<p>it is using the same http request. whoops. needs recoding into a more formal format.</p>
+<p>1). create a function to load a file.</p>
+<p>2). move the http connection send, onload and on error into it.</p>
+<p>3). from your function which you load the file pass the file name and the new count.</p>
+<p>4). last thing to do before leaving the http onload null the arrayed element.</p>
+<p>Sorry could be more specific but just saw it before going to bed. I can provide a skeleton architecture in the morning if needed but your doing the send within a function your not actually creating a new http request.</p>
+<p>If this makes sense try it out if not post a comment back and I will code you a solution ASAP.</p>
+<p>T.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 8:51:27 pm">December 19th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Thanks for sticking with me, I am not sure if I quite follow, but I think that is more to do with my brain being too tired to see it.  I may well need the skeleton to make better sense of it.</p>
+<p>And thanks once again for sticking with me and not running away screaming :)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 8:57:49 pm">December 19th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>Couldn&#39;t resist giving it a try but I don&#39;t think I am following your directions correct. Now time for bed before I start hallucinating.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 19th 2011, 9:22:16 pm">December 19th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-225689">
+				
+						<section>
+							<p>Thanks! I will give it a go and tell you how I get on</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="December 20th 2011, 6:36:28 am">December 20th 2011</span>
+								by <span class='authorname'>Liam Manderson</span><br>
+								<a class="icon-bg icon-link" href="question/129564/running-out-of-memory-when-downloading-multiple-files-with-httpclient-in-android#answer-225689" rel="permalink">permalink</a>
+							</div>
+
+							<h5>6 Comments</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi again,</p>
+<p>I can see where you are going with this, but unfortunately it comes to a stand still because xhrRequest[xhrCount].onLoad does not fire.  It runs through the try{}catch{} block without error and no other errors are triggered, it simply does not fire the onload event .</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2011, 8:45:39 am">December 20th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>ouch I am now really confused .. can you do a code post on gitpaste ?… then I can look further</p>
+<p>T..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2011, 9:01:51 am">December 20th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>sure, heres the link <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;1501226">https:&#x2F;&#x2F;gist.github.com&#x2F;1501226</a>.  (all the Ti.API.info calls are in there because I was trying to work out exactly where it falls down)</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2011, 9:13:11 am">December 20th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>looking at your code.. where is the download queue populated ?…. I seem to be getting no data. Everything else looks ok.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2011, 11:42:50 am">December 20th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>sorry, not sure what happened there.  I somehow dropped the downloadqueue population from the code.  For simplicity am downloading the same image multiple times.  This works in my original code, up until the memory runs out so I just did the same thing here.</p>
+<p>Here is another post with the downloadQueue included <a href="https:&#x2F;&#x2F;gist.github.com&#x2F;1501226">https:&#x2F;&#x2F;gist.github.com&#x2F;1501226</a></p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2011, 12:30:04 pm">December 20th 2011</span>
+											by <span class='authorname'>Liam Manderson</span>
+										</div>
+									</li>
+								
+									<li class="comment">
+										<p><p>my bad… onLoad should be onload and onError should be onerror …. case sensitive…. </p>
+<p>Then I took out the save function and it ran through all 100 I setup… Sorry haven&#39;t debugged the save and only ran in iPhone emulator. but it process all the requests.</p>
+<p>T..</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="December 20th 2011, 1:27:07 pm">December 20th 2011</span>
+											by <span class='authorname'>Trevor Ward</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

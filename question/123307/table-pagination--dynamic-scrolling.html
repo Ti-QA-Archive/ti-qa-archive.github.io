@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Table Pagination / Dynamic Scrolling » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Table Pagination / Dynamic Scrolling</h1>
+		</header>
+		<section>
+			<p>I am trying to implement pagination or dynamic scrolling in a table (something like Twitter apps). I got the code from KitchenSink as follows:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">beginUpdate</span><span class="hljs-params">()</span>
+</span>{
+    updating = <span class="hljs-literal">true</span>;
+    navActInd.show();
+
+    tableView.appendRow(loadingRow);
+
+    <span class="hljs-comment">// just mock out the reload</span>
+    setTimeout(endUpdate,<span class="hljs-number">2000</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">endUpdate</span><span class="hljs-params">()</span>
+</span>{
+    updating = <span class="hljs-literal">false</span>;
+
+    tableView.deleteRow(lastRow,{animationStyle:Titanium.UI.iPhone.RowAnimationStyle.NONE});
+
+    <span class="hljs-comment">// simulate loading</span>
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=lastRow;c&lt;lastRow+<span class="hljs-number">10</span>;c++)
+    {
+        tableView.appendRow({title:<span class="hljs-string">"Row "</span>+(c+<span class="hljs-number">1</span>)},{animationStyle:Titanium.UI.iPhone.RowAnimationStyle.NONE});
+    }
+    lastRow += <span class="hljs-number">10</span>;
+
+    <span class="hljs-comment">// just scroll down a bit to the new rows to bring them into view</span>
+    tableView.scrollToIndex(lastRow-<span class="hljs-number">9</span>,{animated:<span class="hljs-literal">true</span>,position:Ti.UI.iPhone.TableViewScrollPosition.BOTTOM});
+
+    navActInd.hide();
+}
+
+<span class="hljs-keyword">var</span> lastDistance = <span class="hljs-number">0</span>; <span class="hljs-comment">// calculate location to determine direction</span>
+
+tableView.addEventListener(<span class="hljs-string">'scroll'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+</span>{
+    <span class="hljs-keyword">var</span> offset = e.contentOffset.y;
+    <span class="hljs-keyword">var</span> height = e.size.height;
+    <span class="hljs-keyword">var</span> total = offset + height;
+    <span class="hljs-keyword">var</span> theEnd = e.contentSize.height;
+    <span class="hljs-keyword">var</span> distance = theEnd - total;
+
+    <span class="hljs-comment">// going down is the &gt;= nearEnd))</span>
+        {
+            beginUpdate();
+        }
+    }
+    lastDistance = distance;
+});
+</code></pre><p>Anyway, I&#39;m not sure how I would add it to my code. In here, I display data when a button bar is clicked. Please note that the <code>page</code> parameter grabs the &quot;next page&quot; of data, or the 10 next items. So page 1 gets items 1 - 10, page 2 gets items 11-20 (from an internal API&#x2F;JSON feed).</p>
+<pre><code class="hljs"> buttonBar.addEventListener(<span class="hljs-string">'click'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span>
+    </span>{
+        theApp.showIndicator();
+
+        <span class="hljs-comment">// Display "newest" tab</span>
+        <span class="hljs-keyword">if</span> (e.index == <span class="hljs-number">3</span>) {
+            <span class="hljs-keyword">var</span> order = <span class="hljs-string">'newest'</span>;
+            <span class="hljs-keyword">var</span> initialLoad = <span class="hljs-number">1</span>;
+            <span class="hljs-keyword">var</span> lastRow = <span class="hljs-number">10</span>;
+            theApp.net.getCategoryPlaces(theApp.getCity(), categoryId, order, lastRow/<span class="hljs-number">10</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(data)</span>
+            </span>{
+                initialLoad++;
+                theApp.hideIndicator();
+                updatePlaceTable(data);
+            });
+        }
+</code></pre><p>Now I use updatePlaceTable to update the data, and the updatePlaceTable method is:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">updatePlaceTable</span><span class="hljs-params">(placeData)</span>
+</span>{    
+    <span class="hljs-comment">// Clear the old data</span>
+    placeTable.setData([]);
+
+    <span class="hljs-comment">// Add the place table</span>
+    <span class="hljs-keyword">var</span> data = PlaceTableRows.create(placeData,
+                                     <span class="hljs-literal">true</span>,
+                                     theApp.getCurrentLocation());
+    placeTable.setData(data);
+}
+</code></pre><p>I pass the data into PlaceTableRows which has the normal table for loop and populates the data array which is then connected to a tableview. With this design, where would I stick KitchenSink&#39;s pagination code? I tried several ways and it doesn&#39;t seem to work. Any help is much appreciated.</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="July 27th 2011, 10:56:04 am">July 27th 2011</span>
+				by <span class='authorname'>Nayef Copty</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>iphone</span></li>
+					
+						<li><span class='tagname'>javascript</span></li>
+					
+						<li><span class='tagname'>pagination</span></li>
+					
+						<li><span class='tagname'>tableview</span></li>
+					
+						<li><span class='tagname'>titanium</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>2</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>2 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-214580">
+				
+						<section>
+							<p>Here is <a href="https:&#x2F;&#x2F;github.com&#x2F;appcelerator&#x2F;KitchenSink&#x2F;blob&#x2F;master&#x2F;Resources&#x2F;examples&#x2F;table_view_dynamic_scroll.js">an example</a>.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 27th 2011, 11:05:06 am">July 27th 2011</span>
+								by <span class='authorname'>Ivan Škugor</span><br>
+								<a class="icon-bg icon-link" href="question/123307/table-pagination--dynamic-scrolling#answer-214580" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>That&#39;s what I am using… Problem is my code is structured differently. The way it handles the data. Just follow through the code real quick you&#39;ll understand what I mean. I just do not know where to put the cod ein.</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="July 27th 2011, 11:08:40 am">July 27th 2011</span>
+											by <span class='authorname'>Nayef Copty</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-219615">
+				
+						<section>
+							<p>Your exemple of kitchensink, but the question is : if i want to create a pagination (next, previous) for tableView that well not work cuz the variable lastrow change, u have a idea ?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="September 27th 2011, 1:05:36 pm">September 27th 2011</span>
+								by <span class='authorname'>mahmoud kamal</span><br>
+								<a class="icon-bg icon-link" href="question/123307/table-pagination--dynamic-scrolling#answer-219615" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

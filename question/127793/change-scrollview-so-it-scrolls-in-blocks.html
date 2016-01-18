@@ -1,0 +1,371 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Change ScrollView so it scrolls in blocks » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Change ScrollView so it scrolls in blocks</h1>
+		</header>
+		<section>
+			<p>Hello,</p>
+<p>I&#39;m trying to achieve the following effect in a ScrollView. Let&#39;s say the ScrollView is 1500px in height and I want it to work as if they were three blocks or pages of 500px each, so that whenever I scroll beyond the middle point of a block it scrolls automatically to the next block.</p>
+<p>Currently I&#39;m thinking on an approach similar to this:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> section = Ti.UI.createScrollView({
+    width:Ti.Platform.displayCaps.platformWidth,
+    height:Ti.Platform.displayCaps.platformHeight,
+    contentHeight:<span class="hljs-number">1500</span>,
+    contentWidth:<span class="hljs-number">1024</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    scrollType:<span class="hljs-string">'horizontal'</span>,
+    showHorizontalScrollIndicator:<span class="hljs-literal">false</span>,
+    showVerticalScrollIndicator:<span class="hljs-literal">true</span>
+});
+
+section.addEventListener(<span class="hljs-string">'scroll'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(e)</span></span>{    
+
+    <span class="hljs-keyword">if</span>( e.y &gt; <span class="hljs-number">250</span>  ){
+      section.scrollTo(<span class="hljs-number">0</span>,<span class="hljs-number">500</span>);
+    }
+
+});
+</code></pre><p>I&#39;m finding some limitations with the fact that as I understand there is no way to know then a scroll event has actually ended, which would actually make this far easier.</p>
+<p>I would like to hear your comments or suggestions on the best way I could go on in solving this.</p>
+<p>Thanks</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="November 4th 2011, 10:19:51 pm">November 4th 2011</span>
+				by <span class='authorname'>Uriel Lizama</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>scrollview</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>0 Comments</h5>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>4</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>4 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-222672">
+				
+						<section>
+							<p>Ok, I came up with a solution to my own question that it&#39;s working quite nicely. I post the code here so anybody interested can use it:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> VerticalPaginatedView = {
+  <span class="hljs-comment">/* Create function. It's just a basic wrapper aroung the
+  ScrollView creator */</span>
+  'create': function(options){
+    options.paginated = true;
+    options.page = 1;
+
+    <span class="hljs-keyword">if</span>( !options.pageSize ){
+      options.pageSize = 768;
+    }
+
+    <span class="hljs-keyword">var</span> ScrollView = Ti.UI.createScrollView(options);
+    ScrollView.addEventListener('scroll',VerticalPaginatedView.scrolllistener);
+
+    <span class="hljs-keyword">return</span> ScrollView;
+  },
+
+  <span class="hljs-comment">/* The listener for the scroll action */</span>
+  'scrolllistener': function(<span class="hljs-keyword">e</span>){    
+
+    <span class="hljs-keyword">if</span>( <span class="hljs-keyword">e</span>.source.paginated != true ){
+      <span class="hljs-keyword">return</span>;
+    }    
+
+    <span class="hljs-keyword">if</span>( <span class="hljs-keyword">e</span>.decelerating == true ){
+
+      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">e</span>.source.timeout){
+        clearTimeout(<span class="hljs-keyword">e</span>.source.timeout);
+      }
+      <span class="hljs-keyword">e</span>.source.Pscrolling = 0;          
+
+      VerticalPaginatedView.swiper(<span class="hljs-keyword">e</span>);
+    }    
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( <span class="hljs-keyword">e</span>.dragging == true ){
+
+      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">e</span>.source.timeout){
+        clearTimeout(<span class="hljs-keyword">e</span>.source.timeout);
+      }
+      <span class="hljs-keyword">e</span>.source.Pscrolling = 0;
+      <span class="hljs-keyword">e</span>.source.timeout = setTimeout(function(){ VerticalPaginatedView.scroller(<span class="hljs-keyword">e</span>); },300);
+
+
+    }
+
+  },
+
+  <span class="hljs-comment">/* Swipe effect. Basically takes over the scroll action */</span>
+  'swiper': function(<span class="hljs-keyword">e</span>){
+
+    <span class="hljs-keyword">if</span>( <span class="hljs-keyword">e</span>.source.Pscrolling ){
+      <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">var</span> o = <span class="hljs-keyword">e</span>.source.contentOffset;
+
+    <span class="hljs-keyword">var</span> aPosition = o.y;
+
+    <span class="hljs-keyword">e</span>.source.Pscrolling = 1; <span class="hljs-comment">//Block scrolling while scrolling</span>
+    <span class="hljs-keyword">var</span> pageSize = <span class="hljs-keyword">e</span>.source.pageSize;
+    <span class="hljs-keyword">var</span> pageNumber = <span class="hljs-keyword">e</span>.source.page;
+
+
+    <span class="hljs-comment">//Initial page Y</span>
+    <span class="hljs-keyword">var</span> pYi = (pageSize * pageNumber) - pageSize;
+
+    <span class="hljs-comment">//End page Y</span>
+    <span class="hljs-keyword">var</span> pYe = pageSize * pageNumber;
+
+    <span class="hljs-keyword">if</span>( aPosition &lt; pYi ){
+      <span class="hljs-keyword">e</span>.source.scrollTo(0,pYi-pageSize);
+      pageNumber--;
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( aPosition &gt; pYi ){
+      <span class="hljs-keyword">e</span>.source.scrollTo(0,pYe);
+      pageNumber++;
+    }            
+
+    <span class="hljs-keyword">e</span>.source.page = pageNumber;        
+
+  },
+
+  <span class="hljs-comment">/* Scroller effect. Used when a drag occurs*/</span>
+  'scroller': function(<span class="hljs-keyword">e</span>){    
+
+    <span class="hljs-keyword">if</span>( <span class="hljs-keyword">e</span>.source.Pscrolling ){
+      <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">var</span> o = <span class="hljs-keyword">e</span>.source.contentOffset;
+
+    <span class="hljs-keyword">var</span> aPosition = o.y;
+
+    <span class="hljs-keyword">e</span>.source.Pscrolling = 1; <span class="hljs-comment">//Block scrolling while scrolling</span>
+    <span class="hljs-keyword">var</span> pageSize = <span class="hljs-keyword">e</span>.source.pageSize;
+    <span class="hljs-keyword">var</span> pageNumber = <span class="hljs-keyword">e</span>.source.page;
+
+
+    <span class="hljs-comment">//Initial page Y</span>
+    <span class="hljs-keyword">var</span> pYi = (pageSize * pageNumber) - pageSize;
+
+    <span class="hljs-comment">//End page Y</span>
+    <span class="hljs-keyword">var</span> pYe = pageSize * pageNumber;
+
+    <span class="hljs-comment">//Center page Y</span>
+    <span class="hljs-keyword">var</span> pYc = pYi + (pageSize/2);
+
+    <span class="hljs-comment">//Go back</span>
+    <span class="hljs-keyword">var</span> pYb = pYi - (pageSize/2);
+
+    <span class="hljs-keyword">if</span>( aPosition &lt; pYi &amp;&amp; aPosition &gt; pYb ){
+      <span class="hljs-keyword">e</span>.source.scrollTo(0,pYi);
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( aPosition &lt; pYi &amp;&amp; aPosition &lt;= pYb ){
+      <span class="hljs-keyword">e</span>.source.scrollTo(0,pYi-pageSize);
+      pageNumber--;
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( aPosition &gt; pYi &amp;&amp; aPosition &lt; pYc ){
+      <span class="hljs-keyword">e</span>.source.scrollTo(0,pYi);
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( aPosition &gt; pYc ){
+      <span class="hljs-keyword">e</span>.source.scrollTo(0,pYe);
+      pageNumber++;
+    }            
+
+    <span class="hljs-keyword">e</span>.source.page = pageNumber;    
+  }
+};
+</code></pre><p>An you would use it in the following way:</p>
+<pre><code class="hljs">var section = VerticalPaginatedView.create({
+    <span class="hljs-variable">width</span>:Ti.Platform.displayCaps.platformWidth,
+    <span class="hljs-variable">height</span>:Ti.Platform.displayCaps.platformHeight,
+     contentHeight:<span class="hljs-number">1536</span>,
+     contentWidth:<span class="hljs-number">1024</span>,
+    backgroundColor:<span class="hljs-string">'#fff'</span>,
+    scrollType:<span class="hljs-string">'horizontal'</span>,
+    showHorizontalScrollIndicator:<span class="hljs-keyword">false</span>,
+    showVerticalScrollIndicator:<span class="hljs-keyword">true</span>,
+     pageSize:<span class="hljs-number">768</span>
+});
+</code></pre><p>Cheer!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 5th 2011, 6:11:28 pm">November 5th 2011</span>
+								by <span class='authorname'>Uriel Lizama</span><br>
+								<a class="icon-bg icon-link" href="question/127793/change-scrollview-so-it-scrolls-in-blocks#answer-222672" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>Hi,<br>can you post an project example which i can download?<br>i tried to copy this example but its not working so good.</p>
+<p>thanks,<br>Eliza</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="June 3rd 2012, 6:35:14 am">June 3rd 2012</span>
+											by <span class='authorname'>Eliza Sapir</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>1</span> Vote</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-222647">
+				
+						<section>
+							<p>If you are not stuck on using a vertical scroll, you might check out <code>Titanium.UI.createScrollableView</code></p>
+<p>http:&#x2F;&#x2F;developer.appcelerator.com&#x2F;apidoc&#x2F;mobile&#x2F;latest&#x2F;Titanium.UI.ScrollableView-object</p>
+<pre><code class="hljs"><span class="hljs-variable"><span class="hljs-keyword">var</span> view1</span> = Titanium.UI.createView({backgroundColor:'#<span class="hljs-number">123</span>'});
+<span class="hljs-variable"><span class="hljs-keyword">var</span> view2</span> = Titanium.UI.createView({backgroundColor:'#<span class="hljs-number">123</span>'});
+<span class="hljs-variable"><span class="hljs-keyword">var</span> view3</span> = Titanium.UI.createView({backgroundColor:'#<span class="hljs-number">123</span>'});
+<span class="hljs-variable"><span class="hljs-keyword">var</span> scrollView</span> = Titanium.UI.createScrollableView({
+    views:[view1,view2,view3],
+    showPagingControl:<span class="hljs-literal">true</span>
+});
+win.add(scrollView);
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="November 4th 2011, 11:36:13 pm">November 4th 2011</span>
+								by <span class='authorname'>ryun shofner</span><br>
+								<a class="icon-bg icon-link" href="question/127793/change-scrollview-so-it-scrolls-in-blocks#answer-222647" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-242293">
+				
+						<section>
+							<p>Dear Uriel Lizama,</p>
+<p>Your code looks very fine! I need this also, but it&#39;s not working so smoothly, maybe you have an upgraded version? And maybe a horizontal version? Would be great! </p>
+<p>Thanks already!</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 1st 2012, 7:05:23 pm">July 1st 2012</span>
+								by <span class='authorname'>Blaat Orx</span><br>
+								<a class="icon-bg icon-link" href="question/127793/change-scrollview-so-it-scrolls-in-blocks#answer-242293" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-242335">
+				
+						<section>
+							<p>Thanks for your reaction! The only problem is that i have to load 4 or 3 views in one view (depending on the orientation of the device) so everytime i rotate the device a have to reload &#x2F;position it whitin seperate views of the scrollableview</p>
+<p>So i want one view the can scroll in blocks en returns the pageIndex?</p>
+<p>Hope you can help&#x2F;</p>
+<p>Thanks</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="July 2nd 2012, 12:48:59 pm">July 2nd 2012</span>
+								by <span class='authorname'>Blaat Orx</span><br>
+								<a class="icon-bg icon-link" href="question/127793/change-scrollview-so-it-scrolls-in-blocks#answer-242335" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

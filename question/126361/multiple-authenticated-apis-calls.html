@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Multiple authenticated APIs calls » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Multiple authenticated APIs calls</h1>
+		</header>
+		<section>
+			<p>I created some code that talks to 7 different APIs. But it works synchronously and takes a long time to download every data returned by the API and install it into database. To make this process faster I should make it work asynchronously, but I am facing a big problem: how?<br>When the user logs in, every information is passed to mainWindow.js that basically does:</p>
+<pre><code class="hljs"><span class="hljs-built_in">var</span> <span class="hljs-keyword">log</span> = Ti<span class="hljs-built_in">.</span>Network<span class="hljs-built_in">.</span>createHTTPClient();
+<span class="hljs-comment">//Timeout until error:</span>
+<span class="hljs-keyword">log</span><span class="hljs-built_in">.</span>setTimeout(<span class="hljs-number">10000</span>);
+
+<span class="hljs-keyword">log</span><span class="hljs-built_in">.</span>open(<span class="hljs-string">'POST'</span>, url);
+
+<span class="hljs-comment">//Header parameters</span>
+<span class="hljs-keyword">log</span><span class="hljs-built_in">.</span>setRequestHeader(<span class="hljs-string">"Content-Type"</span>, <span class="hljs-string">"application/json"</span>);
+<span class="hljs-keyword">log</span><span class="hljs-built_in">.</span>onload = function(e) {
+
+    <span class="hljs-built_in">var</span> win2 = Titanium<span class="hljs-built_in">.</span>UI<span class="hljs-built_in">.</span>createWindow({  
+        fullscreen: <span class="hljs-literal">true</span>,
+        url:<span class="hljs-string">'main_windows/mainMenu.js'</span>,
+    });
+
+    <span class="hljs-comment">//Parameters to second window:</span>
+    win2<span class="hljs-built_in">.</span><span class="hljs-keyword">log</span> = <span class="hljs-keyword">log</span>;
+}
+<span class="hljs-keyword">log</span><span class="hljs-built_in">.</span>send(<span class="hljs-keyword">params</span>);
+</code></pre><p>The code above works fine, but when I try to use win2.log (since it contains the active session) to call the others 7 different Apis asynchronously, I don&#39;t succeed.</p>
+<p>Here is an example calling 2 APIs:</p>
+<pre><code class="hljs"><span class="hljs-keyword">var</span> objectsConCheck = win2.log;
+
+<span class="hljs-comment">//Opens address to retrieve contact list</span>
+objectsConCheck.open(<span class="hljs-string">'GET'</span>, url_firstApi );
+
+<span class="hljs-comment">//When connected</span>
+objectsConCheck.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">//Parses response into strings</span>
+    <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(objectsConCheck.responseText);
+    <span class="hljs-comment">//Result's set:</span>
+    label_status.text = <span class="hljs-string">"Database needs sycronization!"</span>;
+}
+
+<span class="hljs-comment">//Connection error:</span>
+objectsConCheck.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+}
+
+<span class="hljs-comment">//Sending information and try to connect</span>
+objectsConCheck.send();
+
+
+<span class="hljs-comment">// ********Calling the second API asynchronously********</span>
+
+<span class="hljs-keyword">var</span> objectsTaxDic = win2.log;
+
+<span class="hljs-comment">//Opens address to retrieve contact list</span>
+objectsTaxDic.open(<span class="hljs-string">'GET'</span>, url_secondApi     );
+
+<span class="hljs-comment">//When connected</span>
+objectsTaxDic.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+    <span class="hljs-comment">//Parses response into strings</span>
+    <span class="hljs-keyword">var</span> json = <span class="hljs-built_in">JSON</span>.parse(objectsTaxDic.responseText);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; json.length ; i++){
+        db.execute(<span class="hljs-string">'INSERT INTO vocabulary (vid, name) VALUES (?,?)'</span>, json[i].vid, json[i].name);
+    }
+}
+<span class="hljs-comment">//Connection error:</span>
+objectsTaxDic.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+}
+
+<span class="hljs-comment">//Sending information and try to connect</span>
+objectsTaxDic.send();
+</code></pre><p>I need to use win2.log because it contains the logged session, so every time I access the apis, I just open another connection using win2.log, but I think even when I attribute win2.log to different variables, Titanium treats them as win2.log … If I abort objectsConCheck  <code>objectsConCheck.abort()</code> I won&#39;t be able to connect using objectsTaxDic.<br>Do you know any workaround for this? Is there another way to access apis that require a valid and logged session?  </p>
+<p>Any kind soul would share some comments?</p>
+<p>Thank you guys</p>
+
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 3rd 2011, 11:31:19 pm">October 3rd 2011</span>
+				by <span class='authorname'>Joseandro Luiz</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>asynchronous</span></li>
+					
+						<li><span class='tagname'>authentication</span></li>
+					
+						<li><span class='tagname'>httpclient</span></li>
+					
+						<li><span class='tagname'>multiple</span></li>
+					
+						<li><span class='tagname'>xhr</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>4 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>In the first code snippet I forgot to add:<br><code>win2.open()</code></p>
+<p>But this is not very important, since it is just a representation of the real code.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 3rd 2011, 11:33:50 pm">October 3rd 2011</span>
+								by <span class='authorname'>Joseandro Luiz</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>is it possible to just  install the db with the APP and download updates or the more volatile data</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 4th 2011, 12:02:54 am">October 4th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Yes, firstly I installed the db with the basic structure and with the inputs from apis I feed the rows inside the databse.<br>I forgot to mention: I am developing using Android 2.3 and the latest version of Titanium Studio.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 4th 2011, 12:18:12 am">October 4th 2011</span>
+								by <span class='authorname'>Joseandro Luiz</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>what&#39;s the error message? AFAIK all <code>xhr</code> request is complete, as in once the onload is called everything is cut-off, but not 100% sure though.</p>
+<p>If you&#39;re familiar with <code>oAuth</code> usually the server responded with some kind of <code>access token</code> (usually short lived), and with that token, the server should assume that you&#39;re logged in.</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 4th 2011, 1:48:47 am">October 4th 2011</span>
+								by <span class='authorname'>soemarko ridwan</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>0</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>0 Answers</h3>
+
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>

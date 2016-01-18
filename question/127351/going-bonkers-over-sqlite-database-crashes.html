@@ -1,0 +1,443 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	
+		<title>Going bonkers over SQLite database crashes » Community Questions &amp; Answers » Appcelerator Developer Center</title>
+	
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<link href="../../related/favicon.png" rel="shortcut icon" type="image/png">
+	<link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700" rel="stylesheet" type="text/css">
+	<link href="//d3ilu1xuwhtfe2.cloudfront.net/e8e0ebd/css/style.css" rel="stylesheet" type="text/css">
+	<link href="../../related/qa.css" rel="stylesheet" type="text/css">
+	<link href="../../related/hybrid.css" rel="stylesheet" type="text/css">
+	
+	<link href="../../related/overrides.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<div class='mast'>    <div class='container'>        <div class='row'>            <div class='col-sm-12'>                <div class='masthead'><h1>Titanium Community Questions & Answer Archive</h1><h2>We felt that 6+ years of knowledge should not die so this is the Titanium Community Questions &amp; Answer Archive</h2></div>            </div>        </div>    </div></div>
+
+<main class="container">
+	<div class="row">
+		<div class="col-sm-12">
+			
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<article class="question-container">
+	<div class="question">
+		<header>
+			<h1>Going bonkers over SQLite database crashes</h1>
+		</header>
+		<section>
+			<p>I&#39;m grabbing about 1,200 records from an XML feed and putting them into a local SQLite database on the phone. My problem is that despite all my efforts, I&#39;m still getting some all-too-common application crashes in this process.</p>
+<p>At the end, you&#39;ll notice a few custom methods:</p>
+<pre><code class="hljs">refreshFeatured()<span class="hljs-comment">;    </span>
+refreshAllCategories()<span class="hljs-comment">;</span>
+refreshAlphaList()<span class="hljs-comment">;</span>
+</code></pre><p>These are used to make local SQLite queries against those new records and populate tables in the interface.</p>
+<pre><code class="hljs">function populateLocalDB() {
+    <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient();
+    xhr.<span class="hljs-keyword">open</span>(<span class="hljs-string">"GET"</span>,<span class="hljs-string">"http://somedomain.com/xml.asp?DR=MEMB"</span>);
+    xhr.onload = function()
+    {
+
+        <span class="hljs-keyword">var</span> overlay = Ti.UI.createView({
+           backgroundColor:'black', 
+           width:winBusiness.width, 
+           height:winBusiness.height, 
+           opacity:0.80
+        });
+        winBusiness.add(overlay);
+
+        try {
+            <span class="hljs-keyword">var</span> doc = this.responseXML.documentElement;
+            <span class="hljs-keyword">var</span> items = doc.getElementsByTagName(<span class="hljs-string">"row"</span>);
+
+            <span class="hljs-keyword">var</span> dbConnection = Ti.Database.<span class="hljs-keyword">open</span>('sbaDB');
+            dbConnection.execute(<span class="hljs-string">"BEGIN IMMEDIATE TRANSACTION"</span>);
+
+            <span class="hljs-keyword">var</span> pb=Titanium.UI.createProgressBar({
+                width:150,
+                min:0,
+                max:items.length,
+                value:0,
+                height:70,
+                color:'white',
+                message:'Loading Members...',
+                font:{fontSize:14, fontWeight:'bold'},
+                style:Titanium.UI.iPhone.ProgressBarStyle.PLAIN,
+                top:60
+            });
+            winBusiness.add(pb);
+            pb.show();
+
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=0;c&lt;items.length;c++)
+            {
+                <span class="hljs-keyword">var</span> item = items.item(c);                
+                <span class="hljs-keyword">var</span> id = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"id"</span>));
+                <span class="hljs-keyword">var</span> websort = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"websort"</span>));
+                <span class="hljs-keyword">var</span> custom20 = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"custom20"</span>));
+                <span class="hljs-keyword">var</span> webhref = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"webhref"</span>));
+                <span class="hljs-keyword">var</span> webdispopt = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"webdispopt"</span>));
+                <span class="hljs-keyword">var</span> name = escape(<span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"name"</span>)));
+                <span class="hljs-keyword">var</span> joined = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"joined"</span>));
+                <span class="hljs-keyword">var</span> latitude = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"latitude"</span>));
+                <span class="hljs-keyword">var</span> longitude = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"longitude"</span>));
+                <span class="hljs-keyword">var</span> category = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"category"</span>));
+                <span class="hljs-keyword">var</span> secondary = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"secondary"</span>));
+                <span class="hljs-keyword">var</span> mailaddr1 = escape(<span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"mailaddr1"</span>)));
+                <span class="hljs-keyword">var</span> mailaddr2 = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"mailaddr2"</span>));
+                <span class="hljs-keyword">var</span> mailcity = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"mailcity"</span>));
+                <span class="hljs-keyword">var</span> mailstate = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"mailstate"</span>));
+                <span class="hljs-keyword">var</span> mailzip = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"mailzip"</span>));
+                <span class="hljs-keyword">var</span> phyaddr1 = escape(<span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"phyaddr1"</span>)));
+                <span class="hljs-keyword">var</span> phyaddr2 = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"phyaddr2"</span>));
+                <span class="hljs-keyword">var</span> phycity = escape(<span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"phycity"</span>)));
+                <span class="hljs-keyword">var</span> phystate = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"phystate"</span>));
+                <span class="hljs-keyword">var</span> phyzip = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"phyzip"</span>));
+                <span class="hljs-keyword">var</span> phone1 = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"phone1"</span>));
+                <span class="hljs-keyword">var</span> fax_phone = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"fax_phone"</span>));
+                <span class="hljs-keyword">var</span> email = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"email"</span>));
+                <span class="hljs-keyword">var</span> website = <span class="hljs-literal">trim</span>(item.getAttribute(<span class="hljs-string">"website"</span>));
+
+                dbConnection.execute('INSERT OR <span class="hljs-keyword">REPLACE</span> INTO members (id,websort,custom20,webhref,webdispopt,name,joined,latitude,longitude,category,secondary,mailaddr1,mailaddr2,mailcity,mailstate,mailzip,phyaddr1,phyaddr2,phycity,phystate,phyzip,phone1,fax_phone,email,website) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',id,websort,custom20,webhref,webdispopt,name,joined,latitude,longitude,category,secondary,mailaddr1,mailaddr2,mailcity,mailstate,mailzip,phyaddr1,phyaddr2,phycity,phystate,phyzip,phone1,fax_phone,email,website);
+
+                pb.value = c;
+
+            }        
+            dbConnection.execute(<span class="hljs-string">"COMMIT TRANSACTION"</span>);
+            dbConnection.<span class="hljs-keyword">close</span>();
+            Titanium.<span class="hljs-keyword">App</span>.Properties.setBool(<span class="hljs-string">"db_loaded"</span>, true);
+            refreshFeatured();    
+            refreshAllCategories();
+            refreshAlphaList();
+            pb.hide();
+            overlay.hide();
+
+        } catch (<span class="hljs-keyword">err</span>) {
+            alert('<span class="hljs-keyword">DB</span> INSERTION '+<span class="hljs-keyword">err</span>);
+        }
+
+    };
+    xhr.send();
+}
+</code></pre>
+		</section>
+		<footer>
+			<div class="author">
+				&mdash; asked <span title="October 25th 2011, 12:10:38 pm">October 25th 2011</span>
+				by <span class='authorname'>T.J. Mahaffey</span>
+			</div>
+
+			
+				<ul class="tags">
+					
+						<li><span class='tagname'>sqlite</span></li>
+					
+				</ul>
+			
+
+			<section>
+				<h5>3 Comments</h5>
+				
+					<ul class="comments">
+					
+						<li class="comment">
+							<div><p>at a minimum can you please provide some specifics on the error messages or the output from the crash? There really isn&#39;t much for anyone to work with here</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 25th 2011, 12:17:50 pm">October 25th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>Certainly, though I&#39;m getting no error message. The application just quits on the phone. I do seem to have a log file related to my last occurrence.</p>
+<p>Here is a direct link to that last log file:</p>
+<p>http:&#x2F;&#x2F;www.tjmahaffey.com&#x2F;temp&#x2F;crash_log.txt</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 25th 2011, 12:27:04 pm">October 25th 2011</span>
+								by <span class='authorname'>T.J. Mahaffey</span>
+							</div>
+						</li>
+					
+						<li class="comment">
+							<div><p>the crash is in the code where you are creating the table… and as I stated above, there isnt much to work with here… can you pls provide some code?</p>
+</div>
+							<div class="author">
+								&mdash; commented <span title="October 25th 2011, 12:50:19 pm">October 25th 2011</span>
+								by <span class='authorname'>Aaron Saunders</span>
+							</div>
+						</li>
+					
+					</ul>
+				
+			</section>
+		</footer>
+		<aside class="vote-box">
+			<div class="score"><span>0</span> Votes</div>
+			<div class="answers"><span>5</span> Answers</div>
+		</aside>
+	</div>
+
+	<hr>
+
+	<h3>5 Answers</h3>
+
+	
+		<ul class="answers">
+			
+				<li class="answer">
+				
+					<article id="answer-221823">
+				
+						<section>
+							<p>If you can&#39;t solve the crashes (no tips on that problem, sorry) you could try to generate the sqlite file on your server and have your app download a new version. That should give you less performance problems.</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 25th 2011, 12:39:59 pm">October 25th 2011</span>
+								by <span class='authorname'>Vincent Vijn</span><br>
+								<a class="icon-bg icon-link" href="question/127351/going-bonkers-over-sqlite-database-crashes#answer-221823" rel="permalink">permalink</a>
+							</div>
+
+							<h5>1 Comment</h5>
+							
+								<ul class="comments">
+								
+									<li class="comment">
+										<p><p>I agree and I do plan to go that route, but since the XML feed will change weekly and I would need to update the local records at least once a month with the same sort of query, I&#39;ll need to try and figure out the problem anyway…</p>
+</p>
+										<div class="author">
+											&mdash; commented <span title="October 25th 2011, 12:42:04 pm">October 25th 2011</span>
+											by <span class='authorname'>T.J. Mahaffey</span>
+										</div>
+									</li>
+								
+								</ul>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221837">
+				
+						<section>
+							<p>I&#39;m sorry, Aaron, I thought the above code was what you were looking for since it was my SQLite-specific code. Here is the first of the three table-specific functions I&#39;m using as well:</p>
+<pre><code class="hljs">
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">refreshFeatured</span>(<span class="hljs-params"></span>) </span>{
+
+    business_featured_tableView.setData([]);
+
+   <span class="hljs-keyword">var</span> xhr = Ti.Network.createHTTPClient(); <span class="hljs-comment">// returns an instance of HTTPClient</span>
+
+   xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+       <span class="hljs-keyword">var</span> allFeatures = <span class="hljs-built_in">JSON</span>.parse(xhr.responseText);
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> c=<span class="hljs-number">0</span>;c&lt;allFeatures.length;c++)
+        {
+            <span class="hljs-keyword">var</span> aName = allFeatures[c].advertiser_name;
+            <span class="hljs-keyword">var</span> tableRow = Ti.UI.createTableViewRow({
+                  hasDetail: <span class="hljs-literal">true</span>,
+                  title: <span class="hljs-string">"Member Details"</span>,
+                  height: <span class="hljs-string">'80'</span>,
+                  memberID: allFeatures[c].sba_id
+            });
+            <span class="hljs-keyword">var</span> adImage = Ti.UI.createImageView({
+                image: <span class="hljs-string">'http://www.domain.com'</span>+allFeatures[c].ad_path_top,
+                height: <span class="hljs-string">'80'</span>,
+                width: <span class="hljs-string">'640'</span>,
+                left: <span class="hljs-string">'-155'</span>
+            });
+            tableRow.add(adImage);
+            business_featured_tableView.appendRow(tableRow);
+        }    
+
+   };
+
+   xhr.onerror = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+       Titanium.API.log(<span class="hljs-string">'INFO'</span>, e.message);
+   };
+
+   xhr.open(<span class="hljs-string">'GET'</span>,<span class="hljs-string">'http://www.domain.com/api/index.php/mobile/featured/app_id/'</span>+app_id+<span class="hljs-string">'/format/json'</span>);
+   xhr.setRequestHeader(
+    <span class="hljs-string">'Authorization'</span>, 
+    <span class="hljs-string">'Basic '</span> + Ti.Utils.base64encode(api_login+<span class="hljs-string">':'</span>+api_pw));
+   xhr.send();
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 25th 2011, 2:34:30 pm">October 25th 2011</span>
+								by <span class='authorname'>T.J. Mahaffey</span><br>
+								<a class="icon-bg icon-link" href="question/127351/going-bonkers-over-sqlite-database-crashes#answer-221837" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221838">
+				
+						<section>
+							<p>The second function called after the db is populated:</p>
+<p>~~~</p>
+<p>function refreshAllCategories() {</p>
+<pre><code class="hljs">business_category_tableView.setData([]);
+
+<span class="hljs-keyword">try</span> {
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> dbConnection</span> = Ti.Database.<span class="hljs-keyword">open</span>('sbaDB');
+    <span class="hljs-variable"><span class="hljs-keyword">var</span> myResult</span> = dbConnection.execute(<span class="hljs-string">"SELECT DISTINCT(category) FROM members WHERE category !='' ORDER BY category"</span>);
+    <span class="hljs-comment">//alert('starting category population');</span>
+    <span class="hljs-keyword">while</span> (myResult.isValidRow())
+    {
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> myCategory</span> = myResult.fieldByName('category');
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> catLabel</span> = Ti.UI.createLabel({
+            text:myCategory,
+            left: <span class="hljs-number">10</span>,
+            font:{fontSize:<span class="hljs-number">14</span>,fontWeight:'bold'}
+        });
+        <span class="hljs-variable"><span class="hljs-keyword">var</span> tableRow</span> = Ti.UI.createTableViewRow({
+            hasDetail: <span class="hljs-literal">true</span>,
+            cat:myCategory
+        });
+        tableRow.add(catLabel);
+        business_category_tableView.appendRow(tableRow);    
+        myResult.next();
+    }
+    dbConnection.close();
+    <span class="hljs-comment">//alert('Category population COMPLETED');</span>
+} <span class="hljs-keyword">catch</span> (err) {
+    alert(err);
+}
+</code></pre><p>}</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 25th 2011, 2:36:11 pm">October 25th 2011</span>
+								by <span class='authorname'>T.J. Mahaffey</span><br>
+								<a class="icon-bg icon-link" href="question/127351/going-bonkers-over-sqlite-database-crashes#answer-221838" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-221839">
+				
+						<section>
+							<p>And the third:</p>
+<pre><code class="hljs"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">refreshAlphaList</span><span class="hljs-params">()</span> </span>{
+
+    business_alpha_tableView.setData([]);
+
+    <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">var</span> dbConnection = Ti.Database.open(<span class="hljs-string">'sbaDB'</span>);
+        <span class="hljs-keyword">var</span> myResult = dbConnection.execute(<span class="hljs-string">'SELECT DISTINCT substr(name,1,1) as letter FROM members ORDER BY letter'</span>);
+        <span class="hljs-comment">//alert('starting alpha population');</span>
+        <span class="hljs-keyword">while</span> (myResult.isValidRow())
+        {
+            <span class="hljs-keyword">var</span> myLetter = myResult.fieldByName(<span class="hljs-string">'letter'</span>);
+            <span class="hljs-keyword">if</span> (myLetter != <span class="hljs-string">""</span>) {
+                <span class="hljs-keyword">var</span> letterLabel = Ti.UI.createLabel({
+                    text:myLetter,
+                    left: <span class="hljs-number">10</span>,
+                    font:{fontSize:<span class="hljs-number">14</span>,fontWeight:<span class="hljs-string">'bold'</span>}
+                });
+                <span class="hljs-keyword">var</span> tableRow = Ti.UI.createTableViewRow({
+                    hasDetail: <span class="hljs-literal">true</span>,
+                    memberLetter: myLetter
+                });
+                tableRow.add(letterLabel);
+                business_alpha_tableView.appendRow(tableRow);    
+            }
+            myResult.next();
+        }
+        dbConnection.close();
+        <span class="hljs-comment">//alert('Alpha population COMPLETED');</span>
+    } <span class="hljs-keyword">catch</span> (err) {
+        alert(err);
+    }
+}
+</code></pre>
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 25th 2011, 2:36:47 pm">October 25th 2011</span>
+								by <span class='authorname'>T.J. Mahaffey</span><br>
+								<a class="icon-bg icon-link" href="question/127351/going-bonkers-over-sqlite-database-crashes#answer-221839" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+				<li class="answer">
+				
+					<article id="answer-222148">
+				
+						<section>
+							<p>Was This enough of my code to help isolate my crash problem with creating tables?</p>
+
+						</section>
+						<footer>
+							<div class="author">
+								&mdash; answered <span title="October 28th 2011, 1:40:04 pm">October 28th 2011</span>
+								by <span class='authorname'>T.J. Mahaffey</span><br>
+								<a class="icon-bg icon-link" href="question/127351/going-bonkers-over-sqlite-database-crashes#answer-222148" rel="permalink">permalink</a>
+							</div>
+
+							<h5>0 Comments</h5>
+							
+						</footer>
+						<aside class="vote-box">
+							<div class="score"><span>0</span> Votes</div>
+						</aside>
+					</article>
+				</li>
+			
+		</ul>
+	
+</article>
+
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+	<div class="row"><div class="signoff">The ownership of individual contributions to this community generated content is retained by the authors of their contributions.<br>All trademarks remain the property of the respective owner.</div></div>
+</main>
+
+
+</body>
+</html>
